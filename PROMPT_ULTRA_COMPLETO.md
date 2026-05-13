@@ -1,10 +1,10 @@
-Usa este prompt en Cursor (nuevo chat) para que el agente configure y opere memoria persistente con Obsidian MCP en Windows.
+Usa este prompt en Cursor (nuevo chat) para que el agente haga TODO el trabajo pesado y deje memoria persistente con Obsidian MCP en Windows.
 
 ---
 
-Actua como ingeniero senior de automatizacion. Quiero que configures memoria persistente cross-device en Cursor usando Obsidian MCP y GitHub.
+Actua como ingeniero senior de automatizacion. Quiero que tu hagas todo el trabajo pesado para configurar memoria persistente cross-device en Cursor usando Obsidian MCP y GitHub.
 
-Objetivo:
+Objetivo (sin trabajo manual del usuario, excepto dar la URL del repo):
 - Dejar memoria durable entre sesiones y entre maquinas.
 - Separar memoria global y por proyecto.
 - Auto-recuperar MCP si se cae.
@@ -15,10 +15,11 @@ Contexto tecnico esperado:
 - Vault local: `%USERPROFILE%\Documents\cursor-memory-vault`.
 - MCP en Cursor debe quedar en `%USERPROFILE%\.cursor\mcp.json`.
 - Cursor debe usar `mcp-remote` hacia `http://127.0.0.1:3001/sse`.
+- Repo privado del vault: `<REPO_URL_PRIVADO>`
 
-Reglas de implementacion:
+Reglas de implementacion (ejecuta tu todo esto):
 1. Verifica prerequisitos (`git`, `node`, `npm`).
-2. Si falta algo, indicalo y para.
+2. Si falta algo, instalalo si puedes hacerlo de forma segura; si no puedes, pide solo ese dato/accion puntual.
 3. Crea/actualiza estructura minima del vault:
    - `MEMORY.md`
    - `SESSION_LOG.md`
@@ -52,3 +53,8 @@ Si algo falla, no te detengas al primer error:
 - aplica fix,
 - vuelve a validar,
 - reporta claramente.
+
+Importante:
+- Minimiza preguntas al usuario.
+- Solo pide datos imprescindibles (por ejemplo credenciales o autorizaciones).
+- Si un paso puede automatizarse, automatizalo.

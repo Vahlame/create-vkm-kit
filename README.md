@@ -13,18 +13,23 @@ Este repo queda intencionalmente minimalista: solo lo necesario para integrar me
 
 Si ya tienes Git + Node + Cursor, se hace en **30 minutos o menos**.
 
-## Unico flujo recomendado
+## Unico flujo recomendado (IA hace el trabajo pesado)
 
 1. Crea un repo privado para tu vault (ejemplo: `cursor-memory-vault`).
-2. Ejecuta `scripts/windows/Setup-Cursor-Memory.cmd`.
-3. Pega la URL del repo privado cuando te la pida.
-4. Reinicia Cursor.
-5. Copia `PROMPT_ULTRA_COMPLETO.md` y pégalo en User Rules.
+2. Abre un chat nuevo en Cursor.
+3. Pega el contenido de `PROMPT_ULTRA_COMPLETO.md`.
+4. Reemplaza solo `<REPO_URL_PRIVADO>` por tu URL.
+5. Deja que el agente ejecute todo (setup, watchdog, autosync, validaciones).
+6. Reinicia Cursor cuando te lo indique.
 
-## Scripts (que usar y cuando)
+El usuario solo da 2 cosas:
+- la URL del repo privado;
+- confirmaciones puntuales si el sistema pide permisos.
+
+## Scripts (los usa el agente automaticamente)
 
 - `scripts/windows/Setup-Cursor-Memory.cmd`
-  - **Usa este primero**. Wizard de doble click.
+ - Opcion manual de respaldo si no quieres usar el prompt.
 - `scripts/windows/Setup-Cursor-Memory.ps1`
   - Setup completo por consola o automatización.
 - `scripts/windows/Sync-Memory.ps1`
