@@ -125,6 +125,7 @@ Close and reopen the terminal (or Cursor) so `uvx` resolves. Verify with `uv --v
 
 - **Cause:** `mcp.json` uses a **`url`** (Streamable HTTP) for `basic-memory` but **nothing valid is listening** on that host/port: scheduled task not started yet, server crashed, **or another unrelated program already bound the port** (so TCP “succeeds” but MCP `fetch` still fails).
 - **Fix:** Start the HTTP MCP server (Windows: `Start-ScheduledTask -TaskName CursorBasicMemoryHttpMcp` or run `Start-BasicMemoryMcp.ps1` in the vault). Verify the listener is actually **basic-memory** (for example `netstat -ano | findstr :8765` then check the PID’s command line / process name). If the default port is taken by something else, pick a free high port (e.g. **8877**) and set the **same** value in both `Start-BasicMemoryMcp.ps1` (`-Port`) and `mcp.json` (`"url": "http://127.0.0.1:8877/mcp"`). If you do not need a persistent listener, switch back to **stdio** (`command` + `uvx`) via `config/mcp/basic-memory.json`. See `docs/setup/windows-basic-memory-always-on.md`.
+- **Note (`ECONNREFUSED` right after editing `mcp.json`):** Cursor may reconnect **before** the logon task finishes the first cold `uvx` start (can be **20–40 s**). Wait, or run `Start-ScheduledTask -TaskName CursorBasicMemoryHttpMcp` once, then **Developer: Reload Window**.
 
 ### Toast: `Failed to open resource: memory://...`
 
@@ -140,6 +141,12 @@ Close and reopen the terminal (or Cursor) so `uvx` resolves. Verify with `uv --v
 
 - **Cause:** La tarea programada llama **`powershell.exe`** directamente o el binario es una app de **consola** (por defecto `go build` sin flags).
 - **Fix:** Usa **`wscript.exe //nologo ...\Run-Hidden.vbs ...\TuScript.ps1`** como acción de la tarea (`scripts/windows/Run-Hidden.vbs` en el repo). Para **`obsidian-memoryd`**, recompila con `go build -ldflags="-H windowsgui" -o ...\obsidian-memoryd.exe` (ver `docs/setup/windows-basic-memory-always-on.md`).
+
+### Muchas ventanas de CMD / consola negra al abrir Cursor o al refrescar MCP
+
+- **Causa (frecuente):** Cursor arranca procesos MCP definidos con **`command`** (p. ej. **`node`** para `obsidian-memory-hybrid`, o **`uvx`** / **`npx`**) en cada conexión o **reintento**; en Windows eso puede mostrar **consola** aunque tus tareas del vault estén bien. Comprueba tareas: `Get-ScheduledTask -TaskName CursorBasicMemoryHttpMcp,CursorMemoryVaultSync | % { $_.Actions }` — si ves **`wscript.exe`** + **`Run-Hidden.vbs`**, el sync y el HTTP del vault **no** son la causa de esos flashes.
+- **Causa (HTTP `basic-memory`):** Tras `config_server_modified` o reinicio, Cursor puede intentar **antes** de que el listener exista → `ECONNREFUSED` en el log; los reintentos encadenan más arranques de otros MCP con consola.
+- **Qué hacer:** Tras encender el PC o cambiar `mcp.json`: `Start-ScheduledTask -TaskName CursorBasicMemoryHttpMcp`, espera **20–40 s** (primera vez `uvx` descarga), luego **Developer: Reload Window**. Para **menos ventanas**, desactiva temporalmente MCP que no uses (p. ej. `obsidian-memory-hybrid`) o usa **`basic-memory` por stdio** (`config/mcp/basic-memory.json`) si no necesitas el servidor HTTP fijo.
 
 ### `npx -y mcp-remote` is very slow the first time
 
