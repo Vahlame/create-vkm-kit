@@ -31,7 +31,7 @@ A folder with files like:
 
 **MCP** (“Model Context Protocol”) is how Cursor (or another client) launches a process and asks it to perform operations: read note, write note, search, etc.
 
-In v2 the default server is **`basic-memory`**, started with `uvx basic-memory mcp`. The **`BASIC_MEMORY_HOME`** variable tells it **which folder** is the vault. Without that, the model has **nowhere** to point.
+In the v3 kit (and v2+) the default server is **`basic-memory`**, started with `uvx basic-memory mcp`. The **`BASIC_MEMORY_HOME`** variable tells it **which folder** is the vault. Without that, the model has **nowhere** to point.
 
 **Important:** MCP does not “think”. It only **opens, saves, and searches files** via the tools it exposes. The model still decides what to request; User Rules help it not skip steps.
 
@@ -59,6 +59,8 @@ None of this automatically uploads your notes to the LLM vendor “forever”: w
 ## Optional: very fast search for huge vaults (`obsidian-memory-rag` + hybrid)
 
 `basic-memory` can already search. If the vault is **very large**, a local **SQLite FTS5** index speeds up keyword-in-body search. That is the **`obsidian-memory-rag`** package. The **hybrid MCP** exposes IDE tools to **index** and **search** that store.
+
+**Quick activation:** use the initializer from the kit clone — see [GETTING_STARTED.en.md step 6](../GETTING_STARTED.en.md) and [docs/cursor-memory-setup.en.md § v3](./cursor-memory-setup.en.md#v3-practical-polish-multiple-windows-hybrid-fewer-consoles).
 
 Not required to start. It is a **comfort and performance** layer, not the core.
 
