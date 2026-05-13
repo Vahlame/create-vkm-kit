@@ -13,6 +13,7 @@
 3. **Cursor only:** [`docs/cursor-memory-setup.en.md`](./docs/cursor-memory-setup.en.md) (MCP + ready-to-paste User Rules).
 4. **Verify tools:** [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md).
 5. **Something breaks:** [`docs/troubleshooting.md`](./docs/troubleshooting.md).
+6. **Timer git sync (Windows vault):** [`docs/setup/windows-scheduled-vault-sync.en.md`](./docs/setup/windows-scheduled-vault-sync.en.md).
 
 If you migrate from legacy v1 (Windows): [`docs/migration/v1-prompt-closure.md`](./docs/migration/v1-prompt-closure.md) after step 2.
 

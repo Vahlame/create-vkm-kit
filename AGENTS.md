@@ -94,7 +94,7 @@ Use a private git vault (example layout in `examples/`):
 
 ## References
 
-- `docs/cursor-memory-setup.md` / `docs/cursor-memory-setup.en.md` — Cursor: MCP + vault + User Rules (why each layer).
+- `docs/setup/windows-scheduled-vault-sync.md` / `.en.md` — tarea programada Windows para `git pull/push` del vault en intervalos (sin Go).
 - `GETTING_STARTED.md` / `GETTING_STARTED.en.md` — linear first-time path (table of steps).
 - `docs/how-memory-works-simple.md` / `docs/how-memory-works-simple.en.md` — plain-language mental model (vault / MCP / rules).
 - `docs/migration/v1-prompt-closure.md` — v1 ultra-prompt deliverables → v2 public kit.

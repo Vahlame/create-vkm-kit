@@ -14,6 +14,7 @@
 3. **Cursor solamente:** [`docs/cursor-memory-setup.md`](./docs/cursor-memory-setup.md) (MCP + bloque User Rules listo para pegar).
 4. **Probar que todo responde:** [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md).
 5. **Algo falla:** [`docs/troubleshooting.md`](./docs/troubleshooting.md).
+6. **Sincronizar el vault con GitHub cada pocos minutos (Windows):** [`docs/setup/windows-scheduled-vault-sync.md`](./docs/setup/windows-scheduled-vault-sync.md).
 
 Si vienes de v1 Windows: [`docs/migration/v1-prompt-closure.md`](./docs/migration/v1-prompt-closure.md) después del paso 2.
 

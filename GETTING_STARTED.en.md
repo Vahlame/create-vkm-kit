@@ -2,16 +2,16 @@
 
 Read **in order**. Each step links forward. Do not skip unless marked **optional**.
 
-| Step | What you do                                                | Where it is explained                                                                                                                                                     |
-| ---- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | Understand the idea (no install yet)                       | [`docs/how-memory-works-simple.en.md`](./docs/how-memory-works-simple.en.md)                                                                                              |
-| 1    | Have a vault folder with Markdown (and git)                | Same doc, “The vault”; sample in [`examples/`](./examples/)                                                                                                               |
-| 2    | Install **Node 20+** and **uv**                            | [§ Requirements in `docs/cursor-memory-setup.en.md`](./docs/cursor-memory-setup.en.md#machine-requirements)                                                               |
-| 3    | Connect the IDE to the vault with **MCP** (`basic-memory`) | Template [`config/mcp/basic-memory.json`](./config/mcp/basic-memory.json) and [§ Step 1 in Cursor guide](./docs/cursor-memory-setup.en.md#step-1-configure-mcp-in-cursor) |
-| 4    | (**Cursor only**) Paste **User Rules**                     | [§ Step 3 in Cursor guide](./docs/cursor-memory-setup.en.md#step-3-user-rules-paste-into-cursor)                                                                          |
-| 5    | Verify MCP tools respond                                   | [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md) §2                                                                                                     |
-| 6    | (**Optional**) FTS index + hybrid MCP for large vaults     | [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md) §6–7 and [`config/mcp/obsidian-memory-hybrid.json`](./config/mcp/obsidian-memory-hybrid.json)          |
-| 7    | (**Optional**) Debounced git sync on save                  | Go daemon [`cmd/obsidian-memoryd/`](./cmd/obsidian-memoryd/) or your own flow                                                                                             |
+| Step | What you do                                                | Where it is explained                                                                                                                                                            |
+| ---- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | Understand the idea (no install yet)                       | [`docs/how-memory-works-simple.en.md`](./docs/how-memory-works-simple.en.md)                                                                                                     |
+| 1    | Have a vault folder with Markdown (and git)                | Same doc, “The vault”; sample in [`examples/`](./examples/)                                                                                                                      |
+| 2    | Install **Node 20+** and **uv**                            | [§ Requirements in `docs/cursor-memory-setup.en.md`](./docs/cursor-memory-setup.en.md#machine-requirements)                                                                      |
+| 3    | Connect the IDE to the vault with **MCP** (`basic-memory`) | Template [`config/mcp/basic-memory.json`](./config/mcp/basic-memory.json) and [§ Step 1 in Cursor guide](./docs/cursor-memory-setup.en.md#step-1-configure-mcp-in-cursor)        |
+| 4    | (**Cursor only**) Paste **User Rules**                     | [§ Step 3 in Cursor guide](./docs/cursor-memory-setup.en.md#step-3-user-rules-paste-into-cursor)                                                                                 |
+| 5    | Verify MCP tools respond                                   | [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md) §2                                                                                                            |
+| 6    | (**Optional**) FTS index + hybrid MCP for large vaults     | [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md) §6–7 and [`config/mcp/obsidian-memory-hybrid.json`](./config/mcp/obsidian-memory-hybrid.json)                 |
+| 7    | (**Optional**) Git sync (on save or on a timer)            | Go daemon [`cmd/obsidian-memoryd/`](./cmd/obsidian-memoryd/) or Windows task: [`docs/setup/windows-scheduled-vault-sync.en.md`](./docs/setup/windows-scheduled-vault-sync.en.md) |
 
 ## Shortcut if you already have a vault and a clone
 
