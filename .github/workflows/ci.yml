@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [main, v2-migration]
+    branches: [main]
   pull_request:
     branches: [main]
 

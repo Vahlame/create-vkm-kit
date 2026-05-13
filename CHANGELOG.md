@@ -33,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- CI push trigger: **`main` only** (removed legacy `v2-migration` branch after merge).
 - `README.md` / `README.en.md` rewritten for v2 quickstart and architecture.
 - `docs/comparison.md` expanded for v2 positioning.
 - CI: matrix lint/test/smoke (`mcp-smoke`, `gitleaks`, `promptfoo` adherence gate).
