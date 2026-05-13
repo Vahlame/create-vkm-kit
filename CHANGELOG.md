@@ -33,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **ADR-0016:** puerto localhost por defecto **8765** para `basic-memory` Streamable HTTP (evitar colisiones con 8000/8080/3000).
 - **`.vscode/settings.json`** (repo root) and **`examples/.vscode/settings.json`**: workspace defaults that reduce Git/`conhost` churn on Windows when the folder is opened in Cursor or VS Code.
 - **`docs/setup/windows-sin-consola-visible.md`** / **`.en.md`**: checklist (workspace, tasks, MCP, limits) + **`scripts/windows/Get-CursorScheduledTaskConsoleRisk.ps1`** to audit `Cursor*` tasks.
+- **`docs/setup/windows-juego-vault-sync.md`** / **`.en.md`**: vault git sync vs gaming (latency, focus, pause/enable tasks).
 
 ### Fixed
 

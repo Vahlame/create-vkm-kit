@@ -34,3 +34,5 @@ Si una tarea ejecuta **`powershell.exe` / `cmd.exe` a pelo**, Windows puede most
 ## 5. Límite honesto
 
 **No existe** un interruptor en Markdown que garantice cero ventanas en **todas** las combinaciones de extensiones, MCP y tareas del sistema. Este kit aplica **workspace + tareas sin consola + guía** para acercarse a “cero flashes” en el uso normal del vault y del repo.
+
+**Juego a pantalla completa + sync del vault:** [`windows-juego-vault-sync.md`](./windows-juego-vault-sync.md).

@@ -34,3 +34,5 @@ If a task runs **`powershell.exe` / `cmd.exe` directly**, Windows may flash a co
 ## 5. Honest limit
 
 There is **no** Markdown switch that guarantees **zero** windows for **every** mix of extensions, MCP, and OS tasks. This kit ships **workspace defaults + hidden scheduled-task pattern + guidance** to get close to “no flashes” for normal vault + repo workflows.
+
+**Fullscreen gaming + vault sync:** [`windows-juego-vault-sync.en.md`](./windows-juego-vault-sync.en.md).
