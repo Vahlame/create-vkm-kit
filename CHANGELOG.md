@@ -20,7 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `cmd/obsidian-memoryd/` cross-platform daemon skeleton + `.github/workflows` updates for Go/Node/Python/evals.
 - `packages/create-obsidian-memory`, `packages/obsidian-memory-rag`, `packages/obsidian-memory-mcp` (initializer, optional RAG, complementary MCP).
 - `scripts/sync-agents.ts`, `.agents/rules/`, eval suite `evals/adherence.yaml` + `evals/run-adherence-ci.mjs` (CI gate), optional `compose.observability.yml`.
-- `docs/benchmarks/retrieval.md`, `docs/testing/manual-checks.md`.
+- `docs/benchmarks/retrieval.md`, `docs/testing/manual-checks.md`, **`docs/testing/windows-memory-sync-smoke.md`** / **`.en.md`** (Windows smoke tras autosync + FTS opcional).
 - **`obsidian-memory-rag`:** incremental SQLite **FTS5** indexer, BM25 `search`, `bench`, and **`json-search` / `json-index`** for MCP bridging (stdlib-only; sqlite-vec deferred).
 - **`create-obsidian-memory`:** writes Cursor `mcp.json` merge for `basic-memory`, vault scaffold (`START_HERE`, `MEMORY`, `SESSION_LOG`, `PROJECTS`, `.gitignore`), `--dry-run` / `--help`, and **`--non-interactive` / `--yes`** with **`--vault`** (plus **`--no-cursor-mcp`**, **`--no-git-init`**) for CI/scripts.
 - **`docs/migration/v1-prompt-closure.md`**, root **`PROMPT_ULTRA_COMPLETO.{linux,macos}.md`** (redirect stubs per ADR-0007 amendment).

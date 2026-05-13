@@ -73,3 +73,10 @@ Set env in the Inspector UI: `BASIC_MEMORY_HOME=/abs/vault`, `PYTHONPATH=/abs/pa
 ### Tools
 
 Call **`vault_fts_index`** once, then **`vault_fts_search`** with a query that exists in the vault body.
+
+## 8. Windows: autosync + tasks + FTS (smoke)
+
+After vault + Task Scheduler setup, run the consolidated checklist (scheduled tasks, `LastTaskResult`, `wscript` + `Run-Hidden.vbs`, git status, optional port 8000, optional `obsidian-memory-rag`, monorepo `npm test`):
+
+- Spanish: [`windows-memory-sync-smoke.md`](./windows-memory-sync-smoke.md)
+- English: [`windows-memory-sync-smoke.en.md`](./windows-memory-sync-smoke.en.md)
