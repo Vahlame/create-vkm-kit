@@ -121,6 +121,16 @@ Close and reopen the terminal (or Cursor) so `uvx` resolves. Verify with `uv --v
 - **Cause:** A previous setup run overwrote the file instead of merging.
 - **Fix:** Restore from `mcp.json.bak`. The current setup script always backs up first and merges, but older versions may have clobbered the file.
 
+### Cursor log: `Transient error connecting to streamableHttp server: fetch failed`
+
+- **Cause:** `mcp.json` uses a **`url`** (Streamable HTTP) for `basic-memory` (for example `http://127.0.0.1:8000/mcp`) but **no process is listening** on that host/port yet (task not started, crash, wrong port, or Cursor connected before the server bound).
+- **Fix:** Start the HTTP MCP server (Windows: `Start-ScheduledTask -TaskName CursorBasicMemoryHttpMcp` or run `Start-BasicMemoryMcp.ps1` in the vault). Verify `Test-NetConnection 127.0.0.1 -Port 8000`. If you do not need a persistent listener, switch the entry back to **stdio** (`command` + `uvx`) via `config/mcp/basic-memory.json`. See `docs/setup/windows-basic-memory-always-on.md`.
+
+### Toast: `Failed to open resource: memory://...`
+
+- **Cause:** Cursor tried to open **native / virtual “memory”** content (`memory://` scheme), not a file in your Markdown vault. The link may be stale or the resource no longer exists.
+- **Fix:** Close the notification; **Developer: Reload Window** if it keeps appearing. For vault notes, use MCP tools (`read_note`, `write_note`, …). This is **not** caused by git autosync or `Run-Hidden.vbs`.
+
 ### Cursor: `basic-memory` red con `"url": "http://127.0.0.1:8000/mcp"`
 
 - **Cause:** El servidor HTTP no está levantado (tarea `CursorBasicMemoryHttpMcp` no ejecutada, falló al inicio de sesión, o el proceso murió).

@@ -62,6 +62,7 @@ No es obligatorio para empezar. Es una capa de **comodidad y rendimiento**, no e
 
 ## Qué **no** es (para no confundirse)
 
+- **No** es lo mismo que los avisos **`memory://...`** de Cursor: eso es memoria nativa / virtual del IDE; este flujo usa **archivos** del vault vía MCP.
 - **No** es un reemplazo automático de Obsidian: puedes usar Obsidian u otro editor; el vault son archivos.
 - **No** es “memoria en la nube del modelo”: la persistencia útil está en **tus archivos** y tu **git**.
 - **No** garantiza que la IA siempre obedezca: las reglas y el flujo mejoran el comportamiento, pero el modelo puede equivocarse; por eso el vault es revisable por humanos.

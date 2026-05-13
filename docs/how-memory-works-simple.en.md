@@ -62,6 +62,7 @@ Not required to start. It is a **comfort and performance** layer, not the core.
 
 ## What this is **not** (to avoid confusion)
 
+- **Not** the same as Cursor **`memory://...` toasts:** that is native / virtual IDE memory; this flow uses **vault files** via MCP.
 - **Not** an automatic replacement for Obsidian: you can use Obsidian or any editor; the vault is just files.
 - **Not** “cloud memory inside the model”: durable persistence is **your files** and your **git** remote.
 - **Not** a guarantee the model always obeys: rules improve behavior, but models err; that is why the vault is human-reviewable.
