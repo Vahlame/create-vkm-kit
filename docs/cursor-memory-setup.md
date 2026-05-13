@@ -1,5 +1,7 @@
 # Cursor + memoria Markdown (v2): MCP, vault y User Rules
 
+**Flujo del repo:** si empiezas de cero, sigue primero [`../GETTING_STARTED.md`](../GETTING_STARTED.md) y [`how-memory-works-simple.md`](./how-memory-works-simple.md); este archivo es el **detalle Cursor** (MCP + User Rules + verificación).
+
 Esta guía une lo que antes estaba repartido entre README, `AGENTS.md`, migración v1→v2 y el prompt legacy. **Objetivo:** que sepas _qué_ configurar, _dónde_, y _por qué_.
 
 ## Las tres capas (y por qué no basta una)

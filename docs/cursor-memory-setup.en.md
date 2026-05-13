@@ -1,5 +1,7 @@
 # Cursor + Markdown memory (v2): MCP, vault, and User Rules
 
+**Repo flow:** if you are new, start with [`../GETTING_STARTED.en.md`](../GETTING_STARTED.en.md) and [`how-memory-works-simple.en.md`](./how-memory-works-simple.en.md); this file is the **Cursor deep dive** (MCP + User Rules + verification).
+
 This guide ties together README, `AGENTS.md`, v1→v2 migration, and the legacy prompt. **Goal:** clarity on _what_ to configure, _where_, and _why_.
 
 ## Three layers (why one is not enough)

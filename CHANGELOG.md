@@ -25,6 +25,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **`create-obsidian-memory`:** writes Cursor `mcp.json` merge for `basic-memory`, vault scaffold (`START_HERE`, `MEMORY`, `SESSION_LOG`, `PROJECTS`, `.gitignore`), `--dry-run` / `--help`, and **`--non-interactive` / `--yes`** with **`--vault`** (plus **`--no-cursor-mcp`**, **`--no-git-init`**) for CI/scripts.
 - **`docs/migration/v1-prompt-closure.md`**, root **`PROMPT_ULTRA_COMPLETO.{linux,macos}.md`** (redirect stubs per ADR-0007 amendment).
 - FAQ + glossary aligned with v2 transport, uninstall, and large-vault FTS path.
+- **`GETTING_STARTED.md` / `GETTING_STARTED.en.md`**: tabla de pasos (flujo lineal instalación / verificación).
+- **`docs/how-memory-works-simple.md`** / **`docs/how-memory-works-simple.en.md`**: modelo mental en lenguaje llano (vault, MCP, User Rules).
 - **`docs/cursor-memory-setup.md`** / **`docs/cursor-memory-setup.en.md`**: end-to-end Cursor guide (vault vs MCP vs User Rules, verification, ready-to-paste User Rules for `basic-memory` + optional hybrid).
 
 ### Fixed
@@ -34,8 +36,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Onboarding lineal:** `README.md` / `README.en.md` son un hub corto: primero `GETTING_STARTED*.md`, luego `docs/how-memory-works-simple*.md`, Cursor, comprobaciones y troubleshooting; `docs/testing/manual-checks.md` y guías Cursor enlazan al mismo flujo.
 - CI push trigger: **`main` only** (removed legacy `v2-migration` branch after merge).
-- `README.md` / `README.en.md` rewritten for v2 quickstart and architecture.
 - `docs/comparison.md` expanded for v2 positioning.
 - CI: matrix lint/test/smoke (`mcp-smoke`, `gitleaks`, `promptfoo` adherence gate).
 

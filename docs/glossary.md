@@ -90,7 +90,7 @@ Free-text instructions you paste into `Cursor Settings -> Rules -> User Rules`. 
 
 ### Vault
 
-The directory your MCP server reads and writes (Markdown + git). **v1** docs often used `%USERPROFILE%\Documents\cursor-memory-vault`. **v2:** any path; set **`BASIC_MEMORY_HOME`** to the vault root.
+The directory your MCP server reads and writes (Markdown + git). **v1** docs often used `%USERPROFILE%\Documents\cursor-memory-vault`. **v2:** any path; set **`BASIC_MEMORY_HOME`** to the vault root. Plain-language overview: `docs/how-memory-works-simple.md` / `.en.md`.
 
 ### Watchdog
 

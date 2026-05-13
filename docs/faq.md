@@ -4,7 +4,7 @@
 
 ### Why not use Cursor's built-in "memories" feature?
 
-Cursor's built-in memories are tied to Cursor's account and storage, are not portable, and you cannot read or edit them outside Cursor. This pattern gives you a Markdown vault you own, in a private GitHub repo, that you can read or edit in any editor, sync across machines, and grep with normal tools. See `docs/comparison.md` for the full comparison.
+Cursor's built-in memories are tied to Cursor's account and storage, are not portable, and you cannot read or edit them outside Cursor. This pattern gives you a Markdown vault you own, in a private GitHub repo, that you can read or edit in any editor, sync across machines, and grep with normal tools. See `docs/comparison.md` for the full comparison. **First-time path:** `GETTING_STARTED.md` (linear) and `docs/how-memory-works-simple.md` (plain-language model).
 
 ### Is this safe to paste into Cursor?
 

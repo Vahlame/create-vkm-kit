@@ -6,33 +6,43 @@
 
 > Languages: [Español](./README.md) | **English**
 
-v2 is **cross-platform** (Windows/Linux/macOS) and **IDE-agnostic**. Canonical agent instructions live in `AGENTS.md` (with symlinks for Claude Code / Copilot / Cline where supported). The MCP default is **`basic-memory`** via `uvx`; optional live Obsidian I/O uses `config/mcp/obsidian-live.json`. Optional **FTS5 hybrid** MCP: `config/mcp/obsidian-memory-hybrid.json` (`vault_fts_search` / `vault_fts_index`).
+## Your path (recommended order)
 
-**Cursor (MCP + User Rules + rationale):** single walkthrough [`docs/cursor-memory-setup.en.md`](./docs/cursor-memory-setup.en.md) · [Español](./docs/cursor-memory-setup.md).
+1. **[`GETTING_STARTED.en.md`](./GETTING_STARTED.en.md)** — step table (linear flow).
+2. **[`docs/how-memory-works-simple.en.md`](./docs/how-memory-works-simple.en.md)** — vault, MCP, and User Rules in plain language.
+3. **Cursor only:** [`docs/cursor-memory-setup.en.md`](./docs/cursor-memory-setup.en.md) (MCP + ready-to-paste User Rules).
+4. **Verify tools:** [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md).
+5. **Something breaks:** [`docs/troubleshooting.md`](./docs/troubleshooting.md).
 
-## Quick install
+If you migrate from legacy v1 (Windows): [`docs/migration/v1-prompt-closure.md`](./docs/migration/v1-prompt-closure.md) after step 2.
 
-1. Install **uv** + **Node 20+**. (Windows without `uv`: `powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"` — then restart the terminal.)
-2. Merge `config/mcp/basic-memory.json` into your IDE MCP config; replace `<VAULT_PATH>`.
-3. Run `uvx basic-memory mcp` and verify tools (see `docs/testing/manual-checks.md`).
-4. Optional: build `obsidian-memoryd` (`go build ./cmd/obsidian-memoryd`) for debounced git sync.
-5. Optional (large vaults): `pip install -e ./packages/obsidian-memory-rag` then `obsidian-memory-rag index --vault <path>` for local **FTS5** search (`search` / `bench`). Optional hybrid MCP for the same index inside the IDE: `config/mcp/obsidian-memory-hybrid.json`.
+## What this repository is (one paragraph)
 
-Guided flow: `npx @vahlame/create-obsidian-memory@next` (merges **`basic-memory`** into Cursor `~/.cursor/mcp.json` when selected; use `--dry-run` to preview). Headless: `npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault <path> [--dry-run]`.
+A **cross-platform** kit so AI can read and write **your** Markdown notes via **MCP** (`basic-memory` by default), with optional local **FTS5** indexing, an IDE **hybrid MCP**, and a **Go** daemon for git. Design rationale lives in [`docs/adr/`](./docs/adr/).
 
-## Migration from v1
+## Minimal MCP snippet (quick reference)
 
-- v1 checklist → v2 tooling: [`docs/migration/v1-prompt-closure.md`](./docs/migration/v1-prompt-closure.md).
-- Archived Windows ultra-prompt: `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md`.
-- Linux / macOS stubs (point to v2): [`PROMPT_ULTRA_COMPLETO.linux.md`](./PROMPT_ULTRA_COMPLETO.linux.md), [`PROMPT_ULTRA_COMPLETO.macos.md`](./PROMPT_ULTRA_COMPLETO.macos.md).
-- MCP tool mapping: `docs/migration/v1-to-v2-mcp.md`.
-- Legacy Windows-only scripts: `docs/legacy/windows-v1/README.md`.
+```json
+{
+  "mcpServers": {
+    "basic-memory": {
+      "command": "uvx",
+      "args": ["basic-memory", "mcp"],
+      "env": { "BASIC_MEMORY_HOME": "/absolute/path/to/vault" }
+    }
+  }
+}
+```
 
-## Docs
+Templates: [`config/mcp/`](./config/mcp/).
 
-- `docs/comparison.md` — honest positioning vs alternatives.
-- `docs/observability.md` — telemetry posture.
+## Comparison, privacy, contributing
+
+- Positioning vs alternatives: [`docs/comparison.md`](./docs/comparison.md).
+- Privacy / telemetry: [`docs/observability.md`](./docs/observability.md).
+- Contributing and ADRs: [`CONTRIBUTING.md`](./CONTRIBUTING.md) and [`docs/adr/`](./docs/adr/).
+- Agent instructions for **this** repo: [`AGENTS.md`](./AGENTS.md).
 
 ## License
 
-MIT.
+MIT (`LICENSE`).

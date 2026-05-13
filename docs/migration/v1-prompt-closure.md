@@ -21,9 +21,10 @@ El archivo `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md` era un **brief operativo ú
 
 ## Orden recomendado hoy
 
-1. Leer `README.md` / `README.en.md`, **`docs/cursor-memory-setup.md`** (si usas Cursor), y `AGENTS.md`.
-2. Ejecutar `npx @vahlame/create-obsidian-memory@next` (o copiar el snippet MCP del README).
-3. Validar con `docs/testing/manual-checks.md`.
-4. (Opcional) `obsidian-memory-rag index --vault <ruta>` si el vault es grande.
+1. [`GETTING_STARTED.md`](../GETTING_STARTED.md) (flujo lineal) y [`docs/how-memory-works-simple.md`](../docs/how-memory-works-simple.md) (idea general).
+2. `README.md` / `README.en.md` y `AGENTS.md`.
+3. Ejecutar `npx @vahlame/create-obsidian-memory@next` (o copiar el snippet MCP del README).
+4. Validar con `docs/testing/manual-checks.md`.
+5. (Opcional) `obsidian-memory-rag index --vault <ruta>` si el vault es grande.
 
 Para mapeo herramienta a herramienta MCP: `docs/migration/v1-to-v2-mcp.md`.

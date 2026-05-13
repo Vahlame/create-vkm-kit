@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Canonical instructions for any AI agent or IDE consuming this repository (Cursor, Claude Code, Copilot, Codex CLI, Aider, Windsurf, Zed, Continue, etc.). For human onboarding, read `README.md` / `README.en.md`. The v1 Cursor-only ultra-prompt is archived at `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md`.
+Canonical instructions for any AI agent or IDE consuming this repository (Cursor, Claude Code, Copilot, Codex CLI, Aider, Windsurf, Zed, Continue, etc.). **Humans** onboarding this kit: read [`GETTING_STARTED.md`](./GETTING_STARTED.md) (linear) then [`docs/how-memory-works-simple.md`](./docs/how-memory-works-simple.md); English: [`GETTING_STARTED.en.md`](./GETTING_STARTED.en.md) / [`docs/how-memory-works-simple.en.md`](./docs/how-memory-works-simple.en.md). For human onboarding of the **pattern** (vault + MCP), read `README.md` / `README.en.md`. The v1 Cursor-only ultra-prompt is archived at `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md`.
 
 ## Project overview
 
@@ -95,6 +95,8 @@ Use a private git vault (example layout in `examples/`):
 ## References
 
 - `docs/cursor-memory-setup.md` / `docs/cursor-memory-setup.en.md` — Cursor: MCP + vault + User Rules (why each layer).
+- `GETTING_STARTED.md` / `GETTING_STARTED.en.md` — linear first-time path (table of steps).
+- `docs/how-memory-works-simple.md` / `docs/how-memory-works-simple.en.md` — plain-language mental model (vault / MCP / rules).
 - `docs/migration/v1-prompt-closure.md` — v1 ultra-prompt deliverables → v2 public kit.
 - `docs/migration/v1-to-v2-mcp.md` — tool mapping v1 → v2.
 - `docs/legacy/windows-v1/` — deprecated PowerShell + Task Scheduler artifacts.

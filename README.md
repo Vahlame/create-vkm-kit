@@ -7,51 +7,21 @@
 
 > Idiomas: **Español** | [English](./README.en.md)
 
-## Por qué existe
+## Tu camino (orden recomendado)
 
-Los modelos no recuerdan entre sesiones. Externalizar memoria en **Markdown versionado** + **MCP** te da propiedad de datos, auditoría con `git log`, y portabilidad entre IDEs. v2 rompe el lock-in a Windows/Cursor únicamente: **Linux/macOS/Windows**, `AGENTS.md` canónico, servidor **`basic-memory`**, y daemon Go opcional.
+1. **[`GETTING_STARTED.md`](./GETTING_STARTED.md)** — tabla paso a paso (flujo lineal; sin saltos).
+2. **[`docs/how-memory-works-simple.md`](./docs/how-memory-works-simple.md)** — qué es el vault, el MCP y las User Rules, en palabras simples.
+3. **Cursor solamente:** [`docs/cursor-memory-setup.md`](./docs/cursor-memory-setup.md) (MCP + bloque User Rules listo para pegar).
+4. **Probar que todo responde:** [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md).
+5. **Algo falla:** [`docs/troubleshooting.md`](./docs/troubleshooting.md).
 
-**Cursor (MCP + User Rules + por qué de cada pieza):** guía única [`docs/cursor-memory-setup.md`](./docs/cursor-memory-setup.md) · [English](./docs/cursor-memory-setup.en.md).
+Si vienes de v1 Windows: [`docs/migration/v1-prompt-closure.md`](./docs/migration/v1-prompt-closure.md) después del paso 2.
 
-## Instalación en 1 minuto (rápido)
+## Qué es este repo (una viñeta)
 
-1. Instala **uv** / Python y **Node 20+**. (Windows sin `uv`: `powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"` — luego reinicia la terminal.)
-2. Copia `config/mcp/basic-memory.json` a tu `mcp.json` del IDE y reemplaza `<VAULT_PATH>`.
-3. Ejecuta `uvx basic-memory mcp` (Inspector: ver `docs/testing/manual-checks.md`).
-4. (Opcional) `go build -o obsidian-memoryd ./cmd/obsidian-memoryd` y `obsidian-memoryd watch`.
-5. (Opcional, bóvedas grandes) `pip install -e ./packages/obsidian-memory-rag` y `obsidian-memory-rag index --vault <ruta>` para búsqueda **FTS5** local (`search` / `bench`). MCP híbrido en IDE: `config/mcp/obsidian-memory-hybrid.json` (`vault_fts_search` / `vault_fts_index`).
+Un kit **multiplataforma** para que la IA lea y escriba **tus** notas Markdown vía **MCP** (`basic-memory` por defecto), con piezas opcionales: índice **FTS5** local, **MCP híbrido** en el IDE, y daemon **Go** para git. Las decisiones de diseño están en [`docs/adr/`](./docs/adr/).
 
-Flujo guiado: `npx @vahlame/create-obsidian-memory@next` (fusiona **`basic-memory`** en `~/.cursor/mcp.json` de Cursor si lo eliges; usa `--dry-run` para ver el JSON sin escribir). En CI/scripts: `npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault <ruta> [--dry-run]`.
-
-## Cómo funciona
-
-```text
-         +----------------+
-         |  IDE / agente  |
-         +-------+--------+
-                 | MCP (stdio / streamable HTTP)
-                 v
-         +----------------+       +------------------+
-         | basic-memory   | ----> | vault Markdown   |
-         +----------------+       +---------+--------+
-                                           | git
-                                           v
-                                  +------------------+
-                                  | remoto (GitHub)  |
-                                  +------------------+
-
- opcional: obsidian-memoryd (fsnotify + git sync)
- opcional: obsidian-memory-rag (FTS5) + MCP híbrido `obsidian-memory-hybrid` (vault_fts_search / vault_fts_index)
-```
-
-## Casos de uso
-
-- Memoria personal por proyecto (`PROJECTS/<nombre>.md`).
-- Bitácora de decisiones (`SESSION_LOG.md`).
-- Runbooks y reglas duras (`RULES/`, `KNOWN_FAILURES.md`).
-- Equipos multi-IDE (Cursor, Copilot, Zed, Windsurf, Codex CLI).
-
-## Para devs de productos (snippet embebible)
+## Snippet MCP mínimo (referencia rápida)
 
 ```json
 {
@@ -59,36 +29,20 @@ Flujo guiado: `npx @vahlame/create-obsidian-memory@next` (fusiona **`basic-memor
     "basic-memory": {
       "command": "uvx",
       "args": ["basic-memory", "mcp"],
-      "env": { "BASIC_MEMORY_HOME": "/abs/path/to/vault" }
+      "env": { "BASIC_MEMORY_HOME": "/ruta/absoluta/al/vault" }
     }
   }
 }
 ```
 
-## Aviso de privacidad
+Plantilla y variantes: [`config/mcp/`](./config/mcp/).
 
-Este repo **no** recopila tus datos. Todo corre local salvo el remoto que **tú** configures. Si activas **Langfuse / OTel**, revisa retención y evita PII en atributos (`docs/observability.md`).
+## Comparación, privacidad, contribuir
 
-## Observabilidad
-
-- Pino + JSONL rotado (`packages/obsidian-memory-mcp`).
-- OTLP opcional + stack Langfuse (`compose.observability.yml`).
-
-## Comparación honesta vs alternativas
-
-Ver [`docs/comparison.md`](./docs/comparison.md).
-
-## Migración desde v1
-
-- Cierre objetivos v1 → piezas v2: [`docs/migration/v1-prompt-closure.md`](./docs/migration/v1-prompt-closure.md).
-- Prompt histórico (Windows): `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md`.
-- Atajos Linux / macOS (redirección a v2): [`PROMPT_ULTRA_COMPLETO.linux.md`](./PROMPT_ULTRA_COMPLETO.linux.md), [`PROMPT_ULTRA_COMPLETO.macos.md`](./PROMPT_ULTRA_COMPLETO.macos.md).
-- Tabla de herramientas MCP: `docs/migration/v1-to-v2-mcp.md`.
-- Scripts Windows v1: `docs/legacy/windows-v1/README.md`.
-
-## Contribuir / ADRs
-
-`CONTRIBUTING.md` y `docs/adr/`. Cambios de arquitectura requieren ADR.
+- Honestidad vs otras soluciones: [`docs/comparison.md`](./docs/comparison.md).
+- Privacidad / telemetría: [`docs/observability.md`](./docs/observability.md).
+- Contribuir y ADRs: [`CONTRIBUTING.md`](./CONTRIBUTING.md) y [`docs/adr/`](./docs/adr/).
+- Instrucciones para agentes que tocan **este** repo: [`AGENTS.md`](./AGENTS.md).
 
 ## Licencia
 
