@@ -160,7 +160,6 @@ Eso **mezcla** la entrada `basic-memory` en `mcp.json` sin borrar otras claves (
 
 | Tema                                                                | Documento                             |
 | ------------------------------------------------------------------- | ------------------------------------- |
-| Mapa herramientas v1 → v2                                           | `docs/migration/v1-to-v2-mcp.md`      |
 | Checklist manual (Inspector, FTS, híbrido)                          | `docs/testing/manual-checks.md`       |
 | Errores frecuentes (uv, BOM, MCP rojo, `fetch failed`, `memory://`) | `docs/troubleshooting.md`             |
 | Protocolo genérico para cualquier IDE                               | `AGENTS.md` (sección Memory protocol) |

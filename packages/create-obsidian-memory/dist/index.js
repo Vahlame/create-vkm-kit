@@ -10,6 +10,25 @@ import { execa } from "execa";
 import fse from "fs-extra";
 import { mergeBasicMemoryServer } from "./mcp-merge.mjs";
 
+/** Cursor/VS Code workspace defaults: fewer `git` + `conhost` spikes on Windows (SCM polling). */
+const VAULT_VSCODE_GIT_SETTINGS = {
+  "git.autoRepositoryDetection": false,
+  "git.autorefresh": false,
+  "git.autofetch": false,
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/bin/**": true,
+    "**/dist/**": true,
+    "**/.cursor/**": true,
+    "**/packages/**/node_modules/**": true,
+    "**/.pytest_cache/**": true,
+    "**/coverage/**": true,
+    "**/.venv/**": true,
+    "**/__pycache__/**": true,
+    "**/.obsidian/**": true,
+  },
+};
+
 const messages = {
   es: {
     title: "create-obsidian-memory",
@@ -73,7 +92,24 @@ async function findVault(cwd, home) {
   return null;
 }
 
-async function scaffoldNewVault(vault, lang) {
+/**
+ * Writes `<vault>/.vscode/settings.json` once if missing (does not overwrite user edits).
+ * @param {string} vault
+ * @param {boolean} dryRun
+ */
+async function writeVaultGitWorkspaceSettings(vault, dryRun) {
+  const fp = path.join(vault, ".vscode", "settings.json");
+  if (await fse.pathExists(fp)) return;
+  if (dryRun) {
+    console.log(pc.cyan("[dry-run] would create"), fp);
+    return;
+  }
+  await fse.ensureDir(path.dirname(fp));
+  await fse.writeFile(fp, `${JSON.stringify(VAULT_VSCODE_GIT_SETTINGS, null, 2)}\n`, "utf8");
+  console.log(pc.green("Wrote"), fp);
+}
+
+async function scaffoldNewVault(vault, lang, dryRun) {
   await fse.ensureDir(path.join(vault, ".obsidian"));
   const start =
     lang === "en"
@@ -111,6 +147,7 @@ tags: [start]
   await fse.ensureDir(path.join(vault, "PROJECTS"));
   await fse.writeFile(path.join(vault, "PROJECTS", ".gitkeep"), "", "utf8");
   await fse.writeFile(path.join(vault, ".gitignore"), ".obsidian-memory-rag/\n", "utf8");
+  await writeVaultGitWorkspaceSettings(vault, dryRun);
 }
 
 /**
@@ -189,6 +226,8 @@ async function runNonInteractive(argv) {
     await execa("git", ["init"], { cwd: vault, stdio: "inherit" });
   }
 
+  await writeVaultGitWorkspaceSettings(vault, dryRun);
+
   console.log(pc.green("\n" + t.summary));
   console.log("- Vault:", vault);
   console.log("- MCP:", JSON.stringify(mcpSnippet));
@@ -209,6 +248,7 @@ Non-interactive (CI / scripts):
   --vault <path>  Absolute or cwd-relative vault root (required)
   --no-cursor-mcp Skip writing ~/.cursor/mcp.json
   --no-git-init   Skip git init when .git is missing
+                  (Creates <vault>/.vscode/settings.json once if missing: calmer Git on Windows.)
 
   --help          This message`);
     return;
@@ -238,7 +278,7 @@ Non-interactive (CI / scripts):
     });
     if (ok) {
       vault = path.join(cwd, "obsidian-vault");
-      await scaffoldNewVault(vault, lang);
+      await scaffoldNewVault(vault, lang, dryRun);
     } else {
       const { p } = await prompts({
         type: "text",
@@ -308,6 +348,8 @@ Non-interactive (CI / scripts):
   if (!(await fse.pathExists(path.join(vault, ".git")))) {
     await execa("git", ["init"], { cwd: vault, stdio: "inherit" });
   }
+
+  await writeVaultGitWorkspaceSettings(vault, dryRun);
 
   console.log(pc.green("\n" + t.summary));
   console.log("- Vault:", vault);

@@ -147,6 +147,14 @@ Close and reopen the terminal (or Cursor) so `uvx` resolves. Verify with `uv --v
 - **Causa (frecuente):** Cursor arranca procesos MCP definidos con **`command`** (p. ej. **`node`** para `obsidian-memory-hybrid`, o **`uvx`** / **`npx`**) en cada conexión o **reintento**; en Windows eso puede mostrar **consola** aunque tus tareas del vault estén bien. Comprueba tareas: `Get-ScheduledTask -TaskName CursorBasicMemoryHttpMcp,CursorMemoryVaultSync | % { $_.Actions }` — si ves **`wscript.exe`** + **`Run-Hidden.vbs`**, el sync y el HTTP del vault **no** son la causa de esos flashes.
 - **Causa (HTTP `basic-memory`):** Tras `config_server_modified` o reinicio, Cursor puede intentar **antes** de que el listener exista → `ECONNREFUSED` en el log; los reintentos encadenan más arranques de otros MCP con consola.
 - **Qué hacer:** Tras encender el PC o cambiar `mcp.json`: `Start-ScheduledTask -TaskName CursorBasicMemoryHttpMcp`, espera **20–40 s** (primera vez `uvx` descarga), luego **Developer: Reload Window**. Para **menos ventanas**, desactiva temporalmente MCP que no uses (p. ej. `obsidian-memory-hybrid`) o usa **`basic-memory` por stdio** (`config/mcp/basic-memory.json`) si no necesitas el servidor HTTP fijo.
+- **Diagnóstico (repo):** Con el problema en curso, ejecuta [`tools/monitor-console-live.ps1`](../tools/monitor-console-live.ps1) (muestreo 1s; imprime padre y `CommandLine` truncado de `powershell` / `conhost` / `cmd` / `wscript`). Parámetros: `-Iterations`, `-IntervalSeconds`, `-CommandLineMax`.
+
+### Cada pocos segundos aparece `conhost` y el padre es `git` (Windows)
+
+- **Prevención (kit):** Este repo y el ejemplo de vault incluyen **`.vscode/settings.json`** con `git.autorefresh` / `git.autofetch` desactivados y exclusiones de **watcher** (incluye `.obsidian/`). Cursor/VS Code aplican esos valores al abrir la carpeta como workspace. El inicializador **`@vahlame/create-obsidian-memory`** crea el mismo archivo en el vault **solo si no existía** (no pisa tus ajustes).
+- **Causa:** Algo (casi siempre el **control de código fuente del IDE** o una extensión tipo **GitLens**) lanza **`git.exe`** en bucle (`status`, diffs, etc.). En Windows muchas invocaciones crean **`conhost.exe`** como hijo de **`git`**. Si en la línea *baseline* del script ves **decenas** de `conhost` (p. ej. 50+), suele haber **muchas ventanas del IDE**, **muchos roots abiertos**, o procesos que no se cierran bien.
+- **Qué hacer:** Abre el repo/vault como **carpeta raíz** para que cargue `.vscode/settings.json`. Si ya tienes `settings.json` propio, copia las claves `git.*` y `files.watcherExclude` desde [`examples/.vscode/settings.json`](../examples/.vscode/settings.json). Revisa extensiones Git pesadas y **cierra** ventanas duplicadas del mismo repo.
+- **Confirmación:** En el log del script, líneas `+ conhost ... parent=... (git)` cada ~2–5 s mientras el fallo ocurre.
 
 ### `npx -y mcp-remote` is very slow the first time
 

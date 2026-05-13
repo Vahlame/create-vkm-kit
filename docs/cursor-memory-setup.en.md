@@ -156,7 +156,6 @@ Merges the `basic-memory` entry without wiping other servers (UTF-8 BOM on `mcp.
 
 | Topic                                                         | Doc                              |
 | ------------------------------------------------------------- | -------------------------------- |
-| v1 → v2 tool mapping                                          | `docs/migration/v1-to-v2-mcp.md` |
 | Manual checks (Inspector, FTS, hybrid)                        | `docs/testing/manual-checks.md`  |
 | Common errors (uv, BOM, red MCP, `fetch failed`, `memory://`) | `docs/troubleshooting.md`        |
 | Generic agent protocol                                        | `AGENTS.md` (Memory protocol)    |

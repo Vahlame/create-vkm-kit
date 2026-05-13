@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Each file in this directory captures one design decision: what was chosen, what alternatives existed, and why the chosen path won. Older ADRs reference the archived v1 prompt (`docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md`); v2 decisions are ADR-0010 onward.
+Each file in this directory captures one design decision: what was chosen, what alternatives existed, and why the chosen path won. Early ADRs reflect the original Windows-first kit; **ADR-0010 onward** document the current cross-platform stack.
 
 | ID                                                             | Title                                                                               | Status   |
 | -------------------------------------------------------------- | ----------------------------------------------------------------------------------- | -------- |

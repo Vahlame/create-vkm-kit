@@ -1,4 +1,4 @@
-# Memoria de agente con Markdown + MCP (v2)
+# Memoria de agente con Markdown + MCP (kit v2)
 
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-blue.svg)](./LICENSE)
 [![Versión](https://img.shields.io/badge/release-v2.0.0--dev-orange.svg)](./CHANGELOG.md)
@@ -11,17 +11,15 @@
 
 1. **[`GETTING_STARTED.md`](./GETTING_STARTED.md)** — tabla paso a paso (flujo lineal; sin saltos).
 2. **[`docs/how-memory-works-simple.md`](./docs/how-memory-works-simple.md)** — qué es el vault, el MCP y las User Rules, en palabras simples.
-3. **Cursor solamente:** [`docs/cursor-memory-setup.md`](./docs/cursor-memory-setup.md) (MCP + bloque User Rules listo para pegar; incluye stdio vs URL y `memory://`).
-4. **Probar que todo responde:** [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md) **; Windows (tareas + git + puerto MCP HTTP, p. ej. 8765):** [`docs/testing/windows-memory-sync-smoke.md`](./docs/testing/windows-memory-sync-smoke.md).
-5. **Algo falla:** [`docs/troubleshooting.md`](./docs/troubleshooting.md).
+3. **Cursor:** [`docs/cursor-memory-setup.md`](./docs/cursor-memory-setup.md) (MCP + bloque User Rules listo para pegar; stdio vs URL y `memory://`).
+4. **Probar que todo responde:** [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md) **; Windows (tareas + git + MCP HTTP, p. ej. 8765):** [`docs/testing/windows-memory-sync-smoke.md`](./docs/testing/windows-memory-sync-smoke.md).
+5. **Algo falla:** [`docs/troubleshooting.md`](./docs/troubleshooting.md) (incluye ventanas de consola que parpadean y diagnóstico con [`tools/monitor-console-live.ps1`](./tools/monitor-console-live.ps1)).
 6. **MCP `basic-memory` siempre encendido (Windows, HTTP):** [`docs/setup/windows-basic-memory-always-on.md`](./docs/setup/windows-basic-memory-always-on.md).
 7. **Autosync del vault con git (Windows, sin consola):** [`docs/setup/windows-scheduled-vault-sync.md`](./docs/setup/windows-scheduled-vault-sync.md).
 
-Si vienes de v1 Windows: [`docs/migration/v1-prompt-closure.md`](./docs/migration/v1-prompt-closure.md) después del paso 2.
-
 ## Qué es este repo (una viñeta)
 
-Un kit **multiplataforma** para que la IA lea y escriba **tus** notas Markdown vía **MCP** (`basic-memory` por defecto), con piezas opcionales: índice **FTS5** local, **MCP híbrido** en el IDE, y daemon **Go** para git. Las decisiones de diseño están en [`docs/adr/`](./docs/adr/).
+Kit **multiplataforma** para que la IA lea y escriba **tus** notas Markdown vía **MCP** (`basic-memory` por defecto), con piezas opcionales: índice **FTS5** local, **MCP híbrido** en el IDE, y daemon **Go** para git. Las decisiones de diseño están en [`docs/adr/`](./docs/adr/).
 
 ## Snippet MCP mínimo (referencia rápida)
 
@@ -45,6 +43,7 @@ Plantilla y variantes: [`config/mcp/`](./config/mcp/).
 - Privacidad / telemetría: [`docs/observability.md`](./docs/observability.md).
 - Contribuir y ADRs: [`CONTRIBUTING.md`](./CONTRIBUTING.md) y [`docs/adr/`](./docs/adr/).
 - Instrucciones para agentes que tocan **este** repo: [`AGENTS.md`](./AGENTS.md).
+- Índice de documentación: [`docs/README.md`](./docs/README.md).
 
 ## Licencia
 

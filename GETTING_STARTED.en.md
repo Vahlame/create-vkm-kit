@@ -13,17 +13,15 @@ Read **in order**. Each step links forward. Do not skip unless marked **optional
 | 6    | (**Optional**) FTS index + hybrid MCP for large vaults     | [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md) §6–7 and [`config/mcp/obsidian-memory-hybrid.json`](./config/mcp/obsidian-memory-hybrid.json)                                                                                                                                                                                                                                                                    |
 | 7    | (**Optional**) Git sync (on save or on a timer)            | Go daemon [`cmd/obsidian-memoryd/`](./cmd/obsidian-memoryd/), Windows task: [`docs/setup/windows-scheduled-vault-sync.en.md`](./docs/setup/windows-scheduled-vault-sync.en.md), **MCP always on:** [`docs/setup/windows-basic-memory-always-on.en.md`](./docs/setup/windows-basic-memory-always-on.en.md). After setup on Windows: [`docs/testing/windows-memory-sync-smoke.en.md`](./docs/testing/windows-memory-sync-smoke.en.md) |
 
+Open the vault as a **workspace folder** so Cursor/VS Code load **`/.vscode/settings.json`** (less Git polling on Windows). The `create-obsidian-memory` command below **creates** that file in the vault if it is missing; template at [`examples/.vscode/settings.json`](./examples/.vscode/settings.json). Details: [`docs/troubleshooting.md`](./docs/troubleshooting.md).
+
 ## Shortcut if you already have a vault and a clone
 
 ```bash
 npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "/absolute/path/to/vault"
 ```
 
-This **merges** `basic-memory` into Cursor `mcp.json` (Windows: `%USERPROFILE%\.cursor\mcp.json`). Then do **step 4** (User Rules) and **step 5** (verification).
-
-## If you migrate from legacy v1 (Windows)
-
-Do **step 0**, then [`docs/migration/v1-prompt-closure.md`](./docs/migration/v1-prompt-closure.md) (equivalence table).
+This **merges** `basic-memory` into Cursor `mcp.json` (Windows: `%USERPROFILE%\.cursor\mcp.json`), and **creates** `vault/.vscode/settings.json` if it was missing (quieter Git on Windows). Then do **step 4** (User Rules) and **step 5** (verification).
 
 ## If you hack on this repository (code / PRs)
 

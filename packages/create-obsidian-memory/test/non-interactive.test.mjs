@@ -50,3 +50,20 @@ test("non-interactive merges into UTF-8 BOM mcp.json without dropping existing s
   assert.ok(merged.mcpServers["basic-memory"]);
   assert.equal(merged.mcpServers["basic-memory"].env.BASIC_MEMORY_HOME, vault);
 });
+
+test("non-interactive creates vault .vscode/settings.json when missing (Git tuning)", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-vsc-"));
+  const vault = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-vsc-v-"));
+  fs.mkdirSync(path.join(vault, ".obsidian"));
+  const r = spawnSync(
+    process.execPath,
+    [bin, "--non-interactive", "--vault", vault, "--no-cursor-mcp", "--no-git-init"],
+    { encoding: "utf8", env: { ...process.env, USERPROFILE: home, HOME: home } },
+  );
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  const fp = path.join(vault, ".vscode", "settings.json");
+  assert.ok(fs.existsSync(fp), "expected workspace Git settings");
+  const j = JSON.parse(fs.readFileSync(fp, "utf8"));
+  assert.equal(j["git.autorefresh"], false);
+  assert.equal(j["git.autofetch"], false);
+});

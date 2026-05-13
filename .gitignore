@@ -1,5 +1,8 @@
-# Editors
-.vscode/
+# Editors (track committed workspace defaults; ignore other local .vscode files)
+.vscode/*
+!.vscode/settings.json
+examples/.vscode/*
+!examples/.vscode/settings.json
 .idea/
 *.swp
 

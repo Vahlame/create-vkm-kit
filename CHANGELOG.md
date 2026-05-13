@@ -22,7 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `scripts/sync-agents.ts`, `.agents/rules/`, eval suite `evals/adherence.yaml` + `evals/run-adherence-ci.mjs` (CI gate), optional `compose.observability.yml`.
 - `docs/benchmarks/retrieval.md`, `docs/testing/manual-checks.md`, **`docs/testing/windows-memory-sync-smoke.md`** / **`.en.md`** (Windows smoke tras autosync + FTS opcional).
 - **`obsidian-memory-rag`:** incremental SQLite **FTS5** indexer, BM25 `search`, `bench`, and **`json-search` / `json-index`** for MCP bridging (stdlib-only; sqlite-vec deferred).
-- **`create-obsidian-memory`:** writes Cursor `mcp.json` merge for `basic-memory`, vault scaffold (`START_HERE`, `MEMORY`, `SESSION_LOG`, `PROJECTS`, `.gitignore`), `--dry-run` / `--help`, and **`--non-interactive` / `--yes`** with **`--vault`** (plus **`--no-cursor-mcp`**, **`--no-git-init`**) for CI/scripts.
+- **`create-obsidian-memory`:** writes Cursor `mcp.json` merge for `basic-memory`, vault scaffold (`START_HERE`, `MEMORY`, `SESSION_LOG`, `PROJECTS`, `.gitignore`), **`vault/.vscode/settings.json` once if missing** (calmer Git SCM on Windows), `--dry-run` / `--help`, and **`--non-interactive` / `--yes`** with **`--vault`** (plus **`--no-cursor-mcp`**, **`--no-git-init`**) for CI/scripts.
 - **`docs/migration/v1-prompt-closure.md`**, root **`PROMPT_ULTRA_COMPLETO.{linux,macos}.md`** (redirect stubs per ADR-0007 amendment).
 - FAQ + glossary aligned with v2 transport, uninstall, and large-vault FTS path.
 - **`GETTING_STARTED.md` / `GETTING_STARTED.en.md`**: tabla de pasos (flujo lineal instalación / verificación).
@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **`docs/setup/windows-basic-memory-always-on.md`** / **`.en.md`**: MCP `basic-memory` persistente (Streamable HTTP + tarea `CursorBasicMemoryHttpMcp`); script `scripts/windows/Start-BasicMemoryMcp.ps1`; plantilla `config/mcp/basic-memory-streamable-http.json`.
 - **`docs/cursor-memory-setup.md`** / **`docs/cursor-memory-setup.en.md`**: end-to-end Cursor guide (vault vs MCP vs User Rules, verification, ready-to-paste User Rules for `basic-memory` + optional hybrid).
 - **ADR-0016:** puerto localhost por defecto **8765** para `basic-memory` Streamable HTTP (evitar colisiones con 8000/8080/3000).
+- **`.vscode/settings.json`** (repo root) and **`examples/.vscode/settings.json`**: workspace defaults that reduce Git/`conhost` churn on Windows when the folder is opened in Cursor or VS Code.
 
 ### Fixed
 
@@ -40,6 +41,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Onboarding v2-only:** `README.md` / `README.en.md` and `GETTING_STARTED*.md` no longer link migration paths; stubs `PROMPT_ULTRA_COMPLETO.{linux,macos}.md` point only at v2 entrypoints. `docs/README.md` and `docs/legacy/README.md` reframed as v2 index + maintainer archive. `AGENTS.md` references updated; `docs/troubleshooting.md` links [`tools/monitor-console-live.ps1`](./tools/monitor-console-live.ps1) for console-flash diagnosis.
+- **`docs/troubleshooting.md`:** causa “`conhost` cada pocos segundos, padre `git`” + prevención vía `.vscode/settings.json` (repo, `examples/`, inicializador).
+- **`CONTRIBUTING.md`:** nota sobre defaults de workspace Git.
 - **Puerto por defecto Streamable HTTP `basic-memory`:** de **8000** a **8765** en plantilla `config/mcp/basic-memory-streamable-http.json`, `scripts/windows/Start-BasicMemoryMcp.ps1`, guías Windows, smoke tests y enlaces README; criterio documentado en **ADR-0016** (evitar choque con otras apps en 8000/8080/3000; futuros servicios: puerto alto libre + misma cifra en script y `mcp.json`).
 - **Onboarding Cursor:** `docs/cursor-memory-setup*.md` — tabla “flujo recomendado”, Paso 1 con **stdio vs URL** (`fetch failed` enlazado a troubleshooting + guía always-on); bloque **User Rules** ampliado (`memory://` vs vault, stdio vs URL HTTP, ruido stderr). `README*.md` — pasos 4–7 (smoke Windows, autosync). `how-memory-works-simple*.md` — distinción `memory://`. `docs/troubleshooting.md` — entradas `streamableHttp` / `fetch failed` y toast `memory://`. `AGENTS.md` (autogen) — transporte HTTP opcional en `.agents/rules/00-stack.md`.
 - **Windows sin flash de consola:** tareas recomendadas vía `wscript.exe` + `scripts/windows/Run-Hidden.vbs`; `obsidian-memoryd` documentado con `go build -ldflags="-H windowsgui"`; guías `windows-scheduled-vault-sync*` y `windows-basic-memory-always-on*` + troubleshooting actualizados.

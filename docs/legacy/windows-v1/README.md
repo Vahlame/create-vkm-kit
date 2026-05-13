@@ -1,14 +1,14 @@
-# Windows v1 automation (deprecated)
+# Archived Windows Task Scheduler automation
 
-v1 relied on **PowerShell scripts embedded** in `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md` plus **Task Scheduler** (watchdog + auto-sync). Those scripts are **not copied here verbatim** (they remain inside the archived prompt for historical reproduction).
+Historical installs used **PowerShell blocks** embedded in the long-form prompt under `docs/legacy/` plus **Task Scheduler** (watchdog + auto-sync). Those scripts are **not copied here verbatim**; they stay in that tree for reproduction only.
 
 ## What replaced them
 
 - **`obsidian-memoryd`** (`cmd/obsidian-memoryd/`) — cross-platform watcher + git sync.
 - **Optional Syncthing** — see ADR-0013.
 
-## If you must maintain a legacy Windows install
+## If you must maintain an old Windows-only install
 
-1. Open `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md`.
-2. Extract the PowerShell blocks using `.github/scripts/extract-and-lint.ps1` (default path points to the legacy prompt).
-3. Treat all artifacts as **frozen** — migrate to v2 when feasible.
+1. Read [`docs/legacy/README.md`](../README.md) for what lives on disk.
+2. Extract PowerShell blocks with `.github/scripts/extract-and-lint.ps1` (paths in that script point at the legacy prompt file).
+3. Treat artifacts as **frozen** — move to the current kit in [`README.md`](../../../README.md) when feasible.

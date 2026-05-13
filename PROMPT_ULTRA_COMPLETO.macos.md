@@ -1,11 +1,11 @@
-# Ultra-prompt macOS (v1 legacy) — sustituido por v2
+# Nombre histórico en disco — usar solo el kit v2
 
-El flujo **Windows-only** completo del ultra-prompt v1 está archivado en `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md`.
+Este archivo conserva una ruta conocida por enlaces antiguos. **El flujo actual** es el del repo en **v2**:
 
-**Hoy (v2):** **uv** + **Node 20+**, MCP **`uvx basic-memory mcp`** con `BASIC_MEMORY_HOME` = ruta absoluta del vault. Lee `README.md` / `README.en.md` y `AGENTS.md`; valida con `docs/testing/manual-checks.md`.
+- [`README.md`](./README.md) / [`README.en.md`](./README.en.md)
+- [`GETTING_STARTED.md`](./GETTING_STARTED.md) / [`GETTING_STARTED.en.md`](./GETTING_STARTED.en.md)
+- [`AGENTS.md`](./AGENTS.md) y [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md)
 
-**Daemon (macOS):** compila `obsidian-memoryd` (`go build ./cmd/obsidian-memoryd`) y usa `watch` o integra el binario en **launchd** según tu política local (plantillas genéricas no duplican el v1 Windows aquí).
+**Daemon (macOS):** compila `obsidian-memoryd` (`go build ./cmd/obsidian-memoryd`) y usa `watch` o integra el binario en **launchd** según tu política local.
 
-**Cierre v1 → v2:** `docs/migration/v1-prompt-closure.md`.
-
-No mantenemos un ultra-prompt macOS línea a línea del v1: reduce deriva y duplicación frente al kit v2 en este repo.
+No se mantiene aquí un “ultra-prompt” monolítico por SO: el mantenimiento vive en este repo y en tu vault privado.

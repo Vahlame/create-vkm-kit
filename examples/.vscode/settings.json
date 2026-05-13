@@ -1,0 +1,17 @@
+{
+  "git.autoRepositoryDetection": false,
+  "git.autorefresh": false,
+  "git.autofetch": false,
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/bin/**": true,
+    "**/dist/**": true,
+    "**/.cursor/**": true,
+    "**/packages/**/node_modules/**": true,
+    "**/.pytest_cache/**": true,
+    "**/coverage/**": true,
+    "**/.venv/**": true,
+    "**/__pycache__/**": true,
+    "**/.obsidian/**": true
+  }
+}

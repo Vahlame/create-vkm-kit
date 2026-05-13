@@ -13,6 +13,8 @@ Thanks for considering a contribution. This repository ships **cross-platform** 
 2. For behavior touching Windows/Linux/macOS, validate on at least one target OS when feasible.
 3. Run the local checks below.
 
+**Workspace Git defaults:** `.vscode/settings.json` in this repo deliberately turns off aggressive Git SCM polling (`git.autorefresh`, `git.autofetch`) and excludes noisy paths from the file watcher so Windows does not spawn `git`/`conhost` in a tight loop while you work. If you change it, document why in the PR (some contributors prefer live SCM).
+
 ## Local checks
 
 ```bash
