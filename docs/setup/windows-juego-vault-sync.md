@@ -6,35 +6,30 @@ Objetivo: **actualizar la memoria** (pull/push del vault) cuando quieras, pero q
 
 Separar **“cuándo sincronizo”** de **“cuándo juego”**:
 
-1. **Menos frecuencia automática** (Programador de tareas).
-2. **Menos sondeo del IDE** (solo cuando trabajas en el vault con Cursor abierto).
-3. **Nada que abra `powershell.exe`/`cmd.exe` a pelo** en tareas (siempre `wscript` + `Run-Hidden.vbs`).
+1. **Menos automatismo en segundo plano** — preferir [`obsidian-memoryd watch`](../../cmd/obsidian-memoryd) o **git manual**; ver [`windows-scheduled-vault-sync.md`](./windows-scheduled-vault-sync.md).
+2. **Menos sondeo del IDE** (solo cuando trabajas en el vault con Cursor abierto): `.vscode/settings.json` del vault.
+3. Si usaste **Programador de tareas**, revisa en `taskschd.msc` que las acciones no lancen consolas innecesarias; este kit **no** publica plantillas de script para copiar.
 
 Cursor + vault abierto en la misma sesión que un juego competitivo **sigue siendo pesado** (Git, extensiones, MCP). Lo más limpio: **cerrar Cursor** al jugar, o no abrir la carpeta del vault hasta terminar.
 
-## 1. Programador de tareas (sync cada X min)
+## 1. Programador de tareas (si lo usas)
 
-- Sube el intervalo (p. ej. de **10 min** —común en setups viejos— a **60–120 min**) o deja **solo** sync manual / `obsidian-memoryd watch` con debounce.
-- Evita **dos** tareas que hagan `git` al mismo ritmo (redundancia = más I/O).
-- Comprueba acciones con  
-  `.\scripts\windows\Get-CursorScheduledTaskConsoleRisk.ps1`  
-  (debe señalar riesgo si algo llama consola directa).
+- Sube el intervalo o desactiva tareas que no necesites durante la partida.
+- Evita **dos** automatismos distintos que hagan `git` al mismo ritmo (redundancia = más I/O).
 
-**Pausar tareas antes de jugar** (PowerShell como administrador no suele hacer falta; usuario actual basta si las creaste tú):
+**Pausar tareas antes de jugar** (ajusta los nombres a los que tengas):
 
 ```powershell
-Get-ScheduledTask -TaskName 'CursorMemoryAutoSync','CursorMemoryVaultSync','CursorObsidianMcpWatchdog' -ErrorAction SilentlyContinue |
+Get-ScheduledTask -TaskName 'CursorMemoryVaultSync','CursorBasicMemoryHttpMcp' -ErrorAction SilentlyContinue |
   Disable-ScheduledTask
 ```
 
 **Reactivar después:**
 
 ```powershell
-Get-ScheduledTask -TaskName 'CursorMemoryAutoSync','CursorMemoryVaultSync','CursorObsidianMcpWatchdog' -ErrorAction SilentlyContinue |
+Get-ScheduledTask -TaskName 'CursorMemoryVaultSync','CursorBasicMemoryHttpMcp' -ErrorAction SilentlyContinue |
   Enable-ScheduledTask
 ```
-
-Ajusta los nombres a los que tengas en `taskschd.msc`.
 
 ## 2. Cursor y el vault
 
@@ -44,9 +39,7 @@ Ajusta los nombres a los que tengas en `taskschd.msc`.
 
 ## 3. Robo de foco (fullscreen)
 
-- Las tareas **bien** montadas con `wscript` + `Run-Hidden.vbs` **no deberían** mostrar ventana.
-- Si aún ves **conhost**/consola al jugar, suele ser **otra app** (launcher, overlay, antivirus) o **Git del propio juego/launcher** — vuelve a pasar el monitor  
-  `tools/monitor-console-live.ps1` **mientras** reproduce el fallo y mira **padre + CommandLine**.
+- Si ves **conhost**/consola al jugar, suele ser **Cursor, extensiones, Git del IDE** u **otra app** (launcher, overlay, antivirus). Usa **Administrador de tareas** → **Detalles** (línea de comando) mientras reproduce el fallo.
 
 ## 4. Red y disco
 
@@ -56,8 +49,8 @@ Ajusta los nombres a los que tengas en `taskschd.msc`.
 
 | Situación                                   | Qué hacer                                                                              |
 | ------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Quiero memoria al día sin molestar al jugar | Intervalos de tarea **largos** o **Disable** antes de jugar y **Enable** después.      |
+| Quiero memoria al día sin molestar al juego | Menos tareas / intervalos largos / **Disable** antes de jugar y **Enable** después.    |
 | Menos lag con Cursor abierto                | `.vscode` del vault + **menos MCP/extensiones**; idealmente **sin** Cursor en partida. |
-| Sin flashes CMD                             | Tareas con **wscript**; IDE con ajustes Git calmados; ver script de auditoría arriba.  |
+| Sin flashes CMD                             | IDE con ajustes Git calmados; revisar tareas propias en `taskschd.msc`.                |
 
 Más contexto: [`windows-sin-consola-visible.md`](./windows-sin-consola-visible.md).

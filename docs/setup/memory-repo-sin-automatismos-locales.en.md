@@ -1,12 +1,12 @@
-# Agent memory inside one git repo: no local `.bat`, `.ps1`, or Task Scheduler
+# Agent memory inside one git repo: no extra local automation
 
-**Goal:** keep **agent memory** (Markdown + `basic-memory` MCP) in a **git repo** you already update through your normal workflow — **without** scheduled tasks, installer `.cmd`/`.bat`, or maintenance PowerShell on your PC.
+**Goal:** keep **agent memory** (Markdown + `basic-memory` MCP) in a **git repo** you already update through your normal workflow — **without** a second timer or maintenance installers on your PC.
 
 ## Core idea
 
 1. Use a **private git clone** that holds both your fork/layout and the agent note tree (or a repo dedicated to memory).
 2. In Cursor, set MCP `BASIC_MEMORY_HOME` to a path **inside that clone** (absolute), e.g. `D:\work\my-setup\memory` or the repo root if your notes live there.
-3. **“Self-updating”** here means: a single **`git pull` / `git push`** keeps **code + docs + versioned memory** aligned. You do **not** need a second channel (timer, daemon, `.ps1`) whose only job is “refresh memory”.
+3. **“Self-updating”** here means: a single **`git pull` / `git push`** keeps **code + docs + versioned memory** aligned. You do **not** need a second channel (timer, daemon) whose only job is “refresh memory”.
 
 ## What updates what
 

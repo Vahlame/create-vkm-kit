@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-05-13
+- **Public guide scope (2026-05):** end-user docs no longer ship VBS/PowerShell task templates; prefer **stdio** `basic-memory`, **`obsidian-memoryd`**, or **self-defined** Task Scheduler actions. This ADR documents the historical pattern for private v1 vaults and rationale.
 
 ## Context
 

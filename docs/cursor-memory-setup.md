@@ -2,7 +2,7 @@
 
 **Flujo del repo:** si empiezas de cero, sigue primero [`../GETTING_STARTED.md`](../GETTING_STARTED.md) y [`how-memory-works-simple.md`](./how-memory-works-simple.md); este archivo es el **detalle Cursor** (MCP + User Rules + verificación).
 
-Esta guía une lo que antes estaba repartido entre README, `AGENTS.md`, migración v1→v2 y el prompt legacy. **Objetivo:** que sepas _qué_ configurar, _dónde_, y _por qué_.
+Esta guía concentra la configuración **v2** (MCP `basic-memory`, reglas, comprobaciones). Contexto histórico v1→v2: [`docs/migration/v1-to-v2-mcp.md`](./migration/v1-to-v2-mcp.md) y artefactos en [`docs/legacy/`](./legacy/).
 
 ## Flujo recomendado (vista rápida)
 
@@ -33,13 +33,9 @@ Necesario para Cursor y, si usas híbrido, para `node …/hybrid-mcp.mjs`.
 
 ### uv
 
-Para `uvx basic-memory mcp`. Windows, instalación oficial:
+Para `uvx basic-memory mcp`. Instalación: sigue la guía oficial de **uv** (instalador o snippet para tu SO) en [Instalación de uv](https://docs.astral.sh/uv/getting-started/installation/).
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
-```
-
-Cierra y abre Cursor (o la terminal) para que `uvx` esté en el `PATH` del usuario (`%USERPROFILE%\.local\bin`).
+Cierra y abre Cursor (o la terminal) para que `uvx` esté en el `PATH` del usuario (`%USERPROFILE%\.local\bin` en Windows).
 
 ### Ruta del vault
 
@@ -62,7 +58,7 @@ El híbrido ejecuta `python -m obsidian_memory_rag …`; si el módulo no resuel
 ### Cómo conecta Cursor a `basic-memory`: stdio vs URL
 
 - **stdio (recomendado por defecto):** en `mcp.json` usas `command` + `args` (`uvx basic-memory mcp`) y `env.BASIC_MEMORY_HOME`. Cursor **arranca** el proceso cuando hace falta; no necesitas un puerto local.
-- **URL / Streamable HTTP (opcional, sobre todo Windows “siempre encendido”):** la entrada solo tiene `"url": "http://127.0.0.1:8765/mcp"` (plantilla `config/mcp/basic-memory-streamable-http.json`). Entonces **tiene que haber** un proceso escuchando en ese puerto **antes** de que Cursor conecte (tarea `CursorBasicMemoryHttpMcp` o script equivalente). Si falta, en el log MCP aparecen errores tipo `fetch failed` / `streamableHttp`; ver [`docs/troubleshooting.md`](./troubleshooting.md) y [`docs/setup/windows-basic-memory-always-on.md`](./setup/windows-basic-memory-always-on.md).
+- **URL / Streamable HTTP (opcional):** la entrada solo tiene `"url": "http://127.0.0.1:8765/mcp"` (plantilla `config/mcp/basic-memory-streamable-http.json`). Entonces **tiene que haber** un proceso escuchando en ese puerto **antes** de que Cursor conecte (terminal minimizada o tarea que **tú** definas; ver [`docs/setup/windows-basic-memory-always-on.md`](./setup/windows-basic-memory-always-on.md)). Si falta, en el log MCP aparecen errores tipo `fetch failed` / `streamableHttp`; ver [`docs/troubleshooting.md`](./troubleshooting.md).
 
 ### Solo `basic-memory` por stdio (recomendado mínimo)
 
@@ -100,7 +96,7 @@ En **Cursor → Settings → Rules → User Rules**, pega el bloque siguiente. *
 ### Cómo está conectado `basic-memory` (stdio vs URL)
 
 - Si `mcp.json` usa **`command` + `uvx`** hacia `basic-memory`, es **stdio**: Cursor arranca el servidor; no hace falta un puerto HTTP fijo.
-- Si la entrada **`basic-memory` solo tiene `"url"`** (p. ej. `http://127.0.0.1:8765/mcp` o **otro puerto** si lo cambiaste por conflicto), hace falta un **servidor HTTP ya levantado** (p. ej. tarea `CursorBasicMemoryHttpMcp` en Windows). Sin proceso en ese puerto verás fallos tipo `fetch failed` en el log MCP.
+- Si la entrada **`basic-memory` solo tiene `"url"`** (p. ej. `http://127.0.0.1:8765/mcp` o **otro puerto** si lo cambiaste por conflicto), hace falta un **servidor HTTP ya levantado** en esa máquina (terminal con `uvx …` o un proceso que tú mantengas). Sin proceso en ese puerto verás fallos tipo `fetch failed` en el log MCP.
 - Banners ASCII o líneas con `undefined` en stderr del servidor suelen ser **ruido de arranque**; lo importante es que el panel MCP liste tools y quede operativo.
 
 ### MCP disponible

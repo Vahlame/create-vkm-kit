@@ -1,12 +1,12 @@
-# Memoria del agente dentro de un solo repo git: sin `.bat`, `.ps1` ni Programador de tareas
+# Memoria del agente dentro de un solo repo git: sin automatismos locales extra
 
-**Objetivo:** tener la **memoria de agente** (Markdown + MCP `basic-memory`) en un **repositorio git** que ya actualizas con tu flujo normal — **sin** tareas programadas, sin instaladores `.cmd`/`.bat` y sin PowerShell de mantenimiento en tu PC.
+**Objetivo:** tener la **memoria de agente** (Markdown + MCP `basic-memory`) en un **repositorio git** que ya actualizas con tu flujo normal — **sin** segundo temporizador ni instaladores de mantenimiento en tu PC.
 
 ## Idea central
 
 1. Usa un **clon git privado** que contenga tanto tu fork/estructura como el árbol de notas del agente (o un repo dedicado solo a memoria).
 2. En Cursor, pon `BASIC_MEMORY_HOME` en un path **dentro de ese clon** (absoluto), p. ej. `D:\trabajo\mi-setup\memory` o la raíz del repo si ahí viven las notas.
-3. **“Auto-actualizable”** aquí significa: un solo **`git pull` / `git push`** mantiene alineados **código + docs + memoria versionada**. No hace falta un segundo canal (temporizador, daemon, `.ps1`) cuyo único trabajo sea “refrescar memoria”.
+3. **“Auto-actualizable”** aquí significa: un solo **`git pull` / `git push`** mantiene alineados **código + docs + memoria versionada**. No hace falta un segundo canal (temporizador, daemon) cuyo único trabajo sea “refrescar memoria”.
 
 ## Qué actualiza qué
 

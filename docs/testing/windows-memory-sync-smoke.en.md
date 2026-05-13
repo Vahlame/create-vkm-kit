@@ -1,25 +1,22 @@
-# Windows: quick smoke (memory, autosync, extras)
+# Windows: quick smoke (memory, git, MCP)
 
-Run **after** you set up the vault, `basic-memory` in Cursor, and (optional) scheduled tasks `CursorMemoryVaultSync` / `CursorBasicMemoryHttpMcp` per [`../setup/windows-scheduled-vault-sync.en.md`](../setup/windows-scheduled-vault-sync.en.md) and [`../setup/windows-basic-memory-always-on.en.md`](../setup/windows-basic-memory-always-on.en.md).
+Checklist **after** you have the vault, `basic-memory` in Cursor, and any automation **you configured** (e.g. `obsidian-memoryd`, HTTP in a terminal — see [`../setup/windows-scheduled-vault-sync.en.md`](../setup/windows-scheduled-vault-sync.en.md) and [`../setup/windows-basic-memory-always-on.en.md`](../setup/windows-basic-memory-always-on.en.md)).
 
-Adjust `$vault` if your path differs.
-
-## 1. Scheduled tasks registered
+## 1. Scheduled tasks (if any)
 
 ```powershell
-Get-ScheduledTask -TaskName CursorMemoryVaultSync,CursorBasicMemoryHttpMcp,CursorObsidianMemorydWatch -ErrorAction SilentlyContinue |
+Get-ScheduledTask -TaskName CursorMemoryVaultSync,CursorBasicMemoryHttpMcp -ErrorAction SilentlyContinue |
   Select-Object TaskName, State
 ```
 
-**Ready** is expected. **Running** may show briefly while the trigger fires.
+**Ready** is expected. If you do not use tasks, these may return nothing.
 
-## 2. Last run time and exit code
+## 2. Last run and exit code
 
 ```powershell
 @(
   'CursorMemoryVaultSync'
   'CursorBasicMemoryHttpMcp'
-  'CursorObsidianMemorydWatch'
 ) | ForEach-Object {
   $i = Get-ScheduledTaskInfo -TaskName $_ -ErrorAction SilentlyContinue
   if (-not $i) { return }
@@ -31,16 +28,11 @@ Get-ScheduledTask -TaskName CursorMemoryVaultSync,CursorBasicMemoryHttpMcp,Curso
 } | Format-Table -AutoSize
 ```
 
-For many per-user tasks, **`LastTaskResult` 0** means success. If not, check script logs or [`../troubleshooting.md`](../troubleshooting.md).
+For many user tasks, **`LastTaskResult` 0** means success. Otherwise open the task in `taskschd.msc` and inspect **Actions**; see [`../troubleshooting.md`](../troubleshooting.md).
 
-## 3. No-console launcher (sync / MCP)
+## 3. Task actions (manual review)
 
-```powershell
-$t = Get-ScheduledTask -TaskName CursorMemoryVaultSync -ErrorAction SilentlyContinue
-if ($t) { $t.Actions | Format-List Execute, Arguments }
-```
-
-Recommended pattern: **`wscript.exe`**, arguments containing **`Run-Hidden.vbs`** and the vault `.ps1` (copy from [`../../scripts/windows/Run-Hidden.vbs`](../../scripts/windows/Run-Hidden.vbs)).
+In **Task Scheduler** → task → **Actions**: confirm program/arguments match your intent (e.g. `cmd.exe` + `uvx …` for HTTP, or the `obsidian-memoryd` `.exe`). This repo does not ship a single canonical task template.
 
 ## 4. Git in the vault
 
@@ -53,33 +45,31 @@ try {
 } finally { Pop-Location }
 ```
 
-Confirm **`origin`** exists if you want automatic push.
+Confirm **`origin`** exists if you expect `push` to work.
 
-## 5. Run sync once (optional)
+## 5. Manual sync once (optional)
 
-From an already-open terminal (you will see a window here; the scheduled task using VBS should not flash):
+In a terminal at the vault root:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "$env:USERPROFILE\Documents\cursor-memory-vault\scripts\windows\Sync-Memory.ps1"
+```bash
+git add -A
+git status
+git commit -m "smoke"   # only if there are changes
+git pull --rebase
+git push
 ```
 
-To fire only the task (no window if the action is `wscript` + VBS):
+## 6. HTTP `basic-memory` MCP (default port **8765**)
 
-```powershell
-Start-ScheduledTask -TaskName CursorMemoryVaultSync
-```
-
-## 6. HTTP MCP `basic-memory` (default port **8765**)
-
-If you use **CursorBasicMemoryHttpMcp** and `mcp.json` with the same URL (e.g. `http://127.0.0.1:8765/mcp`):
+If `mcp.json` uses `http://127.0.0.1:8765/mcp`, start the listener first (terminal `uvx …` per the always-on guide):
 
 ```powershell
 Test-NetConnection 127.0.0.1 -Port 8765 -InformationLevel Quiet
 ```
 
-`True` means something is listening.
+`True` means something is listening on that port.
 
-## 7. Local FTS (optional, public repo cloned)
+## 7. Local FTS5 (optional, public repo clone)
 
 Index and BM25 search on the vault:
 
@@ -91,7 +81,7 @@ obsidian-memory-rag index --vault $vault
 obsidian-memory-rag search --vault $vault "MEMORY"
 ```
 
-If **`obsidian-memory-rag` is not on PATH** after `pip install -e`, call the module:
+If **`obsidian-memory-rag` is not on PATH** after `pip install -e`, use the module:
 
 ```powershell
 Set-Location "$repo\packages\obsidian-memory-rag"
@@ -99,11 +89,11 @@ python -m obsidian_memory_rag index --vault $vault
 python -m obsidian_memory_rag search --vault $vault "MEMORY"
 ```
 
-More detail: [`manual-checks.md`](./manual-checks.md) (sections 6–7) and hybrid MCP [`../../config/mcp/obsidian-memory-hybrid.json`](../../config/mcp/obsidian-memory-hybrid.json).
+More detail: [`manual-checks.md`](./manual-checks.md) (sections 6–7) and hybrid MCP at [`../../config/mcp/obsidian-memory-hybrid.json`](../../config/mcp/obsidian-memory-hybrid.json).
 
 ## 8. Monorepo (contributors / local CI)
 
-In your **cursor-obsidian-memory-guide** clone:
+In the **cursor-obsidian-memory-guide** clone:
 
 ```powershell
 npm install
@@ -112,8 +102,8 @@ npm run eval:adherence
 npm test
 ```
 
-In `packages/obsidian-memory-rag`: `python -m pytest tests/ -q`.
+Under `packages/obsidian-memory-rag`: `python -m pytest tests/ -q`.
 
 ## Spanish
 
-Misma lista: [`windows-memory-sync-smoke.md`](./windows-memory-sync-smoke.md).
+Same checklist: [`windows-memory-sync-smoke.md`](./windows-memory-sync-smoke.md).

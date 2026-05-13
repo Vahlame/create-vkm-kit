@@ -10,7 +10,7 @@ An AI model with tools. In this repo, "agent" means any assistant that reads `AG
 
 ### Autosync
 
-**v1 (Windows):** the scheduled task `CursorMemoryAutoSync` that ran `Sync-Memory.ps1` on a short timer (often ~10 minutes) to commit and push the vault. **v2:** use **`obsidian-memoryd watch`** (debounced git; default **45 s** quiet period, override with `OBSIDIAN_MEMORY_DEBOUNCE`) or any scheduler you prefer; kit docs default the Windows vault task to **60 minutes** between runs. This public repo does not ship the v1 PowerShell scripts.
+**v1 (Windows):** the scheduled task `CursorMemoryAutoSync` often ran a vault-local automation on a short timer to commit and push the vault. **v2:** use **`obsidian-memoryd watch`** (debounced git; default **45 s** quiet period, override with `OBSIDIAN_MEMORY_DEBOUNCE`) or **manual git**; this public guide does not ship Windows script templates to copy.
 
 ### `basic-memory`
 
@@ -98,4 +98,4 @@ The directory your MCP server reads and writes (Markdown + git). **v1** docs oft
 
 ### `wscript.exe`
 
-The Windows Script Host. We use it with `//B //nologo` and a `.vbs` shim to run scheduled tasks without flashing a console window. See ADR-0003.
+Windows Script Host. Older **private v1 vaults** sometimes used `wscript.exe` with a `.vbs` shim so scheduled tasks did not flash a console. The **public v2 guide** does not document copy-paste VBS/PowerShell task templates; see ADR-0003 for historical rationale.

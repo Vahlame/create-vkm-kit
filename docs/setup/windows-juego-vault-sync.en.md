@@ -1,63 +1,56 @@
-# Windows: keep the git-backed vault updated without lag or focus-stealing shells while gaming
+# Windows: git-backed vault without stutter or pop-up consoles while gaming
 
-Goal: **refresh memory** (vault pull/push) when you want, but avoid **Git/disk spikes** and **CMD/console windows** that steal focus from fullscreen games.
+Goal: **refresh memory** (vault pull/push) when you want, without **disk/Git spikes** or **CMD/console** windows stealing focus from fullscreen games.
 
 ## Principle
 
-Separate **when you sync** from **when you play**:
+Separate **“when I sync”** from **“when I play”**:
 
-1. **Lower automatic frequency** (Task Scheduler).
-2. **Lower IDE polling** (only when Cursor has the vault folder open).
-3. **Never run scheduled tasks via bare `powershell.exe`/`cmd.exe`** (always `wscript` + `Run-Hidden.vbs`).
+1. **Less background automation** — prefer [`obsidian-memoryd watch`](../../cmd/obsidian-memoryd) or **manual git**; see [`windows-scheduled-vault-sync.en.md`](./windows-scheduled-vault-sync.en.md).
+2. **Less IDE polling** (only while you work in the vault with Cursor open): vault `.vscode/settings.json`.
+3. If you use **Task Scheduler**, inspect actions in `taskschd.msc` so they do not spawn unnecessary consoles. This kit does **not** publish script templates to copy.
 
-Cursor + vault open on the same desktop as a competitive game is still heavy (Git, extensions, MCP). The cleanest approach: **close Cursor** while gaming, or do not open the vault folder until you finish.
+Cursor + vault open in the same session as a competitive game is still **heavy** (Git, extensions, MCP). Cleanest: **close Cursor** while playing, or do not open the vault folder until you are done.
 
-## 1. Task Scheduler (every-X-minutes sync)
+## 1. Task Scheduler (if you use it)
 
-- Increase the interval (e.g. from a legacy **10-minute** task to **60–120 minutes**) or rely on **manual** sync / `obsidian-memoryd watch` with debounce.
-- Avoid **two** tasks hammering `git` on the same cadence.
-- Audit actions with  
-  `.\scripts\windows\Get-CursorScheduledTaskConsoleRisk.ps1`  
-  (it should flag direct console launches).
+- Raise the interval or disable tasks you do not need during a match.
+- Avoid **two** different automations hammering `git` at the same cadence.
 
-**Pause tasks before a session** (usually no admin required if you created them):
+**Pause tasks before playing** (adjust names to match yours):
 
 ```powershell
-Get-ScheduledTask -TaskName 'CursorMemoryAutoSync','CursorMemoryVaultSync','CursorObsidianMcpWatchdog' -ErrorAction SilentlyContinue |
+Get-ScheduledTask -TaskName 'CursorMemoryVaultSync','CursorBasicMemoryHttpMcp' -ErrorAction SilentlyContinue |
   Disable-ScheduledTask
 ```
 
-**Re-enable afterwards:**
+**Re-enable after:**
 
 ```powershell
-Get-ScheduledTask -TaskName 'CursorMemoryAutoSync','CursorMemoryVaultSync','CursorObsidianMcpWatchdog' -ErrorAction SilentlyContinue |
+Get-ScheduledTask -TaskName 'CursorMemoryVaultSync','CursorBasicMemoryHttpMcp' -ErrorAction SilentlyContinue |
   Enable-ScheduledTask
 ```
 
-Adjust task names to match `taskschd.msc`.
-
 ## 2. Cursor and the vault
 
-- Open the vault as a folder and keep **`.vscode/settings.json`** (template in `examples/.vscode/` or written by `create-obsidian-memory`) so Git SCM is not hyperactive.
+- With the vault opened as a folder, rely on **`.vscode/settings.json`** (template under `examples/.vscode/` or merged by `create-obsidian-memory`) for calmer Git polling.
 - **MCP:** fewer enabled servers → fewer background processes.
-- **Serious gaming:** quit Cursor or do not open the vault in that session.
+- **Serious gaming:** close Cursor or do not open the vault in that session.
 
-## 3. Focus stealing (fullscreen)
+## 3. Focus steal (fullscreen)
 
-- Tasks wired through `wscript` + `Run-Hidden.vbs` **should not** flash a window.
-- If you still see **conhost**/console while gaming, it is often **another app** (launcher, overlay, AV) — capture evidence with  
-  `tools/monitor-console-live.ps1` **while** it happens (parent + `CommandLine`).
+- **`conhost` / console flashes** while gaming are often **Cursor, extensions, IDE Git**, or **another app** (launcher, overlay, AV). Use **Task Manager** → **Details** (command line) while reproducing.
 
-## 4. Disk spikes
+## 4. Network and disk
 
-- Large `git` syncs can **hit disk** for a few seconds; longer intervals or syncing **after** gaming reduces stutter.
+- Large git syncs can **spike disk** for a few seconds; longer intervals or syncing after the match reduces stutter.
 
 ## Summary
 
-| Need                                        | Action                                                                          |
-| ------------------------------------------- | ------------------------------------------------------------------------------- |
-| Up-to-date vault without bothering gameplay | **Longer** task intervals or **Disable** tasks before play, **Enable** after.   |
-| Less lag with Cursor open                   | Vault `.vscode` + **fewer MCP/extensions**; best: **no** Cursor during matches. |
-| No CMD flashes                              | Hidden task launchers + calm Git settings; use the audit script above.          |
+| Situation                              | What to do                                                                          |
+| -------------------------------------- | ----------------------------------------------------------------------------------- |
+| Stay up to date without bothering play | Fewer tasks / longer intervals / **Disable** before play and **Enable** after.      |
+| Less lag with Cursor open              | Vault `.vscode` + **fewer MCP/extensions**; ideally **no** Cursor during the match. |
+| Fewer CMD flashes                      | Calmer Git IDE settings; inspect your own tasks in `taskschd.msc`.                  |
 
-See also [`windows-sin-consola-visible.en.md`](./windows-sin-consola-visible.en.md).
+More context: [`windows-sin-consola-visible.en.md`](./windows-sin-consola-visible.en.md).

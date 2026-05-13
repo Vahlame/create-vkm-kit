@@ -5,7 +5,7 @@
 
 ## Context
 
-`Sync-Memory.ps1` runs unattended on a timer (Task Scheduler cadence is yours to choose; **this kit’s documented default is 60 minutes** so git does not poll the remote aggressively). If we attempt `git pull --rebase` while the working tree has unstaged changes, Git refuses with:
+Unattended vault git automation (any cadence you choose; **this kit’s docs** steer you toward **`obsidian-memoryd watch`** or **manual git** rather than bundled PowerShell files). If we attempt `git pull --rebase` while the working tree has unstaged changes, Git refuses with:
 
 ```text
 cannot pull with rebase: You have unstaged changes.

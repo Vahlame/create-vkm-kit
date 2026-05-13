@@ -1,65 +1,32 @@
-# Windows: sincronizar el vault con git a intervalos
+# Windows: sincronizar el vault con git (sin scripts del kit)
 
-Si no quieres instalar **Go** para `obsidian-memoryd watch`, puedes usar una **tarea programada** que ejecute un script PowerShell ya en tu vault (o equivalente).
+Esta guía **no** publica ni pide copiar `.ps1`, `.vbs` ni `.bat` desde el repo. Elige una de estas rutas.
 
-## Requisitos
+## Opción A (recomendada): `obsidian-memoryd watch` (Go)
 
-- Vault con **`.git`** y remoto `origin` configurado (HTTPS o SSH con credencial guardada).
-- Script recomendado: `scripts/windows/Sync-Memory.ps1` en el repo del vault (orden: `git add -A` → `commit` si hay cambios → `pull --rebase` → `push`).
+Sincronización **al guardar** con debounce (por defecto **45 s** tras el último cambio; ajusta con `OBSIDIAN_MEMORY_DEBOUNCE`). Requiere **Go**, compilar desde este repo y ejecutar el binario con `BASIC_MEMORY_HOME` apuntando al vault. Detalles: [`cmd/obsidian-memoryd`](../../cmd/obsidian-memoryd), `agent.toml`, y en Windows el binario puede compilarse con `go build -ldflags="-H windowsgui"` si lo registras en el Programador de tareas **como programa** (ruta al `.exe`), sin capas de script del kit.
 
-## Sin ventana de consola (recomendado)
+## Opción B: solo git a mano
 
-Aunque uses `-WindowStyle Hidden` en `powershell.exe`, a veces **sí** aparece un flash de ventana. El patrón estable es **`wscript.exe`** + un `.vbs` mínimo que lanza PowerShell con ventana oculta (igual que el shim v1 del vault).
+Abre una terminal en el vault y ejecuta cuando quieras converger con el remoto:
 
-Copia `Run-Hidden.vbs` junto a tus scripts (en el repo público: `scripts/windows/Run-Hidden.vbs`; en el vault: `scripts/windows/Run-Hidden.vbs`).
-
-## Crear la tarea (cada **60 minutos** por defecto, usuario actual)
-
-**Por qué 60 min:** un vault de memoria no necesita `pull`/`push` en bucle corto; intervalos agresivos (5–10 min) generan ruido en red, disco y a veces ventanas de consola. Para equipos multi-máquina muy activos, **15–30 min** es un compromiso razonable; reserva **5 min** solo para depuración.
-
-Ajusta `$vault` si tu ruta no es la habitual. Para otro intervalo, cambia el número en **`-RepetitionInterval (New-TimeSpan -Minutes 60)`** y la descripción.
-
-```powershell
-$vault = "$env:USERPROFILE\Documents\cursor-memory-vault"
-$vbs = Join-Path $vault "scripts\windows\Run-Hidden.vbs"
-$script = Join-Path $vault "scripts\windows\Sync-Memory.ps1"
-$arg = "//nologo `"$vbs`" `"$script`""
-$action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument $arg
-$start = (Get-Date).AddMinutes(1)
-$trigger = New-ScheduledTaskTrigger -Once -At $start `
-  -RepetitionInterval (New-TimeSpan -Minutes 60) `
-  -RepetitionDuration (New-TimeSpan -Days 3650)
-$settings = New-ScheduledTaskSettingsSet `
-  -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
-  -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Minutes 5)
-$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Limited
-Unregister-ScheduledTask -TaskName "CursorMemoryVaultSync" -Confirm:$false -ErrorAction SilentlyContinue
-Register-ScheduledTask -TaskName "CursorMemoryVaultSync" -Action $action -Trigger $trigger `
-  -Settings $settings -Principal $principal `
-  -Description "Git sync vault cursor-memory-vault cada 60 min (sin ventana)"
+```bash
+git status
+git add -A
+git commit -m "memory"   # solo si hay cambios
+git pull --rebase
+git push
 ```
 
-### Probar una vez a mano
+Orden seguro: **add → commit (si aplica) → pull --rebase → push** ([ADR-0004](../adr/0004-sync-order-add-commit-pull-push.md)). Si haces `pull --rebase` con cambios sin stagear, Git responde _cannot pull with rebase: You have unstaged changes_.
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "$env:USERPROFILE\Documents\cursor-memory-vault\scripts\windows\Sync-Memory.ps1"
-```
+## Opción C: memoria en el mismo repo que ya actualizas
 
-### Ver estado
+Sin segundo temporizador solo para el vault: [`memory-repo-sin-automatismos-locales.md`](./memory-repo-sin-automatismos-locales.md).
 
-```powershell
-Get-ScheduledTask -TaskName "CursorMemoryVaultSync"
-```
+## Programador de tareas (avanzado, por tu cuenta)
 
-### Quitar la tarea
-
-```powershell
-Unregister-ScheduledTask -TaskName "CursorMemoryVaultSync" -Confirm:$false
-```
-
-## Alternativa: `obsidian-memoryd` (Go)
-
-Sincronización **al guardar** (debounce **45 s** por defecto; opcional `OBSIDIAN_MEMORY_DEBOUNCE`, p. ej. `90s` o `2m`): requiere instalar Go, compilar desde este repo (`go build -o obsidian-memoryd ./cmd/obsidian-memoryd`) y ejecutar `obsidian-memoryd watch` con `BASIC_MEMORY_HOME` apuntando al vault. En Windows se puede registrar como servicio con `obsidian-memoryd service install` (ver `cmd/obsidian-memoryd/main.go` y `agent.toml`).
+Si registras **tú** una tarea que lance `git` u otro binario, revisa en **Programador de tareas** (GUI) la línea de comando y el **código de salida** en el historial. Este repo no incluye plantillas de tarea con PowerShell/VBS para copiar.
 
 ## English
 

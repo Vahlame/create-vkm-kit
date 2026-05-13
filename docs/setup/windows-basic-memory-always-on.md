@@ -1,67 +1,35 @@
-# Windows: mantener `basic-memory` MCP siempre encendido
+# Windows: `basic-memory` siempre disponible (sin scripts del kit)
 
-Cursor puede usar **`basic-memory` por stdio** (Cursor lanza `uvx` al abrir el chat) o por **Streamable HTTP** (un proceso escuchando en localhost que sigue vivo aunque cierres y abras Cursor).
+Cursor puede usar **`basic-memory` por stdio** (recomendado: Cursor arranca `uvx` cuando hace falta; ver [`config/mcp/basic-memory.json`](../../config/mcp/basic-memory.json)) o **Streamable HTTP** (un proceso que escucha en localhost).
 
-Esta guía describe la opción **HTTP persistente** (recomendada si quieres “siempre arriba”).
+Esta guía **no** incluye `.ps1` ni `.vbs` para copiar. Si necesitas HTTP persistente, hazlo con **comandos** o con una tarea que tú definas.
 
-## Qué se instala en el PC
+## Por defecto: stdio
 
-1. **uv** (ya lo usas para `uvx basic-memory`).
-2. Script **`Start-BasicMemoryMcp.ps1`** (en el vault: `scripts/windows/`, copia canónica en este repo: `scripts/windows/Start-BasicMemoryMcp.ps1`).
-3. Tarea programada **`CursorBasicMemoryHttpMcp`** al **inicio de sesión**: ejecuta el script en segundo plano; si el proceso muere, el Programador puede **reintentar** (configuración `RestartCount` / `RestartInterval`).
-4. **`%USERPROFILE%\.cursor\mcp.json`**: entrada `basic-memory` con `"url": "http://127.0.0.1:8765/mcp"` (sin `command`/`uvx` para ese servidor). El **puerto debe coincidir** con el del script (por defecto **8765**).
+No hace falta proceso aparte: deja `mcp.json` con `command` + `uvx` y `BASIC_MEMORY_HOME`. Cierra el tema de puertos y tareas.
 
-El servidor usa **`BASIC_MEMORY_HOME`** dentro del script (ruta del vault). Cursor solo habla HTTP; no necesita repetir el path del vault en `mcp.json` para `basic-memory`.
+## HTTP persistente (opcional): terminal
 
-## Sin ventana de consola (tareas programadas)
-
-No uses `powershell.exe` solo como acción de la tarea: a veces **parpadea** una consola. Lanza el `.ps1` con **`wscript.exe`** + `Run-Hidden.vbs` (en `scripts/windows/Run-Hidden.vbs`).
-
-### Registrar `CursorBasicMemoryHttpMcp` (ejemplo)
+En **Windows Terminal** o `cmd` (puedes minimizar la ventana):
 
 ```powershell
-$vaultScripts = Join-Path $env:USERPROFILE "Documents\cursor-memory-vault\scripts\windows"
-$vbs = Join-Path $vaultScripts "Run-Hidden.vbs"
-$ps1 = Join-Path $vaultScripts "Start-BasicMemoryMcp.ps1"
-$arg = "//nologo `"$vbs`" `"$ps1`""
-$action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument $arg
-$trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
-$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 15 -RestartInterval (New-TimeSpan -Minutes 1)
-$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Limited
-Unregister-ScheduledTask -TaskName "CursorBasicMemoryHttpMcp" -Confirm:$false -ErrorAction SilentlyContinue
-Register-ScheduledTask -TaskName "CursorBasicMemoryHttpMcp" -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Description "basic-memory MCP HTTP (sin ventana)"
+$env:BASIC_MEMORY_HOME = "C:\RUTA\ABSOLUTA\AL\VAULT"
+uvx basic-memory mcp --transport streamable-http --host 127.0.0.1 --port 8765 --path /mcp
 ```
 
-## Opcional: `obsidian-memoryd watch` (Go, sincro al guardar)
+En `mcp.json`, la entrada `basic-memory` debe usar la misma URL, p. ej. `"url": "http://127.0.0.1:8765/mcp"` (sin `command`/`uvx` para ese servidor).
 
-Además del **git periódico por tarea** (`CursorMemoryVaultSync`, **60 min** en la guía del kit), puedes tener **`obsidian-memoryd`** haciendo `git add/commit/pull/push` con **debounce** (por defecto **45 s** tras el último cambio; `OBSIDIAN_MEMORY_DEBOUNCE` para afinar) cuando cambian archivos del vault.
+**Puerto:** el kit documenta **8765** por defecto para evitar choques con **8000** / **8080** / **3000** en máquinas de desarrollo ([ADR-0016](../adr/0016-localhost-mcp-default-port.md)). Si el puerto está ocupado por otra app, elige otro libre (p. ej. **8877**) y usa **el mismo** en la línea `uvx` y en `mcp.json`.
 
-### Instalar Go
+## HTTP vía Programador de tareas (opcional, avanzado)
 
-Por ejemplo: `winget install GoLang.Go`.
-
-### Compilar el binario
-
-Desde el clon de este repo:
-
-```powershell
-New-Item -ItemType Directory -Force -Path "$env:LOCALAPPDATA\cursor-memory\bin" | Out-Null
-go build -ldflags="-H windowsgui" -o "$env:LOCALAPPDATA\cursor-memory\bin\obsidian-memoryd.exe" ./cmd/obsidian-memoryd
-```
-
-`-H windowsgui` evita que **obsidian-memoryd** abra consola propia al arrancar desde el Programador de tareas.
-
-### Tarea al inicio de sesión
-
-Tarea **`CursorObsidianMemorydWatch`** con **`wscript.exe //nologo Run-Hidden.vbs Start-ObsidianMemorydWatch.ps1`** (mismo patrón que `basic-memory` HTTP).
-
-Si notas **demasiados** commits automáticos, desactiva la **tarea programada de sync** **o** el `watch`, y deja solo una estrategia (o sube el intervalo de la tarea / el valor de `OBSIDIAN_MEMORY_DEBOUNCE`).
-
-## Puertos y seguridad
-
-Por defecto el script usa **`127.0.0.1:8765`** (solo esta máquina). **Por qué no 8000:** muchas apps de desarrollo (APIs, otros MCP, herramientas internas) suelen ocupar **8000**, **8080** o **3000**; si otra cosa escucha ahí, Cursor puede mostrar `fetch failed` aunque “el puerto responda”. Para **nuevas apps** en la misma máquina, elige un puerto alto libre (p. ej. **8765–8899**), úsalo **igual** en `Start-BasicMemoryMcp.ps1` (`-Port`) y en `mcp.json` (`url`), y documenta el valor en el runbook del proyecto.
+Si quieres arranque al inicio de sesión **sin** depender de una ventana, crea tú la tarea en `taskschd.msc`: programa **`cmd.exe`**, argumentos del estilo `/c "set BASIC_MEMORY_HOME=C:\vault&& …\uvx.exe basic-memory mcp --transport streamable-http --host 127.0.0.1 --port 8765 --path /mcp"` (ajusta la ruta a `uvx` con `where uvx`). Este repo no publica esa línea como archivo listo para copiar; valida comillas y permisos en tu máquina.
 
 No expongas el listener a la red sin TLS y autenticación.
+
+## Opcional: `obsidian-memoryd watch` (Go, git al guardar)
+
+Complemento para el vault en disco: [`windows-scheduled-vault-sync.md`](./windows-scheduled-vault-sync.md). Compila el `.exe` con `-ldflags="-H windowsgui"` si no quieres consola del propio daemon.
 
 ## Comprobar
 
@@ -69,17 +37,17 @@ No expongas el listener a la red sin TLS y autenticación.
 Test-NetConnection 127.0.0.1 -Port 8765
 ```
 
-En Cursor: **Settings → MCP** → `basic-memory` en verde. Si cambiaste `mcp.json`, **reinicia Cursor**.
+En Cursor: **Settings → MCP** → `basic-memory` en verde. Tras cambiar `mcp.json`, **reinicia Cursor** o **Developer: Reload Window**.
 
-## Quitar / depurar
+## Quitar / volver a stdio
 
-- Detener proceso: `Get-NetTCPConnection -LocalPort 8765` → `Stop-Process -Id …` con cuidado.
-- Quitar tarea: `Unregister-ScheduledTask -TaskName CursorBasicMemoryHttpMcp -Confirm:$false`
-- Volver a stdio: restaura en `mcp.json` el bloque de `config/mcp/basic-memory.json` y quita la tarea HTTP.
+- Detén el proceso que escucha el puerto (`Get-NetTCPConnection` / Administrador de tareas).
+- Quita la tarea que creaste, si aplica.
+- Restaura en `mcp.json` el bloque de [`config/mcp/basic-memory.json`](../../config/mcp/basic-memory.json).
 
-## Plantilla JSON
+## Plantilla JSON HTTP
 
-Ver [`../../config/mcp/basic-memory-streamable-http.json`](../../config/mcp/basic-memory-streamable-http.json).
+[`config/mcp/basic-memory-streamable-http.json`](../../config/mcp/basic-memory-streamable-http.json).
 
 ## English
 

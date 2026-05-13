@@ -12,6 +12,8 @@ This memory **does not live inside the model**. It lives in **text files** (Mark
 
 You keep a **folder of notes** (the “vault”). A **small program** (the MCP server, default `basic-memory`) connects to the editor and gives the model **tools** to read and write those notes. Optionally you paste **fixed text rules** in Cursor (“User Rules”) so the model **uses** those tools in a sensible order (for example: `START_HERE.md`, then `MEMORY.md`, then the active project).
 
+**Sync and “always-on” MCP (v3, public kit):** by default the IDE uses **`basic-memory` over stdio** (no separate long-lived process required). To keep the vault in **git** with low friction we document **`obsidian-memoryd watch`** or **manual git**. Persistent HTTP and Windows tasks are **optional** and owned by the installer — the kit **no longer ships** `.ps1`/`.vbs` in the repo. If you followed the v2 kit script model, read **[`docs/migration/v2-to-v3-script-free-kit.en.md`](./migration/v2-to-v3-script-free-kit.en.md)**.
+
 ## Three pieces (and why all three matter)
 
 ### 1. The vault (folder + Markdown + git)

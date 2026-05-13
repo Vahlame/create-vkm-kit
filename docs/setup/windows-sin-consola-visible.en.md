@@ -1,6 +1,6 @@
 # Windows: avoid visible console (CMD) windows with Cursor
 
-Goal: **not rely on restarting Cursor** for a clean desktop. Typical causes are three: **IDE (Git / extensions)**, **MCP (`node`, `uvx`, `npx`)**, and **Task Scheduler** entries that invoke `powershell.exe` or `cmd.exe` directly.
+Goal: **fewer console flashes** without relying on kit-shipped scripts. Typical causes are **IDE (Git / extensions)**, **MCP (`node`, `uvx`, `npx`)**, and **Task Scheduler** entries that invoke `powershell.exe` or `cmd.exe` directly.
 
 ## 1. Always open the correct folder (workspace)
 
@@ -16,25 +16,19 @@ If you see windows titled **`…\Git\bin\git.exe`** or **`bin\sh.exe`**, set in 
 
 If you need live Git UI in **this** folder, edit **your** `.vscode/settings.json` and set `git.autorefresh` back to `true` (accepts more `git`/`conhost` traffic).
 
-## 3. `Cursor*` scheduled tasks
+## 3. `Cursor*` scheduled tasks (if you created any)
 
-If a task runs **`powershell.exe` / `cmd.exe` directly**, Windows may flash a console even if the interval is long.
+Open **Task Scheduler** (`taskschd.msc`) → your tasks whose names start with `Cursor` → **Actions** tab. If the program is **`powershell.exe`** or **`cmd.exe`** without “start minimized” (where applicable), Windows may flash a console when the task fires. Change the action, or disable the task when you do not need it.
 
-1. Audit with the repo script (from the clone root):
-
-   ```powershell
-   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\Get-CursorScheduledTaskConsoleRisk.ps1
-   ```
-
-2. Rebuild actions using **`wscript.exe //nologo ...\Run-Hidden.vbs ...\YourScript.ps1`** as documented in [`windows-basic-memory-always-on.en.md`](./windows-basic-memory-always-on.en.md) and [`windows-scheduled-vault-sync.en.md`](./windows-scheduled-vault-sync.en.md).
+This repo does **not** publish VBS/PowerShell templates to hide the console.
 
 ## 4. MCP and extensions
 
 - Each MCP server launched with **`command`** (`uvx`, `node`, `npx`) may create a **console** on Windows; this repository cannot fully suppress that. Reduce enabled MCP servers under **Settings → MCP** and disable extensions that repeatedly spawn Git or shells (try without GitLens as a test).
-- Diagnostics: [`tools/monitor-console-live.ps1`](../../tools/monitor-console-live.ps1) (parent PID + truncated `CommandLine`).
+- Diagnostics: **Task Manager** → **Details** (command-line column) or **Resource Monitor** while reproducing the issue.
 
 ## 5. Honest limit
 
-There is **no** Markdown switch that guarantees **zero** windows for **every** mix of extensions, MCP, and OS tasks. This kit ships **workspace defaults + hidden scheduled-task pattern + guidance** to get close to “no flashes” for normal vault + repo workflows.
+There is **no** Markdown switch that guarantees **zero** windows for **every** mix of extensions, MCP, and OS tasks. This kit ships **workspace defaults + guidance** to get close to “no flashes” for normal vault + repo workflows.
 
 **Fullscreen gaming + vault sync:** [`windows-juego-vault-sync.en.md`](./windows-juego-vault-sync.en.md).

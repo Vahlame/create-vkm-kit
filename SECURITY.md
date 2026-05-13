@@ -8,11 +8,12 @@ Treat issues with agent-facing instructions the same way you would treat issues 
 
 ## Supported versions
 
-| Version | Supported                        |
-| ------- | -------------------------------- |
-| 2.x     | yes                              |
-| 1.x     | best-effort (legacy prompt only) |
-| < 1.0   | no                               |
+| Version | Supported                                                          |
+| ------- | ------------------------------------------------------------------ |
+| 3.x     | yes                                                                |
+| 2.x     | superseded docs model (pre–v3 kit scripts); upgrade to v3 guidance |
+| 1.x     | best-effort (legacy prompt only)                                   |
+| < 1.0   | no                                                                 |
 
 Only the latest minor of the current major receives fixes. We will not backport.
 

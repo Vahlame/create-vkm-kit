@@ -2,7 +2,7 @@
 
 **Repo flow:** if you are new, start with [`../GETTING_STARTED.en.md`](../GETTING_STARTED.en.md) and [`how-memory-works-simple.en.md`](./how-memory-works-simple.en.md); this file is the **Cursor deep dive** (MCP + User Rules + verification).
 
-This guide ties together README, `AGENTS.md`, v1→v2 migration, and the legacy prompt. **Goal:** clarity on _what_ to configure, _where_, and _why_.
+This guide is the **v2** setup path (MCP `basic-memory`, rules, checks). Historical v1→v2 context: [`docs/migration/v1-to-v2-mcp.md`](./migration/v1-to-v2-mcp.md) and artifacts under [`docs/legacy/`](./legacy/).
 
 ## Recommended flow (at a glance)
 
@@ -33,11 +33,7 @@ Required for Cursor and, if you use the hybrid, for `node …/hybrid-mcp.mjs`.
 
 ### uv
 
-For `uvx basic-memory mcp`. Windows install:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
-```
+For `uvx basic-memory mcp`. Install uv using the official instructions for your OS: [uv installation](https://docs.astral.sh/uv/getting-started/installation/).
 
 Restart Cursor or the terminal so `uvx` is on your user `PATH` (typically `~/.local/bin`).
 
@@ -62,7 +58,7 @@ The hybrid runs `python -m obsidian_memory_rag …`. If the module does not reso
 ### How Cursor reaches `basic-memory`: stdio vs URL
 
 - **stdio (default recommendation):** `mcp.json` uses `command` + `args` (`uvx basic-memory mcp`) and `env.BASIC_MEMORY_HOME`. Cursor **spawns** the process when needed; no local port required.
-- **URL / Streamable HTTP (optional, mainly Windows “always on”):** the entry is only `"url": "http://127.0.0.1:8765/mcp"` (see `config/mcp/basic-memory-streamable-http.json`). A process must be **listening before** Cursor connects (e.g. `CursorBasicMemoryHttpMcp`). If not, MCP logs show `fetch failed` / `streamableHttp`; see [`docs/troubleshooting.md`](./troubleshooting.md) and [`docs/setup/windows-basic-memory-always-on.en.md`](./setup/windows-basic-memory-always-on.en.md).
+- **URL / Streamable HTTP (optional):** the entry is only `"url": "http://127.0.0.1:8765/mcp"` (see `config/mcp/basic-memory-streamable-http.json`). A process must be **listening before** Cursor connects (minimized terminal or a task **you** define; see [`docs/setup/windows-basic-memory-always-on.en.md`](./setup/windows-basic-memory-always-on.en.md)). If not, MCP logs show `fetch failed` / `streamableHttp`; see [`docs/troubleshooting.md`](./troubleshooting.md).
 
 ### `basic-memory` over stdio (minimum recommended)
 
@@ -100,7 +96,7 @@ If `uvx` fails, it is usually **missing uv** or **PATH not refreshed**; see `doc
 ### How `basic-memory` is wired (stdio vs URL)
 
 - If `mcp.json` uses **`command` + `uvx`** for `basic-memory`, that is **stdio**: Cursor starts the server; no fixed HTTP port is required.
-- If the **`basic-memory` entry is only `"url"`** (e.g. `http://127.0.0.1:8765/mcp` or **another port** if you changed it for conflicts), an **HTTP server must already be running** (e.g. `CursorBasicMemoryHttpMcp` on Windows). With nothing listening on that port you get `fetch failed` in MCP logs.
+- If the **`basic-memory` entry is only `"url"`** (e.g. `http://127.0.0.1:8765/mcp` or **another port** if you changed it for conflicts), an **HTTP server must already be running** on that machine (terminal with `uvx …` or a process you keep alive). With nothing listening on that port you get `fetch failed` in MCP logs.
 - ASCII banners or `undefined` lines on server stderr are often **startup noise**; what matters is listed tools and a working MCP panel.
 
 ### MCP availability
@@ -154,12 +150,12 @@ Merges the `basic-memory` entry without wiping other servers (UTF-8 BOM on `mcp.
 
 ## Read next
 
-| Topic                                                         | Doc                              |
-| ------------------------------------------------------------- | -------------------------------- |
-| Manual checks (Inspector, FTS, hybrid)                        | `docs/testing/manual-checks.md`  |
-| Common errors (uv, BOM, red MCP, `fetch failed`, `memory://`) | `docs/troubleshooting.md`        |
-| Generic agent protocol                                        | `AGENTS.md` (Memory protocol)    |
-| Example vault layout                                          | `examples/`                      |
+| Topic                                                         | Doc                             |
+| ------------------------------------------------------------- | ------------------------------- |
+| Manual checks (Inspector, FTS, hybrid)                        | `docs/testing/manual-checks.md` |
+| Common errors (uv, BOM, red MCP, `fetch failed`, `memory://`) | `docs/troubleshooting.md`       |
+| Generic agent protocol                                        | `AGENTS.md` (Memory protocol)   |
+| Example vault layout                                          | `examples/`                     |
 
 ## One-line summary
 

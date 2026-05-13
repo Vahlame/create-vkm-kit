@@ -12,6 +12,8 @@ Esta memoria **no vive dentro del modelo**. Vive en **archivos de texto** (Markd
 
 Tienes una **carpeta de notas** (el “vault”). Un **programa pequeño** (el servidor MCP, por defecto `basic-memory`) se conecta al editor y le da a la IA **herramientas** para leer y escribir esas notas. Opcionalmente pegas **reglas de texto** en Cursor (“User Rules”) para que la IA **use** esas herramientas con un orden sensato (por ejemplo: primero `START_HERE.md`, luego `MEMORY.md`, luego el proyecto activo).
 
+**Sincronización y MCP “siempre arriba” (v3, guía pública):** por defecto el IDE usa **`basic-memory` por stdio** (no hace falta un segundo proceso). Para llevar el vault a **git** con poco esfuerzo se documenta **`obsidian-memoryd watch`** o **comandos git a mano**; el HTTP persistente y las tareas de Windows son **opcionales** y las define quien instala — el kit **ya no publica** `.ps1`/`.vbs` en el repo. Si venías del modelo v2 con scripts del kit, lee el capítulo **[`docs/migration/v2-to-v3-script-free-kit.md`](./migration/v2-to-v3-script-free-kit.md)**.
+
 ## Las tres piezas (y por qué las tres)
 
 ### 1. El vault (carpeta + Markdown + git)

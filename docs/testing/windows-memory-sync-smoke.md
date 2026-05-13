@@ -1,17 +1,15 @@
-# Windows: smoke rápido (memoria, autosync y extras)
+# Windows: smoke rápido (memoria, git y MCP)
 
-Checklist **después** de instalar el vault, `basic-memory` en Cursor y (opcional) tareas `CursorMemoryVaultSync` / `CursorBasicMemoryHttpMcp` según [`../setup/windows-scheduled-vault-sync.md`](../setup/windows-scheduled-vault-sync.md) y [`../setup/windows-basic-memory-always-on.md`](../setup/windows-basic-memory-always-on.md).
+Checklist **después** de tener el vault, `basic-memory` en Cursor y cualquier automatismo **que hayas configurado tú** (p. ej. `obsidian-memoryd`, HTTP en terminal — ver [`../setup/windows-scheduled-vault-sync.md`](../setup/windows-scheduled-vault-sync.md) y [`../setup/windows-basic-memory-always-on.md`](../setup/windows-basic-memory-always-on.md)).
 
-Ajusta `$vault` si tu ruta no es la habitual.
-
-## 1. Tareas programadas registradas
+## 1. Tareas programadas (si existen)
 
 ```powershell
-Get-ScheduledTask -TaskName CursorMemoryVaultSync,CursorBasicMemoryHttpMcp,CursorObsidianMemorydWatch -ErrorAction SilentlyContinue |
+Get-ScheduledTask -TaskName CursorMemoryVaultSync,CursorBasicMemoryHttpMcp -ErrorAction SilentlyContinue |
   Select-Object TaskName, State
 ```
 
-**Ready** es lo esperado. **Running** puede aparecer unos segundos mientras corre el trigger.
+**Ready** es lo esperado. Si no usas tareas, no aparecerán filas.
 
 ## 2. Última ejecución y código de salida
 
@@ -19,28 +17,22 @@ Get-ScheduledTask -TaskName CursorMemoryVaultSync,CursorBasicMemoryHttpMcp,Curso
 @(
   'CursorMemoryVaultSync'
   'CursorBasicMemoryHttpMcp'
-  'CursorObsidianMemorydWatch'
 ) | ForEach-Object {
   $i = Get-ScheduledTaskInfo -TaskName $_ -ErrorAction SilentlyContinue
   if (-not $i) { return }
   [pscustomobject]@{
-    TaskName     = $_
-    LastRunTime  = $i.LastRunTime
+    TaskName       = $_
+    LastRunTime    = $i.LastRunTime
     LastTaskResult = $i.LastTaskResult
   }
 } | Format-Table -AutoSize
 ```
 
-Para muchas tareas de usuario, **`LastTaskResult` 0** indica éxito. Si ves otro valor, revisa el log del script o [`../troubleshooting.md`](../troubleshooting.md).
+Para muchas tareas de usuario, **`LastTaskResult` 0** indica éxito. Si ves otro valor, abre la tarea en `taskschd.msc` y revisa la línea de comando bajo **Acciones**; ver [`../troubleshooting.md`](../troubleshooting.md).
 
-## 3. Lanzador sin ventana de consola (sync / MCP)
+## 3. Acciones de la tarea (revisión manual)
 
-```powershell
-$t = Get-ScheduledTask -TaskName CursorMemoryVaultSync -ErrorAction SilentlyContinue
-if ($t) { $t.Actions | Format-List Execute, Arguments }
-```
-
-Patrón recomendado: programa **`wscript.exe`**, argumentos con **`Run-Hidden.vbs`** y el `.ps1` del vault (copia desde [`../../scripts/windows/Run-Hidden.vbs`](../../scripts/windows/Run-Hidden.vbs)).
+En **Programador de tareas** → tarea → **Acciones**: confirma que el programa y los argumentos coinciden con lo que quieres (p. ej. `cmd.exe` + `uvx …` para HTTP, o el `.exe` de `obsidian-memoryd`). Este repo no define una plantilla única.
 
 ## 4. Git en el vault
 
@@ -53,25 +45,23 @@ try {
 } finally { Pop-Location }
 ```
 
-Comprueba que hay **remoto `origin`** si quieres push automático.
+Comprueba que hay **remoto `origin`** si quieres `push` al remoto.
 
-## 5. Probar sync una vez (opcional)
+## 5. Sync manual una vez (opcional)
 
-Desde una consola ya abierta (sí verás ventana aquí; la tarea programada con VBS no debería):
+En una terminal ya abierta en la raíz del vault:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "$env:USERPROFILE\Documents\cursor-memory-vault\scripts\windows\Sync-Memory.ps1"
-```
-
-Para forzar solo la tarea (sin consola si la acción es `wscript` + VBS):
-
-```powershell
-Start-ScheduledTask -TaskName CursorMemoryVaultSync
+```bash
+git add -A
+git status
+git commit -m "smoke"   # solo si hay cambios
+git pull --rebase
+git push
 ```
 
 ## 6. MCP HTTP `basic-memory` (puerto por defecto **8765**)
 
-Si usas la tarea **CursorBasicMemoryHttpMcp** y `mcp.json` con la misma URL (p. ej. `http://127.0.0.1:8765/mcp`):
+Si `mcp.json` usa `http://127.0.0.1:8765/mcp`, primero arranca el listener (terminal con `uvx …` según la guía always-on):
 
 ```powershell
 Test-NetConnection 127.0.0.1 -Port 8765 -InformationLevel Quiet
