@@ -24,7 +24,7 @@ Your memory may include client names, internal architectures, half-formed ideas,
 
 ### Can multiple machines write at the same time?
 
-Yes, with caveats. The autosync uses `git pull --rebase`, which handles non-overlapping edits correctly. If two machines edit the same line of `MEMORY.md` within a 10-minute window, you will get a Git conflict on the next sync. The task will fail and the conflict will appear in `git status` for you to resolve manually. This is rare in practice because the agent appends rather than overwrites.
+Yes, with caveats. The autosync uses `git pull --rebase`, which handles non-overlapping edits correctly. If two machines edit the same line of `MEMORY.md` before the next sync runs, you will get a Git conflict on the next sync. The task will fail and the conflict will appear in `git status` for you to resolve manually. This is rare in practice because the agent appends rather than overwrites. Prefer **longer** scheduler intervals (the kit defaults to **60 minutes** in `windows-scheduled-vault-sync*.md`) so you are not hammering the remote.
 
 ### Does it slow Cursor down?
 

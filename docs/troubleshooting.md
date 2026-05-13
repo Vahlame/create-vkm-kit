@@ -70,7 +70,7 @@ Run before any commit. The Preflight check in section 6.1 catches this and promp
 ### `error: failed to push some refs to ...` after a successful `pull --rebase`
 
 - **Cause:** Two machines pushed at almost the same time.
-- **Fix:** The next sync (10 minutes later) will retry. To force immediate convergence: run `Sync-Memory.ps1` manually twice.
+- **Fix:** The next scheduled vault sync will retry (match your Task Scheduler interval; the kit doc default is **60 minutes**). To force immediate convergence: run `Sync-Memory.ps1` manually twice.
 
 ## Scheduled task errors
 
@@ -79,10 +79,10 @@ Run before any commit. The Preflight check in section 6.1 catches this and promp
 - **Cause:** Quoting issue when the path to the VBS runner contains spaces.
 - **Fix:** Wrap the `/TR` argument in double quotes and invoke through `cmd /c` so PowerShell does not re-parse the inner quoting. The prompt's `Enable-MCP-Watchdog.ps1` and `Enable-AutoSync.ps1` already do this.
 
-### A console window appears every 5 or 10 minutes
+### A console window appears every few minutes (scheduled task cadence)
 
 - **Cause:** The task was created to run `powershell.exe` directly. PowerShell flashes a window on cold launch even with `-WindowStyle Hidden`.
-- **Fix:** Rebuild the task to run `wscript.exe //B //nologo <runner>.vbs`. The VBS shim hides the window. See ADR-0003.
+- **Fix:** Rebuild the task to run `wscript.exe //B //nologo <runner>.vbs`. The VBS shim hides the window. See ADR-0003. If the task still runs too often, increase **`-RepetitionInterval`** (kit default in docs: **60 minutes**).
 
 ### `Doctor.ps1` says the task exists but `Ultimo resultado` is non-zero
 

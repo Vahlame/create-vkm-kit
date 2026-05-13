@@ -10,7 +10,7 @@ An AI model with tools. In this repo, "agent" means any assistant that reads `AG
 
 ### Autosync
 
-**v1 (Windows):** the scheduled task `CursorMemoryAutoSync` that ran `Sync-Memory.ps1` every ~10 minutes to commit and push the vault. **v2:** use **`obsidian-memoryd watch`** (debounced git) or any scheduler you prefer; this public repo does not ship the v1 PowerShell scripts.
+**v1 (Windows):** the scheduled task `CursorMemoryAutoSync` that ran `Sync-Memory.ps1` on a short timer (often ~10 minutes) to commit and push the vault. **v2:** use **`obsidian-memoryd watch`** (debounced git; default **45 s** quiet period, override with `OBSIDIAN_MEMORY_DEBOUNCE`) or any scheduler you prefer; kit docs default the Windows vault task to **60 minutes** between runs. This public repo does not ship the v1 PowerShell scripts.
 
 ### `basic-memory`
 

@@ -34,7 +34,7 @@ Register-ScheduledTask -TaskName "CursorBasicMemoryHttpMcp" -Action $action -Tri
 
 ## Optional: `obsidian-memoryd watch` (Go, sync-on-save)
 
-Besides **git every 10 minutes** (`CursorMemoryVaultSync`), you can run **`obsidian-memoryd`** for debounced `git add/commit/pull/push` when vault files change.
+Besides **periodic git via scheduled task** (`CursorMemoryVaultSync`, **60 min** in the kit walkthrough), you can run **`obsidian-memoryd`** for debounced `git add/commit/pull/push` (**45 s** after the last change by default; tune with `OBSIDIAN_MEMORY_DEBOUNCE`) when vault files change.
 
 ### Install Go
 
@@ -55,7 +55,7 @@ go build -ldflags="-H windowsgui" -o "$env:LOCALAPPDATA\cursor-memory\bin\obsidi
 
 Task **`CursorObsidianMemorydWatch`** using **`wscript.exe //nologo Run-Hidden.vbs Start-ObsidianMemorydWatch.ps1`** (same pattern as HTTP `basic-memory`).
 
-If you see **too many** auto-commits, disable either the 10-minute task **or** `watch`, and keep one strategy.
+If you see **too many** auto-commits, disable either the **scheduled sync task** **or** `watch`, and keep one strategy (or raise the task interval / `OBSIDIAN_MEMORY_DEBOUNCE`).
 
 ## Ports and safety
 

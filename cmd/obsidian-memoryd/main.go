@@ -34,6 +34,7 @@ Usage:
 
 Environment:
   BASIC_MEMORY_HOME or OBSIDIAN_MEMORY_VAULT — vault root (git repo)
+  OBSIDIAN_MEMORY_DEBOUNCE — optional debounce before git sync after file changes (Go duration, e.g. 30s, 2m); default 45s; min 5s, max 15m
 `
 
 func main() {
@@ -111,6 +112,28 @@ func vaultPath(p string) string {
 	return abs
 }
 
+// watchDebounce returns how long to wait after the last fs event before running git sync.
+// Default is conservative so editors that save often do not hammer git remotes.
+func watchDebounce() time.Duration {
+	const (
+		defaultDur = 45 * time.Second
+		minDur     = 5 * time.Second
+		maxDur     = 15 * time.Minute
+	)
+	s := strings.TrimSpace(os.Getenv("OBSIDIAN_MEMORY_DEBOUNCE"))
+	if s == "" {
+		return defaultDur
+	}
+	d, err := time.ParseDuration(s)
+	if err != nil || d < minDur {
+		return defaultDur
+	}
+	if d > maxDur {
+		return maxDur
+	}
+	return d
+}
+
 func flagValue(args []string, name, def string) string {
 	for i := 0; i < len(args); i++ {
 		if args[i] == name && i+1 < len(args) {
@@ -175,7 +198,7 @@ func runWatch(ctx context.Context, l *slog.Logger, root string) error {
 		return err
 	}
 	var debounce *time.Timer
-	dur := 2 * time.Second
+	dur := watchDebounce()
 	for {
 		select {
 		case ev, ok := <-w.Events:

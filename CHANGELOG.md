@@ -27,7 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - FAQ + glossary aligned with v2 transport, uninstall, and large-vault FTS path.
 - **`GETTING_STARTED.md` / `GETTING_STARTED.en.md`**: tabla de pasos (flujo lineal instalación / verificación).
 - **`docs/how-memory-works-simple.md`** / **`docs/how-memory-works-simple.en.md`**: modelo mental en lenguaje llano (vault, MCP, User Rules).
-- **`docs/setup/windows-scheduled-vault-sync.md`** / **`.en.md`**: tarea programada Windows (`CursorMemoryVaultSync`) para sincronizar el vault con `git` cada N minutos sin Go.
+- **`docs/setup/windows-scheduled-vault-sync.md`** / **`.en.md`**: tarea programada Windows (`CursorMemoryVaultSync`) para sincronizar el vault con `git` en intervalos (sin Go); **ejemplo por defecto en docs: 60 min** entre ejecuciones.
 - **`docs/setup/windows-basic-memory-always-on.md`** / **`.en.md`**: MCP `basic-memory` persistente (Streamable HTTP + tarea `CursorBasicMemoryHttpMcp`); script `scripts/windows/Start-BasicMemoryMcp.ps1`; plantilla `config/mcp/basic-memory-streamable-http.json`.
 - **`docs/cursor-memory-setup.md`** / **`docs/cursor-memory-setup.en.md`**: end-to-end Cursor guide (vault vs MCP vs User Rules, verification, ready-to-paste User Rules for `basic-memory` + optional hybrid).
 - **ADR-0016:** puerto localhost por defecto **8765** para `basic-memory` Streamable HTTP (evitar colisiones con 8000/8080/3000).
@@ -44,6 +44,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **`obsidian-memoryd watch`:** debounce por defecto antes de `git sync` pasa de **2 s** a **45 s** (menos presión al remoto cuando el editor guarda en ráfaga); variable opcional **`OBSIDIAN_MEMORY_DEBOUNCE`** (duración estilo Go, p. ej. `90s`, `2m`; mín. 5 s, máx. 15 m).
+- **Windows (`windows-scheduled-vault-sync*.md`, guías relacionadas, ADR-0004/0012, FAQ, glossary, troubleshooting):** plantilla de tarea **`CursorMemoryVaultSync`** con repetición cada **60 min** (antes 10 min en el ejemplo); texto alineado con sync “profesional” y juego (`windows-juego-vault-sync*`).
 - **`README.md` / `README.en.md` / `docs/README.md`:** Windows console + gaming guides; existing-vault merge hint for `create-obsidian-memory`.
 - **Onboarding v2-only:** `README.md` / `README.en.md` and `GETTING_STARTED*.md` no longer link migration paths; stubs `PROMPT_ULTRA_COMPLETO.{linux,macos}.md` point only at v2 entrypoints. `docs/README.md` and `docs/legacy/README.md` reframed as v2 index + maintainer archive. `AGENTS.md` references updated; `docs/troubleshooting.md` links [`tools/monitor-console-live.ps1`](./tools/monitor-console-live.ps1) for console-flash diagnosis.
 - **`docs/troubleshooting.md`:** enlace a guía Windows sin consola visible; ajustes de workspace Git/SCM más estrictos en `.vscode/settings.json` y plantilla del inicializador.

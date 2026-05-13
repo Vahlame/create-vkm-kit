@@ -14,7 +14,7 @@ Cursor + vault abierto en la misma sesión que un juego competitivo **sigue sien
 
 ## 1. Programador de tareas (sync cada X min)
 
-- Sube el intervalo (p. ej. de 10 min a **60–120 min**) o deja **solo** sync manual / `obsidian-memoryd watch` con debounce.
+- Sube el intervalo (p. ej. de **10 min** —común en setups viejos— a **60–120 min**) o deja **solo** sync manual / `obsidian-memoryd watch` con debounce.
 - Evita **dos** tareas que hagan `git` al mismo ritmo (redundancia = más I/O).
 - Comprueba acciones con  
   `.\scripts\windows\Get-CursorScheduledTaskConsoleRisk.ps1`  

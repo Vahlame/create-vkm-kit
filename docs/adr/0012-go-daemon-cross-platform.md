@@ -10,7 +10,7 @@ v1 used PowerShell scripts plus Windows Task Scheduler (watchdog, autosync). Tha
 
 ## Decision
 
-Ship a **single static Go binary** `obsidian-memoryd` with subcommands for user-level service installation (`systemd --user`, `launchd` LaunchAgent, Windows user service via `kardianos/service`), foreground `watch` with `fsnotify` + debounced git sync, `sync once`, log inspection, and `self-update` with SHA256 verification. Logs use **`log/slog` JSON** with rotation via `lumberjack`, stored under the XDG state directory / OS equivalents. v1 PowerShell and task XML are **moved to `docs/legacy/windows-v1/`** with a deprecation README.
+Ship a **single static Go binary** `obsidian-memoryd` with subcommands for user-level service installation (`systemd --user`, `launchd` LaunchAgent, Windows user service via `kardianos/service`), foreground `watch` with `fsnotify` + debounced git sync (**45 s** quiet period by default after the last file event, tunable via `OBSIDIAN_MEMORY_DEBOUNCE`), `sync once`, log inspection, and `self-update` with SHA256 verification. Logs use **`log/slog` JSON** with rotation via `lumberjack`, stored under the XDG state directory / OS equivalents. v1 PowerShell and task XML are **moved to `docs/legacy/windows-v1/`** with a deprecation README.
 
 ## Consequences
 

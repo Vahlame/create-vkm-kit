@@ -13,9 +13,11 @@ Aunque uses `-WindowStyle Hidden` en `powershell.exe`, a veces **sí** aparece u
 
 Copia `Run-Hidden.vbs` junto a tus scripts (en el repo público: `scripts/windows/Run-Hidden.vbs`; en el vault: `scripts/windows/Run-Hidden.vbs`).
 
-## Crear la tarea (cada 10 minutos, usuario actual)
+## Crear la tarea (cada **60 minutos** por defecto, usuario actual)
 
-Ajusta `$vault` si tu ruta no es la habitual.
+**Por qué 60 min:** un vault de memoria no necesita `pull`/`push` en bucle corto; intervalos agresivos (5–10 min) generan ruido en red, disco y a veces ventanas de consola. Para equipos multi-máquina muy activos, **15–30 min** es un compromiso razonable; reserva **5 min** solo para depuración.
+
+Ajusta `$vault` si tu ruta no es la habitual. Para otro intervalo, cambia el número en **`-RepetitionInterval (New-TimeSpan -Minutes 60)`** y la descripción.
 
 ```powershell
 $vault = "$env:USERPROFILE\Documents\cursor-memory-vault"
@@ -25,7 +27,7 @@ $arg = "//nologo `"$vbs`" `"$script`""
 $action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument $arg
 $start = (Get-Date).AddMinutes(1)
 $trigger = New-ScheduledTaskTrigger -Once -At $start `
-  -RepetitionInterval (New-TimeSpan -Minutes 10) `
+  -RepetitionInterval (New-TimeSpan -Minutes 60) `
   -RepetitionDuration (New-TimeSpan -Days 3650)
 $settings = New-ScheduledTaskSettingsSet `
   -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
@@ -34,7 +36,7 @@ $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interac
 Unregister-ScheduledTask -TaskName "CursorMemoryVaultSync" -Confirm:$false -ErrorAction SilentlyContinue
 Register-ScheduledTask -TaskName "CursorMemoryVaultSync" -Action $action -Trigger $trigger `
   -Settings $settings -Principal $principal `
-  -Description "Git sync vault cursor-memory-vault cada 10 min (sin ventana)"
+  -Description "Git sync vault cursor-memory-vault cada 60 min (sin ventana)"
 ```
 
 ### Probar una vez a mano
@@ -57,7 +59,7 @@ Unregister-ScheduledTask -TaskName "CursorMemoryVaultSync" -Confirm:$false
 
 ## Alternativa: `obsidian-memoryd` (Go)
 
-Sincronización **al guardar** (debounce ~2 s): requiere instalar Go, compilar desde este repo (`go build -o obsidian-memoryd ./cmd/obsidian-memoryd`) y ejecutar `obsidian-memoryd watch` con `BASIC_MEMORY_HOME` apuntando al vault. En Windows se puede registrar como servicio con `obsidian-memoryd service install` (ver `cmd/obsidian-memoryd/main.go` y `agent.toml`).
+Sincronización **al guardar** (debounce **45 s** por defecto; opcional `OBSIDIAN_MEMORY_DEBOUNCE`, p. ej. `90s` o `2m`): requiere instalar Go, compilar desde este repo (`go build -o obsidian-memoryd ./cmd/obsidian-memoryd`) y ejecutar `obsidian-memoryd watch` con `BASIC_MEMORY_HOME` apuntando al vault. En Windows se puede registrar como servicio con `obsidian-memoryd service install` (ver `cmd/obsidian-memoryd/main.go` y `agent.toml`).
 
 ## English
 

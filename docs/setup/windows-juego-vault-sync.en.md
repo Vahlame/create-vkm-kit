@@ -14,7 +14,7 @@ Cursor + vault open on the same desktop as a competitive game is still heavy (Gi
 
 ## 1. Task Scheduler (every-X-minutes sync)
 
-- Increase the interval (e.g. from 10 minutes to **60–120 minutes**) or rely on **manual** sync / `obsidian-memoryd watch` with debounce.
+- Increase the interval (e.g. from a legacy **10-minute** task to **60–120 minutes**) or rely on **manual** sync / `obsidian-memoryd watch` with debounce.
 - Avoid **two** tasks hammering `git` on the same cadence.
 - Audit actions with  
   `.\scripts\windows\Get-CursorScheduledTaskConsoleRisk.ps1`  

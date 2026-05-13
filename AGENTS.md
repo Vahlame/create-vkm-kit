@@ -95,7 +95,7 @@ Use a private git vault (example layout in `examples/`):
 
 ## References
 
-- `docs/setup/windows-scheduled-vault-sync.md` / `.en.md` — tarea programada Windows para `git pull/push` del vault en intervalos (sin Go).
+- `docs/setup/windows-scheduled-vault-sync.md` / `.en.md` — tarea programada Windows para `git pull/push` del vault en intervalos (sin Go); **valor por defecto en la guía: 60 min** entre ejecuciones (menos ruido que 5–10 min).
 - `docs/setup/windows-juego-vault-sync.md` / `.en.md` — sync del vault sin tirones ni robo de foco al jugar.
 - `docs/setup/windows-basic-memory-always-on.md` / `.en.md` — MCP `basic-memory` persistente (Streamable HTTP + tarea al inicio de sesión).
 - `docs/adr/0016-localhost-mcp-default-port.md` — puerto por defecto **8765** vs colisiones en **8000**.
