@@ -68,3 +68,26 @@ test("non-interactive creates vault .vscode/settings.json when missing (Git tuni
   assert.equal(j["git.autofetch"], false);
   assert.equal(j["npm.autoDetect"], "off");
 });
+
+test("non-interactive merges kit keys into existing vault .vscode/settings.json", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-merge-"));
+  const vault = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-merge-v-"));
+  fs.mkdirSync(path.join(vault, ".obsidian"));
+  fs.mkdirSync(path.join(vault, ".vscode"), { recursive: true });
+  fs.writeFileSync(
+    path.join(vault, ".vscode", "settings.json"),
+    JSON.stringify({ "editor.tabSize": 7, "git.autorefresh": true, files: { wibble: true } }, null, 2),
+    "utf8",
+  );
+  const r = spawnSync(
+    process.execPath,
+    [bin, "--non-interactive", "--vault", vault, "--no-cursor-mcp", "--no-git-init"],
+    { encoding: "utf8", env: { ...process.env, USERPROFILE: home, HOME: home } },
+  );
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  const j = JSON.parse(fs.readFileSync(path.join(vault, ".vscode", "settings.json"), "utf8"));
+  assert.equal(j["editor.tabSize"], 7, "preserves unrelated keys");
+  assert.equal(j["git.autorefresh"], false, "kit tuning wins");
+  assert.equal(j.files.wibble, true);
+  assert.equal(j["npm.autoDetect"], "off");
+});

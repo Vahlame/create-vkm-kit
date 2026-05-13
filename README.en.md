@@ -16,6 +16,8 @@
 5. **Something breaks:** [`docs/troubleshooting.md`](./docs/troubleshooting.md) (includes flashing console windows and [`tools/monitor-console-live.ps1`](./tools/monitor-console-live.ps1) for diagnosis).
 6. **Keep `basic-memory` always on (Windows, HTTP):** [`docs/setup/windows-basic-memory-always-on.en.md`](./docs/setup/windows-basic-memory-always-on.en.md).
 7. **Vault git autosync (Windows, no console flash):** [`docs/setup/windows-scheduled-vault-sync.en.md`](./docs/setup/windows-scheduled-vault-sync.en.md).
+8. **Windows: no CMD flashes / stutter (workspace + tasks + gaming):** [`docs/setup/windows-sin-consola-visible.en.md`](./docs/setup/windows-sin-consola-visible.en.md) · [`docs/setup/windows-juego-vault-sync.en.md`](./docs/setup/windows-juego-vault-sync.en.md).
+9. **Existing vault:** run `npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "/path"` again to **merge** the calm `.vscode/settings.json` (keeps your other keys).
 
 ## What this repository is (one paragraph)
 

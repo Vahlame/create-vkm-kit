@@ -16,6 +16,8 @@
 5. **Algo falla:** [`docs/troubleshooting.md`](./docs/troubleshooting.md) (incluye ventanas de consola que parpadean y diagnóstico con [`tools/monitor-console-live.ps1`](./tools/monitor-console-live.ps1)).
 6. **MCP `basic-memory` siempre encendido (Windows, HTTP):** [`docs/setup/windows-basic-memory-always-on.md`](./docs/setup/windows-basic-memory-always-on.md).
 7. **Autosync del vault con git (Windows, sin consola):** [`docs/setup/windows-scheduled-vault-sync.md`](./docs/setup/windows-scheduled-vault-sync.md).
+8. **Windows: sin ventanas CMD / tirones (workspace + tareas + juego):** [`docs/setup/windows-sin-consola-visible.md`](./docs/setup/windows-sin-consola-visible.md) · [`docs/setup/windows-juego-vault-sync.md`](./docs/setup/windows-juego-vault-sync.md).
+9. **Vault ya creado:** vuelve a ejecutar `npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "RUTA"` para **fusionar** en el vault el `.vscode/settings.json` calmado (no borra tus claves extra).
 
 ## Qué es este repo (una viñeta)
 

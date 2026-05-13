@@ -13,7 +13,7 @@ Read **in order**. Each step links forward. Do not skip unless marked **optional
 | 6    | (**Optional**) FTS index + hybrid MCP for large vaults     | [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md) §6–7 and [`config/mcp/obsidian-memory-hybrid.json`](./config/mcp/obsidian-memory-hybrid.json)                                                                                                                                                                                                                                                                    |
 | 7    | (**Optional**) Git sync (on save or on a timer)            | Go daemon [`cmd/obsidian-memoryd/`](./cmd/obsidian-memoryd/), Windows task: [`docs/setup/windows-scheduled-vault-sync.en.md`](./docs/setup/windows-scheduled-vault-sync.en.md), **MCP always on:** [`docs/setup/windows-basic-memory-always-on.en.md`](./docs/setup/windows-basic-memory-always-on.en.md). After setup on Windows: [`docs/testing/windows-memory-sync-smoke.en.md`](./docs/testing/windows-memory-sync-smoke.en.md) |
 
-Open the vault as a **workspace folder** so Cursor/VS Code load **`/.vscode/settings.json`** (less Git polling on Windows). The `create-obsidian-memory` command below **creates** that file in the vault if it is missing; template at [`examples/.vscode/settings.json`](./examples/.vscode/settings.json). If the file already existed from an older run, **merge** the new keys or delete it and re-run the initializer. Details: [`docs/troubleshooting.md`](./docs/troubleshooting.md) and [`docs/setup/windows-sin-consola-visible.en.md`](./docs/setup/windows-sin-consola-visible.en.md).
+Open the vault as a **workspace folder** so Cursor/VS Code load **`/.vscode/settings.json`** (less Git polling on Windows). The `create-obsidian-memory` command below **creates or merges** that file in the vault (kit Git/SCM + watcher keys always apply; your other keys are kept). Reference template: [`examples/.vscode/settings.json`](./examples/.vscode/settings.json). Details: [`docs/troubleshooting.md`](./docs/troubleshooting.md) and [`docs/setup/windows-sin-consola-visible.en.md`](./docs/setup/windows-sin-consola-visible.en.md).
 
 ## Shortcut if you already have a vault and a clone
 
@@ -21,7 +21,7 @@ Open the vault as a **workspace folder** so Cursor/VS Code load **`/.vscode/sett
 npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "/absolute/path/to/vault"
 ```
 
-This **merges** `basic-memory` into Cursor `mcp.json` (Windows: `%USERPROFILE%\.cursor\mcp.json`), and **creates** `vault/.vscode/settings.json` if it was missing (quieter Git on Windows). Then do **step 4** (User Rules) and **step 5** (verification).
+This **merges** `basic-memory` into Cursor `mcp.json` (Windows: `%USERPROFILE%\.cursor\mcp.json`), and **creates or merges** `vault/.vscode/settings.json` (quieter Git on Windows). Then do **step 4** (User Rules) and **step 5** (verification).
 
 ## If you hack on this repository (code / PRs)
 

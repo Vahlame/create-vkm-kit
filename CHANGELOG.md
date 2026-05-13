@@ -22,7 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `scripts/sync-agents.ts`, `.agents/rules/`, eval suite `evals/adherence.yaml` + `evals/run-adherence-ci.mjs` (CI gate), optional `compose.observability.yml`.
 - `docs/benchmarks/retrieval.md`, `docs/testing/manual-checks.md`, **`docs/testing/windows-memory-sync-smoke.md`** / **`.en.md`** (Windows smoke tras autosync + FTS opcional).
 - **`obsidian-memory-rag`:** incremental SQLite **FTS5** indexer, BM25 `search`, `bench`, and **`json-search` / `json-index`** for MCP bridging (stdlib-only; sqlite-vec deferred).
-- **`create-obsidian-memory`:** writes Cursor `mcp.json` merge for `basic-memory`, vault scaffold (`START_HERE`, `MEMORY`, `SESSION_LOG`, `PROJECTS`, `.gitignore`), **`vault/.vscode/settings.json` once if missing** (calmer Git SCM on Windows), `--dry-run` / `--help`, and **`--non-interactive` / `--yes`** with **`--vault`** (plus **`--no-cursor-mcp`**, **`--no-git-init`**) for CI/scripts.
+- **`create-obsidian-memory`:** writes Cursor `mcp.json` merge for `basic-memory`, vault scaffold (`START_HERE`, `MEMORY`, `SESSION_LOG`, `PROJECTS`, `.gitignore`), **`vault/.vscode/settings.json`** merged on each `--vault` run (calmer Git SCM on Windows), `--dry-run` / `--help`, and **`--non-interactive` / `--yes`** with **`--vault`** (plus **`--no-cursor-mcp`**, **`--no-git-init`**) for CI/scripts.
 - **`docs/migration/v1-prompt-closure.md`**, root **`PROMPT_ULTRA_COMPLETO.{linux,macos}.md`** (redirect stubs per ADR-0007 amendment).
 - FAQ + glossary aligned with v2 transport, uninstall, and large-vault FTS path.
 - **`GETTING_STARTED.md` / `GETTING_STARTED.en.md`**: tabla de pasos (flujo lineal instalación / verificación).
@@ -38,11 +38,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - **`docs/troubleshooting.md`:** `fetch failed` / `basic-memory` URL rojo — causa adicional **puerto ocupado por otra app** (no solo “servidor apagado”); arreglo con `netstat` + mismo puerto en script y `mcp.json` (ej. 8765). Nota **`ECONNREFUSED`** tras editar `mcp.json` (arranque frío `uvx`). Entrada **muchas ventanas CMD** (Cursor + `node`/`uvx` vs tareas con `Run-Hidden.vbs`).
-- **`create-obsidian-memory`:** strip UTF-8 BOM before parsing existing `~/.cursor/mcp.json` so merges keep prior `mcpServers` entries (PowerShell / some editors emit BOM).
+- **`create-obsidian-memory`:** strip UTF-8 BOM before parsing existing `~/.cursor/mcp.json` so merges keep prior `mcpServers` entries (PowerShell / some editors emit BOM); merge kit Git/SCM keys into **existing** `vault/.vscode/settings.json` (previously skipped when the file existed, so old vaults never picked up new quiet defaults).
 - **`obsidian-memory-hybrid`:** default `PYTHONPATH` for monorepo dev pointed at the wrong sibling folder; corrected to `packages/obsidian-memory-rag/src` relative to the hybrid script.
 
 ### Changed
 
+- **`README.md` / `README.en.md` / `docs/README.md`:** Windows console + gaming guides; existing-vault merge hint for `create-obsidian-memory`.
 - **Onboarding v2-only:** `README.md` / `README.en.md` and `GETTING_STARTED*.md` no longer link migration paths; stubs `PROMPT_ULTRA_COMPLETO.{linux,macos}.md` point only at v2 entrypoints. `docs/README.md` and `docs/legacy/README.md` reframed as v2 index + maintainer archive. `AGENTS.md` references updated; `docs/troubleshooting.md` links [`tools/monitor-console-live.ps1`](./tools/monitor-console-live.ps1) for console-flash diagnosis.
 - **`docs/troubleshooting.md`:** enlace a guía Windows sin consola visible; ajustes de workspace Git/SCM más estrictos en `.vscode/settings.json` y plantilla del inicializador.
 - **`CONTRIBUTING.md`:** nota sobre defaults de workspace Git.
