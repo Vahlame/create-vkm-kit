@@ -1,4 +1,8 @@
-# First-time setup: linear flow (v2 / v3)
+# First-time setup: linear flow (v3 kit)
+
+> **Want the agent to do the installation for you?** Paste [`INSTALAR_MEMORIA.en.md`](./INSTALAR_MEMORIA.en.md) into a new Cursor chat. The agent will execute all steps automatically.
+>
+> This guide is for those who prefer to understand each step before running it.
 
 Read **in order**. Each step links forward. Do not skip unless marked **optional**.
 
@@ -14,7 +18,21 @@ Read **in order**. Each step links forward. Do not skip unless marked **optional
 | 7    | (**Optional**) Git sync (on save or your own automation)                           | Go daemon [`cmd/obsidian-memoryd/`](./cmd/obsidian-memoryd/), Windows options: [`docs/setup/windows-scheduled-vault-sync.en.md`](./docs/setup/windows-scheduled-vault-sync.en.md), **optional HTTP MCP:** [`docs/setup/windows-basic-memory-always-on.en.md`](./docs/setup/windows-basic-memory-always-on.en.md). After setup on Windows: [`docs/testing/windows-memory-sync-smoke.en.md`](./docs/testing/windows-memory-sync-smoke.en.md) |
 | 8    | (**Alternative**) Agent memory **inside one git repo** — no extra local automation | [`docs/setup/memory-repo-sin-automatismos-locales.en.md`](./docs/setup/memory-repo-sin-automatismos-locales.en.md) — stay current with normal `git pull` / `git push` only.                                                                                                                                                                                                                                                                |
 
+**`mcp.json` paths by operating system:**
+
+| OS | Path |
+|----|------|
+| Windows | `%USERPROFILE%\.cursor\mcp.json` |
+| Linux | `~/.config/Cursor/User/globalStorage/cursor.mcp/mcp.json` |
+| macOS | `~/Library/Application Support/Cursor/User/globalStorage/cursor.mcp/mcp.json` |
+
 Open the vault as a **workspace folder** so Cursor/VS Code load **`/.vscode/settings.json`** (less Git polling on Windows). The `create-obsidian-memory` command below **creates or merges** that file in the vault (kit Git/SCM + watcher keys always apply; your other keys are kept). Reference template: [`examples/.vscode/settings.json`](./examples/.vscode/settings.json). Details: [`docs/troubleshooting.md`](./docs/troubleshooting.md) and [`docs/setup/windows-sin-consola-visible.en.md`](./docs/setup/windows-sin-consola-visible.en.md).
+
+## First install vs. update
+
+**First install:** follow the table above in order (steps 0–5 at minimum).
+
+**Update after `git pull` of the kit:** re-run the merge command (`create-obsidian-memory`) to pick up new keys in `mcp.json` and `.vscode/settings.json`; no need to reinstall `uv` or Node if they already worked. Compare your User Rules with those in `docs/cursor-memory-setup.en.md` and update if changed.
 
 ## Shortcut if you already have a vault and a clone
 

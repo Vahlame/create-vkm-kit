@@ -7,6 +7,13 @@
 
 > Idiomas: **Español** | [English](./README.en.md)
 
+## Instalación rápida
+
+> **¿Quieres que el agente configure todo por ti?**
+> Pega el contenido de [`INSTALAR_MEMORIA.md`](./INSTALAR_MEMORIA.md) en un chat nuevo de Cursor y el agente ejecutará cada paso: prerrequisitos, vault, MCP, User Rules, verificación.
+>
+> — English: [`INSTALAR_MEMORIA.en.md`](./INSTALAR_MEMORIA.en.md)
+
 ## Tu camino (orden recomendado)
 
 > **Migración de modelo (v2 → v3, todo en `main`):** el kit **ya no incluye** scripts Windows en `scripts/windows/` ni `tools/*.ps1` para integración; el capítulo y la tabla de sustitución están en [`docs/migration/v2-to-v3-script-free-kit.md`](./docs/migration/v2-to-v3-script-free-kit.md).

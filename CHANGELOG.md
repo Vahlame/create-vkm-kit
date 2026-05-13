@@ -4,7 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - v3.0.0
+## [Unreleased]
+
+### Added
+- `INSTALAR_MEMORIA.md` / `INSTALAR_MEMORIA.en.md`: v3 installer prompt to paste in Cursor chat; agent runs all setup steps (prereqs, vault, MCP, User Rules, verification, optional git sync + hybrid FTS).
+- `GETTING_STARTED*.md`: quick-install callout at top; OS-specific `mcp.json` paths table; "first install vs update" section.
+- `README*.md`: "Instalación rápida / Quick install" callout at top linking to installer prompt.
+ - v3.0.0
 
 ### Breaking change
 
