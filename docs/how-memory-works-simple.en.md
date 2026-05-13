@@ -69,6 +69,10 @@ Not required to start. It is a **comfort and performance** layer, not the core.
 - **Not** “cloud memory inside the model”: durable persistence is **your files** and your **git** remote.
 - **Not** a guarantee the model always obeys: rules improve behavior, but models err; that is why the vault is human-reviewable.
 
+## Multiple Cursor windows (one vault, many focuses)
+
+With the usual setup (**one** `BASIC_MEMORY_HOME` in user `mcp.json`), every window shares the **same** vault on disk. That is fine: use **`PROJECTS/<repo>.md`** to keep contexts apart. Truly separate memories need another vault + MCP entry (advanced).
+
 ## Next step
 
 Linear install: [`../GETTING_STARTED.en.md`](../GETTING_STARTED.en.md).

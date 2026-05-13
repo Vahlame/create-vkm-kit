@@ -31,4 +31,8 @@ This repo does **not** publish VBS/PowerShell templates to hide the console.
 
 There is **no** Markdown switch that guarantees **zero** windows for **every** mix of extensions, MCP, and OS tasks. This kit ships **workspace defaults + guidance** to get close to “no flashes” for normal vault + repo workflows.
 
+## 6. `obsidian-memoryd` without a console window (optional)
+
+If you run **`obsidian-memoryd watch`** on Windows, build with **`go build -ldflags="-H windowsgui"`** so the `.exe` is a **GUI-subsystem** binary (no `conhost`). Avoid wrapping in `cmd.exe` if you dislike flashes: a **Startup shortcut** to the `.exe` with args `watch` and **Start in** = vault root works (the daemon uses cwd as the vault when `BASIC_MEMORY_HOME` is unset). Tune cadence with **`OBSIDIAN_MEMORY_DEBOUNCE`** (e.g. `2m`). More detail: [`windows-scheduled-vault-sync.en.md`](./windows-scheduled-vault-sync.en.md).
+
 **Fullscreen gaming + vault sync:** [`windows-juego-vault-sync.en.md`](./windows-juego-vault-sync.en.md).

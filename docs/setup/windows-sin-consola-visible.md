@@ -31,4 +31,8 @@ Este repo **no** publica plantillas VBS/PowerShell para ocultar consola.
 
 **No existe** un interruptor en Markdown que garantice cero ventanas en **todas** las combinaciones de extensiones, MCP y tareas del sistema. Este kit aplica **workspace + guías** para acercarse a “cero flashes” en el uso normal del vault y del repo.
 
+## 6. `obsidian-memoryd` sin ventana de consola (opcional)
+
+Si usas **`obsidian-memoryd watch`** en Windows, compila con **`go build -ldflags="-H windowsgui"`** para que el `.exe` sea subsistema **GUI** (sin `conhost`). Evita envolver en `cmd.exe` si no quieres flashes: acceso directo al `.exe` con argumentos `watch` y **Iniciar en** = raíz del vault (el daemon usa el cwd como vault si no hay `BASIC_MEMORY_HOME`). Ajusta frecuencia con **`OBSIDIAN_MEMORY_DEBOUNCE`** (p. ej. `2m`). Más contexto: [`windows-scheduled-vault-sync.md`](./windows-scheduled-vault-sync.md).
+
 **Juego a pantalla completa + sync del vault:** [`windows-juego-vault-sync.md`](./windows-juego-vault-sync.md).

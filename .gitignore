@@ -1,3 +1,6 @@
+# Go daemon local build (see AGENTS.md)
+/bin/
+
 # Editors (track committed workspace defaults; ignore other local .vscode files)
 .vscode/*
 !.vscode/settings.json

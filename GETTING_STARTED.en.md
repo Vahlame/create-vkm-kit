@@ -1,4 +1,4 @@
-# First-time setup: linear flow (v2)
+# First-time setup: linear flow (v2 / v3)
 
 Read **in order**. Each step links forward. Do not skip unless marked **optional**.
 
@@ -10,7 +10,7 @@ Read **in order**. Each step links forward. Do not skip unless marked **optional
 | 3    | Connect the IDE to the vault with **MCP** (`basic-memory`)                         | Template [`config/mcp/basic-memory.json`](./config/mcp/basic-memory.json) and [§ Step 1 in Cursor guide](./docs/cursor-memory-setup.en.md#step-1-configure-mcp-in-cursor)                                                                                                                                                                                                                                                                  |
 | 4    | (**Cursor only**) Paste **User Rules**                                             | [§ Step 3 in Cursor guide](./docs/cursor-memory-setup.en.md#step-3-user-rules-paste-into-cursor)                                                                                                                                                                                                                                                                                                                                           |
 | 5    | Verify MCP tools respond                                                           | [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md) §2                                                                                                                                                                                                                                                                                                                                                                      |
-| 6    | (**Optional**) FTS index + hybrid MCP for large vaults                             | [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md) §6–7 and [`config/mcp/obsidian-memory-hybrid.json`](./config/mcp/obsidian-memory-hybrid.json)                                                                                                                                                                                                                                                                           |
+| 6    | (**Optional**) FTS index + hybrid MCP for large vaults                             | `create-obsidian-memory … --with-hybrid` (from this repo clone) + `pip install -e packages/obsidian-memory-rag`; or merge [`config/mcp/obsidian-memory-hybrid.json`](./config/mcp/obsidian-memory-hybrid.json) by hand; checks in [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md) §6–7                                                                                                                                                                                                                                                                           |
 | 7    | (**Optional**) Git sync (on save or your own automation)                           | Go daemon [`cmd/obsidian-memoryd/`](./cmd/obsidian-memoryd/), Windows options: [`docs/setup/windows-scheduled-vault-sync.en.md`](./docs/setup/windows-scheduled-vault-sync.en.md), **optional HTTP MCP:** [`docs/setup/windows-basic-memory-always-on.en.md`](./docs/setup/windows-basic-memory-always-on.en.md). After setup on Windows: [`docs/testing/windows-memory-sync-smoke.en.md`](./docs/testing/windows-memory-sync-smoke.en.md) |
 | 8    | (**Alternative**) Agent memory **inside one git repo** — no extra local automation | [`docs/setup/memory-repo-sin-automatismos-locales.en.md`](./docs/setup/memory-repo-sin-automatismos-locales.en.md) — stay current with normal `git pull` / `git push` only.                                                                                                                                                                                                                                                                |
 
@@ -19,7 +19,11 @@ Open the vault as a **workspace folder** so Cursor/VS Code load **`/.vscode/sett
 ## Shortcut if you already have a vault and a clone
 
 ```bash
+# basic-memory only (published npm initializer)
 npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "/absolute/path/to/vault"
+
+# basic-memory + obsidian-memory-hybrid (from kit clone; run first: pip install -e packages/obsidian-memory-rag)
+node packages/create-obsidian-memory/dist/index.js --non-interactive --vault "/absolute/path/to/vault" --with-hybrid
 ```
 
 This **merges** `basic-memory` into Cursor `mcp.json` (Windows: `%USERPROFILE%\.cursor\mcp.json`), and **creates or merges** `vault/.vscode/settings.json` (quieter Git on Windows). Then do **step 4** (User Rules) and **step 5** (verification).

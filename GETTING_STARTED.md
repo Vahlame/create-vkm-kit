@@ -1,4 +1,4 @@
-# Primer uso: flujo lineal (v2)
+# Primer uso: flujo lineal (v2 / v3)
 
 Lee **en orden**. Cada paso enlaza al siguiente. No saltes pasos salvo que el texto diga “opcional”.
 
@@ -10,7 +10,7 @@ Lee **en orden**. Cada paso enlaza al siguiente. No saltes pasos salvo que el te
 | 3    | Conectar el IDE al vault con **MCP** (`basic-memory`)                                             | Plantilla [`config/mcp/basic-memory.json`](./config/mcp/basic-memory.json) y [§ Paso 1 en guía Cursor](./docs/cursor-memory-setup.md#paso-1-configurar-mcp-en-cursor)                                                                                                                                                                                                                           |
 | 4    | (Solo Cursor) Pegar **User Rules**                                                                | [§ Paso 3 en guía Cursor](./docs/cursor-memory-setup.md#paso-3-user-rules-pegar-en-cursor)                                                                                                                                                                                                                                                                                                      |
 | 5    | Comprobar que las herramientas MCP responden                                                      | [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md) §2                                                                                                                                                                                                                                                                                                                           |
-| 6    | (Opcional) Índice FTS + MCP híbrido para bóvedas grandes                                          | [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md) §6–7 y [`config/mcp/obsidian-memory-hybrid.json`](./config/mcp/obsidian-memory-hybrid.json)                                                                                                                                                                                                                                  |
+| 6    | (Opcional) Índice FTS + MCP híbrido para bóvedas grandes                                          | `create-obsidian-memory … --with-hybrid` (desde clon del kit) + `pip install -e packages/obsidian-memory-rag`; o plantilla manual [`config/mcp/obsidian-memory-hybrid.json`](./config/mcp/obsidian-memory-hybrid.json); checks en [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md) §6–7                                                                                                                                                                                                                                  |
 | 7    | (Opcional) Sincronizar el vault con git (`obsidian-memoryd`, git manual, o tareas que definas tú) | [`cmd/obsidian-memoryd`](./cmd/obsidian-memoryd/), [`docs/setup/windows-scheduled-vault-sync.md`](./docs/setup/windows-scheduled-vault-sync.md), **MCP HTTP opcional:** [`docs/setup/windows-basic-memory-always-on.md`](./docs/setup/windows-basic-memory-always-on.md). Tras montarlo en Windows: [`docs/testing/windows-memory-sync-smoke.md`](./docs/testing/windows-memory-sync-smoke.md). |
 | 8    | (Alternativa) Memoria **dentro del mismo repo git** sin automatismos locales extra                | [`docs/setup/memory-repo-sin-automatismos-locales.md`](./docs/setup/memory-repo-sin-automatismos-locales.md) — actualización solo con `git pull`/`git push`.                                                                                                                                                                                                                                    |
 
@@ -19,7 +19,11 @@ Abre el vault como **carpeta de workspace** para que Cursor/VS Code apliquen **`
 ## Atajo si ya tienes vault y repo clonado
 
 ```bash
+# Solo basic-memory (publicado en npm)
 npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "/ruta/absoluta/al/vault"
+
+# basic-memory + obsidian-memory-hybrid (desde clon del kit; instala antes: pip install -e packages/obsidian-memory-rag)
+node packages/create-obsidian-memory/dist/index.js --non-interactive --vault "/ruta/absoluta/al/vault" --with-hybrid
 ```
 
 Eso **mezcla** `basic-memory` en el `mcp.json` de Cursor (Windows: `%USERPROFILE%\.cursor\mcp.json`), y **crea o fusiona** `vault/.vscode/settings.json` (menos ruido Git en Windows). Luego haz el **paso 4** (User Rules) y el **paso 5** (verificación).

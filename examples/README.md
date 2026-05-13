@@ -6,7 +6,7 @@ Use these as a template for your own first entries.
 
 | File                                                   | What it shows                                                                                                            |
 | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| [`START_HERE.md`](./START_HERE.md)                     | Entry point and reading order for agents.                                                                                |
+| [`START_HERE.md`](./START_HERE.md)                     | Entry point, reading order, and v3 health pointers (no kit-shipped Windows scripts).                                     |
 | [`MEMORY.md`](./MEMORY.md)                             | Global preferences, durable rules, language and style choices. Stable across projects.                                   |
 | [`SESSION_LOG.md`](./SESSION_LOG.md)                   | Chronological bullet log. Newest at the bottom. One line per real decision.                                              |
 | [`TAGS.md`](./TAGS.md)                                 | Living index of `type:` / `tags:` conventions.                                                                           |
@@ -16,6 +16,7 @@ Use these as a template for your own first entries.
 | [`RULES/.gitkeep`](./RULES/.gitkeep)                   | Placeholder so Git tracks an empty `RULES/` directory until the first `RULES/<project>.md` exists.                       |
 | [`.gitignore`](./.gitignore)                           | What a private vault should never commit (secrets, reviews, logs, noisy Obsidian files).                                 |
 | [`.vscode/settings.json`](./.vscode/settings.json)     | Workspace defaults (Cursor/VS Code): less Git polling and fewer `conhost` flashes on Windows. Copy into your vault root. |
+| **FTS index (optional)**                               | If you use `obsidian-memory-hybrid`, ignore `.obsidian-memory-rag/` via `.gitignore` (already listed).                   |
 
 ## Style cues to copy
 

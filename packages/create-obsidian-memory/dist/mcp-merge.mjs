@@ -1,3 +1,6 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 /**
  * Merge basic-memory MCP server entry into an existing mcp.json object.
  * @param {unknown} raw - parsed JSON root object
@@ -17,7 +20,90 @@ export function mergeBasicMemoryServer(raw, vaultAbs) {
   mcpServers["basic-memory"] = {
     command: "uvx",
     args: ["basic-memory", "mcp"],
-    env: { BASIC_MEMORY_HOME: vaultAbs },
+    env: { BASIC_MEMORY_HOME: vaultAbs }
   };
   return base;
+}
+
+/**
+ * Add `obsidian-memory-hybrid` MCP (Node bridge + Python FTS5) after `basic-memory` is set.
+ * @param {Record<string, unknown>} merged - output of mergeBasicMemoryServer (or compatible)
+ * @param {string} vaultAbs - absolute vault root
+ * @param {string} kitRepoAbs - absolute path to cursor-obsidian-memory-guide clone (contains packages/)
+ */
+export function mergeObsidianHybridServer(merged, vaultAbs, kitRepoAbs) {
+  const base = /** @type {Record<string, unknown>} */ (JSON.parse(JSON.stringify(merged)));
+  const servers = base.mcpServers;
+  if (!servers || typeof servers !== "object" || Array.isArray(servers)) {
+    base.mcpServers = {};
+  }
+  const mcpServers = /** @type {Record<string, unknown>} */ (base.mcpServers);
+  const hybridJs = path.join(
+    kitRepoAbs,
+    "packages",
+    "obsidian-memory-mcp",
+    "src",
+    "hybrid-mcp.mjs"
+  );
+  const pythonSrc = path.join(kitRepoAbs, "packages", "obsidian-memory-rag", "src");
+  mcpServers["obsidian-memory-hybrid"] = {
+    command: "node",
+    args: [hybridJs],
+    env: {
+      BASIC_MEMORY_HOME: vaultAbs,
+      PYTHONPATH: pythonSrc
+    }
+  };
+  return base;
+}
+
+/** @param {string} dir */
+export function hybridMcpPathsFromKitRoot(dir) {
+  const root = path.resolve(dir);
+  return {
+    root,
+    hybridJs: path.join(root, "packages", "obsidian-memory-mcp", "src", "hybrid-mcp.mjs"),
+    pythonSrc: path.join(root, "packages", "obsidian-memory-rag", "src")
+  };
+}
+
+/**
+ * Resolve kit repo root: explicit --repo-root, layout next to this package in a monorepo clone, or walk cwd upward.
+ * @param {{ cwd: string, argv: string[], pathExists: (p: string) => Promise<boolean> }} opts
+ */
+export async function resolveKitRepoRoot({ cwd, argv, pathExists }) {
+  const flagValue = (name) => {
+    const i = argv.indexOf(name);
+    if (i >= 0 && i + 1 < argv.length) return argv[i + 1];
+    return null;
+  };
+  const explicit = flagValue("--repo-root");
+  if (explicit) {
+    return path.resolve(cwd, explicit);
+  }
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const fromPackage = path.resolve(here, "..", "..", "..");
+  const hybridFromPackage = path.join(
+    fromPackage,
+    "packages",
+    "obsidian-memory-mcp",
+    "src",
+    "hybrid-mcp.mjs"
+  );
+  if (await pathExists(hybridFromPackage)) {
+    return fromPackage;
+  }
+  let cur = path.resolve(cwd);
+  for (let i = 0; i < 28; i++) {
+    const hybridJs = path.join(cur, "packages", "obsidian-memory-mcp", "src", "hybrid-mcp.mjs");
+    if (await pathExists(hybridJs)) {
+      return cur;
+    }
+    const parent = path.dirname(cur);
+    if (parent === cur) {
+      break;
+    }
+    cur = parent;
+  }
+  return null;
 }

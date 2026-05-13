@@ -69,6 +69,10 @@ No es obligatorio para empezar. Es una capa de **comodidad y rendimiento**, no e
 - **No** es “memoria en la nube del modelo”: la persistencia útil está en **tus archivos** y tu **git**.
 - **No** garantiza que la IA siempre obedezca: las reglas y el flujo mejoran el comportamiento, pero el modelo puede equivocarse; por eso el vault es revisable por humanos.
 
+## Varias ventanas de Cursor (un vault, varios focos)
+
+Con la config típica (`BASIC_MEMORY_HOME` en tu `mcp.json` de usuario), **todas** las ventanas comparten el **mismo** vault en disco. Eso está bien: usa **`PROJECTS/<repo>.md`** para no mezclar contextos. Si necesitas memorias totalmente aisladas, monta **otro** vault y otra entrada MCP (avanzado).
+
 ## Siguiente paso
 
 Instalación ordenada: [`../GETTING_STARTED.md`](../GETTING_STARTED.md).

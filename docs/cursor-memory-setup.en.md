@@ -1,8 +1,8 @@
-# Cursor + Markdown memory (v2): MCP, vault, and User Rules
+# Cursor + Markdown memory (v2 / v3): MCP, vault, and User Rules
 
 **Repo flow:** if you are new, start with [`../GETTING_STARTED.en.md`](../GETTING_STARTED.en.md) and [`how-memory-works-simple.en.md`](./how-memory-works-simple.en.md); this file is the **Cursor deep dive** (MCP + User Rules + verification).
 
-This guide is the **v2** setup path (MCP `basic-memory`, rules, checks). Historical v1→v2 context: [`docs/migration/v1-to-v2-mcp.md`](./migration/v1-to-v2-mcp.md) and artifacts under [`docs/legacy/`](./legacy/).
+This guide covers **v2+** setup (MCP `basic-memory`, rules, checks) and **v3 polish** (no kit-shipped Windows scripts, hybrid via initializer, multiple windows). Historical v1→v2: [`docs/migration/v1-to-v2-mcp.md`](./migration/v1-to-v2-mcp.md); v2→v3 script-free kit: [`docs/migration/v2-to-v3-script-free-kit.en.md`](./migration/v2-to-v3-script-free-kit.en.md).
 
 ## Recommended flow (at a glance)
 
@@ -24,6 +24,27 @@ This guide is the **v2** setup path (MCP `basic-memory`, rules, checks). Histori
 | **User Rules**    | Text in `Cursor → Settings → Rules → User Rules`.                                                           | Tells the model **when** to open which note and **how** to close sessions. It does **not** replace MCP; it only guides tool use. |
 
 No vault → no data. No MCP → no tools. No User Rules → the model may skip the reading flow or never touch `SESSION_LOG.md`.
+
+## v3: practical polish (multiple windows, hybrid, fewer consoles)
+
+### Multiple Cursor windows
+
+You can open **several projects** at once. User `mcp.json` usually has **one** `BASIC_MEMORY_HOME` → **one shared vault** across windows. Split work with **`PROJECTS/<name>.md`**. Separate vaults only appear if you add **more** MCP entries with different paths (advanced).
+
+### Merge hybrid MCP without hand-editing JSON
+
+1. Install the Python package: `python -m pip install -e "…/packages/obsidian-memory-rag"` (from your clone).
+2. Run the initializer with **`--with-hybrid`** (pass **`--repo-root`** or run from the clone root so it can find `packages/obsidian-memory-mcp/src/hybrid-mcp.mjs`):
+
+```bash
+node packages/create-obsidian-memory/dist/index.js --non-interactive --vault "/absolute/path/to/vault" --with-hybrid --repo-root "/absolute/path/to/cursor-obsidian-memory-guide"
+```
+
+Then **Developer: Reload Window** in Cursor.
+
+### Background git without console flashes (Windows)
+
+Build **`obsidian-memoryd`** with `-ldflags="-H windowsgui"`, use a **Startup shortcut** to the `.exe` with args `watch` and **Start in** = vault root, and lengthen debounce with `setx OBSIDIAN_MEMORY_DEBOUNCE 2m` (or similar). See [`setup/windows-sin-consola-visible.en.md`](./setup/windows-sin-consola-visible.en.md) and [`setup/windows-scheduled-vault-sync.en.md`](./setup/windows-scheduled-vault-sync.en.md).
 
 ## Machine requirements
 
@@ -68,7 +89,8 @@ Copy `config/mcp/basic-memory.json` and replace `<VAULT_PATH>` with the **absolu
 
 ### Add FTS hybrid (optional)
 
-Merge `config/mcp/obsidian-memory-hybrid.json`: replace `<REPO_ROOT>` with the **absolute** path to this repo clone and `<VAULT_PATH>` with your vault (or rely on `BASIC_MEMORY_HOME` on that entry if you set it).
+- **Fast path:** `create-obsidian-memory … --with-hybrid` (see **v3: practical polish** above and **Step 4**).
+- **By hand:** merge `config/mcp/obsidian-memory-hybrid.json`: replace `<REPO_ROOT>` with the **absolute** path to this repo clone and `<VAULT_PATH>` with your vault (or rely on `BASIC_MEMORY_HOME` on that entry if you set it).
 
 **Why two servers:** `basic-memory` handles read/write and built-in search. The hybrid adds an on-disk **SQLite FTS5 (BM25)** index for very large vaults where `search_notes` is not enough.
 
@@ -140,13 +162,21 @@ If `uvx` fails, it is usually **missing uv** or **PATH not refreshed**; see `doc
 
 ## Step 4: Headless merge into `mcp.json`
 
-From a clone of this repo (or via published package):
+From a clone of this repo (or via published npm package once it ships this flag):
+
+**`basic-memory` only:**
 
 ```bash
 npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "/absolute/path/to/vault"
 ```
 
-Merges the `basic-memory` entry without wiping other servers (UTF-8 BOM on `mcp.json` is tolerated). See `CHANGELOG.md` and `docs/troubleshooting.md`.
+**`basic-memory` + `obsidian-memory-hybrid`** (requires `pip install -e packages/obsidian-memory-rag` in the same clone):
+
+```bash
+node packages/create-obsidian-memory/dist/index.js --non-interactive --vault "/absolute/path/to/vault" --with-hybrid --repo-root "/absolute/path/to/cursor-obsidian-memory-guide"
+```
+
+Merges MCP entries without wiping other servers (UTF-8 BOM on `mcp.json` is tolerated). Extra flags: `--no-cursor-mcp`, `--no-git-init`. See `CHANGELOG.md` and `docs/troubleshooting.md`.
 
 ## Read next
 

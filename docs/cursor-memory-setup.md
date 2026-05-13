@@ -1,8 +1,8 @@
-# Cursor + memoria Markdown (v2): MCP, vault y User Rules
+# Cursor + memoria Markdown (v2 / v3): MCP, vault y User Rules
 
 **Flujo del repo:** si empiezas de cero, sigue primero [`../GETTING_STARTED.md`](../GETTING_STARTED.md) y [`how-memory-works-simple.md`](./how-memory-works-simple.md); este archivo es el **detalle Cursor** (MCP + User Rules + verificación).
 
-Esta guía concentra la configuración **v2** (MCP `basic-memory`, reglas, comprobaciones). Contexto histórico v1→v2: [`docs/migration/v1-to-v2-mcp.md`](./migration/v1-to-v2-mcp.md) y artefactos en [`docs/legacy/`](./legacy/).
+Esta guía cubre la configuración **v2+** (MCP `basic-memory`, reglas, comprobaciones) y el **pulido v3** (sin scripts del kit, híbrido vía initializer, varias ventanas). Contexto histórico v1→v2: [`docs/migration/v1-to-v2-mcp.md`](./migration/v1-to-v2-mcp.md); v2→v3 sin `.ps1` del repo: [`docs/migration/v2-to-v3-script-free-kit.md`](./migration/v2-to-v3-script-free-kit.md).
 
 ## Flujo recomendado (vista rápida)
 
@@ -24,6 +24,27 @@ Esta guía concentra la configuración **v2** (MCP `basic-memory`, reglas, compr
 | **User Rules**    | Texto en `Cursor → Settings → Rules → User Rules`.                                                                         | Le dice al modelo **cuándo** abrir qué nota y **cómo** cerrar sesiones. No sustituye al MCP: solo guía el uso de las tools. |
 
 Si falta el vault, no hay datos. Si falta el MCP, no hay tools. Si faltan User Rules, el modelo puede ignorar el flujo de lectura o no registrar en `SESSION_LOG.md`.
+
+## v3: pulido práctico (varias ventanas, híbrido, menos consola)
+
+### Varias ventanas de Cursor
+
+Puedes abrir **varios proyectos** a la vez. El `mcp.json` del usuario suele tener **un** `BASIC_MEMORY_HOME` → **un vault compartido** entre ventanas. Separa contextos con **`PROJECTS/<nombre>.md`** (un archivo por repo o línea de trabajo). Solo tendrás vaults distintos si añades **otras** entradas MCP con otras rutas (configuración avanzada).
+
+### Fusionar MCP híbrido sin editar JSON a mano
+
+1. Instala el paquete Python del kit: `python -m pip install -e "…/packages/obsidian-memory-rag"` (desde tu clon).
+2. Ejecuta el initializer con **`--with-hybrid`** (detecta el clon por `--repo-root` o por el directorio actual):
+
+```bash
+node packages/create-obsidian-memory/dist/index.js --non-interactive --vault "C:\RUTA\ABSOLUTA\AL\VAULT" --with-hybrid --repo-root "C:\RUTA\ABSOLUTA\AL\cursor-obsidian-memory-guide"
+```
+
+Si tu cwd ya es la **raíz del clon**, puedes omitir `--repo-root`. Eso **mezcla** `basic-memory` y `obsidian-memory-hybrid` en `mcp.json` sin borrar otras claves. Luego **Developer: Reload Window** en Cursor.
+
+### Git en segundo plano sin ventanas (Windows)
+
+Compila **`obsidian-memoryd`** con `-ldflags="-H windowsgui"` (sin consola), usa un **acceso directo** en Inicio que apunte al `.exe` con argumentos `watch` y **Iniciar en** = raíz del vault, y alarga el debounce con `setx OBSIDIAN_MEMORY_DEBOUNCE 2m` (o similar). Detalle: [`setup/windows-sin-consola-visible.md`](./setup/windows-sin-consola-visible.md), [`setup/windows-scheduled-vault-sync.md`](./setup/windows-scheduled-vault-sync.md).
 
 ## Requisitos en tu PC
 
@@ -68,7 +89,10 @@ Copia la plantilla `config/mcp/basic-memory.json` y sustituye `<VAULT_PATH>` por
 
 ### Añadir híbrido FTS (opcional)
 
-Si quieres `vault_fts_search` / `vault_fts_index` en el IDE, fusiona `config/mcp/obsidian-memory-hybrid.json`: sustituye `<REPO_ROOT>` por el clon **absoluto** de este repo y `<VAULT_PATH>` por tu vault (o confía en `BASIC_MEMORY_HOME` si ya lo defines en esa entrada).
+Si quieres `vault_fts_search` / `vault_fts_index` en el IDE:
+
+- **Rápido:** `create-obsidian-memory … --with-hybrid` (ver la sección **v3: pulido práctico** más arriba y el **Paso 4**).
+- **A mano:** fusiona `config/mcp/obsidian-memory-hybrid.json`: sustituye `<REPO_ROOT>` por el clon **absoluto** de este repo y `<VAULT_PATH>` por tu vault (o confía en `BASIC_MEMORY_HOME` si ya lo defines en esa entrada).
 
 **Por qué dos servidores:** `basic-memory` cubre lectura/escritura y búsqueda integrada. El híbrido añade un índice **SQLite FTS5 (BM25)** en disco; compensa vaults muy grandes donde `search_notes` no te basta.
 
@@ -144,13 +168,21 @@ Misma estructura en [`cursor-memory-setup.en.md`](./cursor-memory-setup.en.md) (
 
 ## Paso 4: Inicializar o fusionar config sin prompts
 
-Desde la raíz de un clon de este repo (o con `npx @vahlame/create-obsidian-memory@next`):
+Desde la raíz de un clon de este repo (o con `npx @vahlame/create-obsidian-memory@next` cuando publiquemos la beta con `--with-hybrid`):
+
+**Solo `basic-memory`:**
 
 ```bash
 npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "C:\RUTA\ABSOLUTA\AL\VAULT"
 ```
 
-Eso **mezcla** la entrada `basic-memory` en `mcp.json` sin borrar otras claves (y tolera `mcp.json` con BOM UTF-8). Ver `CHANGELOG.md` y `docs/troubleshooting.md`.
+**`basic-memory` + `obsidian-memory-hybrid`** (requiere `pip install -e packages/obsidian-memory-rag` en el mismo clon):
+
+```bash
+node packages/create-obsidian-memory/dist/index.js --non-interactive --vault "C:\RUTA\ABSOLUTA\AL\VAULT" --with-hybrid --repo-root "C:\RUTA\ABSOLUTA\AL\cursor-obsidian-memory-guide"
+```
+
+Eso **mezcla** las entradas en `mcp.json` sin borrar otras claves (y tolera `mcp.json` con BOM UTF-8). Flags adicionales: `--no-cursor-mcp`, `--no-git-init`. Ver `CHANGELOG.md` y `docs/troubleshooting.md`.
 
 ## Dónde seguir leyendo
 

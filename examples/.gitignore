@@ -1,4 +1,5 @@
 # Example vault — same categories as a real vault (trim as needed)
+.obsidian-memory-rag/
 .env
 .env.*
 *.bak

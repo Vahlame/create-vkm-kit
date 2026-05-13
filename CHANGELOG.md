@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - **`docs/migration/v2-to-v3-script-free-kit.md`** / **`.en.md`**: capítulo **v2 → v3** (integración avanzada sin scripts del kit; todo en `main`).
+- **`create-obsidian-memory`:** `--with-hybrid` + `--repo-root` merge **`obsidian-memory-hybrid`** into Cursor `mcp.json` alongside **`basic-memory`** (auto-detect kit root from cwd or from package layout in a monorepo clone). Interactive mode asks whether to enable hybrid when the kit layout is found. Tests cover merge + headless flow.
 - ADR-0010–0015 (basic-memory, `AGENTS.md`, Go daemon, Syncthing, hybrid RAG, generic privacy notes in docs).
 - **`obsidian-memory-hybrid` MCP** (`vault_fts_search`, `vault_fts_index`) bridging Node MCP → Python FTS5; sample `config/mcp/obsidian-memory-hybrid.json`.
 - `cmd/obsidian-memoryd/` cross-platform daemon skeleton + `.github/workflows` updates for Go/Node/Python/evals.
@@ -37,6 +38,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **`docs/setup/windows-scheduled-vault-sync.md`** / **`.en.md`**: opciones Windows para git del vault **sin** plantillas PowerShell/VBS del kit (`obsidian-memoryd watch`, git manual, tareas propias).
 - **`docs/setup/windows-basic-memory-always-on.md`** / **`.en.md`**: HTTP opcional para `basic-memory` vía **comandos** o tarea que definas tú; **stdio** como camino por defecto; plantilla `config/mcp/basic-memory-streamable-http.json`.
 - **`docs/cursor-memory-setup.md`** / **`docs/cursor-memory-setup.en.md`**: end-to-end Cursor guide (vault vs MCP vs User Rules, verification, ready-to-paste User Rules for `basic-memory` + optional hybrid).
+- **Docs refresh:** `GETTING_STARTED*`, `how-memory-works-simple*`, `windows-sin-consola-visible*`, and `examples/START_HERE.md` / `.gitignore` / `README` for v3 hybrid path, multi-window guidance, and no legacy Vault-Doctor script.
+- **Root `.gitignore`:** ignore `/bin/` for local `obsidian-memoryd` builds.
 - **ADR-0016:** puerto localhost por defecto **8765** para `basic-memory` Streamable HTTP (evitar colisiones con 8000/8080/3000).
 - **`.vscode/settings.json`** (repo root) and **`examples/.vscode/settings.json`**: workspace defaults that reduce Git/`conhost` churn on Windows when the folder is opened in Cursor or VS Code.
 - **`docs/setup/windows-sin-consola-visible.md`** / **`.en.md`**: checklist (workspace, tareas opcionales, MCP, límites) sin scripts de auditoría del kit.
