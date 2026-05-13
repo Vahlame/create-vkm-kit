@@ -13,6 +13,17 @@ Este repo queda intencionalmente minimalista: solo lo necesario para integrar me
 
 Si ya tienes Git + Node + Cursor, se hace en **30 minutos o menos**.
 
+## Por que funciona
+
+Los modelos no guardan memoria infinita entre sesiones.  
+Este sistema mueve la memoria a archivos Markdown versionados en Git:
+
+- `MEMORY.md`: reglas/preferencias globales;
+- `SESSION_LOG.md`: bitacora de decisiones;
+- `PROJECTS/*.md`: contexto por proyecto.
+
+Cursor consulta/actualiza esos archivos via MCP, y GitHub los replica entre dispositivos.
+
 ## Unico flujo recomendado (IA hace el trabajo pesado)
 
 1. Crea un repo privado para tu vault (ejemplo: `cursor-memory-vault`).
@@ -25,6 +36,25 @@ Si ya tienes Git + Node + Cursor, se hace en **30 minutos o menos**.
 El usuario solo da 2 cosas:
 - la URL del repo privado;
 - confirmaciones puntuales si el sistema pide permisos.
+
+## Flujo de instalacion (una sola vez por equipo)
+
+1. Usuario crea repo privado del vault.
+2. Usuario pega `PROMPT_ULTRA_COMPLETO.md` en un chat de Cursor.
+3. El agente:
+   - clona/actualiza vault local,
+   - configura `%USERPROFILE%\.cursor\mcp.json`,
+   - activa watchdog MCP (cada 5 min),
+   - activa auto-sync git (cada 10 min),
+   - corre diagnóstico final.
+4. Usuario reinicia Cursor.
+
+## Flujo diario (ya operativo)
+
+1. Cursor usa `obsidian-memory` para leer contexto del vault.
+2. El agente escribe checkpoints y cierres de tarea en Markdown.
+3. `CursorMemoryAutoSync` hace push automático a GitHub.
+4. En otra máquina, el mismo setup recupera esa memoria.
 
 ## Scripts (los usa el agente automaticamente)
 
@@ -43,7 +73,7 @@ El usuario solo da 2 cosas:
 - `scripts/windows/Doctor.ps1`
   - Diagnóstico rápido end-to-end.
 
-## Como funciona (simple)
+## Como funciona internamente
 
 1. Cursor lee `%USERPROFILE%\.cursor\mcp.json`.
 2. Ahí se registra `obsidian-memory` usando `mcp-remote`.
@@ -52,6 +82,13 @@ El usuario solo da 2 cosas:
 5. Scheduler:
    - `CursorObsidianMcpWatchdog` mantiene MCP arriba.
    - `CursorMemoryAutoSync` sincroniza git automáticamente.
+
+## Alcance del repo (sin extras)
+
+Este repo solo mantiene:
+- prompt ultra completo para que el agente haga el trabajo pesado;
+- scripts Windows necesarios para setup, operación y diagnóstico;
+- explicación breve de flujo y funcionamiento.
 
 ## Verificación rápida
 
