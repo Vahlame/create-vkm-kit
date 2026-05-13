@@ -25,3 +25,28 @@ test("non-interactive without --vault exits 2", () => {
   });
   assert.equal(r.status, 2);
 });
+
+test("non-interactive merges into UTF-8 BOM mcp.json without dropping existing servers", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-bom-"));
+  const vault = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-bom-v-"));
+  fs.mkdirSync(path.join(vault, ".obsidian"));
+  const cursorDir = path.join(home, ".cursor");
+  fs.mkdirSync(cursorDir, { recursive: true });
+  const prior = {
+    mcpServers: {
+      "other-server": { command: "echo", args: ["hi"] },
+    },
+  };
+  const bom = "\uFEFF";
+  fs.writeFileSync(path.join(cursorDir, "mcp.json"), `${bom}${JSON.stringify(prior)}`, "utf8");
+  const r = spawnSync(
+    process.execPath,
+    [bin, "--non-interactive", "--vault", vault],
+    { encoding: "utf8", env: { ...process.env, USERPROFILE: home, HOME: home } },
+  );
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  const merged = JSON.parse(fs.readFileSync(path.join(cursorDir, "mcp.json"), "utf8"));
+  assert.ok(merged.mcpServers["other-server"]);
+  assert.ok(merged.mcpServers["basic-memory"]);
+  assert.equal(merged.mcpServers["basic-memory"].env.BASIC_MEMORY_HOME, vault);
+});

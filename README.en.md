@@ -10,7 +10,7 @@ v2 is **cross-platform** (Windows/Linux/macOS) and **IDE-agnostic**. Canonical a
 
 ## Quick install
 
-1. Install **uv** + **Node 20+**.
+1. Install **uv** + **Node 20+**. (Windows without `uv`: `powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"` — then restart the terminal.)
 2. Merge `config/mcp/basic-memory.json` into your IDE MCP config; replace `<VAULT_PATH>`.
 3. Run `uvx basic-memory mcp` and verify tools (see `docs/testing/manual-checks.md`).
 4. Optional: build `obsidian-memoryd` (`go build ./cmd/obsidian-memoryd`) for debounced git sync.

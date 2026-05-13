@@ -13,7 +13,7 @@ Los modelos no recuerdan entre sesiones. Externalizar memoria en **Markdown vers
 
 ## Instalación en 1 minuto (rápido)
 
-1. Instala **uv** / Python y **Node 20+**.
+1. Instala **uv** / Python y **Node 20+**. (Windows sin `uv`: `powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"` — luego reinicia la terminal.)
 2. Copia `config/mcp/basic-memory.json` a tu `mcp.json` del IDE y reemplaza `<VAULT_PATH>`.
 3. Ejecuta `uvx basic-memory mcp` (Inspector: ver `docs/testing/manual-checks.md`).
 4. (Opcional) `go build -o obsidian-memoryd ./cmd/obsidian-memoryd` y `obsidian-memoryd watch`.

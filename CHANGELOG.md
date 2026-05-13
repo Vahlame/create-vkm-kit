@@ -26,6 +26,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **`docs/migration/v1-prompt-closure.md`**, root **`PROMPT_ULTRA_COMPLETO.{linux,macos}.md`** (redirect stubs per ADR-0007 amendment).
 - FAQ + glossary aligned with v2 transport, uninstall, and large-vault FTS path.
 
+### Fixed
+
+- **`create-obsidian-memory`:** strip UTF-8 BOM before parsing existing `~/.cursor/mcp.json` so merges keep prior `mcpServers` entries (PowerShell / some editors emit BOM).
+- **`obsidian-memory-hybrid`:** default `PYTHONPATH` for monorepo dev pointed at the wrong sibling folder; corrected to `packages/obsidian-memory-rag/src` relative to the hybrid script.
+
 ### Changed
 
 - `README.md` / `README.en.md` rewritten for v2 quickstart and architecture.

@@ -32,7 +32,7 @@ function defaultRagSrc() {
   if (process.env.OBSIDIAN_MEMORY_RAG_SRC) {
     return path.resolve(process.env.OBSIDIAN_MEMORY_RAG_SRC);
   }
-  return path.resolve(__dirname, "../obsidian-memory-rag/src");
+  return path.resolve(__dirname, "../../obsidian-memory-rag/src");
 }
 
 function requireVault(vaultArg) {

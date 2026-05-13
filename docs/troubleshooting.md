@@ -93,6 +93,22 @@ Run before any commit. The Preflight check in section 6.1 catches this and promp
 
 ## MCP / Cursor errors
 
+### `uv` / `uvx` is not recognized (Windows)
+
+- **Cause:** `basic-memory` is started with `uvx basic-memory mcp`, but **uv** is not installed or not on `PATH`.
+- **Fix:** Install uv (adds `~/.local/bin` to your user `PATH`):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+Close and reopen the terminal (or Cursor) so `uvx` resolves. Verify with `uv --version`.
+
+### `create-obsidian-memory` prints `Invalid JSON in mcp.json` even though the file looks fine
+
+- **Cause:** Some editors (or `Set-Content -Encoding utf8` in older PowerShell) write a **UTF-8 BOM** at the start of `mcp.json`. `JSON.parse` rejects that leading byte unless it is stripped.
+- **Fix:** As of `@vahlame/create-obsidian-memory` **2.0.0-beta.2**, the initializer strips a leading BOM before merging. Re-run non-interactive merge, or remove the BOM manually (re-save as UTF-8 without BOM, or delete the first invisible character).
+
 ### Cursor MCP panel: `obsidian-memory` red / "no disponible"
 
 - **Cause (most common):** `mcp.json` points Cursor at the SSE endpoint directly.

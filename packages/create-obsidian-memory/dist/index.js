@@ -118,13 +118,19 @@ tags: [start]
  * @param {string} vaultAbs
  * @param {boolean} dryRun
  */
+/** Strip UTF-8 BOM so JSON.parse succeeds (common when mcp.json was saved from PowerShell). */
+function stripLeadingUtf8Bom(text) {
+  return typeof text === "string" && text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+}
+
 async function writeCursorMcp(home, vaultAbs, dryRun) {
   const dir = path.join(home, ".cursor");
   const fp = path.join(dir, "mcp.json");
   let parsed = {};
   if (await fse.pathExists(fp)) {
     try {
-      parsed = JSON.parse(await fse.readFile(fp, "utf8"));
+      const raw = stripLeadingUtf8Bom(await fse.readFile(fp, "utf8"));
+      parsed = JSON.parse(raw);
     } catch {
       const bak = `${fp}.bak.${Date.now()}`;
       await fse.copy(fp, bak);
