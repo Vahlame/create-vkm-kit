@@ -20,7 +20,9 @@
 7. **Optional vault git sync:** [`docs/setup/windows-scheduled-vault-sync.en.md`](./docs/setup/windows-scheduled-vault-sync.en.md) (`obsidian-memoryd` or manual git).
 8. **No extra local automation:** colocate memory in the same git repo you already update — [`docs/setup/memory-repo-sin-automatismos-locales.en.md`](./docs/setup/memory-repo-sin-automatismos-locales.en.md).
 9. **Windows: no CMD flashes / stutter (workspace + tasks + gaming):** [`docs/setup/windows-sin-consola-visible.en.md`](./docs/setup/windows-sin-consola-visible.en.md) · [`docs/setup/windows-juego-vault-sync.en.md`](./docs/setup/windows-juego-vault-sync.en.md).
-10. **Existing vault:** run `npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "/path"` again to **merge** the calm `.vscode/settings.json` (keeps your other keys).
+10. **Existing vault:** run the initializer again to **merge** config without losing other keys:
+    - `basic-memory` only: `npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "/path"`
+    - With FTS hybrid: `node packages/create-obsidian-memory/dist/index.js --non-interactive --vault "/path" --with-hybrid` (from a repo clone; install first: `pip install -e packages/obsidian-memory-rag`).
 
 ## What this repository is (one paragraph)
 

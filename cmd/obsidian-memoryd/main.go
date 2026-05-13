@@ -169,9 +169,7 @@ func gitSync(ctx context.Context, l *slog.Logger, dir string) error {
 		{"git", "-C", dir, "push"},
 	}
 	for _, s := range steps {
-		cmd := exec.CommandContext(ctx, s[0], s[1:]...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		cmd := hiddenCmd(exec.CommandContext(ctx, s[0], s[1:]...))
 		if err := cmd.Run(); err != nil {
 			if len(s) > 2 && s[2] == "commit" {
 				var ee *exec.ExitError

@@ -4,7 +4,18 @@ This guide does **not** ship or ask you to copy `.ps1`, `.vbs`, or `.bat` from t
 
 ## Option A (recommended): `obsidian-memoryd watch` (Go)
 
-Save-triggered sync with debounce (default **45 s** after the last change; tune with `OBSIDIAN_MEMORY_DEBOUNCE`). Requires **Go**, build from this repo, run the binary with `BASIC_MEMORY_HOME` pointing at the vault. See [`cmd/obsidian-memoryd`](../../cmd/obsidian-memoryd), `agent.toml`, and on Windows build with `go build -ldflags="-H windowsgui"` if you register the binary in Task Scheduler **as the program** (path to `.exe`) without kit wrapper scripts.
+Save-triggered sync with debounce (default **45 s** after the last change; tune with `OBSIDIAN_MEMORY_DEBOUNCE`).
+
+**No console windows on Windows:** the repo ships two build-tag files:
+- `proc_windows.go` — each `git` subprocess receives `CREATE_NO_WINDOW + HideWindow: true`; zero console flashes even when the `.exe` is GUI-subsystem (`-H windowsgui`).
+- `proc_other.go` — no-op on Linux/macOS.
+
+Build command for Windows (no console):
+```bash
+go build -ldflags="-H windowsgui" -o bin/obsidian-memoryd.exe ./cmd/obsidian-memoryd
+```
+
+Silent start: a **Startup folder shortcut** pointing at the `.exe`, arguments `watch`, **Start in** = vault root. Do not wrap in `cmd.exe`. Tune cadence: `setx OBSIDIAN_MEMORY_DEBOUNCE 2m`.
 
 ## Option B: manual git only
 
