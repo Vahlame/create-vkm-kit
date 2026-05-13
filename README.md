@@ -22,7 +22,7 @@
 9. **Windows: sin ventanas CMD / tirones (workspace + tareas + juego):** [`docs/setup/windows-sin-consola-visible.md`](./docs/setup/windows-sin-consola-visible.md) · [`docs/setup/windows-juego-vault-sync.md`](./docs/setup/windows-juego-vault-sync.md).
 10. **Vault ya creado:** vuelve a ejecutar el inicializador para **fusionar** config sin perder claves:
     - Solo `basic-memory`: `npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "RUTA"`
-    - Con híbrido FTS: `node packages/create-obsidian-memory/dist/index.js --non-interactive --vault "RUTA" --with-hybrid` (desde el clon del repo; instala antes `pip install -e packages/obsidian-memory-rag`).
+    - Con híbrido FTS: `node packages/create-obsidian-memory/dist/index.js --non-interactive --vault "RUTA" --with-hybrid --repo-root "RUTA_DEL_CLON"` (desde el clon del repo; instala antes `pip install -e packages/obsidian-memory-rag`).
 
 ## Qué es este repo (una viñeta)
 

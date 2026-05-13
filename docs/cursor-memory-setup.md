@@ -112,6 +112,8 @@ En **Cursor → Settings → Rules → User Rules**, pega el bloque siguiente. *
 
 **Motivo:** el modelo no persiste entre chats; el vault en git es auditable, portable y tuyo.
 
+> *Bloque para kit v3 (`basic-memory` stdio + `obsidian-memory-hybrid` opcional). Actualiza los nombres de servidor si los renombraste en `mcp.json`.*
+
 ### No confundir con la memoria integrada de Cursor
 
 - Los recursos **`memory://...`** (toasts o enlaces) son **memoria nativa / virtual del IDE**, no archivos de tu vault.
@@ -181,6 +183,8 @@ npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "C:\RUTA\A
 ```bash
 node packages/create-obsidian-memory/dist/index.js --non-interactive --vault "C:\RUTA\ABSOLUTA\AL\VAULT" --with-hybrid --repo-root "C:\RUTA\ABSOLUTA\AL\cursor-obsidian-memory-guide"
 ```
+
+> El flag `--with-hybrid` está disponible desde **`@vahlame/create-obsidian-memory@2.0.0-beta.3`** (ya en el clon del repo; en npm desde la próxima publicación de la beta).
 
 Eso **mezcla** las entradas en `mcp.json` sin borrar otras claves (y tolera `mcp.json` con BOM UTF-8). Flags adicionales: `--no-cursor-mcp`, `--no-git-init`. Ver `CHANGELOG.md` y `docs/troubleshooting.md`.
 

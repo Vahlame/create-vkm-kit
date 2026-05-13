@@ -8,7 +8,7 @@ Cursor's built-in memories are tied to Cursor's account and storage, are not por
 
 ### Is this safe to paste into Cursor?
 
-**v1:** the archived ultra-prompt instructs an agent to execute code on your machine (packages, `%USERPROFILE%`, scheduled tasks, git push). Treat it like an installer: pin releases, read diffs, verify the source URL. **v2:** you mostly configure MCP + optional daemon yourself; `SECURITY.md` still applies. See also `docs/security/mcp-remote-rce.md` if you bridge remote MCP.
+**v1:** the archived ultra-prompt instructs an agent to execute code on your machine (packages, `%USERPROFILE%`, scheduled tasks, git push). Treat it like an installer: pin releases, read diffs, verify the source URL. **v3 kit:** you configure MCP via the `create-obsidian-memory` initializer + optional daemon; `SECURITY.md` still applies. See also `docs/security/mcp-remote-rce.md` if you bridge remote MCP.
 
 ### What does it cost?
 
@@ -16,7 +16,7 @@ Nothing. You pay for whatever Cursor plan you already have, plus a private GitHu
 
 ### Will it work without internet?
 
-Local memory works. Sync to GitHub does not. **v1 (Windows):** the watchdog kept an SSE MCP process up; autosync retried on a timer. **v2:** `basic-memory` runs with the IDE session (`uvx`); optional **`obsidian-memoryd watch`** debounces git sync and will fail push/pull until the network returns, then catch up on the next debounced cycle.
+Local memory works. Sync to GitHub does not. **v1 (Windows):** the watchdog kept an SSE MCP process up; autosync retried on a timer. **v3 kit:** `basic-memory` runs with the IDE session (`uvx`); optional **`obsidian-memoryd watch`** debounces git sync and will fail push/pull until the network returns, then catch up on the next debounced cycle.
 
 ### Why a private repo?
 
@@ -32,15 +32,15 @@ No meaningful slowdown for normal vault sizes. The MCP server runs out of proces
 
 ### Can I rename `MEMORY.md` or `SESSION_LOG.md`?
 
-You can, but you would have to change your **User Rules** (and any scripts that hard-code the names) accordingly. The names are convention, not protocol. **v2:** edit the pasted block in `docs/cursor-memory-setup.md` / `.en.md` to match your filenames.
+You can, but you would have to change your **User Rules** (and any scripts that hard-code the names) accordingly. The names are convention, not protocol. Edit the pasted User Rules block in `docs/cursor-memory-setup.md` / `.en.md` to match your filenames.
 
 ### How do I uninstall?
 
-**v2:** remove the **`basic-memory`** entry (or rename the server) from your IDE MCP config, stop **`obsidian-memoryd`** if you installed it (`service stop` / systemd / Windows service), and delete local sidecar data under **`<vault>/.obsidian-memory-rag/`** if you no longer want the FTS index. Your Markdown vault remains yours. **v1 (Windows):** `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md` section 8 describes `Uninstall-Cursor-Memory.ps1` (scheduled tasks + `mcp.json.bak`).
+**v3 kit:** remove the **`basic-memory`** entry (or rename the server) from your IDE MCP config (`%USERPROFILE%\.cursor\mcp.json`), stop **`obsidian-memoryd`** if you installed it (kill process / remove Startup shortcut), and delete local sidecar data under **`<vault>/.obsidian-memory-rag/`** if you no longer want the FTS index. Your Markdown vault remains yours. **v1 (Windows):** `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md` section 8 describes `Uninstall-Cursor-Memory.ps1` (scheduled tasks + `mcp.json.bak`).
 
 ### Why Windows-first?
 
-The maintainer's first end-to-end install was Windows (ADR-0007). **v2** is **cross-platform**; the repo ships Linux/macOS pointers at `PROMPT_ULTRA_COMPLETO.linux.md` and `PROMPT_ULTRA_COMPLETO.macos.md` (short redirects) plus the Go daemon for non-Windows sync.
+The maintainer's first end-to-end install was Windows (ADR-0007). The **v3 kit** is **cross-platform**; the repo ships Linux/macOS pointers at `PROMPT_ULTRA_COMPLETO.linux.md` and `PROMPT_ULTRA_COMPLETO.macos.md` (short redirects) plus the Go daemon for non-Windows sync.
 
 ### Will this work on Cursor Web / cursor.com?
 
@@ -48,20 +48,20 @@ Generally **no** for the same reason as any localhost MCP: the web UI cannot rea
 
 ### Will this work with Claude Desktop, Continue, or other MCP-capable clients?
 
-In principle yes. They consume the same MCP server. You would have to translate the User Rules (section 9) and the `mcp.json` block (section 6.4) to that client's equivalent config. The vault and scripts are unchanged.
+In principle yes. They consume the same MCP server. You would have to translate the User Rules and the `mcp.json` block (see `docs/cursor-memory-setup.*`) to that client's equivalent config. The vault files are unchanged.
 
 ### How big can the vault get before it's a problem?
 
-In practice multiple hundreds of MB are fine. **v1:** autosync pushed small diffs. **v2:** same with git; optional **`obsidian-memory-rag`** keeps search fast. Reading `MEMORY.md` is bounded by model context because the agent reads only what it needs.
+In practice multiple hundreds of MB are fine. Both v1 and v3 kit push small git diffs; the optional **`obsidian-memory-rag`** FTS5 index keeps search fast at any size. Reading `MEMORY.md` is bounded by model context because the agent reads only what it needs.
 
 ### Can I share `MEMORY.md` with a teammate?
 
-Yes. Invite them to the private repo. **v1:** they re-ran the ultra-prompt once. **v2:** they merge the same MCP config + clone the vault; use normal git conflict habits if two people edit the same line.
+Yes. Invite them to the private repo. **v1:** they re-ran the ultra-prompt once. **v3 kit:** they run `create-obsidian-memory` to merge the same MCP config + clone the vault; use normal git conflict habits if two people edit the same line.
 
 ### How do I update to a new version of the prompt?
 
-**v2:** `git pull` this repo for docs and tooling; bump **`@vahlame/create-obsidian-memory`** if you use the initializer; refresh MCP pins if `CHANGELOG.md` / `SECURITY.md` say so. **v1:** pull the tag, re-paste the ultra-prompt into a new chat with `<REPO_URL_PRIVADO>`; idempotent on scripts and `mcp.json`. Your vault stays separate.
+**v3 kit:** `git pull` this repo for docs and tooling; bump **`@vahlame/create-obsidian-memory`** if you use the initializer; refresh MCP pins if `CHANGELOG.md` / `SECURITY.md` say so. Re-run `create-obsidian-memory --non-interactive --vault "<path>"` to re-merge a clean config. **v1:** pull the tag, re-paste the ultra-prompt; idempotent on scripts and `mcp.json`. Your vault stays separate.
 
 ### Large vault: anything beyond `basic-memory` search?
 
-Yes. Run **`obsidian-memory-rag index --vault <path>`** once (and after big imports) for a local **SQLite FTS5** index; use **`search`** / **`bench`** for BM25-ranked hits and latency smoke tests (`docs/testing/manual-checks.md`).
+Yes. Activate the **hybrid MCP** via the initializer: `node packages/create-obsidian-memory/dist/index.js --non-interactive --vault "<path>" --with-hybrid --repo-root "<kit-clone>"` (needs `pip install -e packages/obsidian-memory-rag` once). Then run **`obsidian-memory-rag index --vault <path>`** (or use the `vault_fts_index` MCP tool) to build a local **SQLite FTS5** index; `vault_fts_search` returns BM25-ranked hits. See `docs/testing/manual-checks.md` for smoke tests.

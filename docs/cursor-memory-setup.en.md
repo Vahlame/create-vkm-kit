@@ -110,6 +110,8 @@ If `uvx` fails, it is usually **missing uv** or **PATH not refreshed**; see `doc
 
 **Why:** the model does not persist across chats; a git-backed vault is yours, auditable, and portable.
 
+> *Block for v3 kit (`basic-memory` stdio + optional `obsidian-memory-hybrid`). Update server names if you renamed them in `mcp.json`.*
+
 ### Not the same as Cursor’s built-in memory
 
 - **`memory://...` resources** (toasts or links) are **native / virtual IDE memory**, not files in your vault.
@@ -175,6 +177,8 @@ npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "/absolute
 ```bash
 node packages/create-obsidian-memory/dist/index.js --non-interactive --vault "/absolute/path/to/vault" --with-hybrid --repo-root "/absolute/path/to/cursor-obsidian-memory-guide"
 ```
+
+> `--with-hybrid` is available from **`@vahlame/create-obsidian-memory@2.0.0-beta.3`** (already in the repo clone; on npm from the next published beta).
 
 Merges MCP entries without wiping other servers (UTF-8 BOM on `mcp.json` is tolerated). Extra flags: `--no-cursor-mcp`, `--no-git-init`. See `CHANGELOG.md` and `docs/troubleshooting.md`.
 

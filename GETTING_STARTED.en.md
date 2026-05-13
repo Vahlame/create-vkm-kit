@@ -23,7 +23,7 @@ Open the vault as a **workspace folder** so Cursor/VS Code load **`/.vscode/sett
 npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "/absolute/path/to/vault"
 
 # basic-memory + obsidian-memory-hybrid (from kit clone; run first: pip install -e packages/obsidian-memory-rag)
-node packages/create-obsidian-memory/dist/index.js --non-interactive --vault "/absolute/path/to/vault" --with-hybrid
+node packages/create-obsidian-memory/dist/index.js --non-interactive --vault "/absolute/path/to/vault" --with-hybrid --repo-root "/absolute/path/to/cursor-obsidian-memory-guide"
 ```
 
 This **merges** `basic-memory` into Cursor `mcp.json` (Windows: `%USERPROFILE%\.cursor\mcp.json`), and **creates or merges** `vault/.vscode/settings.json` (quieter Git on Windows). Then do **step 4** (User Rules) and **step 5** (verification).

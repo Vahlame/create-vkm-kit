@@ -4,7 +4,7 @@ Canonical instructions for any AI agent or IDE consuming this repository (Cursor
 
 ## Project overview
 
-This project documents and ships **cross-platform** tooling for **Markdown vault memory** exposed to agents through **MCP** (`basic-memory` by default), optional **hybrid SQLite retrieval**, a **Go daemon** for git-backed sync, and an **initializer** CLI. ADRs in `docs/adr/` are the source of truth for design; ADR-0010–0015 cover the v2 migration.
+This project documents and ships **cross-platform** tooling for **Markdown vault memory** exposed to agents through **MCP** (`basic-memory` by default), optional **hybrid SQLite retrieval**, a **Go daemon** for git-backed sync, and an **initializer** CLI. ADRs in `docs/adr/` are the source of truth for design; ADR-0010–0015 cover the v1→v2 stack transition; the **v3 kit layout** (no `.ps1`/`.vbs` shipped, daemon `proc_windows.go` for silent Windows operation) is documented in `docs/migration/v2-to-v3-script-free-kit.*`.
 
 ## Setup commands
 
@@ -17,6 +17,8 @@ npm run sync-agents
 
 # Go daemon (from repo root)
 go build -o bin/obsidian-memoryd ./cmd/obsidian-memoryd
+# Windows: build without console window (subprocess git also hidden via proc_windows.go)
+go build -ldflags="-H windowsgui" -o bin/obsidian-memoryd.exe ./cmd/obsidian-memoryd
 ```
 
 ## Dev environment tips
@@ -103,4 +105,4 @@ Use a private git vault (example layout in `examples/`):
 - `GETTING_STARTED.md` / `GETTING_STARTED.en.md` — linear first-time path (table of steps).
 - `docs/how-memory-works-simple.md` / `docs/how-memory-works-simple.en.md` — plain-language mental model (vault / MCP / rules).
 - `docs/legacy/README.md` — historical artifacts on disk (maintainers only; not part of default onboarding).
-- `agent.toml` — machine-readable v2 metadata for the daemon and tooling.
+- `agent.toml` — machine-readable v3 metadata for the daemon and tooling.
