@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **`GETTING_STARTED.md` / `GETTING_STARTED.en.md`**: tabla de pasos (flujo lineal instalación / verificación).
 - **`docs/how-memory-works-simple.md`** / **`docs/how-memory-works-simple.en.md`**: modelo mental en lenguaje llano (vault, MCP, User Rules).
 - **`docs/setup/windows-scheduled-vault-sync.md`** / **`.en.md`**: tarea programada Windows (`CursorMemoryVaultSync`) para sincronizar el vault con `git` cada N minutos sin Go.
+- **`docs/setup/windows-basic-memory-always-on.md`** / **`.en.md`**: MCP `basic-memory` persistente (Streamable HTTP + tarea `CursorBasicMemoryHttpMcp`); script `scripts/windows/Start-BasicMemoryMcp.ps1`; plantilla `config/mcp/basic-memory-streamable-http.json`.
 - **`docs/cursor-memory-setup.md`** / **`docs/cursor-memory-setup.en.md`**: end-to-end Cursor guide (vault vs MCP vs User Rules, verification, ready-to-paste User Rules for `basic-memory` + optional hybrid).
 
 ### Fixed

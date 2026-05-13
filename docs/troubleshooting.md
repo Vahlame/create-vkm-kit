@@ -121,6 +121,11 @@ Close and reopen the terminal (or Cursor) so `uvx` resolves. Verify with `uv --v
 - **Cause:** A previous setup run overwrote the file instead of merging.
 - **Fix:** Restore from `mcp.json.bak`. The current setup script always backs up first and merges, but older versions may have clobbered the file.
 
+### Cursor: `basic-memory` red con `"url": "http://127.0.0.1:8000/mcp"`
+
+- **Cause:** El servidor HTTP no está levantado (tarea `CursorBasicMemoryHttpMcp` no ejecutada, falló al inicio de sesión, o el proceso murió).
+- **Fix:** `Start-ScheduledTask -TaskName CursorBasicMemoryHttpMcp` o ejecuta a mano `scripts\windows\Start-BasicMemoryMcp.ps1` del vault. Comprueba `Test-NetConnection 127.0.0.1 -Port 8000`. Guía: `docs/setup/windows-basic-memory-always-on.md`.
+
 ### `npx -y mcp-remote` is very slow the first time
 
 - **Cause:** Empty `npx` cache. Cold install takes ~30 seconds.

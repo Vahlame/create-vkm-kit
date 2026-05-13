@@ -95,6 +95,7 @@ Use a private git vault (example layout in `examples/`):
 ## References
 
 - `docs/setup/windows-scheduled-vault-sync.md` / `.en.md` — tarea programada Windows para `git pull/push` del vault en intervalos (sin Go).
+- `docs/setup/windows-basic-memory-always-on.md` / `.en.md` — MCP `basic-memory` persistente (Streamable HTTP + tarea al inicio de sesión).
 - `GETTING_STARTED.md` / `GETTING_STARTED.en.md` — linear first-time path (table of steps).
 - `docs/how-memory-works-simple.md` / `docs/how-memory-works-simple.en.md` — plain-language mental model (vault / MCP / rules).
 - `docs/migration/v1-prompt-closure.md` — v1 ultra-prompt deliverables → v2 public kit.
