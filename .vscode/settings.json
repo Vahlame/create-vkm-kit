@@ -2,6 +2,7 @@
   "git.autoRepositoryDetection": false,
   "git.autorefresh": false,
   "git.autofetch": false,
+  "git.terminalAuthentication": false,
   "git.decorations.enabled": false,
   "git.timeline.enabled": false,
   "git.blame.editorDecoration.enabled": false,
