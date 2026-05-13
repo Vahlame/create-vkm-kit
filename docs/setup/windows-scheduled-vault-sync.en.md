@@ -7,15 +7,22 @@ If you do not want **Go** for `obsidian-memoryd watch`, use a **scheduled task**
 - Vault with **`.git`** and `origin` remote (HTTPS or SSH with saved credentials).
 - Recommended script: `scripts/windows/Sync-Memory.ps1` in the vault repo (`git add -A` → `commit` if needed → `pull --rebase` → `push`).
 
+## No console flash (recommended)
+
+Even with `-WindowStyle Hidden` on `powershell.exe`, a console window **may still flash**. The stable pattern is **`wscript.exe`** plus a tiny `.vbs` that starts PowerShell hidden (same idea as the legacy v1 vault shim).
+
+Copy `Run-Hidden.vbs` next to your scripts (in this repo: `scripts/windows/Run-Hidden.vbs`; in the vault: `scripts/windows/Run-Hidden.vbs`).
+
 ## Create the task (every 10 minutes, current user)
 
 Adjust `$vault` if your path differs.
 
 ```powershell
 $vault = "$env:USERPROFILE\Documents\cursor-memory-vault"
+$vbs = Join-Path $vault "scripts\windows\Run-Hidden.vbs"
 $script = Join-Path $vault "scripts\windows\Sync-Memory.ps1"
-$arg = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$script`""
-$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument $arg
+$arg = "//nologo `"$vbs`" `"$script`""
+$action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument $arg
 $start = (Get-Date).AddMinutes(1)
 $trigger = New-ScheduledTaskTrigger -Once -At $start `
   -RepetitionInterval (New-TimeSpan -Minutes 10) `
@@ -27,7 +34,7 @@ $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interac
 Unregister-ScheduledTask -TaskName "CursorMemoryVaultSync" -Confirm:$false -ErrorAction SilentlyContinue
 Register-ScheduledTask -TaskName "CursorMemoryVaultSync" -Action $action -Trigger $trigger `
   -Settings $settings -Principal $principal `
-  -Description "Git sync cursor-memory-vault every 10 min"
+  -Description "Git sync cursor-memory-vault every 10 min (no window)"
 ```
 
 ### Run once manually

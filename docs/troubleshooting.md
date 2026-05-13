@@ -126,6 +126,11 @@ Close and reopen the terminal (or Cursor) so `uvx` resolves. Verify with `uv --v
 - **Cause:** El servidor HTTP no está levantado (tarea `CursorBasicMemoryHttpMcp` no ejecutada, falló al inicio de sesión, o el proceso murió).
 - **Fix:** `Start-ScheduledTask -TaskName CursorBasicMemoryHttpMcp` o ejecuta a mano `scripts\windows\Start-BasicMemoryMcp.ps1` del vault. Comprueba `Test-NetConnection 127.0.0.1 -Port 8000`. Guía: `docs/setup/windows-basic-memory-always-on.md`.
 
+### Parpadea una consola grande al sincronizar o al arrancar el MCP
+
+- **Cause:** La tarea programada llama **`powershell.exe`** directamente o el binario es una app de **consola** (por defecto `go build` sin flags).
+- **Fix:** Usa **`wscript.exe //nologo ...\Run-Hidden.vbs ...\TuScript.ps1`** como acción de la tarea (`scripts/windows/Run-Hidden.vbs` en el repo). Para **`obsidian-memoryd`**, recompila con `go build -ldflags="-H windowsgui" -o ...\obsidian-memoryd.exe` (ver `docs/setup/windows-basic-memory-always-on.md`).
+
 ### `npx -y mcp-remote` is very slow the first time
 
 - **Cause:** Empty `npx` cache. Cold install takes ~30 seconds.
