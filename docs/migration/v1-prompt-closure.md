@@ -4,15 +4,15 @@ El archivo `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md` era un **brief operativo ú
 
 ## Tabla de equivalencias (checklist mental)
 
-| Objetivo v1 (sección ~6 / 12) | v2 (este repo)                                                                                             |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Repo privado del vault + git  | Igual; tú sigues siendo dueño del remoto                                                                   |
-| MCP conectado en Cursor       | `basic-memory` vía `uvx` + `BASIC_MEMORY_HOME` (ver `config/mcp/basic-memory.json`)                        |
-| Watchdog + autosync (tareas)  | Opcional: `obsidian-memoryd watch` (Go) o tu propio timer / systemd                                        |
-| `Doctor.ps1` / health `:3001` | Inspector MCP + `docs/testing/manual-checks.md` (transporte ya no es SSE fijo en v2)                       |
-| `Vault-Doctor.ps1`            | Sigue siendo válido si mantienes scripts en el **vault** privado; no viven en este repo público (ADR-0006) |
+| Objetivo v1 (sección ~6 / 12) | v2 (este repo)                                                                                                                                                                  |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Repo privado del vault + git  | Igual; tú sigues siendo dueño del remoto                                                                                                                                        |
+| MCP conectado en Cursor       | `basic-memory` vía `uvx` + `BASIC_MEMORY_HOME` (ver `config/mcp/basic-memory.json`)                                                                                             |
+| Watchdog + autosync (tareas)  | Opcional: `obsidian-memoryd watch` (Go) o tu propio timer / systemd                                                                                                             |
+| `Doctor.ps1` / health `:3001` | Inspector MCP + `docs/testing/manual-checks.md` (transporte ya no es SSE fijo en v2)                                                                                            |
+| `Vault-Doctor.ps1`            | Sigue siendo válido si mantienes scripts en el **vault** privado; no viven en este repo público (ADR-0006)                                                                      |
 | User Rules sección 9          | Bloque listo para Cursor: **`docs/cursor-memory-setup.md`** (y `.en.md`); además `AGENTS.md` + reglas sincronizadas para quien **desarrolla este repo** (`npm run sync-agents`) |
-| Búsqueda “tipo RAG” a escala  | Opcional: `obsidian-memory-rag` (FTS5 local, ADR-0014)                                                     |
+| Búsqueda “tipo RAG” a escala  | Opcional: `obsidian-memory-rag` (FTS5 local, ADR-0014)                                                                                                                          |
 
 ## Qué ya no aplica tal cual en v2
 
