@@ -102,20 +102,42 @@ async function findVault(cwd, home) {
 }
 
 /**
- * Writes `<vault>/.vscode/settings.json` once if missing (does not overwrite user edits).
+ * Merges kit Git/SCM tuning into `<vault>/.vscode/settings.json` (creates or updates).
+ * Kit keys win for known tuning; `files.watcherExclude` is merged with existing entries.
  * @param {string} vault
  * @param {boolean} dryRun
  */
 async function writeVaultGitWorkspaceSettings(vault, dryRun) {
   const fp = path.join(vault, ".vscode", "settings.json");
-  if (await fse.pathExists(fp)) return;
   if (dryRun) {
-    console.log(pc.cyan("[dry-run] would create"), fp);
+    console.log(pc.cyan("[dry-run] would merge"), fp);
     return;
   }
   await fse.ensureDir(path.dirname(fp));
-  await fse.writeFile(fp, `${JSON.stringify(VAULT_VSCODE_GIT_SETTINGS, null, 2)}\n`, "utf8");
-  console.log(pc.green("Wrote"), fp);
+  const existedBefore = await fse.pathExists(fp);
+  let existing = {};
+  if (existedBefore) {
+    try {
+      const raw = (await fse.readFile(fp, "utf8")).trim().replace(/^\uFEFF/, "");
+      if (raw) existing = JSON.parse(raw);
+    } catch {
+      const bak = `${fp}.bak.${Date.now()}`;
+      await fse.copy(fp, bak);
+      console.warn(pc.yellow("Invalid JSON in vault .vscode/settings.json; backed up to"), bak);
+      existing = {};
+    }
+  }
+  const merged = { ...existing };
+  for (const [key, value] of Object.entries(VAULT_VSCODE_GIT_SETTINGS)) {
+    if (key === "files.watcherExclude" && value && typeof value === "object") {
+      const prev = existing[key] && typeof existing[key] === "object" ? existing[key] : {};
+      merged[key] = { ...prev, ...value };
+    } else {
+      merged[key] = value;
+    }
+  }
+  await fse.writeFile(fp, `${JSON.stringify(merged, null, 2)}\n`, "utf8");
+  console.log(pc.green(existedBefore ? "Merged" : "Wrote"), fp);
 }
 
 async function scaffoldNewVault(vault, lang, dryRun) {
@@ -257,7 +279,7 @@ Non-interactive (CI / scripts):
   --vault <path>  Absolute or cwd-relative vault root (required)
   --no-cursor-mcp Skip writing ~/.cursor/mcp.json
   --no-git-init   Skip git init when .git is missing
-                  (Creates <vault>/.vscode/settings.json once if missing: calmer Git on Windows.)
+                  (Merges kit Git/SCM keys into <vault>/.vscode/settings.json — creates or updates.)
 
   --help          This message`);
     return;
