@@ -86,7 +86,7 @@ Windows' built-in cron equivalent (`schtasks.exe`). Used to schedule the watchdo
 
 ### User Rules
 
-Free-text instructions you paste into `Cursor Settings -> Rules -> User Rules`. Cursor injects them into every conversation. Section 9 of the prompt generates the canonical block for this pattern.
+Free-text instructions you paste into `Cursor Settings -> Rules -> User Rules`. Cursor injects them into every conversation. **v2:** use the ready-to-paste blocks in `docs/cursor-memory-setup.md` (ES) / `docs/cursor-memory-setup.en.md` (EN), aligned with MCP server names `basic-memory` and optional `obsidian-memory-hybrid`. **v1:** the archived ultra-prompt’s section 9 generated a similar block for the old SSE stack.
 
 ### Vault
 

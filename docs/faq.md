@@ -32,7 +32,7 @@ No meaningful slowdown for normal vault sizes. The MCP server runs out of proces
 
 ### Can I rename `MEMORY.md` or `SESSION_LOG.md`?
 
-You can, but you would have to change the User Rules in section 9 of the prompt accordingly. The names are convention, not protocol.
+You can, but you would have to change your **User Rules** (and any scripts that hard-code the names) accordingly. The names are convention, not protocol. **v2:** edit the pasted block in `docs/cursor-memory-setup.md` / `.en.md` to match your filenames.
 
 ### How do I uninstall?
 

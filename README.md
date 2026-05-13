@@ -11,6 +11,8 @@
 
 Los modelos no recuerdan entre sesiones. Externalizar memoria en **Markdown versionado** + **MCP** te da propiedad de datos, auditoría con `git log`, y portabilidad entre IDEs. v2 rompe el lock-in a Windows/Cursor únicamente: **Linux/macOS/Windows**, `AGENTS.md` canónico, servidor **`basic-memory`**, y daemon Go opcional.
 
+**Cursor (MCP + User Rules + por qué de cada pieza):** guía única [`docs/cursor-memory-setup.md`](./docs/cursor-memory-setup.md) · [English](./docs/cursor-memory-setup.en.md).
+
 ## Instalación en 1 minuto (rápido)
 
 1. Instala **uv** / Python y **Node 20+**. (Windows sin `uv`: `powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"` — luego reinicia la terminal.)

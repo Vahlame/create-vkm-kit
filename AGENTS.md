@@ -94,6 +94,7 @@ Use a private git vault (example layout in `examples/`):
 
 ## References
 
+- `docs/cursor-memory-setup.md` / `docs/cursor-memory-setup.en.md` — Cursor: MCP + vault + User Rules (why each layer).
 - `docs/migration/v1-prompt-closure.md` — v1 ultra-prompt deliverables → v2 public kit.
 - `docs/migration/v1-to-v2-mcp.md` — tool mapping v1 → v2.
 - `docs/legacy/windows-v1/` — deprecated PowerShell + Task Scheduler artifacts.
