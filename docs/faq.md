@@ -36,7 +36,7 @@ You can, but you would have to change the User Rules in section 9 of the prompt 
 
 ### How do I uninstall?
 
-`PROMPT_ULTRA_COMPLETO.md` section 8 includes `Uninstall-Cursor-Memory.ps1`. It removes the scheduled tasks, restores `mcp.json.bak`, and leaves your vault untouched. To also delete the vault, do that manually so the deletion is intentional.
+`docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md` section 8 includes `Uninstall-Cursor-Memory.ps1`. It removes the scheduled tasks, restores `mcp.json.bak`, and leaves your vault untouched. To also delete the vault, do that manually so the deletion is intentional.
 
 ### Why Windows-first?
 

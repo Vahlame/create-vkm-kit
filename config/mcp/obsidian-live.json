@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "obsidian-live": {
+      "command": "npx",
+      "args": ["-y", "cyanheads/obsidian-mcp-server@latest"],
+      "env": {
+        "OBSIDIAN_READ_PATHS": "<VAULT_PATH>",
+        "OBSIDIAN_WRITE_PATHS": "<VAULT_PATH>"
+      }
+    }
+  }
+}

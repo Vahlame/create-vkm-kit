@@ -1,0 +1,24 @@
+{
+  "name": "@vahlame/create-obsidian-memory",
+  "version": "2.0.0-beta.1",
+  "description": "Interactive initializer for Obsidian-style agent memory (v2)",
+  "type": "module",
+  "bin": {
+    "create-obsidian-memory": "./dist/index.js"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "execa": "^9.5.2",
+    "fs-extra": "^11.2.0",
+    "picocolors": "^1.1.1",
+    "prompts": "^2.4.2"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

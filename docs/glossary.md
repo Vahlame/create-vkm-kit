@@ -6,7 +6,7 @@ Short, opinionated definitions of every term that appears in the prompt or this 
 
 ### Agent
 
-An AI model with tools. In this repo, "agent" specifically means the assistant running inside Cursor that reads `PROMPT_ULTRA_COMPLETO.md` and executes the steps.
+An AI model with tools. In this repo, "agent" means any assistant that reads `AGENTS.md` (or synced IDE rules) and follows the memory protocol.
 
 ### Autosync
 
@@ -46,7 +46,7 @@ A file at the root of the vault holding global, durable preferences and rules. T
 
 ### Obsidian MCP server
 
-`@smith-and-web/obsidian-mcp-server`. An npm package that exposes a Markdown vault directory through MCP. Despite the name, you do not need the Obsidian app installed; the package just speaks Obsidian's vault conventions.
+**v1:** `@smith-and-web/obsidian-mcp-server` (SSE). **v2 default:** `basic-memory` via `uvx`. Optional live I/O: `cyanheads/obsidian-mcp-server`. Despite the Obsidian branding, you do not necessarily need the Obsidian desktop app if you only use filesystem conventions.
 
 ### PROJECTS/
 

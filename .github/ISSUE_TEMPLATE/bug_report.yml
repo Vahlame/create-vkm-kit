@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting. Before filing, please check `docs/troubleshooting.md` and `PROMPT_ULTRA_COMPLETO.md` section 11.
+        Thanks for reporting. Before filing, please check `docs/troubleshooting.md` and the known-error table in `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md` (v1) or open a discussion for v2 (`AGENTS.md`).
   - type: input
     id: prompt-version
     attributes:

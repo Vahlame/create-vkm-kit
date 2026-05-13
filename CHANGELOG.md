@@ -19,7 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `config/mcp/*.json` samples, `docs/migration/v1-to-v2-mcp.md`, `docs/security/mcp-remote-rce.md`.
 - `cmd/obsidian-memoryd/` cross-platform daemon skeleton + `.github/workflows` updates for Go/Node/Python/evals.
 - `packages/create-obsidian-memory`, `packages/obsidian-memory-rag`, `packages/obsidian-memory-mcp` (initializer, optional RAG, complementary MCP).
-- `scripts/sync-agents.ts`, `.agents/rules/`, eval suite `evals/adherence.yaml`, optional `compose.observability.yml`.
+- `scripts/sync-agents.ts`, `.agents/rules/`, eval suite `evals/adherence.yaml` + `evals/run-adherence-ci.mjs` (CI gate), optional `compose.observability.yml`.
 - `docs/case-study-mep-cr.md`, `docs/benchmarks/retrieval.md`, `docs/testing/manual-checks.md`.
 
 ### Changed
