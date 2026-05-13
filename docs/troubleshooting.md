@@ -124,7 +124,7 @@ Close and reopen the terminal (or Cursor) so `uvx` resolves. Verify with `uv --v
 ### Cursor log: `Transient error connecting to streamableHttp server: fetch failed`
 
 - **Cause:** `mcp.json` uses a **`url`** (Streamable HTTP) for `basic-memory` but **nothing valid is listening** on that host/port: scheduled task not started yet, server crashed, **or another unrelated program already bound the port** (so TCP “succeeds” but MCP `fetch` still fails).
-- **Fix:** Start the HTTP MCP server (Windows: `Start-ScheduledTask -TaskName CursorBasicMemoryHttpMcp` or run `Start-BasicMemoryMcp.ps1` in the vault). Verify the listener is actually **basic-memory** (for example `netstat -ano | findstr :8000` then check the PID’s command line / process name). If port **8000** is taken by something else, pick a free port (e.g. **8765**) and set the **same** value in both `Start-BasicMemoryMcp.ps1` (`-Port`) and `mcp.json` (`"url": "http://127.0.0.1:8765/mcp"`). If you do not need a persistent listener, switch back to **stdio** (`command` + `uvx`) via `config/mcp/basic-memory.json`. See `docs/setup/windows-basic-memory-always-on.md`.
+- **Fix:** Start the HTTP MCP server (Windows: `Start-ScheduledTask -TaskName CursorBasicMemoryHttpMcp` or run `Start-BasicMemoryMcp.ps1` in the vault). Verify the listener is actually **basic-memory** (for example `netstat -ano | findstr :8765` then check the PID’s command line / process name). If the default port is taken by something else, pick a free high port (e.g. **8877**) and set the **same** value in both `Start-BasicMemoryMcp.ps1` (`-Port`) and `mcp.json` (`"url": "http://127.0.0.1:8877/mcp"`). If you do not need a persistent listener, switch back to **stdio** (`command` + `uvx`) via `config/mcp/basic-memory.json`. See `docs/setup/windows-basic-memory-always-on.md`.
 
 ### Toast: `Failed to open resource: memory://...`
 
@@ -134,7 +134,7 @@ Close and reopen the terminal (or Cursor) so `uvx` resolves. Verify with `uv --v
 ### Cursor: `basic-memory` rojo con URL `http://127.0.0.1:…/mcp`
 
 - **Cause:** El servidor HTTP de `basic-memory` no está levantado, o el **puerto está ocupado por otra app** (TCP puede “abrir” pero MCP falla con `fetch failed`).
-- **Fix:** `Start-ScheduledTask -TaskName CursorBasicMemoryHttpMcp` o `Start-BasicMemoryMcp.ps1` del vault. Comprueba con `netstat -ano | findstr :PUERTO` que el PID corresponde a tu servidor. Si **8000** está tomado, usa otro puerto (p. ej. **8765**) igual en el script (`-Port`) y en `mcp.json`. Guía: `docs/setup/windows-basic-memory-always-on.md`.
+- **Fix:** `Start-ScheduledTask -TaskName CursorBasicMemoryHttpMcp` o `Start-BasicMemoryMcp.ps1` del vault. Comprueba con `netstat -ano | findstr :8765` que el PID corresponde a `basic-memory`/`uv`. Si el puerto por defecto está tomado, elige otro (p. ej. **8877**) igual en el script (`-Port`) y en `mcp.json`. Guía: `docs/setup/windows-basic-memory-always-on.md`.
 
 ### Parpadea una consola grande al sincronizar o al arrancar el MCP
 

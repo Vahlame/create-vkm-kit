@@ -12,7 +12,7 @@
 1. **[`GETTING_STARTED.md`](./GETTING_STARTED.md)** — tabla paso a paso (flujo lineal; sin saltos).
 2. **[`docs/how-memory-works-simple.md`](./docs/how-memory-works-simple.md)** — qué es el vault, el MCP y las User Rules, en palabras simples.
 3. **Cursor solamente:** [`docs/cursor-memory-setup.md`](./docs/cursor-memory-setup.md) (MCP + bloque User Rules listo para pegar; incluye stdio vs URL y `memory://`).
-4. **Probar que todo responde:** [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md) **; Windows (tareas + git + puerto 8000):** [`docs/testing/windows-memory-sync-smoke.md`](./docs/testing/windows-memory-sync-smoke.md).
+4. **Probar que todo responde:** [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md) **; Windows (tareas + git + puerto MCP HTTP, p. ej. 8765):** [`docs/testing/windows-memory-sync-smoke.md`](./docs/testing/windows-memory-sync-smoke.md).
 5. **Algo falla:** [`docs/troubleshooting.md`](./docs/troubleshooting.md).
 6. **MCP `basic-memory` siempre encendido (Windows, HTTP):** [`docs/setup/windows-basic-memory-always-on.md`](./docs/setup/windows-basic-memory-always-on.md).
 7. **Autosync del vault con git (Windows, sin consola):** [`docs/setup/windows-scheduled-vault-sync.md`](./docs/setup/windows-scheduled-vault-sync.md).

@@ -11,7 +11,7 @@
 1. **[`GETTING_STARTED.en.md`](./GETTING_STARTED.en.md)** — step table (linear flow).
 2. **[`docs/how-memory-works-simple.en.md`](./docs/how-memory-works-simple.en.md)** — vault, MCP, and User Rules in plain language.
 3. **Cursor only:** [`docs/cursor-memory-setup.en.md`](./docs/cursor-memory-setup.en.md) (MCP + ready-to-paste User Rules; stdio vs URL and `memory://`).
-4. **Verify tools:** [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md) **; Windows (tasks + git + port 8000):** [`docs/testing/windows-memory-sync-smoke.en.md`](./docs/testing/windows-memory-sync-smoke.en.md).
+4. **Verify tools:** [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md) **; Windows (tasks + git + HTTP MCP port, e.g. 8765):** [`docs/testing/windows-memory-sync-smoke.en.md`](./docs/testing/windows-memory-sync-smoke.en.md).
 5. **Something breaks:** [`docs/troubleshooting.md`](./docs/troubleshooting.md).
 6. **Keep `basic-memory` always on (Windows, HTTP):** [`docs/setup/windows-basic-memory-always-on.en.md`](./docs/setup/windows-basic-memory-always-on.en.md).
 7. **Vault git autosync (Windows, no console flash):** [`docs/setup/windows-scheduled-vault-sync.en.md`](./docs/setup/windows-scheduled-vault-sync.en.md).

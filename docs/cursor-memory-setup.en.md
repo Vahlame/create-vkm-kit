@@ -62,7 +62,7 @@ The hybrid runs `python -m obsidian_memory_rag …`. If the module does not reso
 ### How Cursor reaches `basic-memory`: stdio vs URL
 
 - **stdio (default recommendation):** `mcp.json` uses `command` + `args` (`uvx basic-memory mcp`) and `env.BASIC_MEMORY_HOME`. Cursor **spawns** the process when needed; no local port required.
-- **URL / Streamable HTTP (optional, mainly Windows “always on”):** the entry is only `"url": "http://127.0.0.1:8000/mcp"` (see `config/mcp/basic-memory-streamable-http.json`). A process must be **listening before** Cursor connects (e.g. `CursorBasicMemoryHttpMcp`). If not, MCP logs show `fetch failed` / `streamableHttp`; see [`docs/troubleshooting.md`](./troubleshooting.md) and [`docs/setup/windows-basic-memory-always-on.en.md`](./setup/windows-basic-memory-always-on.en.md).
+- **URL / Streamable HTTP (optional, mainly Windows “always on”):** the entry is only `"url": "http://127.0.0.1:8765/mcp"` (see `config/mcp/basic-memory-streamable-http.json`). A process must be **listening before** Cursor connects (e.g. `CursorBasicMemoryHttpMcp`). If not, MCP logs show `fetch failed` / `streamableHttp`; see [`docs/troubleshooting.md`](./troubleshooting.md) and [`docs/setup/windows-basic-memory-always-on.en.md`](./setup/windows-basic-memory-always-on.en.md).
 
 ### `basic-memory` over stdio (minimum recommended)
 
@@ -100,7 +100,7 @@ If `uvx` fails, it is usually **missing uv** or **PATH not refreshed**; see `doc
 ### How `basic-memory` is wired (stdio vs URL)
 
 - If `mcp.json` uses **`command` + `uvx`** for `basic-memory`, that is **stdio**: Cursor starts the server; no fixed HTTP port is required.
-- If the **`basic-memory` entry is only `"url"`** (e.g. `http://127.0.0.1:8000/mcp` or **another port** if you changed the script to avoid conflicts), an **HTTP server must already be running** (e.g. `CursorBasicMemoryHttpMcp` on Windows). With nothing listening on that port you get `fetch failed` in MCP logs.
+- If the **`basic-memory` entry is only `"url"`** (e.g. `http://127.0.0.1:8765/mcp` or **another port** if you changed it for conflicts), an **HTTP server must already be running** (e.g. `CursorBasicMemoryHttpMcp` on Windows). With nothing listening on that port you get `fetch failed` in MCP logs.
 - ASCII banners or `undefined` lines on server stderr are often **startup noise**; what matters is listed tools and a working MCP panel.
 
 ### MCP availability

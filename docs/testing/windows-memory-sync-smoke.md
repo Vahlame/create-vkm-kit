@@ -69,12 +69,12 @@ Para forzar solo la tarea (sin consola si la acción es `wscript` + VBS):
 Start-ScheduledTask -TaskName CursorMemoryVaultSync
 ```
 
-## 6. MCP HTTP `basic-memory` (puerto 8000)
+## 6. MCP HTTP `basic-memory` (puerto por defecto **8765**)
 
-Si usas la tarea **CursorBasicMemoryHttpMcp** y `mcp.json` con `http://127.0.0.1:8000/mcp`:
+Si usas la tarea **CursorBasicMemoryHttpMcp** y `mcp.json` con la misma URL (p. ej. `http://127.0.0.1:8765/mcp`):
 
 ```powershell
-Test-NetConnection 127.0.0.1 -Port 8000 -InformationLevel Quiet
+Test-NetConnection 127.0.0.1 -Port 8765 -InformationLevel Quiet
 ```
 
 `True` indica que algo escucha en ese puerto.
