@@ -1,0 +1,21 @@
+schemaVersion = 1
+name = "cursor-obsidian-memory-guide"
+title = "Obsidian-style agent memory (cross-platform)"
+version = "2.0.0-dev"
+primaryAgentFile = "AGENTS.md"
+platforms = ["windows", "linux", "darwin"]
+defaultMcp = "basic-memory"
+vaultEnvVar = "BASIC_MEMORY_HOME"
+
+[daemon]
+binary = "obsidian-memoryd"
+module = "github.com/Vahlame/cursor-obsidian-memory-guide/cmd/obsidian-memoryd"
+
+[topics]
+tags = [
+  "cursor-memory",
+  "obsidian-mcp",
+  "cross-platform",
+  "basic-memory",
+  "mcp",
+]

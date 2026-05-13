@@ -1,6 +1,6 @@
 # Troubleshooting
 
-A standalone reference for the errors and fixes that section 11 of `PROMPT_ULTRA_COMPLETO.md` summarizes. Each entry is keyed by the exact error message you will see, so search engines and other agents can index them.
+A standalone reference for errors and fixes summarized in the **v1** prompt (`docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md` section 11) and extended for **v2** MCP (`basic-memory`, bridges). Each entry is keyed by the exact error message when possible.
 
 ## Table of contents
 

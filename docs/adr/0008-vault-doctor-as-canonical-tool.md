@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-Install-time validation (`Doctor.ps1`) checks toolchain, `mcp.json`, MCP health endpoint, and that scheduled tasks exist. It does not inspect vault *content*: oversized notes, missing frontmatter, duplicate headings, broken wikilinks, accidental secrets, or tasks that invoke `powershell.exe` directly (which flashes a console window every run).
+Install-time validation (`Doctor.ps1`) checks toolchain, `mcp.json`, MCP health endpoint, and that scheduled tasks exist. It does not inspect vault _content_: oversized notes, missing frontmatter, duplicate headings, broken wikilinks, accidental secrets, or tasks that invoke `powershell.exe` directly (which flashes a console window every run).
 
 Users with long-running vaults reported drift and noise (empty folders, duplicate session headers, legacy installer files at repo root).
 

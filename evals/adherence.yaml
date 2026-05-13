@@ -1,0 +1,31 @@
+# Deterministic adherence suite (stub provider). `adherence_score` ~= pass rate in promptfoo table.
+description: adherence (stub LLM via javascript provider)
+providers:
+  - file://adherence-provider.cjs
+prompts:
+  - "Apply vault fact token {{expected_token}}"
+defaultTest:
+  assert:
+    - type: icontains
+      value: "{{expected_token}}"
+tests:
+  - vars: { expected_token: FACT_01 }
+  - vars: { expected_token: FACT_02 }
+  - vars: { expected_token: FACT_03 }
+  - vars: { expected_token: FACT_04 }
+  - vars: { expected_token: FACT_05 }
+  - vars: { expected_token: FACT_06 }
+  - vars: { expected_token: FACT_07 }
+  - vars: { expected_token: FACT_08 }
+  - vars: { expected_token: FACT_09 }
+  - vars: { expected_token: FACT_10 }
+  - vars: { expected_token: FACT_11 }
+  - vars: { expected_token: FACT_12 }
+  - vars: { expected_token: FACT_13 }
+  - vars: { expected_token: FACT_14 }
+  - vars: { expected_token: FACT_15 }
+  - vars: { expected_token: FACT_16 }
+  - vars: { expected_token: FACT_17 }
+  - vars: { expected_token: FACT_18 }
+  - vars: { expected_token: FACT_19 }
+  - vars: { expected_token: FACT_20 }

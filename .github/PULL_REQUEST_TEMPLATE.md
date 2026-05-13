@@ -10,21 +10,23 @@ Keep PRs focused: one change per PR.
 ## Type of change
 
 - [ ] Typo / wording / clarification
-- [ ] Script fix inside the prompt (section 8)
-- [ ] New known-error entry (section 11 + `docs/troubleshooting.md`)
+- [ ] Script / daemon fix (`cmd/`, `packages/`, `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md`)
+- [ ] New known-error entry (`docs/troubleshooting.md`)
 - [ ] New design decision (includes ADR in `docs/adr/`)
-- [ ] New platform variant (`PROMPT_ULTRA_COMPLETO.<os>.md`)
+- [ ] Cross-platform / MCP / initializer change
 - [ ] Docs only
 - [ ] CI / tooling
 
 ## Validation
 
-- [ ] `npx markdownlint-cli "**/*.md" --ignore node_modules` passes
-- [ ] `npx prettier --check "**/*.json"` passes
+- [ ] `npm ci && npm run sync-agents:check` passes
+- [ ] `npx markdownlint-cli "**/*.md" --ignore-path .markdownlintignore` passes
+- [ ] `npx prettier --check "**/*.{json,yml,yaml,md}"` passes
 - [ ] `npx lychee --no-progress --exclude-mail .` passes
-- [ ] `pwsh -File .github/scripts/extract-and-lint.ps1` passes
+- [ ] `pwsh -File .github/scripts/extract-and-lint.ps1` passes (legacy v1 prompt)
+- [ ] `go test ./...` passes (if Go code touched)
 - [ ] I updated `CHANGELOG.md` under `[Unreleased]`
-- [ ] If this is a breaking change, I bumped MAJOR in `manifest.json`
+- [ ] If this is a breaking change, I bumped `version` in `agent.toml`
 
 ## Tested on
 
@@ -38,5 +40,4 @@ Keep PRs focused: one change per PR.
 ## Checklist
 
 - [ ] No secrets, tokens, or absolute personal paths in this diff
-- [ ] No `package.json`, build system, or "clone and run" instructions added
-- [ ] If I touched section 4 or design decisions, I added or updated an ADR
+- [ ] If I touched architecture, I added or updated an ADR

@@ -1,57 +1,32 @@
 # Comparison
 
-How this pattern stacks up against the obvious alternatives. Last updated with this repo's `v1.1.0`. Each row is a one-line opinion; read the corresponding section for the nuance.
+Honest positioning for **v2** (cross-platform, `basic-memory`, optional Go daemon + hybrid RAG). Opinionated one-liners; follow links for nuance.
 
-| Feature | This pattern | Cursor built-in memory | mem0 | Letta / MemGPT | Custom RAG (e.g. pgvector) |
-|---|---|---|---|---|---|
-| Where does the memory live? | Markdown files in your private GitHub repo | Cursor's account / cloud | mem0 service or self-hosted | Letta server, with a DB | Database you run |
-| You own the storage? | Yes | No | Self-host yes, hosted no | Yes (self-host) | Yes |
-| Portable between IDEs? | Yes (any MCP client) | No | Yes | Yes | Yes |
-| Editable without the tool? | Yes (any editor, `grep`, `git`) | No | Limited | Limited | SQL only |
-| Multi-device sync | Git | Cursor account | mem0 | Letta server | Your DB infrastructure |
-| Conflict resolution | Git merge | N/A | Service-managed | Service-managed | DB transactions |
-| Versioned history | Git log | None visible to user | Limited | Limited | DB audit table if you add one |
-| Works offline? | Local reads/writes yes, sync delayed | Depends on Cursor | No | If self-hosted | If local DB |
-| Vendor lock-in risk | Very low | High | Medium | Medium | Low |
-| Setup time | ~30 minutes (this prompt) | Zero | Account + SDK | Server install | Schema + indexer |
-| Ongoing maintenance | Two scheduled tasks | Zero | Service or self-host | Server upkeep | DB + indexer upkeep |
-| Cost | Free | Included with Cursor | Free tier + paid | Free / self-host | Hosting |
-| Best at | Long-lived, human-curated context | Short ephemeral "I told you once" notes | Programmatic per-user memory in apps | Agent-grade structured memory with planning | Domain-specific search over big corpora |
-| Worst at | Subsecond retrieval over millions of items | Auditing and portability | Free-form Markdown editing | Casual setup | Free-form notes |
+| Feature                         | v2 pattern (this repo)                                 | Cursor built-in memory | mem0                     | Letta / MemGPT             | Custom RAG (pgvector / Qdrant) |
+| ------------------------------- | ------------------------------------------------------ | ---------------------- | ------------------------ | -------------------------- | ------------------------------ |
+| Storage ownership               | Markdown in **your** git repo                          | Cursor cloud           | SaaS or self-host        | Self-host server           | Your DB                        |
+| IDE lock-in                     | Low (`AGENTS.md` + MCP)                                | High                   | Low                      | Medium                     | Low                            |
+| Transport                       | MCP Streamable HTTP (`basic-memory`)                   | proprietary            | HTTP SDK                 | HTTP / WS                  | SQL / gRPC                     |
+| Offline-friendly                | Local vault reads yes                                  | varies                 | usually no               | if self-host               | if self-host                   |
+| Sync story                      | git (+ optional Syncthing)                             | account sync           | service                  | server backup              | replication                    |
+| Retrieval latency at huge scale | optional **FTS5** sidecar + sqlite-vec path (ADR-0014) | opaque                 | service tuned            | strong                     | strongest                      |
+| Setup time                      | minutes (`uvx` + config)                               | zero                   | account + SDK            | server                     | schema + indexer               |
+| Compliance hooks                | docs + optional age + OTel redaction                   | opaque                 | vendor docs              | your policy                | your policy                    |
+| Best at                         | Human-editable durable notes for agents                | quick ephemeral prefs  | app-embedded user memory | agent runtime memory tiers | huge corpora                   |
+| Worst at                        | Not a billion-row warehouse                            | portability / audit    | markdown-first editing   | ops complexity             | free-form note UX              |
 
-## When to use this pattern
+## When to pick v2 here
 
-You want a single source of truth for "what the agent should know about me, my projects, and my decisions" that:
+You want **plain Markdown**, **git history**, **multi-IDE** access, and an incremental path to **hybrid retrieval** without running a cluster on day one.
 
-- you can read on a plane,
-- you can `git log` to see when an idea changed,
-- you can hand to a new IDE or a new tool in a year without rewriting,
-- and you can audit because it is plain Markdown.
+## When not to
 
-## When NOT to use this pattern
+You need **multi-tenant SaaS memory** at API scale — use mem0 or a service you control. You need **strict sub-50ms** vector search over billions of rows — use a dedicated vector database and offline indexers.
 
-- You need sub-100ms retrieval over hundreds of thousands of items. Use a real vector DB.
-- You need server-side memory shared by an SaaS product's many users. Use mem0 or build it.
-- You distrust Git as a sync layer (e.g., your team makes hundreds of vault edits per minute). Use a database.
-- You are on the Cursor web app and cannot run a local process.
+## mem0 coexistence
 
-## On mem0 specifically
+mem0 is excellent for **application** memory; this pattern is for **developer / IDE** memory. They can coexist.
 
-mem0 (<https://mem0.ai/>) is a great library if you are building an application that needs per-user memory at API call time. Different problem domain than this pattern. The two can coexist: mem0 manages app-side memory, this pattern manages your personal IDE memory.
+## Markdown vs SQLite
 
-## On Letta / MemGPT specifically
-
-Letta is the new name for MemGPT. It's a structured-memory agent server: lossless context with a hierarchical memory model. Good when you want the *agent runtime itself* to manage memory tiers. This repo is doing something simpler: the memory is just files, and we let Git and the IDE do everything else.
-
-## On Cursor's own memory feature
-
-Cursor's built-in memory works fine for short, ephemeral "remember that I prefer X" notes. It is invisible storage on Cursor's side, no audit trail, no portability, no read-without-Cursor. This pattern is its complement: durable, portable, auditable memory that lives on your hardware.
-
-## Why pick Markdown over JSON / YAML / SQLite
-
-- Markdown is editable in any tool a developer already has open.
-- Markdown is diff-friendly. SQLite blobs are not.
-- Markdown carries human-readable structure (headings, lists) that the model already reads well.
-- Markdown survives the death of any single tool. SQLite survives only if the consumer adapts.
-
-The cost is the lack of typed fields and constraints. We accept that cost because the consumer is a language model, not a CRUD application.
+Markdown diffs are human-auditable; SQLite wins on constraints. We bias Markdown for agent memory; use Postgres/Qdrant for multi-tenant or high-scale product backends you control separately from this vault pattern.

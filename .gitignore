@@ -15,12 +15,21 @@ desktop.ini
 # Local tooling
 node_modules/
 .pnpm-store/
-package-lock.json
 yarn.lock
+
+# Python (obsidian-memory-rag local dev / pytest)
+__pycache__/
+*.py[cod]
+*.egg-info/
 
 # Temp extracts (CI / local linting)
 tmp/
 /prompt-ps-extract/
 
 # Cursor / agent caches if anyone uses them at the repo root
-.cursor/
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
+
+# Local FTS5 sidecar (obsidian-memory-rag); keep indexes out of git
+**/.obsidian-memory-rag/

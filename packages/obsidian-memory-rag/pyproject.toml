@@ -1,0 +1,21 @@
+[project]
+name = "obsidian-memory-rag"
+version = "2.0.0b1"
+description = "Optional hybrid FTS5 + sqlite-vec indexer for Markdown vaults"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+obsidian-memory-rag = "obsidian_memory_rag.cli:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

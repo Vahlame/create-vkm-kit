@@ -2,16 +2,17 @@
 
 ## Why this file matters
 
-`PROMPT_ULTRA_COMPLETO.md` is a prompt that, when pasted into Cursor, causes an AI agent to execute commands on the user's Windows machine: install npm packages, write files in `%USERPROFILE%`, modify `mcp.json`, create scheduled tasks, and push to a private GitHub repo. A malicious change to the prompt is, effectively, a remote code execution vector against everyone who pastes it.
+`AGENTS.md`, `scripts/sync-agents.ts`, and the archived v1 prompt under `docs/legacy/` can drive an AI agent to run commands on a developer machine (install packages, write MCP config, install systemd/LaunchAgent services, push git remotes). A malicious change is effectively an RCE/social-engineering vector against anyone who follows the instructions verbatim.
 
-Treat issues with the prompt the same way you would treat issues with a system installer.
+Treat issues with agent-facing instructions the same way you would treat issues with a system installer.
 
 ## Supported versions
 
-| Version | Supported |
-|---|---|
-| 1.x | yes |
-| < 1.0 | no |
+| Version | Supported                        |
+| ------- | -------------------------------- |
+| 2.x     | yes                              |
+| 1.x     | best-effort (legacy prompt only) |
+| < 1.0   | no                               |
 
 Only the latest minor of the current major receives fixes. We will not backport.
 
@@ -22,7 +23,7 @@ Only the latest minor of the current major receives fixes. We will not backport.
 Email the maintainer privately, or use GitHub's "Report a vulnerability" form under the `Security` tab. Include:
 
 - a description of the issue,
-- the section / line of `PROMPT_ULTRA_COMPLETO.md` involved (or which generated script),
+- the file / section of `AGENTS.md` or `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md` involved (or which generated script),
 - a proof of concept, or a clear description of the attack scenario,
 - the impact (data exfiltration, code execution, privilege escalation, denial of memory, etc.).
 
@@ -34,27 +35,26 @@ You will get an acknowledgement within 72 hours. Expected timeline from report t
 
 ## What we consider in scope
 
-- Any path in the prompt that downloads, executes, or persists arbitrary code from a non-pinned source.
-- Any generated script (`Setup-Cursor-Memory.ps1`, `Sync-Memory.ps1`, etc.) that can be tricked into writing outside the vault, leaking secrets, or escalating privileges.
-- Scheduled tasks created by the prompt that could be hijacked or run with unintended privileges.
-- The User Rules block in section 9 if it can be coerced into exfiltrating data through the agent.
+- Any path that downloads or executes arbitrary code from a non-pinned source (`mcp-remote` must stay **>= 0.1.16**; see `docs/security/mcp-remote-rce.md`).
+- The Go daemon (`obsidian-memoryd`) if it can be tricked into writing outside the vault, leaking secrets, or escalating privileges.
+- Optional telemetry (`packages/obsidian-memory-mcp`) if it exfiltrates PII without redaction controls.
 
 ## Out of scope
 
-- Bugs in `@smith-and-web/obsidian-mcp-server` itself. Report those upstream.
+- Bugs in `basic-memory`, `cyanheads/obsidian-mcp-server`, or third-party MCP servers. Report those upstream.
 - Bugs in Cursor or MCP protocol. Report those to the respective vendors.
 - General Windows privilege issues unrelated to the prompt.
 - Reports requiring physical access to the user's machine.
 
 ## Hardening guidance for users
 
-If you are about to paste this prompt into Cursor:
+If you are about to follow agent instructions from this repo:
 
-1. Verify the commit hash of the prompt against a known good release tag.
-2. Check `<REPO_URL_PRIVADO>` is your own private repository.
-3. Inspect generated scripts in `<VAULT_PATH>\scripts\windows\` before letting the watchdog run for the first time.
-4. Keep 2FA on for GitHub.
-5. Never paste secrets into the chat session that creates the vault. The vault is for memory, not for credentials.
+1. Verify the commit hash against a known good release tag.
+2. Ensure remote URLs point to repositories you control.
+3. Inspect generated scripts under your vault before enabling daemons or scheduled tasks.
+4. Keep 2FA enabled on GitHub.
+5. Never paste secrets into chat; the vault is for memory, not credentials.
 
 ## Past advisories
 

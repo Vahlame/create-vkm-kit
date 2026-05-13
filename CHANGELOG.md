@@ -4,7 +4,33 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased] - v2.0.0
+
+### Breaking change
+
+- **Platform & IDE:** v2 targets **Windows, Linux, and macOS** and is **IDE-agnostic** (`AGENTS.md` + synced rules). The v1 “paste ultra-prompt in Cursor only” flow is archived under `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md`.
+- **MCP server:** `@smith-and-web/obsidian-mcp-server` (SSE :3001) is replaced by **`basic-memory`** (`uvx basic-memory mcp`, Streamable HTTP). Optional **cyanheads `obsidian-mcp-server`** add-on documented. `mcp-remote` minimum **`^0.1.16`** when bridging.
+- **Automation:** Windows Task Scheduler + embedded PowerShell watchdog/autosync are **deprecated**; use the **`obsidian-memoryd`** Go daemon or external sync. Legacy scripts live under `docs/legacy/windows-v1/`.
+- **Manifest:** `manifest.json` / `schema.json` **removed** in favor of `agent.toml` + `agents-manifest.yaml` for tooling (see ADR-0011).
+
+### Added
+
+- ADR-0010–0015 (basic-memory, `AGENTS.md`, Go daemon, Syncthing, hybrid RAG, generic privacy notes in docs).
+- `config/mcp/*.json` samples, `docs/migration/v1-to-v2-mcp.md`, `docs/security/mcp-remote-rce.md`.
+- `cmd/obsidian-memoryd/` cross-platform daemon skeleton + `.github/workflows` updates for Go/Node/Python/evals.
+- `packages/create-obsidian-memory`, `packages/obsidian-memory-rag`, `packages/obsidian-memory-mcp` (initializer, optional RAG, complementary MCP).
+- `scripts/sync-agents.ts`, `.agents/rules/`, eval suite `evals/adherence.yaml` + `evals/run-adherence-ci.mjs` (CI gate), optional `compose.observability.yml`.
+- `docs/benchmarks/retrieval.md`, `docs/testing/manual-checks.md`.
+- **`obsidian-memory-rag`:** incremental SQLite **FTS5** indexer, BM25 `search`, and `bench` micro-benchmark (stdlib-only; sqlite-vec deferred).
+- **`create-obsidian-memory`:** writes Cursor `mcp.json` merge for `basic-memory`, vault scaffold (`START_HERE`, `MEMORY`, `SESSION_LOG`, `PROJECTS`, `.gitignore`), `--dry-run` / `--help`.
+- **`docs/migration/v1-prompt-closure.md`**, root **`PROMPT_ULTRA_COMPLETO.{linux,macos}.md`** (redirect stubs per ADR-0007 amendment).
+- FAQ + glossary aligned with v2 transport, uninstall, and large-vault FTS path.
+
+### Changed
+
+- `README.md` / `README.en.md` rewritten for v2 quickstart and architecture.
+- `docs/comparison.md` expanded for v2 positioning.
+- CI: matrix lint/test/smoke (`mcp-smoke`, `gitleaks`, `promptfoo` adherence gate).
 
 ## [1.1.0] - 2026-05-13
 

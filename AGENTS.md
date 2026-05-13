@@ -1,67 +1,99 @@
 # AGENTS.md
 
-Machine-readable guide for AI agents discovering this repository.
+Canonical instructions for any AI agent or IDE consuming this repository (Cursor, Claude Code, Copilot, Codex CLI, Aider, Windsurf, Zed, Continue, etc.). For human onboarding, read `README.md` / `README.en.md`. The v1 Cursor-only ultra-prompt is archived at `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md`.
 
-## Purpose
+## Project overview
 
-This repo contains a single operational artifact: an executable prompt that lets a Cursor IDE agent set up persistent memory for itself using Obsidian MCP + a private GitHub vault, on Windows.
+This project documents and ships **cross-platform** tooling for **Markdown vault memory** exposed to agents through **MCP** (`basic-memory` by default), optional **hybrid SQLite retrieval**, a **Go daemon** for git-backed sync, and an **initializer** CLI. ADRs in `docs/adr/` are the source of truth for design; ADR-0010–0015 cover the v2 migration.
 
-Nothing here is meant to be cloned and run directly. The only intended usage is:
+## Setup commands
 
-1. A human opens Cursor.
-2. The human pastes `PROMPT_ULTRA_COMPLETO.md` into chat.
-3. Another agent (Cursor) does the setup on the human's machine.
+```bash
+# Install JS deps (workspace root)
+npm install
 
-## Repository structure
+# Regenerate AGENTS autogen block + IDE rules
+npm run sync-agents
 
-| Path | Type | Purpose | Consume how |
-|---|---|---|---|
-| `README.md` / `README.en.md` | doc | Human onboarding, 30-min TL;DR (ES / EN). | Read for orientation. |
-| `PROMPT_ULTRA_COMPLETO.md` | prompt | The operational brief the user pastes into Cursor. Contains literal scripts (sections 8.1-8.12), user rules (section 9), validation commands (section 10), and known-error table (section 11). | Copy entire file content into a Cursor chat. |
-| `AGENTS.md` | meta | This file. Agent-readable map of the repo. | Read first if you are an agent. |
-| `manifest.json` | meta | Same map in JSON for programmatic consumption. | Parse for structured access. |
-| `schema.json` | meta | JSON Schema for `manifest.json`. | Use for validation. |
-| `CHANGELOG.md` | doc | Versioned history (Keep a Changelog). | Read for what changed and when. |
-| `CONTRIBUTING.md` | doc | Contribution guidelines, local checks, release process. | Read before editing. |
-| `SECURITY.md` | doc | Vulnerability reporting policy. | Read before disclosing issues. |
-| `CODE_OF_CONDUCT.md` | doc | Contributor Covenant 2.1. | Community standards. |
-| `docs/adr/` | doc | Architecture Decision Records mirroring section 4 of the prompt. | Read for the "why" behind a design choice. |
-| `docs/troubleshooting.md` | doc | Standalone, indexable troubleshooting reference. | Search for an exact error message. |
-| `docs/faq.md` | doc | Common questions about the pattern. | Skim. |
-| `docs/glossary.md` | doc | Definitions of MCP, SSE, vault, watchdog, mcp-remote, etc. | Look up unknown terms. |
-| `docs/comparison.md` | doc | This pattern vs. Cursor built-in memory, mem0, Letta, custom RAG. | Read when justifying the design. |
-| `examples/` | example | Anonymized sample vault (MEMORY.md, SESSION_LOG.md, PROJECTS/example-app.md). | Use as a template. |
-| `.github/` | ci | Issue / PR templates, CI workflows, dependabot. | Tooling. |
-| `LICENSE` | legal | MIT. | Compliance only. |
-| `.editorconfig`, `.markdownlint.json`, `.prettierrc`, `.gitignore`, `.lycheeignore`, `.gitattributes` | config | Local tooling configuration. | Honor when editing. |
+# Go daemon (from repo root)
+go build -o bin/obsidian-memoryd ./cmd/obsidian-memoryd
+```
 
-## If you are an AI agent reading this repo
+## Dev environment tips
 
-- Do **not** generate copies of the scripts here in this repo. Scripts must be generated locally inside the user's private vault repository, as instructed in `PROMPT_ULTRA_COMPLETO.md` section 8. See ADR-0006.
-- The "ultra prompt" is self-contained. Do not summarize or paraphrase it when handing it to another agent. Pass it verbatim.
-- The target platform is Windows. Do not assume Linux/macOS unless the user explicitly switches platforms. See ADR-0007.
-- Treat `<REPO_URL_PRIVADO>` as a placeholder that must be replaced by the human before any actual execution begins.
-- Before changing a design decision, write an ADR in `docs/adr/`. The prompt's section 4 is the surface; the ADRs are the source of truth.
+- **Python / uv:** required for `uvx basic-memory mcp` locally.
+- **Windows symlinks:** enable `git config core.symlinks true` before checkout so `CLAUDE.md` and related links resolve (see `docs/testing/manual-checks.md`).
+- **Vault path placeholder:** use `BASIC_MEMORY_HOME` pointing at your Obsidian vault root (contains `.obsidian/` or your chosen layout).
 
-## Canonical paths the prompt assumes on the user machine
+## Maintainer pointers
 
-| Variable | Value |
-|---|---|
-| `<VAULT_PATH>` | `%USERPROFILE%\Documents\cursor-memory-vault` |
-| `<MCP_PATH>` | `%USERPROFILE%\.cursor\mcp.json` |
-| `<MCP_PORT>` | `3001` |
-| `<MCP_PACKAGE>` | `@smith-and-web/obsidian-mcp-server@^0.1.0` |
-| `<LOG_DIR>` | `%LOCALAPPDATA%\cursor-memory\logs` |
-| `<TASK_WATCHDOG>` | `CursorObsidianMcpWatchdog` (5 min) |
-| `<TASK_AUTOSYNC>` | `CursorMemoryAutoSync` (10 min) |
+### Style and formatting
 
-## Architecture (one-liner)
+See the autogenerated **Style conventions** block below (from `.agents/rules/10-style.md`) and `CONTRIBUTING.md`.
 
-`Cursor Chat -> mcp-remote (npx) -> Obsidian MCP Server (SSE :3001) -> Markdown vault on disk -> git -> private GitHub repo`. Two scheduled tasks keep MCP alive (watchdog) and push the vault (autosync). Logging goes to `%LOCALAPPDATA%\cursor-memory\logs\`. Uninstall and Repair scripts are reversible and idempotent.
+### Testing and CI
 
-## Stable identifiers
+See the autogenerated **Testing** block below. CI runs `sync-agents:check`, Go tests, workspace tests, and optional smoke jobs.
 
-- Repository purpose tags: `cursor-memory`, `obsidian-mcp`, `windows`, `agent-onboarding-prompt`.
-- Primary artifact: `PROMPT_ULTRA_COMPLETO.md`.
-- Manifest schema: `schema.json` (`schemaVersion: 1`).
-- Current prompt version: `1.1.0` (see `CHANGELOG.md`).
+### Security and MCP bridges
+
+See the autogenerated **Security** block below and `SECURITY.md`. Pin `mcp-remote` per `docs/security/mcp-remote-rce.md`.
+
+## PR instructions
+
+- Open PRs against `main`; keep commits reversible when touching moves/deletes.
+- Update `CHANGELOG.md` under `[Unreleased]` for user-visible changes.
+- Do not `git push --force` to `main`.
+
+## Memory protocol (vault)
+
+Use a private git vault (example layout in `examples/`):
+
+1. **START_HERE.md** — entrypoint for agents.
+2. **MEMORY.md** (or equivalent) — durable global preferences; separate facts vs hypotheses explicitly.
+3. **SESSION_LOG.md** — short chronological decisions.
+4. **PROJECTS/<name>.md** — per-project context; do not mix projects.
+
+**Do not** store secrets, tokens, or literal hardware IDs. Prefer wikilinks between notes. Rotate `SESSION_LOG` if it grows beyond team policy (see example maintenance in archived v1 prompt).
+
+<!-- BEGIN AUTOGEN -->
+
+## Autogenerated modular rules
+
+## Stack (repo)
+
+- **Languages:** Markdown (vault + docs), TypeScript (tooling), Go 1.22+ (`obsidian-memoryd`), Python 3.11+ (optional RAG).
+- **Runtimes:** Node 20+, Bun or `npx tsx` for maintainer scripts; `uv` for `basic-memory`.
+- **Primary MCP:** `uvx basic-memory mcp` with `BASIC_MEMORY_HOME=<vault>`.
+- **Optional MCP:** `cyanheads/obsidian-mcp-server` (Streamable HTTP `/mcp`) with path allowlists.
+- **Bridge (legacy clients):** `mcp-remote` pinned **>= 0.1.16** (see `docs/security/mcp-remote-rce.md`).
+
+## Style conventions
+
+- Match existing formatting; run `npx prettier --check` and `markdownlint` before PRs.
+- Prefer small, reviewable commits; conventional prefixes optional but welcome (`feat:`, `fix:`, `docs:`).
+- Do not add secrets, tokens, or real personal paths to the repo or examples.
+
+## Testing
+
+- **Agents sync:** `npm run sync-agents:check` (must exit 0 in CI).
+- **Go daemon:** `go test ./...` from repo root (`go.mod`).
+- **Node packages:** `npm test` in each `packages/*` workspace.
+- **Python RAG:** `pytest` under `packages/obsidian-memory-rag/`.
+- **MCP smoke (local):** see `docs/testing/manual-checks.md` (`@modelcontextprotocol/inspector` + `uvx basic-memory mcp`).
+
+## Security
+
+- **No secrets in git.** Use env vars and OS keychains; rotate if leaked.
+- **gitleaks** runs in CI (`secrets-scan` workflow) and optionally via initializer pre-commit.
+- **Sensitive vault material:** optional **age** encryption (trade-off: harder agent reads); document who holds keys.
+- **Telemetry:** OpenTelemetry / Langfuse are **opt-in**; redact PII in attributes (see `packages/obsidian-memory-mcp`).
+
+<!-- END AUTOGEN -->
+
+## References
+
+- `docs/migration/v1-prompt-closure.md` — v1 ultra-prompt deliverables → v2 public kit.
+- `docs/migration/v1-to-v2-mcp.md` — tool mapping v1 → v2.
+- `docs/legacy/windows-v1/` — deprecated PowerShell + Task Scheduler artifacts.
+- `agent.toml` — machine-readable v2 metadata for the daemon and tooling.

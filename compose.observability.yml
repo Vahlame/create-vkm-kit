@@ -1,0 +1,37 @@
+# Optional Langfuse + ClickHouse + Redis (self-hosted). Not wired to CI.
+# See docs/observability.md (inline below) and packages/obsidian-memory-mcp.
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3
+    environment:
+      CLICKHOUSE_DB: langfuse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+
+  langfuse-server:
+    image: langfuse/langfuse:2
+    depends_on:
+      - clickhouse
+      - redis
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
+      CLICKHOUSE_URL: http://clickhouse:8123
+      REDIS_HOST: redis
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+    ports:
+      - "3000:3000"
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"

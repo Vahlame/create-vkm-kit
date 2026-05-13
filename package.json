@@ -1,0 +1,23 @@
+{
+  "name": "cursor-obsidian-memory-guide",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "sync-agents": "npx --yes tsx scripts/sync-agents.ts",
+    "sync-agents:check": "npx --yes tsx scripts/sync-agents.ts --check",
+    "eval:adherence": "node evals/run-adherence-ci.mjs",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "yaml": "^2.7.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "type": "module"
+}

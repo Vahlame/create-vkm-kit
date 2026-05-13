@@ -1,0 +1,117 @@
+name: ci
+
+on:
+  push:
+    branches: [main, v2-migration]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+      - name: install
+        run: npm ci
+      - name: markdownlint
+        run: npx --yes markdownlint-cli "**/*.md" --ignore-path .markdownlintignore
+      - name: prettier
+        run: npx --yes prettier --check "**/*.{json,yml,yaml,md}"
+      - name: sync agents
+        run: npm run sync-agents:check
+      - name: extract and lint embedded PowerShell (legacy prompt)
+        shell: pwsh
+        run: ./.github/scripts/extract-and-lint.ps1
+      - name: validate agent.toml (tomllib)
+        run: python -c "import pathlib,tomllib;tomllib.loads(pathlib.Path('agent.toml').read_text(encoding='utf-8'));print('agent.toml ok')"
+
+  test-go:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, macos-14, windows-2022]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - run: go test ./...
+      - name: go build (unix)
+        if: runner.os != 'Windows'
+        run: go build -o obsidian-memoryd ./cmd/obsidian-memoryd
+      - name: go build (windows)
+        if: runner.os == 'Windows'
+        run: go build -o obsidian-memoryd.exe ./cmd/obsidian-memoryd
+      - name: binary size under 20MB (ubuntu)
+        if: matrix.os == 'ubuntu-22.04'
+        shell: bash
+        run: test $(wc -c < obsidian-memoryd) -lt 20971520
+
+  test-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm test --workspaces --if-present
+
+  test-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pytest
+      - run: pip install -e ./packages/obsidian-memory-rag
+      - run: pytest packages/obsidian-memory-rag/tests
+
+  links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: lycheeverse/lychee-action@v2
+        with:
+          args: --no-progress --max-redirects 5 .
+          fail: true
+
+  secrets-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  mcp-smoke:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+      - name: basic-memory help
+        run: uvx basic-memory --help
+
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: adherence score (deterministic CI harness)
+        run: node evals/run-adherence-ci.mjs

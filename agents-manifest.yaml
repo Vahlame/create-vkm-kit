@@ -1,0 +1,36 @@
+# Declarative mapping: modular rules -> Cursor .mdc rules (generated; do not edit .mdc by hand).
+schemaVersion: 1
+cursorRules:
+  - output: 00-stack.mdc
+    source: .agents/rules/00-stack.md
+    description: Stack, runtimes, and MCP servers for this repository.
+    globs:
+      - "**/*"
+    alwaysApply: true
+  - output: 10-style.mdc
+    source: .agents/rules/10-style.md
+    description: Style conventions and contribution hygiene.
+    globs:
+      - "**/*.{ts,tsx,js,mjs,cjs,go,py,md,json,yml,yaml}"
+    alwaysApply: false
+  - output: 20-testing.mdc
+    source: .agents/rules/20-testing.md
+    description: How to run tests and MCP smoke checks.
+    globs:
+      - "**/*"
+    alwaysApply: false
+  - output: 30-security.mdc
+    source: .agents/rules/30-security.md
+    description: Secrets, gitleaks, age encryption, telemetry redaction.
+    globs:
+      - "**/*"
+    alwaysApply: true
+continueRules:
+  - output: 00-stack.md
+    source: .agents/rules/00-stack.md
+  - output: 10-style.md
+    source: .agents/rules/10-style.md
+  - output: 20-testing.md
+    source: .agents/rules/20-testing.md
+  - output: 30-security.md
+    source: .agents/rules/30-security.md

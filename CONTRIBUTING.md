@@ -1,46 +1,56 @@
 # Contributing
 
-Thanks for considering a contribution. This repository contains a single operational artifact (`PROMPT_ULTRA_COMPLETO.md`) plus supporting docs. Changes are welcome, but the bar is high because this prompt runs on other people's machines.
+Thanks for considering a contribution. This repository ships **cross-platform** guidance (`AGENTS.md`), optional **Go** and **Node** tooling, and archived **v1** artifacts under `docs/legacy/`.
 
 ## What this repo is and is not
 
-- **Is:** an executable prompt that another agent (Cursor) reads and acts on, plus the docs to understand it.
-- **Is not:** a runnable project. There is no install step. Do not add a `package.json`, build system, or scripts you expect users to clone and run. Scripts must continue to live inside the prompt as literal text blocks that the agent will materialize on the user's machine.
+- **Is:** cross-platform agent memory guidance (`AGENTS.md`), MCP sample configs, optional Go daemon, initializer, and archived v1 prompt under `docs/legacy/`.
+- **Is not:** a hosted SaaS. You run MCP servers and vaults locally (or in your infra).
 
 ## Before you open a PR
 
-1. Read `AGENTS.md` and `PROMPT_ULTRA_COMPLETO.md` end to end. The design decisions in section 4 of the prompt are deliberate; do not undo them without an ADR (`docs/adr/`).
-2. Test your change on a real Windows machine. The prompt is Windows-first; cross-platform suggestions go in a separate file, not in the main prompt.
+1. Read `AGENTS.md` and `CHANGELOG.md`. Design decisions live in `docs/adr/`; do not undo them without a new ADR.
+2. For behavior touching Windows/Linux/macOS, validate on at least one target OS when feasible.
 3. Run the local checks below.
 
 ## Local checks
 
 ```bash
-# Markdown lint
-npx markdownlint-cli "**/*.md" --ignore node_modules
+npm ci
+npm run sync-agents:check
 
-# JSON formatting
-npx prettier --check "**/*.json"
+# Markdown lint
+npx markdownlint-cli "**/*.md" --ignore-path .markdownlintignore
+
+# Formatting
+npx prettier --check "**/*.{json,yml,yaml,md}"
 
 # Link check
 npx lychee --no-progress .
 
-# Extract embedded PowerShell from the prompt and lint with PSScriptAnalyzer
+# Extract embedded PowerShell from the archived v1 prompt and lint with PSScriptAnalyzer
 pwsh -File .github/scripts/extract-and-lint.ps1
+
+# Go tests (requires Go 1.22+)
+go test ./...
+
+# Python RAG tests
+pip install -e ./packages/obsidian-memory-rag
+pytest packages/obsidian-memory-rag/tests
 ```
 
-All four must pass. CI runs the same checks on every PR.
+All must pass. CI mirrors these in `.github/workflows/ci.yml`.
 
 ## Types of changes
 
-| Change | Where it goes | Needs an ADR? |
-|---|---|---|
-| Typo, wording, clarification | the file in question | no |
-| Script fix inside the prompt | `PROMPT_ULTRA_COMPLETO.md` section 8 | no (mention in CHANGELOG) |
-| Known-error addition | `PROMPT_ULTRA_COMPLETO.md` section 11 + `docs/troubleshooting.md` | no |
-| New design decision | new file in `docs/adr/` + update section 4 | **yes** |
-| New platform support (macOS, Linux) | new file `PROMPT_ULTRA_COMPLETO.<os>.md` | yes |
-| Breaking change to prompt structure | discuss in an issue first | yes |
+| Change                                   | Where it goes                             | Needs an ADR?             |
+| ---------------------------------------- | ----------------------------------------- | ------------------------- |
+| Typo, wording, clarification             | the file in question                      | no                        |
+| Script fix inside the legacy v1 prompt   | `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md` | no (mention in CHANGELOG) |
+| Known-error addition                     | `docs/troubleshooting.md`                 | no                        |
+| New design decision                      | new file in `docs/adr/`                   | **yes**                   |
+| Cross-platform installer / daemon change | `cmd/`, `packages/`, `config/`            | yes                       |
+| Breaking change to agent contract        | discuss in an issue first                 | yes                       |
 
 ## Commit messages
 
@@ -56,7 +66,7 @@ trim repo to prompt + readme; agent generates scripts locally
 The maintainer cuts releases. The release process is:
 
 1. Update `CHANGELOG.md` (Keep a Changelog format).
-2. Bump version in `manifest.json` -> `version`.
+2. Bump version in `agent.toml` -> `version` when releasing.
 3. Tag `vX.Y.Z` and push.
 4. GitHub Actions publishes a Release with notes copied from `CHANGELOG.md`.
 

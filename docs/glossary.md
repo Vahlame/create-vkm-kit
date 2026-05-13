@@ -6,15 +6,23 @@ Short, opinionated definitions of every term that appears in the prompt or this 
 
 ### Agent
 
-An AI model with tools. In this repo, "agent" specifically means the assistant running inside Cursor that reads `PROMPT_ULTRA_COMPLETO.md` and executes the steps.
+An AI model with tools. In this repo, "agent" means any assistant that reads `AGENTS.md` (or synced IDE rules) and follows the memory protocol.
 
 ### Autosync
 
-The scheduled task `CursorMemoryAutoSync` that runs `Sync-Memory.ps1` every 10 minutes to commit and push the vault to GitHub.
+**v1 (Windows):** the scheduled task `CursorMemoryAutoSync` that ran `Sync-Memory.ps1` every ~10 minutes to commit and push the vault. **v2:** use **`obsidian-memoryd watch`** (debounced git) or any scheduler you prefer; this public repo does not ship the v1 PowerShell scripts.
+
+### `basic-memory`
+
+Default **v2** MCP server: Python package run as `uvx basic-memory mcp`. Exposes note read/write/search tools against a vault directory. Configure with **`BASIC_MEMORY_HOME`** (absolute path to the vault root).
+
+### `BASIC_MEMORY_HOME`
+
+Environment variable pointing at the **vault root** for `basic-memory`. Same role as `OBSIDIAN_MEMORY_VAULT` in the Go daemon docs.
 
 ### Cursor
 
-The IDE this pattern is built for. Specifically Cursor Desktop on Windows. The web version is out of scope (see FAQ).
+The IDE this pattern was first optimized for. **v2** targets **any MCP-capable agent**; see `AGENTS.md`. The web version is still out of scope for localhost MCP (see FAQ).
 
 ### Doctor
 
@@ -26,7 +34,7 @@ The IDE this pattern is built for. Specifically Cursor Desktop on Windows. The w
 
 ### Health endpoint
 
-`http://127.0.0.1:3001/health`. The MCP server exposes this; a `200` response is the signal that it is up and able to accept SSE connections.
+**v1:** `http://127.0.0.1:3001/health` on the smith-and-web SSE stack. **v2:** depends on the server you run; use MCP Inspector / client logs rather than assuming `:3001`.
 
 ### MCP
 
@@ -38,7 +46,7 @@ An npm package that bridges Cursor's STDIO MCP client to a remote SSE MCP server
 
 ### `mcp.json`
 
-`%USERPROFILE%\.cursor\mcp.json`. The configuration file where Cursor learns which MCP servers exist and how to launch them.
+IDE-specific MCP config file. **Cursor (Windows):** typically `%USERPROFILE%\.cursor\mcp.json`. **Other OS:** follow your client's documented path.
 
 ### MEMORY.md
 
@@ -46,7 +54,15 @@ A file at the root of the vault holding global, durable preferences and rules. T
 
 ### Obsidian MCP server
 
-`@smith-and-web/obsidian-mcp-server`. An npm package that exposes a Markdown vault directory through MCP. Despite the name, you do not need the Obsidian app installed; the package just speaks Obsidian's vault conventions.
+**v1:** `@smith-and-web/obsidian-mcp-server` (SSE). **v2 default:** `basic-memory` via `uvx`. Optional live I/O: `cyanheads/obsidian-mcp-server`. Despite the Obsidian branding, you do not necessarily need the Obsidian desktop app if you only use filesystem conventions.
+
+### `obsidian-memory-rag`
+
+Optional **Python** sidecar (`packages/obsidian-memory-rag`) that builds a **SQLite FTS5** index under `<vault>/.obsidian-memory-rag/` for fast BM25 search (`index`, `search`, `bench` CLI). Complements `basic-memory` on large vaults.
+
+### FTS5
+
+SQLite **full-text search** module used by `obsidian-memory-rag` for lexical retrieval without a separate search cluster.
 
 ### PROJECTS/
 
@@ -74,11 +90,11 @@ Free-text instructions you paste into `Cursor Settings -> Rules -> User Rules`. 
 
 ### Vault
 
-`%USERPROFILE%\Documents\cursor-memory-vault`. The directory the Obsidian MCP server reads and writes. It is also a Git working tree synced to a private GitHub repo.
+The directory your MCP server reads and writes (Markdown + git). **v1** docs often used `%USERPROFILE%\Documents\cursor-memory-vault`. **v2:** any path; set **`BASIC_MEMORY_HOME`** to the vault root.
 
 ### Watchdog
 
-The scheduled task `CursorObsidianMcpWatchdog` that runs `Ensure-ObsidianMCP.ps1` every 5 minutes to make sure the MCP server is alive and re-launch it otherwise.
+**v1 (Windows):** scheduled task `CursorObsidianMcpWatchdog` running `Ensure-ObsidianMcp.ps1` to restart the SSE MCP server. **v2:** rely on the IDE to restart `uvx` children, or use your own process supervisor; not part of this repo's default cross-platform kit.
 
 ### `wscript.exe`
 

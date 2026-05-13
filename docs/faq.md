@@ -8,7 +8,7 @@ Cursor's built-in memories are tied to Cursor's account and storage, are not por
 
 ### Is this safe to paste into Cursor?
 
-The prompt instructs an agent to execute code on your Windows machine: install npm packages, write files in `%USERPROFILE%`, create scheduled tasks, and push to a Git repo you own. Treat the prompt the same way you would treat any system installer: pin to a release tag, read the diff between tags, and verify the source URL. `SECURITY.md` covers reporting.
+**v1:** the archived ultra-prompt instructs an agent to execute code on your machine (packages, `%USERPROFILE%`, scheduled tasks, git push). Treat it like an installer: pin releases, read diffs, verify the source URL. **v2:** you mostly configure MCP + optional daemon yourself; `SECURITY.md` still applies. See also `docs/security/mcp-remote-rce.md` if you bridge remote MCP.
 
 ### What does it cost?
 
@@ -16,7 +16,7 @@ Nothing. You pay for whatever Cursor plan you already have, plus a private GitHu
 
 ### Will it work without internet?
 
-Local memory works. Sync to GitHub does not. The watchdog will keep the local MCP server up; the autosync task will simply fail until connectivity is back and will catch up on the next 10-minute cycle.
+Local memory works. Sync to GitHub does not. **v1 (Windows):** the watchdog kept an SSE MCP process up; autosync retried on a timer. **v2:** `basic-memory` runs with the IDE session (`uvx`); optional **`obsidian-memoryd watch`** debounces git sync and will fail push/pull until the network returns, then catch up on the next debounced cycle.
 
 ### Why a private repo?
 
@@ -28,7 +28,7 @@ Yes, with caveats. The autosync uses `git pull --rebase`, which handles non-over
 
 ### Does it slow Cursor down?
 
-No measurable slowdown. The MCP server runs out of process. The agent's calls to it are LAN-fast (loopback).
+No meaningful slowdown for normal vault sizes. The MCP server runs out of process; calls are loopback-fast. **Very large vaults:** add the optional **`obsidian-memory-rag`** FTS5 index (`index` / `search`) so retrieval stays snappy without scanning everything on every question.
 
 ### Can I rename `MEMORY.md` or `SESSION_LOG.md`?
 
@@ -36,15 +36,15 @@ You can, but you would have to change the User Rules in section 9 of the prompt 
 
 ### How do I uninstall?
 
-`PROMPT_ULTRA_COMPLETO.md` section 8 includes `Uninstall-Cursor-Memory.ps1`. It removes the scheduled tasks, restores `mcp.json.bak`, and leaves your vault untouched. To also delete the vault, do that manually so the deletion is intentional.
+**v2:** remove the **`basic-memory`** entry (or rename the server) from your IDE MCP config, stop **`obsidian-memoryd`** if you installed it (`service stop` / systemd / Windows service), and delete local sidecar data under **`<vault>/.obsidian-memory-rag/`** if you no longer want the FTS index. Your Markdown vault remains yours. **v1 (Windows):** `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md` section 8 describes `Uninstall-Cursor-Memory.ps1` (scheduled tasks + `mcp.json.bak`).
 
 ### Why Windows-first?
 
-The maintainer's machine. See ADR-0007 for the full reasoning and the plan for macOS / Linux variants.
+The maintainer's first end-to-end install was Windows (ADR-0007). **v2** is **cross-platform**; the repo ships Linux/macOS pointers at `PROMPT_ULTRA_COMPLETO.linux.md` and `PROMPT_ULTRA_COMPLETO.macos.md` (short redirects) plus the Go daemon for non-Windows sync.
 
 ### Will this work on Cursor Web / cursor.com?
 
-No. The pattern relies on a local MCP server bound to `127.0.0.1:3001`. Cursor's web interface cannot reach localhost on your machine.
+Generally **no** for the same reason as any localhost MCP: the web UI cannot reach processes on your machine. **v1** assumed SSE on `127.0.0.1:3001`. **v2** defaults to **`uvx basic-memory mcp`** (local child process); some Streamable HTTP setups are still “local machine + IDE” bound—treat web Cursor as unsupported unless your vendor documents a supported bridge.
 
 ### Will this work with Claude Desktop, Continue, or other MCP-capable clients?
 
@@ -52,12 +52,16 @@ In principle yes. They consume the same MCP server. You would have to translate 
 
 ### How big can the vault get before it's a problem?
 
-In practice multiple hundreds of MB are fine. The autosync only pushes the diff. Reading `MEMORY.md` is bounded by the model's context, not by the vault size, because the agent reads only the files it needs.
+In practice multiple hundreds of MB are fine. **v1:** autosync pushed small diffs. **v2:** same with git; optional **`obsidian-memory-rag`** keeps search fast. Reading `MEMORY.md` is bounded by model context because the agent reads only what it needs.
 
 ### Can I share `MEMORY.md` with a teammate?
 
-Yes. Invite them to the private repo. They run the same prompt once on their machine and now both of you read and write the same memory. Conflicts behave as in the multi-machine question above.
+Yes. Invite them to the private repo. **v1:** they re-ran the ultra-prompt once. **v2:** they merge the same MCP config + clone the vault; use normal git conflict habits if two people edit the same line.
 
 ### How do I update to a new version of the prompt?
 
-Pull the latest tag in this repo, re-paste the prompt into a new Cursor chat with the same `<REPO_URL_PRIVADO>`. The setup is idempotent; only the scripts and `mcp.json` entry get refreshed. Your vault is untouched.
+**v2:** `git pull` this repo for docs and tooling; bump **`@vahlame/create-obsidian-memory`** if you use the initializer; refresh MCP pins if `CHANGELOG.md` / `SECURITY.md` say so. **v1:** pull the tag, re-paste the ultra-prompt into a new chat with `<REPO_URL_PRIVADO>`; idempotent on scripts and `mcp.json`. Your vault stays separate.
+
+### Large vault: anything beyond `basic-memory` search?
+
+Yes. Run **`obsidian-memory-rag index --vault <path>`** once (and after big imports) for a local **SQLite FTS5** index; use **`search`** / **`bench`** for BM25-ranked hits and latency smoke tests (`docs/testing/manual-checks.md`).

@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Extracts embedded PowerShell code blocks from PROMPT_ULTRA_COMPLETO.md and
+    Extracts embedded PowerShell code blocks from the archived v1 prompt and
     runs PSScriptAnalyzer over them.
 
 .DESCRIPTION
@@ -14,7 +14,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$PromptPath = "PROMPT_ULTRA_COMPLETO.md",
+    [string]$PromptPath = "docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md",
     [string]$OutDir = (Join-Path ([IO.Path]::GetTempPath()) "prompt-ps-extract")
 )
 
