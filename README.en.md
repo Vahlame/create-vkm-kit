@@ -8,6 +8,8 @@
 
 v2 is **cross-platform** (Windows/Linux/macOS) and **IDE-agnostic**. Canonical agent instructions live in `AGENTS.md` (with symlinks for Claude Code / Copilot / Cline where supported). The MCP default is **`basic-memory`** via `uvx`; optional live Obsidian I/O uses `config/mcp/obsidian-live.json`. Optional **FTS5 hybrid** MCP: `config/mcp/obsidian-memory-hybrid.json` (`vault_fts_search` / `vault_fts_index`).
 
+**Cursor (MCP + User Rules + rationale):** single walkthrough [`docs/cursor-memory-setup.en.md`](./docs/cursor-memory-setup.en.md) · [Español](./docs/cursor-memory-setup.md).
+
 ## Quick install
 
 1. Install **uv** + **Node 20+**. (Windows without `uv`: `powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"` — then restart the terminal.)

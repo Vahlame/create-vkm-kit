@@ -1,5 +1,7 @@
 # Manual checks (IDE + MCP)
 
+End-to-end **Cursor** (MCP + User Rules): [`docs/cursor-memory-setup.md`](../cursor-memory-setup.md) / [English](../cursor-memory-setup.en.md).
+
 These steps require a local machine with **Node 20+**, **Python/uv** (for `uvx`), and (for IDE checks) the corresponding product installed.
 
 ## 1. Symlinks (Unix / Windows with `core.symlinks=true`)
@@ -56,8 +58,11 @@ Expect `bench` p50 in the low milliseconds on a warm OS page cache for typical p
 
 Requires **Node 20+**, **Python 3.11+**, and the RAG package importable (`pip install -e ./packages/obsidian-memory-rag` **or** `PYTHONPATH` pointing at `packages/obsidian-memory-rag/src` from this repo).
 
-1. Merge `config/mcp/obsidian-memory-hybrid.json` into `mcp.json` (replace `<REPO_ROOT>` and `<VAULT_PATH>` with absolute paths), or set `BASIC_MEMORY_HOME` and run `node <REPO_ROOT>/packages/obsidian-memory-mcp/src/hybrid-mcp.mjs` with `PYTHONPATH` set.
-2. Inspector smoke:
+### Config
+
+Merge `config/mcp/obsidian-memory-hybrid.json` into `mcp.json` (replace `<REPO_ROOT>` and `<VAULT_PATH>` with absolute paths), or set `BASIC_MEMORY_HOME` and run `node <REPO_ROOT>/packages/obsidian-memory-mcp/src/hybrid-mcp.mjs` with `PYTHONPATH` set.
+
+### Inspector smoke
 
 ```bash
 npx --yes @modelcontextprotocol/inspector --cli node -- /abs/path/to/cursor-obsidian-memory-guide/packages/obsidian-memory-mcp/src/hybrid-mcp.mjs
@@ -65,4 +70,6 @@ npx --yes @modelcontextprotocol/inspector --cli node -- /abs/path/to/cursor-obsi
 
 Set env in the Inspector UI: `BASIC_MEMORY_HOME=/abs/vault`, `PYTHONPATH=/abs/path/.../packages/obsidian-memory-rag/src`.
 
-3. Call **`vault_fts_index`** once, then **`vault_fts_search`** with a query that exists in the vault body.
+### Tools
+
+Call **`vault_fts_index`** once, then **`vault_fts_search`** with a query that exists in the vault body.
