@@ -15,6 +15,7 @@ const VAULT_VSCODE_GIT_SETTINGS = {
   "git.autoRepositoryDetection": false,
   "git.autorefresh": false,
   "git.autofetch": false,
+  "git.terminalAuthentication": false,
   "git.decorations.enabled": false,
   "git.timeline.enabled": false,
   "git.blame.editorDecoration.enabled": false,
@@ -134,6 +135,20 @@ async function writeVaultGitWorkspaceSettings(vault, dryRun) {
       merged[key] = { ...prev, ...value };
     } else {
       merged[key] = value;
+    }
+  }
+  if (process.platform === "win32") {
+    const candidates = [
+      "C:\\Program Files\\Git\\cmd\\git.exe",
+      path.join(process.env.ProgramFiles || "C:\\Program Files", "Git", "cmd", "git.exe"),
+    ];
+    const pf86 = process.env["ProgramFiles(x86)"];
+    if (pf86) candidates.push(path.join(pf86, "Git", "cmd", "git.exe"));
+    for (const g of candidates) {
+      if (g && (await fse.pathExists(g))) {
+        merged["git.path"] = g;
+        break;
+      }
     }
   }
   await fse.writeFile(fp, `${JSON.stringify(merged, null, 2)}\n`, "utf8");

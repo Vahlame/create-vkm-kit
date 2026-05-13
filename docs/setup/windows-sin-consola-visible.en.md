@@ -10,7 +10,9 @@ After pulling updates: **Developer: Reload Window** once.
 
 ## 2. Workspace settings (shipped with this kit)
 
-At the repo root (and in vaults via `create-obsidian-memory` or `examples/.vscode/`) we disable aggressive Git polling and several SCM decorations, and exclude noisy paths from the file watcher (including `.obsidian/` and build caches).
+At the repo root (and in vaults via `create-obsidian-memory` or `examples/.vscode/`) we disable aggressive Git polling and several SCM decorations, and exclude noisy paths from the file watcher (including `.obsidian/` and build caches). We also set **`git.terminalAuthentication`: false** so Git auth does not insist on a dedicated terminal window.
+
+If you see windows titled **`…\Git\bin\git.exe`** or **`bin\sh.exe`**, set in **User** or **workspace** JSON: **`"git.path": "C:\\Program Files\\Git\\cmd\\git.exe"`** (the **`cmd\git.exe`** launcher, not **`bin\git.exe`**). On Windows the kit initializer tries to write `git.path` when merging the vault if that file exists.
 
 If you need live Git UI in **this** folder, edit **your** `.vscode/settings.json` and set `git.autorefresh` back to `true` (accepts more `git`/`conhost` traffic).
 

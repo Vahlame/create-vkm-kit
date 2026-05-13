@@ -157,6 +157,12 @@ Close and reopen the terminal (or Cursor) so `uvx` resolves. Verify with `uv --v
 - **Confirmación:** En el log del script, líneas `+ conhost ... parent=... (git)` cada ~2–5 s mientras el fallo ocurre.
 - **Guía completa (Windows):** [`docs/setup/windows-sin-consola-visible.md`](./setup/windows-sin-consola-visible.md) (IDE + tareas + MCP + límite honesto).
 
+### Ventana emergente con título `git.exe` o `…\\Git\\bin\\sh.exe` (roba foco)
+
+- **Causa:** Algo (Cursor SCM, extensión o tarea) está lanzando **`…\\Git\\bin\\git.exe`** o **`bin\\sh.exe`** en **consola aparte**. Eso es típico de Git for Windows cuando no se usa el **`cmd\\git.exe`** pensado para programas con interfaz.
+- **Arreglo:** En **Settings → JSON** (usuario o workspace) pon **`"git.path": "C:\\\\Program Files\\\\Git\\\\cmd\\\\git.exe"`** (ajusta la ruta si tu Git es portable u otro disco: `where.exe git` en PowerShell) y **`"git.terminalAuthentication": false`**. El kit **fusiona** ambas cosas al correr `create-obsidian-memory` con `--vault` en Windows si encuentra `cmd\\git.exe`. Luego **Developer: Reload Window**.
+- **Código 0 o 1** en el mensaje de “proceso terminado” es secundario; el problema es la **ventana** que quita el foco del juego o del editor.
+
 ### `npx -y mcp-remote` is very slow the first time
 
 - **Cause:** Empty `npx` cache. Cold install takes ~30 seconds.

@@ -67,6 +67,12 @@ test("non-interactive creates vault .vscode/settings.json when missing (Git tuni
   assert.equal(j["git.autorefresh"], false);
   assert.equal(j["git.autofetch"], false);
   assert.equal(j["npm.autoDetect"], "off");
+  if (process.platform === "win32") {
+    const g = "C:\\Program Files\\Git\\cmd\\git.exe";
+    if (fs.existsSync(g)) {
+      assert.equal(j["git.path"], g);
+    }
+  }
 });
 
 test("non-interactive merges kit keys into existing vault .vscode/settings.json", () => {
@@ -90,4 +96,10 @@ test("non-interactive merges kit keys into existing vault .vscode/settings.json"
   assert.equal(j["git.autorefresh"], false, "kit tuning wins");
   assert.equal(j.files.wibble, true);
   assert.equal(j["npm.autoDetect"], "off");
+  if (process.platform === "win32") {
+    const g = "C:\\Program Files\\Git\\cmd\\git.exe";
+    if (fs.existsSync(g)) {
+      assert.equal(j["git.path"], g);
+    }
+  }
 });

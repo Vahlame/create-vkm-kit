@@ -10,7 +10,9 @@ Después de actualizar el repo: **Developer: Reload Window** una vez.
 
 ## 2. Ajustes del workspace (ya incluidos en este kit)
 
-En la raíz (y en el vault vía `create-obsidian-memory` o `examples/.vscode/`) se desactiva el sondeo agresivo de Git y parte de la decoración SCM, y se excluyen rutas ruidosas del watcher (incluye `.obsidian/` y cachés de build).
+En la raíz (y en el vault vía `create-obsidian-memory` o `examples/.vscode/`) se desactiva el sondeo agresivo de Git y parte de la decoración SCM, y se excluyen rutas ruidosas del watcher (incluye `.obsidian/` y cachés de build). También **`git.terminalAuthentication`: false** para no forzar consola en autenticación Git.
+
+Si ves ventanas con título **`…\Git\bin\git.exe`** o **`bin\sh.exe`**, fuerza en **User** o **workspace** JSON: **`"git.path": "C:\\Program Files\\Git\\cmd\\git.exe"`** (ruta del `cmd\git.exe`, no el de `bin\`). En Windows el inicializador del kit intenta escribir `git.path` al fusionar el vault si esa ruta existe.
 
 Si necesitas el panel Git en tiempo real en **esta** carpeta, edita **tu copia** de `.vscode/settings.json` y vuelve a poner `git.autorefresh` en `true` (acepta más procesos `git`/`conhost`).
 
