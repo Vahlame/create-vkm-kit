@@ -16,7 +16,7 @@ v2 is **cross-platform** (Windows/Linux/macOS) and **IDE-agnostic**. Canonical a
 4. Optional: build `obsidian-memoryd` (`go build ./cmd/obsidian-memoryd`) for debounced git sync.
 5. Optional (large vaults): `pip install -e ./packages/obsidian-memory-rag` then `obsidian-memory-rag index --vault <path>` for local **FTS5** search (`search` / `bench`).
 
-Guided flow: `npx @vahlame/create-obsidian-memory@next` (merges **`basic-memory`** into Cursor `~/.cursor/mcp.json` when selected; use `--dry-run` to preview).
+Guided flow: `npx @vahlame/create-obsidian-memory@next` (merges **`basic-memory`** into Cursor `~/.cursor/mcp.json` when selected; use `--dry-run` to preview). Headless: `npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault <path> [--dry-run]`.
 
 ## Migration from v1
 
