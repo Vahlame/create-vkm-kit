@@ -33,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **`docs/troubleshooting.md`:** `fetch failed` / `basic-memory` URL rojo — causa adicional **puerto ocupado por otra app** (no solo “servidor apagado”); arreglo con `netstat` + mismo puerto en script y `mcp.json` (ej. 8765).
 - **`create-obsidian-memory`:** strip UTF-8 BOM before parsing existing `~/.cursor/mcp.json` so merges keep prior `mcpServers` entries (PowerShell / some editors emit BOM).
 - **`obsidian-memory-hybrid`:** default `PYTHONPATH` for monorepo dev pointed at the wrong sibling folder; corrected to `packages/obsidian-memory-rag/src` relative to the hybrid script.
 

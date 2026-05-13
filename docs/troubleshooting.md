@@ -123,18 +123,18 @@ Close and reopen the terminal (or Cursor) so `uvx` resolves. Verify with `uv --v
 
 ### Cursor log: `Transient error connecting to streamableHttp server: fetch failed`
 
-- **Cause:** `mcp.json` uses a **`url`** (Streamable HTTP) for `basic-memory` (for example `http://127.0.0.1:8000/mcp`) but **no process is listening** on that host/port yet (task not started, crash, wrong port, or Cursor connected before the server bound).
-- **Fix:** Start the HTTP MCP server (Windows: `Start-ScheduledTask -TaskName CursorBasicMemoryHttpMcp` or run `Start-BasicMemoryMcp.ps1` in the vault). Verify `Test-NetConnection 127.0.0.1 -Port 8000`. If you do not need a persistent listener, switch the entry back to **stdio** (`command` + `uvx`) via `config/mcp/basic-memory.json`. See `docs/setup/windows-basic-memory-always-on.md`.
+- **Cause:** `mcp.json` uses a **`url`** (Streamable HTTP) for `basic-memory` but **nothing valid is listening** on that host/port: scheduled task not started yet, server crashed, **or another unrelated program already bound the port** (so TCP “succeeds” but MCP `fetch` still fails).
+- **Fix:** Start the HTTP MCP server (Windows: `Start-ScheduledTask -TaskName CursorBasicMemoryHttpMcp` or run `Start-BasicMemoryMcp.ps1` in the vault). Verify the listener is actually **basic-memory** (for example `netstat -ano | findstr :8000` then check the PID’s command line / process name). If port **8000** is taken by something else, pick a free port (e.g. **8765**) and set the **same** value in both `Start-BasicMemoryMcp.ps1` (`-Port`) and `mcp.json` (`"url": "http://127.0.0.1:8765/mcp"`). If you do not need a persistent listener, switch back to **stdio** (`command` + `uvx`) via `config/mcp/basic-memory.json`. See `docs/setup/windows-basic-memory-always-on.md`.
 
 ### Toast: `Failed to open resource: memory://...`
 
 - **Cause:** Cursor tried to open **native / virtual “memory”** content (`memory://` scheme), not a file in your Markdown vault. The link may be stale or the resource no longer exists.
 - **Fix:** Close the notification; **Developer: Reload Window** if it keeps appearing. For vault notes, use MCP tools (`read_note`, `write_note`, …). This is **not** caused by git autosync or `Run-Hidden.vbs`.
 
-### Cursor: `basic-memory` red con `"url": "http://127.0.0.1:8000/mcp"`
+### Cursor: `basic-memory` rojo con URL `http://127.0.0.1:…/mcp`
 
-- **Cause:** El servidor HTTP no está levantado (tarea `CursorBasicMemoryHttpMcp` no ejecutada, falló al inicio de sesión, o el proceso murió).
-- **Fix:** `Start-ScheduledTask -TaskName CursorBasicMemoryHttpMcp` o ejecuta a mano `scripts\windows\Start-BasicMemoryMcp.ps1` del vault. Comprueba `Test-NetConnection 127.0.0.1 -Port 8000`. Guía: `docs/setup/windows-basic-memory-always-on.md`.
+- **Cause:** El servidor HTTP de `basic-memory` no está levantado, o el **puerto está ocupado por otra app** (TCP puede “abrir” pero MCP falla con `fetch failed`).
+- **Fix:** `Start-ScheduledTask -TaskName CursorBasicMemoryHttpMcp` o `Start-BasicMemoryMcp.ps1` del vault. Comprueba con `netstat -ano | findstr :PUERTO` que el PID corresponde a tu servidor. Si **8000** está tomado, usa otro puerto (p. ej. **8765**) igual en el script (`-Port`) y en `mcp.json`. Guía: `docs/setup/windows-basic-memory-always-on.md`.
 
 ### Parpadea una consola grande al sincronizar o al arrancar el MCP
 

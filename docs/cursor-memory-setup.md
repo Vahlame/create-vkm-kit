@@ -99,8 +99,8 @@ En **Cursor → Settings → Rules → User Rules**, pega el bloque siguiente. *
 
 ### Cómo está conectado `basic-memory` (stdio vs URL)
 
-- Si `mcp.json` usa **`command` + `uvx`** hacia `basic-memory`, es **stdio**: Cursor arranca el servidor; no hace falta puerto 8000.
-- Si la entrada **`basic-memory` solo tiene `"url"`** (p. ej. `http://127.0.0.1:8000/mcp`), hace falta un **servidor HTTP ya levantado** (p. ej. tarea `CursorBasicMemoryHttpMcp` en Windows). Sin proceso en 8000 verás fallos tipo `fetch failed` en el log MCP.
+- Si `mcp.json` usa **`command` + `uvx`** hacia `basic-memory`, es **stdio**: Cursor arranca el servidor; no hace falta un puerto HTTP fijo.
+- Si la entrada **`basic-memory` solo tiene `"url"`** (p. ej. `http://127.0.0.1:8000/mcp` o **otro puerto** si cambiaste el script por conflicto), hace falta un **servidor HTTP ya levantado** (p. ej. tarea `CursorBasicMemoryHttpMcp` en Windows). Sin proceso en ese puerto verás fallos tipo `fetch failed` en el log MCP.
 - Banners ASCII o líneas con `undefined` en stderr del servidor suelen ser **ruido de arranque**; lo importante es que el panel MCP liste tools y quede operativo.
 
 ### MCP disponible
