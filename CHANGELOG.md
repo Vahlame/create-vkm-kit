@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Windows sin flash de consola:** tareas recomendadas vía `wscript.exe` + `scripts/windows/Run-Hidden.vbs`; `obsidian-memoryd` documentado con `go build -ldflags="-H windowsgui"`; guías `windows-scheduled-vault-sync*` y `windows-basic-memory-always-on*` + troubleshooting actualizados.
 - **Onboarding lineal:** `README.md` / `README.en.md` son un hub corto: primero `GETTING_STARTED*.md`, luego `docs/how-memory-works-simple*.md`, Cursor, comprobaciones y troubleshooting; `docs/testing/manual-checks.md` y guías Cursor enlazan al mismo flujo.
 - CI push trigger: **`main` only** (removed legacy `v2-migration` branch after merge).
 - `docs/comparison.md` expanded for v2 positioning.

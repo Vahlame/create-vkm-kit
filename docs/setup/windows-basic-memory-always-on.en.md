@@ -13,6 +13,25 @@ This guide is the **persistent HTTP** option (“always on”).
 
 The server reads **`BASIC_MEMORY_HOME`** from the script (vault path). Cursor only uses HTTP; it does not need the vault path in `mcp.json` for `basic-memory`.
 
+## No console window (scheduled tasks)
+
+Do not use bare `powershell.exe` as the task action: a console **may flash**. Launch the `.ps1` with **`wscript.exe`** plus `Run-Hidden.vbs` (`scripts/windows/Run-Hidden.vbs` in this repo).
+
+### Register `CursorBasicMemoryHttpMcp` (example)
+
+```powershell
+$vaultScripts = Join-Path $env:USERPROFILE "Documents\cursor-memory-vault\scripts\windows"
+$vbs = Join-Path $vaultScripts "Run-Hidden.vbs"
+$ps1 = Join-Path $vaultScripts "Start-BasicMemoryMcp.ps1"
+$arg = "//nologo `"$vbs`" `"$ps1`""
+$action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument $arg
+$trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 15 -RestartInterval (New-TimeSpan -Minutes 1)
+$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Limited
+Unregister-ScheduledTask -TaskName "CursorBasicMemoryHttpMcp" -Confirm:$false -ErrorAction SilentlyContinue
+Register-ScheduledTask -TaskName "CursorBasicMemoryHttpMcp" -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Description "basic-memory MCP HTTP (no console flash)"
+```
+
 ## Optional: `obsidian-memoryd watch` (Go, sync-on-save)
 
 Besides **git every 10 minutes** (`CursorMemoryVaultSync`), you can run **`obsidian-memoryd`** for debounced `git add/commit/pull/push` when vault files change.
@@ -27,12 +46,14 @@ From this repo clone:
 
 ```powershell
 New-Item -ItemType Directory -Force -Path "$env:LOCALAPPDATA\cursor-memory\bin" | Out-Null
-go build -o "$env:LOCALAPPDATA\cursor-memory\bin\obsidian-memoryd.exe" ./cmd/obsidian-memoryd
+go build -ldflags="-H windowsgui" -o "$env:LOCALAPPDATA\cursor-memory\bin\obsidian-memoryd.exe" ./cmd/obsidian-memoryd
 ```
+
+`-H windowsgui` prevents **obsidian-memoryd** from allocating its own console when started from Task Scheduler.
 
 ### Logon task
 
-Task **`CursorObsidianMemorydWatch`** runs `scripts\windows\Start-ObsidianMemorydWatch.ps1` in the vault (same pattern as HTTP MCP).
+Task **`CursorObsidianMemorydWatch`** using **`wscript.exe //nologo Run-Hidden.vbs Start-ObsidianMemorydWatch.ps1`** (same pattern as HTTP `basic-memory`).
 
 If you see **too many** auto-commits, disable either the 10-minute task **or** `watch`, and keep one strategy.
 

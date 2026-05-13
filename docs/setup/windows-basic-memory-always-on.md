@@ -13,6 +13,25 @@ Esta guía describe la opción **HTTP persistente** (recomendada si quieres “s
 
 El servidor usa **`BASIC_MEMORY_HOME`** dentro del script (ruta del vault). Cursor solo habla HTTP; no necesita repetir el path del vault en `mcp.json` para `basic-memory`.
 
+## Sin ventana de consola (tareas programadas)
+
+No uses `powershell.exe` solo como acción de la tarea: a veces **parpadea** una consola. Lanza el `.ps1` con **`wscript.exe`** + `Run-Hidden.vbs` (en `scripts/windows/Run-Hidden.vbs`).
+
+### Registrar `CursorBasicMemoryHttpMcp` (ejemplo)
+
+```powershell
+$vaultScripts = Join-Path $env:USERPROFILE "Documents\cursor-memory-vault\scripts\windows"
+$vbs = Join-Path $vaultScripts "Run-Hidden.vbs"
+$ps1 = Join-Path $vaultScripts "Start-BasicMemoryMcp.ps1"
+$arg = "//nologo `"$vbs`" `"$ps1`""
+$action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument $arg
+$trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 15 -RestartInterval (New-TimeSpan -Minutes 1)
+$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Limited
+Unregister-ScheduledTask -TaskName "CursorBasicMemoryHttpMcp" -Confirm:$false -ErrorAction SilentlyContinue
+Register-ScheduledTask -TaskName "CursorBasicMemoryHttpMcp" -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Description "basic-memory MCP HTTP (sin ventana)"
+```
+
 ## Opcional: `obsidian-memoryd watch` (Go, sincro al guardar)
 
 Además del **git cada 10 minutos** (`CursorMemoryVaultSync`), puedes tener **`obsidian-memoryd`** haciendo `git add/commit/pull/push` con **debounce** cuando cambian archivos del vault.
@@ -27,12 +46,14 @@ Desde el clon de este repo:
 
 ```powershell
 New-Item -ItemType Directory -Force -Path "$env:LOCALAPPDATA\cursor-memory\bin" | Out-Null
-go build -o "$env:LOCALAPPDATA\cursor-memory\bin\obsidian-memoryd.exe" ./cmd/obsidian-memoryd
+go build -ldflags="-H windowsgui" -o "$env:LOCALAPPDATA\cursor-memory\bin\obsidian-memoryd.exe" ./cmd/obsidian-memoryd
 ```
+
+`-H windowsgui` evita que **obsidian-memoryd** abra consola propia al arrancar desde el Programador de tareas.
 
 ### Tarea al inicio de sesión
 
-Tarea **`CursorObsidianMemorydWatch`** ejecutando `scripts\windows\Start-ObsidianMemorydWatch.ps1` del vault (mismo patrón que el MCP HTTP).
+Tarea **`CursorObsidianMemorydWatch`** con **`wscript.exe //nologo Run-Hidden.vbs Start-ObsidianMemorydWatch.ps1`** (mismo patrón que `basic-memory` HTTP).
 
 Si notas **demasiados** commits automáticos, desactiva la tarea de 10 min **o** el `watch`, y deja solo una estrategia.
 
