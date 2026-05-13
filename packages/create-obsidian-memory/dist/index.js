@@ -49,6 +49,17 @@ function dryRunFromArgs() {
   return process.argv.includes("--dry-run");
 }
 
+function nonInteractiveFromArgs() {
+  return process.argv.includes("--non-interactive") || process.argv.includes("--yes");
+}
+
+/** @param {string[]} argv */
+function flagValue(argv, name) {
+  const i = argv.indexOf(name);
+  if (i >= 0 && i + 1 < argv.length) return argv[i + 1];
+  return null;
+}
+
 async function findVault(cwd, home) {
   let cur = cwd;
   for (let i = 0; i < 6; i++) {
@@ -131,13 +142,74 @@ async function writeCursorMcp(home, vaultAbs, dryRun) {
   console.log(pc.green("Wrote"), fp);
 }
 
-async function main() {
-  if (process.argv.includes("--help")) {
-    console.log(`Usage: create-obsidian-memory [--lang en] [--dry-run]
+/**
+ * Headless / CI path: no prompts. Requires --vault.
+ * @param {string[]} argv
+ */
+async function runNonInteractive(argv) {
+  const cwd = process.cwd();
+  const home = process.env.HOME || process.env.USERPROFILE || cwd;
+  const lang = langFromArgs();
+  const dryRun = dryRunFromArgs();
+  const t = messages[lang];
+  const vaultRaw = flagValue(argv, "--vault");
+  if (!vaultRaw) {
+    console.error(pc.red("--vault <path> is required with --non-interactive"));
+    process.exit(2);
+  }
+  const vault = path.resolve(cwd, vaultRaw);
+  if (!(await fse.pathExists(vault))) {
+    console.error(pc.red("Vault path does not exist:"), vault);
+    process.exit(2);
+  }
+  const noCursorMcp = argv.includes("--no-cursor-mcp");
+  const noGitInit = argv.includes("--no-git-init");
 
-  --lang en    English prompts
-  --dry-run    Show merged Cursor mcp.json only (no write)
-  --help       This message`);
+  console.log(pc.cyan(t.title), pc.dim("non-interactive"));
+
+  const mcpSnippet = {
+    command: "uvx",
+    args: ["basic-memory", "mcp"],
+    env: { BASIC_MEMORY_HOME: vault },
+  };
+
+  if (!noCursorMcp) {
+    await writeCursorMcp(home, vault, dryRun);
+  } else {
+    console.log(pc.dim("Skipped Cursor mcp.json (--no-cursor-mcp)"));
+  }
+
+  if (!noGitInit && !(await fse.pathExists(path.join(vault, ".git")))) {
+    await execa("git", ["init"], { cwd: vault, stdio: "inherit" });
+  }
+
+  console.log(pc.green("\n" + t.summary));
+  console.log("- Vault:", vault);
+  console.log("- MCP:", JSON.stringify(mcpSnippet));
+  console.log("-", t.ftsHint);
+}
+
+async function main() {
+  const argv = process.argv;
+  if (argv.includes("--help")) {
+    console.log(`Usage: create-obsidian-memory [options]
+
+Interactive (default):
+  --lang en       English prompts
+  --dry-run       Show merged Cursor mcp.json only (no write)
+
+Non-interactive (CI / scripts):
+  --non-interactive | --yes
+  --vault <path>  Absolute or cwd-relative vault root (required)
+  --no-cursor-mcp Skip writing ~/.cursor/mcp.json
+  --no-git-init   Skip git init when .git is missing
+
+  --help          This message`);
+    return;
+  }
+
+  if (nonInteractiveFromArgs()) {
+    await runNonInteractive(argv);
     return;
   }
 
