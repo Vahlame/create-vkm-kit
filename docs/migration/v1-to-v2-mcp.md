@@ -22,7 +22,9 @@ v1 used the Node package `@smith-and-web/obsidian-mcp-server` with **SSE** on `h
 ## New / emphasized in v2
 
 - **`build_context`** and **`recent_activity`** as first-class “agent context” helpers.
-- Optional **local lexical retrieval**: CLI **`obsidian-memory-rag`** (`index` / `search` / `bench`, SQLite FTS5). A dedicated MCP tool for hybrid search may be added later; today agents call the CLI or rely on `basic-memory` `search_notes`.
+- Optional **local lexical retrieval**:
+  - CLI **`obsidian-memory-rag`** (`index` / `search` / `bench`, SQLite FTS5).
+  - MCP **`obsidian-memory-hybrid`** (`packages/obsidian-memory-mcp/src/hybrid-mcp.mjs`): tools **`vault_fts_index`** and **`vault_fts_search`** (BM25 JSON via Python). Sample config: `config/mcp/obsidian-memory-hybrid.json` (set `<REPO_ROOT>` + `PYTHONPATH` or `pip install -e ./packages/obsidian-memory-rag` so `python -m obsidian_memory_rag` resolves).
 
 ## v1 “final checklist” vs v2
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import statistics
 import time
 from pathlib import Path
@@ -34,6 +35,25 @@ def main() -> None:
     b.add_argument("--query", default="memory")
     b.add_argument("--iterations", type=int, default=200)
     b.add_argument("--limit", type=int, default=10)
+
+    js = sub.add_parser(
+        "json-search",
+        help="Print BM25 hits as one JSON object (for MCP / scripting)",
+    )
+    js.add_argument("--vault", type=Path, required=True)
+    js.add_argument("--query", required=True)
+    js.add_argument("--limit", type=int, default=20)
+
+    ji = sub.add_parser(
+        "json-index",
+        help="Run incremental index; print stats as one JSON object",
+    )
+    ji.add_argument("--vault", type=Path, required=True)
+    ji.add_argument(
+        "--max-file-bytes",
+        type=int,
+        default=1_048_576,
+    )
 
     args = p.parse_args()
     if args.cmd == "index":
@@ -70,6 +90,37 @@ def main() -> None:
         p95 = lat[int(0.95 * (len(lat) - 1))]
         print(f"iterations={args.iterations} query={args.query!r} limit={args.limit}")
         print(f"latency_ms p50={p50:.3f} p95={p95:.3f} min={lat[0]:.3f} max={lat[-1]:.3f}")
+    elif args.cmd == "json-search":
+        hits = search_vault(args.vault, args.query, limit=args.limit)
+        payload = {
+            "hits": [
+                {
+                    "path": h.path,
+                    "title": h.title,
+                    "snippet": h.snippet,
+                    "bm25": h.bm25,
+                    "mtime_ns": h.mtime_ns,
+                }
+                for h in hits
+            ],
+            "count": len(hits),
+        }
+        print(json.dumps(payload, ensure_ascii=False))
+    elif args.cmd == "json-index":
+        stats = index_vault(args.vault, max_file_bytes=args.max_file_bytes)
+        print(
+            json.dumps(
+                {
+                    "scanned": stats.scanned,
+                    "inserted": stats.inserted,
+                    "updated": stats.updated,
+                    "skipped_unchanged": stats.skipped_unchanged,
+                    "removed": stats.removed,
+                    "truncated": stats.truncated,
+                },
+                ensure_ascii=False,
+            )
+        )
 
 
 if __name__ == "__main__":

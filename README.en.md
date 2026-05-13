@@ -6,7 +6,7 @@
 
 > Languages: [Español](./README.md) | **English**
 
-v2 is **cross-platform** (Windows/Linux/macOS) and **IDE-agnostic**. Canonical agent instructions live in `AGENTS.md` (with symlinks for Claude Code / Copilot / Cline where supported). The MCP default is **`basic-memory`** via `uvx`; optional live Obsidian I/O uses `config/mcp/obsidian-live.json`.
+v2 is **cross-platform** (Windows/Linux/macOS) and **IDE-agnostic**. Canonical agent instructions live in `AGENTS.md` (with symlinks for Claude Code / Copilot / Cline where supported). The MCP default is **`basic-memory`** via `uvx`; optional live Obsidian I/O uses `config/mcp/obsidian-live.json`. Optional **FTS5 hybrid** MCP: `config/mcp/obsidian-memory-hybrid.json` (`vault_fts_search` / `vault_fts_index`).
 
 ## Quick install
 
@@ -14,7 +14,7 @@ v2 is **cross-platform** (Windows/Linux/macOS) and **IDE-agnostic**. Canonical a
 2. Merge `config/mcp/basic-memory.json` into your IDE MCP config; replace `<VAULT_PATH>`.
 3. Run `uvx basic-memory mcp` and verify tools (see `docs/testing/manual-checks.md`).
 4. Optional: build `obsidian-memoryd` (`go build ./cmd/obsidian-memoryd`) for debounced git sync.
-5. Optional (large vaults): `pip install -e ./packages/obsidian-memory-rag` then `obsidian-memory-rag index --vault <path>` for local **FTS5** search (`search` / `bench`).
+5. Optional (large vaults): `pip install -e ./packages/obsidian-memory-rag` then `obsidian-memory-rag index --vault <path>` for local **FTS5** search (`search` / `bench`). Optional hybrid MCP for the same index inside the IDE: `config/mcp/obsidian-memory-hybrid.json`.
 
 Guided flow: `npx @vahlame/create-obsidian-memory@next` (merges **`basic-memory`** into Cursor `~/.cursor/mcp.json` when selected; use `--dry-run` to preview). Headless: `npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault <path> [--dry-run]`.
 

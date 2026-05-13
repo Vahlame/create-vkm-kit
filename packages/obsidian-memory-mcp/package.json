@@ -1,17 +1,24 @@
 {
   "name": "@vahlame/obsidian-memory-mcp",
-  "version": "2.0.0-beta.1",
+  "version": "2.0.0-beta.2",
   "private": true,
   "type": "module",
+  "bin": {
+    "obsidian-memory-hybrid-mcp": "./src/hybrid-mcp.mjs"
+  },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "start:hybrid": "node ./src/hybrid-mcp.mjs"
   },
   "dependencies": {
-    "pino": "^9.5.0"
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "execa": "^9.5.2",
+    "pino": "^9.5.0",
+    "zod": "^3.25.76"
   },
   "optionalDependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/sdk-node": "^0.57.0",
-    "@opentelemetry/exporter-trace-otlp-http": "^0.57.0"
+    "@opentelemetry/exporter-trace-otlp-http": "^0.57.0",
+    "@opentelemetry/sdk-node": "^0.57.0"
   }
 }

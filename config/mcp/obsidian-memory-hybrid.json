@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "obsidian-memory-hybrid": {
+      "command": "node",
+      "args": ["<REPO_ROOT>/packages/obsidian-memory-mcp/src/hybrid-mcp.mjs"],
+      "env": {
+        "BASIC_MEMORY_HOME": "<VAULT_PATH>",
+        "PYTHONPATH": "<REPO_ROOT>/packages/obsidian-memory-rag/src"
+      }
+    }
+  }
+}

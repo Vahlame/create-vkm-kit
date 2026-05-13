@@ -17,7 +17,7 @@ Los modelos no recuerdan entre sesiones. Externalizar memoria en **Markdown vers
 2. Copia `config/mcp/basic-memory.json` a tu `mcp.json` del IDE y reemplaza `<VAULT_PATH>`.
 3. Ejecuta `uvx basic-memory mcp` (Inspector: ver `docs/testing/manual-checks.md`).
 4. (Opcional) `go build -o obsidian-memoryd ./cmd/obsidian-memoryd` y `obsidian-memoryd watch`.
-5. (Opcional, bóvedas grandes) `pip install -e ./packages/obsidian-memory-rag` y `obsidian-memory-rag index --vault <ruta>` para búsqueda **FTS5** local (`search` / `bench`).
+5. (Opcional, bóvedas grandes) `pip install -e ./packages/obsidian-memory-rag` y `obsidian-memory-rag index --vault <ruta>` para búsqueda **FTS5** local (`search` / `bench`). MCP híbrido en IDE: `config/mcp/obsidian-memory-hybrid.json` (`vault_fts_search` / `vault_fts_index`).
 
 Flujo guiado: `npx @vahlame/create-obsidian-memory@next` (fusiona **`basic-memory`** en `~/.cursor/mcp.json` de Cursor si lo eliges; usa `--dry-run` para ver el JSON sin escribir). En CI/scripts: `npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault <ruta> [--dry-run]`.
 
@@ -39,7 +39,7 @@ Flujo guiado: `npx @vahlame/create-obsidian-memory@next` (fusiona **`basic-memor
                                   +------------------+
 
  opcional: obsidian-memoryd (fsnotify + git sync)
- opcional: obsidian-memory-rag (FTS5 + sqlite-vec)
+ opcional: obsidian-memory-rag (FTS5) + MCP híbrido `obsidian-memory-hybrid` (vault_fts_search / vault_fts_index)
 ```
 
 ## Casos de uso

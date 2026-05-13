@@ -6,4 +6,8 @@ Optional **SQLite FTS5** sidecar for Markdown vaults (ADR-0014). Complements `ba
 - **Search:** `obsidian-memory-rag search --vault … "token1 token2"` (AND on `body`, conservative token sanitization).
 - **Bench:** `obsidian-memory-rag bench --vault … --iterations 200 --query "memory"`.
 
+## MCP bridge (IDE)
+
+After `pip install -e .`, add **`obsidian-memory-hybrid`** (`obsidian-memory-hybrid-mcp` bin or `node …/hybrid-mcp.mjs`) to your MCP config — tools **`vault_fts_index`** and **`vault_fts_search`**. See `config/mcp/obsidian-memory-hybrid.json` in this repo.
+
 **sqlite-vec** / hybrid RRF from ADR-0014 is not wired in this build; FTS5 stays dependency-free (stdlib only). Vector KNN can be added as an optional extra when packaging story is ready.
