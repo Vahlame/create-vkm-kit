@@ -66,4 +66,5 @@ test("non-interactive creates vault .vscode/settings.json when missing (Git tuni
   const j = JSON.parse(fs.readFileSync(fp, "utf8"));
   assert.equal(j["git.autorefresh"], false);
   assert.equal(j["git.autofetch"], false);
+  assert.equal(j["npm.autoDetect"], "off");
 });

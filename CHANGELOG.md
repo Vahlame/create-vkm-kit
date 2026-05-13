@@ -32,6 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **`docs/cursor-memory-setup.md`** / **`docs/cursor-memory-setup.en.md`**: end-to-end Cursor guide (vault vs MCP vs User Rules, verification, ready-to-paste User Rules for `basic-memory` + optional hybrid).
 - **ADR-0016:** puerto localhost por defecto **8765** para `basic-memory` Streamable HTTP (evitar colisiones con 8000/8080/3000).
 - **`.vscode/settings.json`** (repo root) and **`examples/.vscode/settings.json`**: workspace defaults that reduce Git/`conhost` churn on Windows when the folder is opened in Cursor or VS Code.
+- **`docs/setup/windows-sin-consola-visible.md`** / **`.en.md`**: checklist (workspace, tasks, MCP, limits) + **`scripts/windows/Get-CursorScheduledTaskConsoleRisk.ps1`** to audit `Cursor*` tasks.
 
 ### Fixed
 
@@ -42,7 +43,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - **Onboarding v2-only:** `README.md` / `README.en.md` and `GETTING_STARTED*.md` no longer link migration paths; stubs `PROMPT_ULTRA_COMPLETO.{linux,macos}.md` point only at v2 entrypoints. `docs/README.md` and `docs/legacy/README.md` reframed as v2 index + maintainer archive. `AGENTS.md` references updated; `docs/troubleshooting.md` links [`tools/monitor-console-live.ps1`](./tools/monitor-console-live.ps1) for console-flash diagnosis.
-- **`docs/troubleshooting.md`:** causa “`conhost` cada pocos segundos, padre `git`” + prevención vía `.vscode/settings.json` (repo, `examples/`, inicializador).
+- **`docs/troubleshooting.md`:** enlace a guía Windows sin consola visible; ajustes de workspace Git/SCM más estrictos en `.vscode/settings.json` y plantilla del inicializador.
 - **`CONTRIBUTING.md`:** nota sobre defaults de workspace Git.
 - **Puerto por defecto Streamable HTTP `basic-memory`:** de **8000** a **8765** en plantilla `config/mcp/basic-memory-streamable-http.json`, `scripts/windows/Start-BasicMemoryMcp.ps1`, guías Windows, smoke tests y enlaces README; criterio documentado en **ADR-0016** (evitar choque con otras apps en 8000/8080/3000; futuros servicios: puerto alto libre + misma cifra en script y `mcp.json`).
 - **Onboarding Cursor:** `docs/cursor-memory-setup*.md` — tabla “flujo recomendado”, Paso 1 con **stdio vs URL** (`fetch failed` enlazado a troubleshooting + guía always-on); bloque **User Rules** ampliado (`memory://` vs vault, stdio vs URL HTTP, ruido stderr). `README*.md` — pasos 4–7 (smoke Windows, autosync). `how-memory-works-simple*.md` — distinción `memory://`. `docs/troubleshooting.md` — entradas `streamableHttp` / `fetch failed` y toast `memory://`. `AGENTS.md` (autogen) — transporte HTTP opcional en `.agents/rules/00-stack.md`.

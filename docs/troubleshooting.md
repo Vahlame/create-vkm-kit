@@ -155,6 +155,7 @@ Close and reopen the terminal (or Cursor) so `uvx` resolves. Verify with `uv --v
 - **Causa:** Algo (casi siempre el **control de código fuente del IDE** o una extensión tipo **GitLens**) lanza **`git.exe`** en bucle (`status`, diffs, etc.). En Windows muchas invocaciones crean **`conhost.exe`** como hijo de **`git`**. Si en la línea *baseline* del script ves **decenas** de `conhost` (p. ej. 50+), suele haber **muchas ventanas del IDE**, **muchos roots abiertos**, o procesos que no se cierran bien.
 - **Qué hacer:** Abre el repo/vault como **carpeta raíz** para que cargue `.vscode/settings.json`. Si ya tienes `settings.json` propio, copia las claves `git.*` y `files.watcherExclude` desde [`examples/.vscode/settings.json`](../examples/.vscode/settings.json). Revisa extensiones Git pesadas y **cierra** ventanas duplicadas del mismo repo.
 - **Confirmación:** En el log del script, líneas `+ conhost ... parent=... (git)` cada ~2–5 s mientras el fallo ocurre.
+- **Guía completa (Windows):** [`docs/setup/windows-sin-consola-visible.md`](./setup/windows-sin-consola-visible.md) (IDE + tareas + MCP + límite honesto).
 
 ### `npx -y mcp-remote` is very slow the first time
 

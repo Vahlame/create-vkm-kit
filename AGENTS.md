@@ -96,6 +96,7 @@ Use a private git vault (example layout in `examples/`):
 ## References
 
 - `docs/setup/windows-scheduled-vault-sync.md` / `.en.md` — tarea programada Windows para `git pull/push` del vault en intervalos (sin Go).
+- `docs/setup/windows-sin-consola-visible.md` / `.en.md` — ventanas CMD/conhost: workspace, tareas `Cursor*`, MCP, límites.
 - `docs/setup/windows-basic-memory-always-on.md` / `.en.md` — MCP `basic-memory` persistente (Streamable HTTP + tarea al inicio de sesión).
 - `docs/adr/0016-localhost-mcp-default-port.md` — puerto por defecto **8765** vs colisiones en **8000**.
 - `GETTING_STARTED.md` / `GETTING_STARTED.en.md` — linear first-time path (table of steps).

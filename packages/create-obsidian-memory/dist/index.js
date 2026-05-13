@@ -15,6 +15,12 @@ const VAULT_VSCODE_GIT_SETTINGS = {
   "git.autoRepositoryDetection": false,
   "git.autorefresh": false,
   "git.autofetch": false,
+  "git.decorations.enabled": false,
+  "git.timeline.enabled": false,
+  "git.blame.editorDecoration.enabled": false,
+  "git.blame.statusBarItem.enabled": false,
+  "git.showProgress": false,
+  "npm.autoDetect": "off",
   "files.watcherExclude": {
     "**/node_modules/**": true,
     "**/bin/**": true,
@@ -26,6 +32,9 @@ const VAULT_VSCODE_GIT_SETTINGS = {
     "**/.venv/**": true,
     "**/__pycache__/**": true,
     "**/.obsidian/**": true,
+    "**/go.work.sum": true,
+    "**/.git/objects/**": true,
+    "**/.git/lfs/**": true,
   },
 };
 
