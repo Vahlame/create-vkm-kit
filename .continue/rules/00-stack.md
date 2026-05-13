@@ -2,7 +2,8 @@
 
 - **Languages:** Markdown (vault + docs), TypeScript (tooling), Go 1.22+ (`obsidian-memoryd`), Python 3.11+ (optional RAG).
 - **Runtimes:** Node 20+, Bun or `npx tsx` for maintainer scripts; `uv` for `basic-memory`.
-- **Primary MCP:** `uvx basic-memory mcp` with `BASIC_MEMORY_HOME=<vault>`.
+- **Primary MCP:** `uvx basic-memory mcp` with `BASIC_MEMORY_HOME=<vault>` (**stdio** in `mcp.json`; recommended default).
+- **Optional transport:** Streamable HTTP URL for `basic-memory` (e.g. `http://127.0.0.1:8000/mcp`) requires a **separate always-on listener** (Windows task pattern in `docs/setup/windows-basic-memory-always-on.md`); see `config/mcp/basic-memory-streamable-http.json`.
 - **Optional MCP (FTS5 hybrid):** `node packages/obsidian-memory-mcp/src/hybrid-mcp.mjs` — tools `vault_fts_search` / `vault_fts_index` (Python `obsidian-memory-rag`); see `config/mcp/obsidian-memory-hybrid.json`.
 - **Optional MCP (Obsidian live I/O):** `cyanheads/obsidian-mcp-server` (Streamable HTTP `/mcp`) with path allowlists.
 - **Bridge (legacy clients):** `mcp-remote` pinned **>= 0.1.16** (see `docs/security/mcp-remote-rce.md`).

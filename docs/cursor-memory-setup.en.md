@@ -4,6 +4,17 @@
 
 This guide ties together README, `AGENTS.md`, v1→v2 migration, and the legacy prompt. **Goal:** clarity on _what_ to configure, _where_, and _why_.
 
+## Recommended flow (at a glance)
+
+| Step | What you do                                            | Where                                                                                                                                                                                                                                                                          |
+| ---- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1    | Linear step table                                      | [`GETTING_STARTED.en.md`](../GETTING_STARTED.en.md)                                                                                                                                                                                                                            |
+| 2    | Mental model: vault / MCP / User Rules                 | [`how-memory-works-simple.en.md`](./how-memory-works-simple.en.md)                                                                                                                                                                                                             |
+| 3    | Merge `mcp.json` for your vault (fast) or edit by hand | [Step 4](#step-4-headless-merge-into-mcpjson) and [`../config/mcp/`](../config/mcp/)                                                                                                                                                                                           |
+| 4    | MCP + verify tools + **User Rules**                    | [Steps 1–3](#step-1-configure-mcp-in-cursor) in this guide                                                                                                                                                                                                                     |
+| 5    | Inspector and checks                                   | [`testing/manual-checks.md`](./testing/manual-checks.md)                                                                                                                                                                                                                       |
+| 6    | (Windows only) Git autosync, always-on HTTP MCP, smoke | [`setup/windows-scheduled-vault-sync.en.md`](./setup/windows-scheduled-vault-sync.en.md), [`setup/windows-basic-memory-always-on.en.md`](./setup/windows-basic-memory-always-on.en.md), [`testing/windows-memory-sync-smoke.en.md`](./testing/windows-memory-sync-smoke.en.md) |
+
 ## Three layers (why one is not enough)
 
 | Layer             | What it is                                                                                                  | Why it matters                                                                                                                   |
@@ -48,7 +59,12 @@ The hybrid runs `python -m obsidian_memory_rag …`. If the module does not reso
 
 **File (Windows):** `%USERPROFILE%\.cursor\mcp.json`. Other OS: follow Cursor’s documented path.
 
-### `basic-memory` only (minimum recommended)
+### How Cursor reaches `basic-memory`: stdio vs URL
+
+- **stdio (default recommendation):** `mcp.json` uses `command` + `args` (`uvx basic-memory mcp`) and `env.BASIC_MEMORY_HOME`. Cursor **spawns** the process when needed; no local port required.
+- **URL / Streamable HTTP (optional, mainly Windows “always on”):** the entry is only `"url": "http://127.0.0.1:8000/mcp"` (see `config/mcp/basic-memory-streamable-http.json`). A process must be **listening before** Cursor connects (e.g. `CursorBasicMemoryHttpMcp`). If not, MCP logs show `fetch failed` / `streamableHttp`; see [`docs/troubleshooting.md`](./troubleshooting.md) and [`docs/setup/windows-basic-memory-always-on.en.md`](./setup/windows-basic-memory-always-on.en.md).
+
+### `basic-memory` over stdio (minimum recommended)
 
 Copy `config/mcp/basic-memory.json` and replace `<VAULT_PATH>` with the **absolute** vault root (JSON on Windows: `\\` or `/`).
 
@@ -75,6 +91,17 @@ If `uvx` fails, it is usually **missing uv** or **PATH not refreshed**; see `doc
 ## Markdown memory (vault + MCP v2)
 
 **Why:** the model does not persist across chats; a git-backed vault is yours, auditable, and portable.
+
+### Not the same as Cursor’s built-in memory
+
+- **`memory://...` resources** (toasts or links) are **native / virtual IDE memory**, not files in your vault.
+- This flow lives in **Markdown on disk** only through **vault MCP tools** (`read_note`, `write_note`, …). To read or change a vault note, use those tools; do not treat `memory://` as the vault.
+
+### How `basic-memory` is wired (stdio vs URL)
+
+- If `mcp.json` uses **`command` + `uvx`** for `basic-memory`, that is **stdio**: Cursor starts the server; port 8000 is not required.
+- If the **`basic-memory` entry is only `"url"`** (e.g. `http://127.0.0.1:8000/mcp`), an **HTTP server must already be running** (e.g. `CursorBasicMemoryHttpMcp` on Windows). With nothing on port 8000 you get `fetch failed` in MCP logs.
+- ASCII banners or `undefined` lines on server stderr are often **startup noise**; what matters is listed tools and a working MCP panel.
 
 ### MCP availability
 
@@ -127,13 +154,13 @@ Merges the `basic-memory` entry without wiping other servers (UTF-8 BOM on `mcp.
 
 ## Read next
 
-| Topic                                  | Doc                              |
-| -------------------------------------- | -------------------------------- |
-| v1 → v2 tool mapping                   | `docs/migration/v1-to-v2-mcp.md` |
-| Manual checks (Inspector, FTS, hybrid) | `docs/testing/manual-checks.md`  |
-| Common errors                          | `docs/troubleshooting.md`        |
-| Generic agent protocol                 | `AGENTS.md` (Memory protocol)    |
-| Example vault layout                   | `examples/`                      |
+| Topic                                                         | Doc                              |
+| ------------------------------------------------------------- | -------------------------------- |
+| v1 → v2 tool mapping                                          | `docs/migration/v1-to-v2-mcp.md` |
+| Manual checks (Inspector, FTS, hybrid)                        | `docs/testing/manual-checks.md`  |
+| Common errors (uv, BOM, red MCP, `fetch failed`, `memory://`) | `docs/troubleshooting.md`        |
+| Generic agent protocol                                        | `AGENTS.md` (Memory protocol)    |
+| Example vault layout                                          | `examples/`                      |
 
 ## One-line summary
 
