@@ -65,7 +65,7 @@ Use a private git vault (example layout in `examples/`):
 - **Languages:** Markdown (vault + docs), TypeScript (tooling), Go 1.22+ (`obsidian-memoryd`), Python 3.11+ (optional RAG).
 - **Runtimes:** Node 20+, Bun or `npx tsx` for maintainer scripts; `uv` for `basic-memory`.
 - **Primary MCP:** `uvx basic-memory mcp` with `BASIC_MEMORY_HOME=<vault>` (**stdio** in `mcp.json`; recommended default).
-- **Optional transport:** Streamable HTTP URL for `basic-memory` (e.g. `http://127.0.0.1:8000/mcp`) requires a **separate always-on listener** (Windows task pattern in `docs/setup/windows-basic-memory-always-on.md`); see `config/mcp/basic-memory-streamable-http.json`.
+- **Optional transport:** Streamable HTTP URL for `basic-memory` (e.g. `http://127.0.0.1:8765/mcp`) requires a **separate always-on listener** (Windows task pattern in `docs/setup/windows-basic-memory-always-on.md`); see `config/mcp/basic-memory-streamable-http.json`. Default port **8765** avoids collisions with common dev servers on **8000** / **8080** / **3000** (see ADR-0016).
 - **Optional MCP (FTS5 hybrid):** `node packages/obsidian-memory-mcp/src/hybrid-mcp.mjs` — tools `vault_fts_search` / `vault_fts_index` (Python `obsidian-memory-rag`); see `config/mcp/obsidian-memory-hybrid.json`.
 - **Optional MCP (Obsidian live I/O):** `cyanheads/obsidian-mcp-server` (Streamable HTTP `/mcp`) with path allowlists.
 - **Bridge (legacy clients):** `mcp-remote` pinned **>= 0.1.16** (see `docs/security/mcp-remote-rce.md`).
@@ -97,6 +97,7 @@ Use a private git vault (example layout in `examples/`):
 
 - `docs/setup/windows-scheduled-vault-sync.md` / `.en.md` — tarea programada Windows para `git pull/push` del vault en intervalos (sin Go).
 - `docs/setup/windows-basic-memory-always-on.md` / `.en.md` — MCP `basic-memory` persistente (Streamable HTTP + tarea al inicio de sesión).
+- `docs/adr/0016-localhost-mcp-default-port.md` — puerto por defecto **8765** vs colisiones en **8000**.
 - `GETTING_STARTED.md` / `GETTING_STARTED.en.md` — linear first-time path (table of steps).
 - `docs/how-memory-works-simple.md` / `docs/how-memory-works-simple.en.md` — plain-language mental model (vault / MCP / rules).
 - `docs/migration/v1-prompt-closure.md` — v1 ultra-prompt deliverables → v2 public kit.

@@ -1,11 +1,12 @@
 # Long-running basic-memory MCP (Streamable HTTP) for Cursor.
-# In Cursor `mcp.json` use: "url": "http://127.0.0.1:8000/mcp"
-# Idempotent: if port 8000 is already listening, exits 0.
+# In Cursor `mcp.json` use the same host/port/path, e.g.: "url": "http://127.0.0.1:8765/mcp"
+# Default 8765: port 8000 is often taken by other dev apps; pick any free port and keep script + mcp.json in sync.
+# Idempotent: if this port is already listening, exits 0 (assumes MCP is already there).
 
 param(
     [string]$VaultPath = "$HOME\Documents\cursor-memory-vault",
     [string]$ListenHost = "127.0.0.1",
-    [int]$Port = 8000,
+    [int]$Port = 8765,
     [string]$PathPrefix = "/mcp"
 )
 

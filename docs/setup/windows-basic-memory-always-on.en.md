@@ -9,7 +9,7 @@ This guide is the **persistent HTTP** option (“always on”).
 1. **uv** (for `uvx basic-memory`).
 2. **`Start-BasicMemoryMcp.ps1`** (vault copy under `scripts/windows/`; canonical copy in this repo: `scripts/windows/Start-BasicMemoryMcp.ps1`).
 3. Scheduled task **`CursorBasicMemoryHttpMcp` at logon**: runs the script hidden; if the process dies, Task Scheduler can **retry** (`RestartCount` / `RestartInterval`).
-4. **`%USERPROFILE%\.cursor\mcp.json`**: `basic-memory` entry with `"url": "http://127.0.0.1:8000/mcp"` (no `command`/`uvx` for that server).
+4. **`%USERPROFILE%\.cursor\mcp.json`**: `basic-memory` entry with `"url": "http://127.0.0.1:8765/mcp"` (no `command`/`uvx` for that server). The **port must match** the script default (**8765**) or your `-Port` override.
 
 The server reads **`BASIC_MEMORY_HOME`** from the script (vault path). Cursor only uses HTTP; it does not need the vault path in `mcp.json` for `basic-memory`.
 
@@ -59,19 +59,21 @@ If you see **too many** auto-commits, disable either the 10-minute task **or** `
 
 ## Ports and safety
 
-Default bind: **`127.0.0.1:8000`** (local only). Do not expose this port without TLS and authentication.
+The script defaults to **`127.0.0.1:8765`** (local only). **Why not 8000:** many dev stacks (APIs, other MCPs, internal tools) grab **8000**, **8080**, or **3000**; if something else is bound, Cursor may show `fetch failed` even when the TCP port “answers”. For **new apps** on the same machine, pick a high free port (e.g. **8765–8899**), use the **same** value in `Start-BasicMemoryMcp.ps1` (`-Port`) and `mcp.json` (`url`), and document it in the project runbook.
+
+Do not expose the listener to the LAN without TLS and authentication.
 
 ## Verify
 
 ```powershell
-Test-NetConnection 127.0.0.1 -Port 8000
+Test-NetConnection 127.0.0.1 -Port 8765
 ```
 
 In Cursor: **Settings → MCP** → `basic-memory` green. After editing `mcp.json`, **restart Cursor**.
 
 ## Remove / troubleshoot
 
-- Stop listener: find PID with `Get-NetTCPConnection -LocalPort 8000`, then `Stop-Process` carefully.
+- Stop listener: find PID with `Get-NetTCPConnection -LocalPort 8765`, then `Stop-Process` carefully.
 - Remove task: `Unregister-ScheduledTask -TaskName CursorBasicMemoryHttpMcp -Confirm:$false`
 - Back to stdio: restore `config/mcp/basic-memory.json` style entry and remove the HTTP task.
 

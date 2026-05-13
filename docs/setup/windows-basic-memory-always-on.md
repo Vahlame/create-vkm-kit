@@ -9,7 +9,7 @@ Esta guía describe la opción **HTTP persistente** (recomendada si quieres “s
 1. **uv** (ya lo usas para `uvx basic-memory`).
 2. Script **`Start-BasicMemoryMcp.ps1`** (en el vault: `scripts/windows/`, copia canónica en este repo: `scripts/windows/Start-BasicMemoryMcp.ps1`).
 3. Tarea programada **`CursorBasicMemoryHttpMcp`** al **inicio de sesión**: ejecuta el script en segundo plano; si el proceso muere, el Programador puede **reintentar** (configuración `RestartCount` / `RestartInterval`).
-4. **`%USERPROFILE%\.cursor\mcp.json`**: entrada `basic-memory` con `"url": "http://127.0.0.1:8000/mcp"` (sin `command`/`uvx` para ese servidor).
+4. **`%USERPROFILE%\.cursor\mcp.json`**: entrada `basic-memory` con `"url": "http://127.0.0.1:8765/mcp"` (sin `command`/`uvx` para ese servidor). El **puerto debe coincidir** con el del script (por defecto **8765**).
 
 El servidor usa **`BASIC_MEMORY_HOME`** dentro del script (ruta del vault). Cursor solo habla HTTP; no necesita repetir el path del vault en `mcp.json` para `basic-memory`.
 
@@ -59,19 +59,21 @@ Si notas **demasiados** commits automáticos, desactiva la tarea de 10 min **o**
 
 ## Puertos y seguridad
 
-Por defecto escucha en **`127.0.0.1:8000`** (solo esta máquina). No expongas ese puerto a la red sin TLS y auth.
+Por defecto el script usa **`127.0.0.1:8765`** (solo esta máquina). **Por qué no 8000:** muchas apps de desarrollo (APIs, otros MCP, herramientas internas) suelen ocupar **8000**, **8080** o **3000**; si otra cosa escucha ahí, Cursor puede mostrar `fetch failed` aunque “el puerto responda”. Para **nuevas apps** en la misma máquina, elige un puerto alto libre (p. ej. **8765–8899**), úsalo **igual** en `Start-BasicMemoryMcp.ps1` (`-Port`) y en `mcp.json` (`url`), y documenta el valor en el runbook del proyecto.
+
+No expongas el listener a la red sin TLS y autenticación.
 
 ## Comprobar
 
 ```powershell
-Test-NetConnection 127.0.0.1 -Port 8000
+Test-NetConnection 127.0.0.1 -Port 8765
 ```
 
 En Cursor: **Settings → MCP** → `basic-memory` en verde. Si cambiaste `mcp.json`, **reinicia Cursor**.
 
 ## Quitar / depurar
 
-- Detener proceso: `Get-NetTCPConnection -LocalPort 8000` → `Stop-Process -Id …` con cuidado.
+- Detener proceso: `Get-NetTCPConnection -LocalPort 8765` → `Stop-Process -Id …` con cuidado.
 - Quitar tarea: `Unregister-ScheduledTask -TaskName CursorBasicMemoryHttpMcp -Confirm:$false`
 - Volver a stdio: restaura en `mcp.json` el bloque de `config/mcp/basic-memory.json` y quita la tarea HTTP.
 

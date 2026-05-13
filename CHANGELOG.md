@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **`docs/setup/windows-scheduled-vault-sync.md`** / **`.en.md`**: tarea programada Windows (`CursorMemoryVaultSync`) para sincronizar el vault con `git` cada N minutos sin Go.
 - **`docs/setup/windows-basic-memory-always-on.md`** / **`.en.md`**: MCP `basic-memory` persistente (Streamable HTTP + tarea `CursorBasicMemoryHttpMcp`); script `scripts/windows/Start-BasicMemoryMcp.ps1`; plantilla `config/mcp/basic-memory-streamable-http.json`.
 - **`docs/cursor-memory-setup.md`** / **`docs/cursor-memory-setup.en.md`**: end-to-end Cursor guide (vault vs MCP vs User Rules, verification, ready-to-paste User Rules for `basic-memory` + optional hybrid).
+- **ADR-0016:** puerto localhost por defecto **8765** para `basic-memory` Streamable HTTP (evitar colisiones con 8000/8080/3000).
 
 ### Fixed
 
@@ -39,7 +40,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- **Onboarding Cursor:** `docs/cursor-memory-setup*.md` — tabla “flujo recomendado”, Paso 1 con **stdio vs URL** (`fetch failed` enlazado a troubleshooting + guía always-on); bloque **User Rules** ampliado (`memory://` vs vault, stdio vs puerto 8000, ruido stderr). `README*.md` — pasos 4–7 (smoke Windows, autosync). `how-memory-works-simple*.md` — distinción `memory://`. `docs/troubleshooting.md` — entradas `streamableHttp` / `fetch failed` y toast `memory://`. `AGENTS.md` (autogen) — transporte HTTP opcional en `.agents/rules/00-stack.md`.
+- **Puerto por defecto Streamable HTTP `basic-memory`:** de **8000** a **8765** en plantilla `config/mcp/basic-memory-streamable-http.json`, `scripts/windows/Start-BasicMemoryMcp.ps1`, guías Windows, smoke tests y enlaces README; criterio documentado en **ADR-0016** (evitar choque con otras apps en 8000/8080/3000; futuros servicios: puerto alto libre + misma cifra en script y `mcp.json`).
+- **Onboarding Cursor:** `docs/cursor-memory-setup*.md` — tabla “flujo recomendado”, Paso 1 con **stdio vs URL** (`fetch failed` enlazado a troubleshooting + guía always-on); bloque **User Rules** ampliado (`memory://` vs vault, stdio vs URL HTTP, ruido stderr). `README*.md` — pasos 4–7 (smoke Windows, autosync). `how-memory-works-simple*.md` — distinción `memory://`. `docs/troubleshooting.md` — entradas `streamableHttp` / `fetch failed` y toast `memory://`. `AGENTS.md` (autogen) — transporte HTTP opcional en `.agents/rules/00-stack.md`.
 - **Windows sin flash de consola:** tareas recomendadas vía `wscript.exe` + `scripts/windows/Run-Hidden.vbs`; `obsidian-memoryd` documentado con `go build -ldflags="-H windowsgui"`; guías `windows-scheduled-vault-sync*` y `windows-basic-memory-always-on*` + troubleshooting actualizados.
 - **Onboarding lineal:** `README.md` / `README.en.md` son un hub corto: primero `GETTING_STARTED*.md`, luego `docs/how-memory-works-simple*.md`, Cursor, comprobaciones y troubleshooting; `docs/testing/manual-checks.md` y guías Cursor enlazan al mismo flujo.
 - CI push trigger: **`main` only** (removed legacy `v2-migration` branch after merge).

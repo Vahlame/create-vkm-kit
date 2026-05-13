@@ -69,12 +69,12 @@ To fire only the task (no window if the action is `wscript` + VBS):
 Start-ScheduledTask -TaskName CursorMemoryVaultSync
 ```
 
-## 6. HTTP MCP `basic-memory` (port 8000)
+## 6. HTTP MCP `basic-memory` (default port **8765**)
 
-If you use **CursorBasicMemoryHttpMcp** and `mcp.json` with `http://127.0.0.1:8000/mcp`:
+If you use **CursorBasicMemoryHttpMcp** and `mcp.json` with the same URL (e.g. `http://127.0.0.1:8765/mcp`):
 
 ```powershell
-Test-NetConnection 127.0.0.1 -Port 8000 -InformationLevel Quiet
+Test-NetConnection 127.0.0.1 -Port 8765 -InformationLevel Quiet
 ```
 
 `True` means something is listening.
