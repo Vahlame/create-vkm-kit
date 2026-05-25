@@ -3,6 +3,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/adrg/xdg"
@@ -66,7 +68,7 @@ func main() {
 			os.Exit(2)
 		}
 		v := vaultPath(flagValue(os.Args[3:], "--vault", defaultVault()))
-		if err := gitSync(ctx, l, v); err != nil {
+		if err := gitSync(ctx, l, v); err != nil && !errors.Is(err, ErrSyncBusy) {
 			l.Error("sync failed", "err", err)
 			os.Exit(1)
 		}
@@ -165,31 +167,158 @@ func newLogger() *slog.Logger {
 	return slog.New(slog.NewJSONHandler(lj, &slog.HandlerOptions{}))
 }
 
-func gitSync(ctx context.Context, l *slog.Logger, dir string) error {
+// Runner abstracts running a child process so tests can inject fakes. The
+// production implementation wraps exec.CommandContext with hiddenCmd (no
+// console window on Windows) and sets GIT_TERMINAL_PROMPT=0 so git fails fast
+// instead of blocking on credential prompts in headless / hidden contexts.
+type Runner interface {
+	Run(ctx context.Context, name string, args ...string) error
+	Output(ctx context.Context, name string, args ...string) ([]byte, error)
+}
+
+type execRunner struct{}
+
+func (execRunner) Run(ctx context.Context, name string, args ...string) error {
+	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.Env = append(cmd.Environ(), "GIT_TERMINAL_PROMPT=0")
+	hiddenCmd(cmd)
+	return cmd.Run()
+}
+
+func (execRunner) Output(ctx context.Context, name string, args ...string) ([]byte, error) {
+	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.Env = append(cmd.Environ(), "GIT_TERMINAL_PROMPT=0")
+	hiddenCmd(cmd)
+	return cmd.CombinedOutput()
+}
+
+var defaultRunner Runner = execRunner{}
+
+// exitCoder is satisfied by *exec.ExitError and by test fakes; lets us tell an
+// "empty commit" (exit 1) apart from a transport failure.
+type exitCoder interface{ ExitCode() int }
+
+const (
+	stepTimeout    = 30 * time.Second
+	pushTimeout    = 60 * time.Second
+	pushMaxRetries = 3
+)
+
+var (
+	syncMu sync.Mutex
+	// ErrSyncBusy is returned by gitSync when another sync is already running.
+	// Callers should ignore it (the in-flight sync will pick up the latest state).
+	ErrSyncBusy = errors.New("git sync already in progress; skipped")
+)
+
+// gitSync runs add → commit → pull --rebase → push against dir, with per-step
+// timeouts, rebase-conflict abort, and exponential retry on push. Only one
+// sync runs at a time per process; concurrent callers get ErrSyncBusy.
+func gitSync(parent context.Context, l *slog.Logger, dir string) error {
+	return gitSyncWith(parent, l, dir, defaultRunner)
+}
+
+func gitSyncWith(parent context.Context, l *slog.Logger, dir string, r Runner) error {
+	if !syncMu.TryLock() {
+		l.Info("git sync skipped: another sync in progress")
+		return ErrSyncBusy
+	}
+	defer syncMu.Unlock()
+
 	if _, err := git.PlainOpen(dir); err != nil {
 		return fmt.Errorf("not a git repo: %w", err)
 	}
-	steps := [][]string{
-		{"git", "-C", dir, "add", "-A"},
-		{"git", "-C", dir, "commit", "-m", "auto: " + time.Now().UTC().Format(time.RFC3339)},
-		{"git", "-C", dir, "pull", "--rebase"},
-		{"git", "-C", dir, "push"},
+
+	if err := runStep(parent, r, stepTimeout, l, "add", "git", "-C", dir, "add", "-A"); err != nil {
+		return err
 	}
-	for _, s := range steps {
-		cmd := hiddenCmd(exec.CommandContext(ctx, s[0], s[1:]...))
-		if err := cmd.Run(); err != nil {
-			if len(s) > 2 && s[2] == "commit" {
-				var ee *exec.ExitError
-				if errors.As(err, &ee) && ee.ExitCode() == 1 {
-					l.Info("git commit noop", "args", s)
-					continue
-				}
-			}
-			return fmt.Errorf("%v: %w", s, err)
-		}
-		l.Info("git step ok", "args", s)
+	if err := commitStep(parent, r, stepTimeout, l, dir); err != nil {
+		return err
 	}
+	if err := pullRebaseStep(parent, r, stepTimeout, l, dir); err != nil {
+		return err
+	}
+	return pushStep(parent, r, pushTimeout, l, dir)
+}
+
+func runStep(parent context.Context, r Runner, to time.Duration, l *slog.Logger, label, name string, args ...string) error {
+	ctx, cancel := context.WithTimeout(parent, to)
+	defer cancel()
+	if err := r.Run(ctx, name, args...); err != nil {
+		return fmt.Errorf("git %s: %w", label, err)
+	}
+	l.Info("git step ok", "step", label)
 	return nil
+}
+
+func commitStep(parent context.Context, r Runner, to time.Duration, l *slog.Logger, dir string) error {
+	ctx, cancel := context.WithTimeout(parent, to)
+	defer cancel()
+	msg := "auto: " + time.Now().UTC().Format(time.RFC3339)
+	err := r.Run(ctx, "git", "-C", dir, "commit", "-m", msg)
+	if err == nil {
+		l.Info("git step ok", "step", "commit")
+		return nil
+	}
+	var ce exitCoder
+	if errors.As(err, &ce) && ce.ExitCode() == 1 {
+		l.Info("git commit noop (nothing to commit)")
+		return nil
+	}
+	return fmt.Errorf("git commit: %w", err)
+}
+
+func pullRebaseStep(parent context.Context, r Runner, to time.Duration, l *slog.Logger, dir string) error {
+	ctx, cancel := context.WithTimeout(parent, to)
+	defer cancel()
+	out, err := r.Output(ctx, "git", "-C", dir, "pull", "--rebase")
+	if err == nil {
+		l.Info("git step ok", "step", "pull --rebase")
+		return nil
+	}
+	if bytes.Contains(out, []byte("CONFLICT")) || bytes.Contains(out, []byte("needs merge")) {
+		abortCtx, abortCancel := context.WithTimeout(parent, 10*time.Second)
+		defer abortCancel()
+		if abortErr := r.Run(abortCtx, "git", "-C", dir, "rebase", "--abort"); abortErr != nil {
+			l.Error("rebase abort failed", "err", abortErr)
+		} else {
+			l.Warn("rebase aborted due to conflicts; resolve manually then re-sync", "dir", dir)
+		}
+		return fmt.Errorf("git pull --rebase: conflict, aborted")
+	}
+	return fmt.Errorf("git pull --rebase: %w; output=%s", err, truncate(out, 400))
+}
+
+func pushStep(parent context.Context, r Runner, to time.Duration, l *slog.Logger, dir string) error {
+	var lastErr error
+	backoff := 500 * time.Millisecond
+	for attempt := 1; attempt <= pushMaxRetries; attempt++ {
+		ctx, cancel := context.WithTimeout(parent, to)
+		err := r.Run(ctx, "git", "-C", dir, "push")
+		cancel()
+		if err == nil {
+			l.Info("git step ok", "step", "push", "attempt", attempt)
+			return nil
+		}
+		lastErr = err
+		l.Warn("git push failed; will retry", "attempt", attempt, "err", err)
+		if attempt < pushMaxRetries {
+			select {
+			case <-time.After(backoff):
+			case <-parent.Done():
+				return parent.Err()
+			}
+			backoff *= 2
+		}
+	}
+	return fmt.Errorf("git push (%d attempts): %w", pushMaxRetries, lastErr)
+}
+
+func truncate(b []byte, n int) string {
+	if len(b) <= n {
+		return string(b)
+	}
+	return string(b[:n]) + "..."
 }
 
 func runWatch(ctx context.Context, l *slog.Logger, root string) error {
@@ -220,7 +349,7 @@ func runWatch(ctx context.Context, l *slog.Logger, root string) error {
 				debounce.Stop()
 			}
 			debounce = time.AfterFunc(dur, func() {
-				if err := gitSync(ctx, l, root); err != nil {
+				if err := gitSync(ctx, l, root); err != nil && !errors.Is(err, ErrSyncBusy) {
 					l.Error("debounced sync", "err", err)
 				}
 			})
