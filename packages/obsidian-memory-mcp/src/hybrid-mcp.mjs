@@ -15,6 +15,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { extractBullets, pickQueryTerms } from "./extract.mjs";
+import { vaultEditFile, vaultListDirectory, vaultReadFile, vaultWriteFile } from "./vault-fs.mjs";
 
 // Re-export so any consumer that already imports these from hybrid-mcp.mjs keeps
 // working; new consumers should import from ./extract.mjs to avoid loading the
@@ -71,7 +72,7 @@ async function main() {
   const ragSrc = defaultRagSrc();
 
   const server = new McpServer(
-    { name: "obsidian-memory-hybrid", version: "2.0.0-beta.2" },
+    { name: "obsidian-memory-hybrid", version: "2.0.0-beta.3" },
     {
       capabilities: { tools: {} },
       instructions:
@@ -135,6 +136,125 @@ async function main() {
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         return { content: [{ type: "text", text: msg }], isError: true };
+      }
+    }
+  );
+
+  server.registerTool(
+    "vault_read_file",
+    {
+      title: "Read a file inside the vault",
+      description:
+        "Read a UTF-8 text file inside BASIC_MEMORY_HOME. Use this when the active project's cwd is NOT the vault (e.g. you're inside another repo and the obsidian-memory filesystem MCP only sees that repo because of MCP Roots). Always scoped to the vault; refuses paths that escape it (incl. symlink resolution).",
+      inputSchema: {
+        path: z.string().describe("Path relative to vault root, e.g. 'STACKS/typescript.md'"),
+        head: z.number().int().min(1).optional().describe("Return only the first N lines"),
+        tail: z.number().int().min(1).optional().describe("Return only the last N lines")
+      },
+      annotations: { readOnlyHint: true }
+    },
+    async ({ path, head, tail }) => {
+      try {
+        const v = requireVault();
+        const opts = {};
+        if (head != null) opts.head = head;
+        if (tail != null) opts.tail = tail;
+        const text = await vaultReadFile(v, path, opts);
+        return { content: [{ type: "text", text }] };
+      } catch (e) {
+        return {
+          content: [{ type: "text", text: e instanceof Error ? e.message : String(e) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  server.registerTool(
+    "vault_write_file",
+    {
+      title: "Atomically write a file inside the vault",
+      description:
+        "Write a UTF-8 text file inside BASIC_MEMORY_HOME using tmp+rename for atomicity. Creates parent dirs if missing. Overwrites without confirmation — for in-place edits prefer vault_edit_file. Refuses paths that escape the vault.",
+      inputSchema: {
+        path: z.string().describe("Path relative to vault root"),
+        content: z.string().describe("Full file content (UTF-8)")
+      },
+      annotations: { readOnlyHint: false, destructiveHint: true }
+    },
+    async ({ path, content }) => {
+      try {
+        const v = requireVault();
+        const result = await vaultWriteFile(v, path, content);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } catch (e) {
+        return {
+          content: [{ type: "text", text: e instanceof Error ? e.message : String(e) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  server.registerTool(
+    "vault_edit_file",
+    {
+      title: "Apply find-and-replace edits to a vault file",
+      description:
+        "Apply a sequence of {oldText, newText} edits to a file inside the vault. Each oldText must match exactly once; otherwise the whole call fails and the file is untouched. Atomic write at the end.",
+      inputSchema: {
+        path: z.string().describe("Path relative to vault root"),
+        edits: z
+          .array(
+            z.object({
+              oldText: z.string(),
+              newText: z.string()
+            })
+          )
+          .min(1)
+          .describe("Sequence of find/replace pairs; applied in order")
+      },
+      annotations: { readOnlyHint: false }
+    },
+    async ({ path, edits }) => {
+      try {
+        const v = requireVault();
+        const result = await vaultEditFile(v, path, edits);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } catch (e) {
+        return {
+          content: [{ type: "text", text: e instanceof Error ? e.message : String(e) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  server.registerTool(
+    "vault_list_directory",
+    {
+      title: "List one level of a vault directory",
+      description:
+        "List entries (name, type, size) of one directory inside the vault. Use '.' or omit for the vault root. For deep navigation, call recursively. Refuses paths that escape the vault.",
+      inputSchema: {
+        path: z
+          .string()
+          .optional()
+          .default(".")
+          .describe("Path relative to vault root (default: vault root)")
+      },
+      annotations: { readOnlyHint: true }
+    },
+    async ({ path }) => {
+      try {
+        const v = requireVault();
+        const result = await vaultListDirectory(v, path || ".");
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } catch (e) {
+        return {
+          content: [{ type: "text", text: e instanceof Error ? e.message : String(e) }],
+          isError: true
+        };
       }
     }
   );
