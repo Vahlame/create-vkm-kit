@@ -4,7 +4,7 @@
   "description": "Interactive initializer for Obsidian-style agent memory (v3 kit)",
   "type": "module",
   "bin": {
-    "create-obsidian-memory": "./dist/index.js"
+    "create-obsidian-memory": "./src/index.js"
   },
   "scripts": {
     "test": "node --test"

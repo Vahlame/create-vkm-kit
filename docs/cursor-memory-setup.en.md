@@ -37,7 +37,7 @@ You can open **several projects** at once. User `mcp.json` usually has **one** `
 2. Run the initializer with **`--with-hybrid`** (pass **`--repo-root`** or run from the clone root so it can find `packages/obsidian-memory-mcp/src/hybrid-mcp.mjs`):
 
 ```bash
-node packages/create-obsidian-memory/dist/index.js --non-interactive --vault "/absolute/path/to/vault" --with-hybrid --repo-root "/absolute/path/to/cursor-obsidian-memory-guide"
+node packages/create-obsidian-memory/src/index.js --non-interactive --vault "/absolute/path/to/vault" --with-hybrid --repo-root "/absolute/path/to/cursor-obsidian-memory-guide"
 ```
 
 Then **Developer: Reload Window** in Cursor.
@@ -110,7 +110,7 @@ If `uvx` fails, it is usually **missing uv** or **PATH not refreshed**; see `doc
 
 **Why:** the model does not persist across chats; a git-backed vault is yours, auditable, and portable.
 
-> *Block for v3 kit (`basic-memory` stdio + optional `obsidian-memory-hybrid`). Update server names if you renamed them in `mcp.json`.*
+> _Block for v3 kit (`basic-memory` stdio + optional `obsidian-memory-hybrid`). Update server names if you renamed them in `mcp.json`._
 
 ### Not the same as Cursor’s built-in memory
 
@@ -175,7 +175,7 @@ npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "/absolute
 **`basic-memory` + `obsidian-memory-hybrid`** (requires `pip install -e packages/obsidian-memory-rag` in the same clone):
 
 ```bash
-node packages/create-obsidian-memory/dist/index.js --non-interactive --vault "/absolute/path/to/vault" --with-hybrid --repo-root "/absolute/path/to/cursor-obsidian-memory-guide"
+node packages/create-obsidian-memory/src/index.js --non-interactive --vault "/absolute/path/to/vault" --with-hybrid --repo-root "/absolute/path/to/cursor-obsidian-memory-guide"
 ```
 
 > `--with-hybrid` is available from **`@vahlame/create-obsidian-memory@2.0.0-beta.3`** (already in the repo clone; on npm from the next published beta).

@@ -30,7 +30,7 @@ All three paths converge on the same thing: a **Markdown + git vault** that the 
 7. **Windows no-flash / gaming:** [`docs/setup/windows-sin-consola-visible.en.md`](./docs/setup/windows-sin-consola-visible.en.md) · [`docs/setup/windows-juego-vault-sync.en.md`](./docs/setup/windows-juego-vault-sync.en.md).
 8. **Existing vault:** re-run the initializer to **merge** config without losing other keys:
    - `basic-memory` only: `npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "/path"`
-   - With FTS hybrid: `node packages/create-obsidian-memory/dist/index.js --non-interactive --vault "/path" --with-hybrid --repo-root "/path/to/cursor-obsidian-memory-guide"` (install first: `pip install -e packages/obsidian-memory-rag`).
+   - With FTS hybrid: `node packages/create-obsidian-memory/src/index.js --non-interactive --vault "/path" --with-hybrid --repo-root "/path/to/cursor-obsidian-memory-guide"` (install first: `pip install -e packages/obsidian-memory-rag`).
 
 </details>
 

@@ -43,7 +43,7 @@ The vault can be a new folder or an existing one. Note the chosen path; we'll ca
 Run the initializer from **the kit clone** (replace `<KIT_ROOT>` with the actual repo path):
 
 ```bash
-node "<KIT_ROOT>/packages/create-obsidian-memory/dist/index.js" \
+node "<KIT_ROOT>/packages/create-obsidian-memory/src/index.js" \
   --non-interactive \
   --vault "<VAULT_PATH>"
 ```
@@ -200,7 +200,7 @@ If the vault has hundreds of notes and you want fast BM25 search:
 pip install -e "<KIT_ROOT>/packages/obsidian-memory-rag"
 
 # 2. Add obsidian-memory-hybrid to mcp.json
-node "<KIT_ROOT>/packages/create-obsidian-memory/dist/index.js" \
+node "<KIT_ROOT>/packages/create-obsidian-memory/src/index.js" \
   --non-interactive --vault "<VAULT_PATH>" \
   --with-hybrid --repo-root "<KIT_ROOT>"
 ```

@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const bin = path.join(root, "dist", "index.js");
+const bin = path.join(root, "src", "index.js");
 const kitRepo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
 test("non-interactive --dry-run exits 0 and prints dry-run", () => {

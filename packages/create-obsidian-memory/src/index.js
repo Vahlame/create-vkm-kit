@@ -2,6 +2,11 @@
 /**
  * @vahlame/create-obsidian-memory — interactive initializer (v2 / v3).
  * Spanish-first CLI; pass --lang en for English labels.
+ *
+ * Source-of-truth lives in this `src/` directory. There is no `dist/` build
+ * step — `src/` is what npm publishes and what `bin` in package.json points
+ * to. (Pre-2026 the directory was named `dist/`, which falsely implied a
+ * compile step. Renamed for clarity; see CHANGELOG.)
  */
 import path from "node:path";
 import pc from "picocolors";
