@@ -9,7 +9,7 @@ Standalone reference for the **v3 kit** (`basic-memory` stdio, optional hybrid F
 - [Scheduled task errors](#scheduled-task-errors)
 - [MCP / Cursor errors](#mcp--cursor-errors)
 - [Network and timing errors](#network-and-timing-errors)
-- [How to recover from a broken install](#how-to-recover-from-a-broken-install)
+- [How to recover from a broken install (v3 kit)](#how-to-recover-from-a-broken-install-v3-kit)
 
 ## PowerShell errors
 

@@ -6,12 +6,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Added
-- `INSTALAR_MEMORIA.md` / `INSTALAR_MEMORIA.en.md`: v3 installer prompt to paste in Cursor chat; agent runs all setup steps (prereqs, vault, MCP, User Rules, verification, optional git sync + hybrid FTS).
-- `GETTING_STARTED*.md`: quick-install callout at top; OS-specific `mcp.json` paths table; "first install vs update" section.
-- `README*.md`: "Instalación rápida / Quick install" callout at top linking to installer prompt.
- - v3.0.0
-
 ### Breaking change
 
 - **v3 kit layout (same branch: `main`):** the repository **no longer ships** Windows integration files under **`scripts/windows/`** (`.ps1`, `.vbs`) or convenience scripts under **`tools/*.ps1`**. The **advanced** setup (MCP stdio/HTTP, vault git, FTS hybrid) is unchanged in intent and is documented without those artifacts. Migration: [`docs/migration/v2-to-v3-script-free-kit.md`](./docs/migration/v2-to-v3-script-free-kit.md) / [`.en.md`](./docs/migration/v2-to-v3-script-free-kit.en.md). Maintainers still use **`scripts/sync-agents.ts`** (TypeScript) and **`.github/scripts/extract-and-lint.ps1`** (CI against the archived v1 prompt).
@@ -27,6 +21,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `INSTALAR_MEMORIA.md` / `INSTALAR_MEMORIA.en.md`: v3 installer prompt to paste in Cursor chat; agent runs all setup steps (prereqs, vault, MCP, User Rules, verification, optional git sync + hybrid FTS).
+- `GETTING_STARTED*.md`: quick-install callout at top; OS-specific `mcp.json` paths table; "first install vs update" section.
+- `README*.md`: "Instalación rápida / Quick install" callout at top linking to installer prompt.
 - **`docs/migration/v2-to-v3-script-free-kit.md`** / **`.en.md`**: capítulo **v2 → v3** (integración avanzada sin scripts del kit; todo en `main`).
 - **`create-obsidian-memory`:** `--with-hybrid` + `--repo-root` merge **`obsidian-memory-hybrid`** into Cursor `mcp.json` alongside **`basic-memory`** (auto-detect kit root from cwd or from package layout in a monorepo clone). Interactive mode asks whether to enable hybrid when the kit layout is found. Tests cover merge + headless flow.
 - ADR-0010–0015 (basic-memory, `AGENTS.md`, Go daemon, Syncthing, hybrid RAG, generic privacy notes in docs).

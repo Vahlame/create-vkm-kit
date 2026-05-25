@@ -7,10 +7,12 @@ Esta guía **no** publica ni pide copiar `.ps1`, `.vbs` ni `.bat` desde el repo.
 Sincronización **al guardar** con debounce (por defecto **45 s** tras el último cambio; ajusta con `OBSIDIAN_MEMORY_DEBOUNCE`).
 
 **Sin ventanas en Windows:** el repo compila el binario con dos archivos de plataforma:
+
 - `proc_windows.go` — cada subproceso `git` recibe `CREATE_NO_WINDOW + HideWindow: true`; cero consolas, incluso cuando el `.exe` es subsistema GUI (`-H windowsgui`).
 - `proc_other.go` — no-op en Linux/macOS.
 
 Comando de compilación para Windows (sin consola):
+
 ```bash
 go build -ldflags="-H windowsgui" -o bin/obsidian-memoryd.exe ./cmd/obsidian-memoryd
 ```
