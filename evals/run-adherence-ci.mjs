@@ -1,6 +1,11 @@
 /**
- * CI adherence check without promptfoo DB (parses evals/adherence.yaml).
- * adherence_score = passed / total; exits 1 if score < 0.80
+ * Eval-harness smoke (NOT a real adherence check).
+ *
+ * Parses evals/adherence.yaml, invokes the provider for each test, and exits 1
+ * if pass rate < 0.80. With the default stub provider (adherence-provider.cjs)
+ * the score is always 1.0; the CI job exists to catch a broken harness
+ * pipeline, not to measure agent behavior. To do real adherence, swap the
+ * provider in adherence.yaml for a live LLM + MCP. See evals/README.md.
  */
 import fs from "node:fs";
 import path from "node:path";
