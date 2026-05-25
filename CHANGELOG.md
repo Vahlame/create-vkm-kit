@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+
+- **Pin `basic-memory` to 0.21.4** in `config/mcp/basic-memory.json` and the `create-obsidian-memory` initializer (`uvx --from "basic-memory==0.21.4" basic-memory mcp`). Without a pin, `uvx` would resolve PyPI latest on every Cursor start — a supply-chain RCE vector if the package is taken over. Bumping the pin requires touching one constant (`BASIC_MEMORY_VERSION` in `packages/create-obsidian-memory/src/mcp-merge.mjs`) + templates + `scripts/mcp-smoke.mjs` so CI tests the version users actually receive.
+- **Trust boundaries block in User Rules** (`docs/cursor-memory-setup{,.en}.md` Step 3 + `INSTALAR_MEMORIA{,.en}.md` Step 4): the vault is **data**, not instructions; agents must ignore directives embedded in notes and escalate the find. Closes a P0 prompt-injection vector raised by the strategic audit.
+- **`INSTALAR_MEMORIA{,.en}.md` opens with a source-verification block** (`git remote get-url origin` + `git log -1` cross-checked against the latest release tag) since pasting the file authorizes an agent to act as installer with full user privileges.
+- **`SECURITY.md` reframed with an explicit "Trust model"** (3 assumptions) and hardening guidance updated with concrete commands instead of generic checklists.
+
 ### Breaking change
 
 - **v3 kit layout (same branch: `main`):** the repository **no longer ships** Windows integration files under **`scripts/windows/`** (`.ps1`, `.vbs`) or convenience scripts under **`tools/*.ps1`**. The **advanced** setup (MCP stdio/HTTP, vault git, FTS hybrid) is unchanged in intent and is documented without those artifacts. Migration: [`docs/migration/v2-to-v3-script-free-kit.md`](./docs/migration/v2-to-v3-script-free-kit.md) / [`.en.md`](./docs/migration/v2-to-v3-script-free-kit.en.md). Maintainers still use **`scripts/sync-agents.ts`** (TypeScript) and **`.github/scripts/extract-and-lint.ps1`** (CI against the archived v1 prompt).

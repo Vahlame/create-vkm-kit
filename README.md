@@ -45,12 +45,14 @@ Kit **multiplataforma** para que la IA lea y escriba **tus** notas Markdown vía
   "mcpServers": {
     "basic-memory": {
       "command": "uvx",
-      "args": ["basic-memory", "mcp"],
+      "args": ["--from", "basic-memory==0.21.4", "basic-memory", "mcp"],
       "env": { "BASIC_MEMORY_HOME": "/ruta/absoluta/al/vault" }
     }
   }
 }
 ```
+
+> **Nota de seguridad:** el `--from "basic-memory==0.21.4"` **pinea** la versión. Sin pin, `uvx` baja la última de PyPI en cada arranque de Cursor — si el paquete se compromete (account takeover, squatting), el modelo ejecuta código arbitrario con tus permisos. Para actualizar, sube el pin a mano tras revisar el changelog de basic-memory.
 
 Plantilla y variantes: [`config/mcp/`](./config/mcp/).
 

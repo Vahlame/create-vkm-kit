@@ -45,12 +45,14 @@ A **cross-platform** kit so AI can read and write **your** Markdown notes via **
   "mcpServers": {
     "basic-memory": {
       "command": "uvx",
-      "args": ["basic-memory", "mcp"],
+      "args": ["--from", "basic-memory==0.21.4", "basic-memory", "mcp"],
       "env": { "BASIC_MEMORY_HOME": "/absolute/path/to/vault" }
     }
   }
 }
 ```
+
+> **Security note:** `--from "basic-memory==0.21.4"` **pins** the version. Without a pin, `uvx` pulls the latest from PyPI on every Cursor start — if the package is taken over (account compromise, squatting), the model runs arbitrary code with your privileges. To upgrade, bump the pin by hand after reviewing the basic-memory changelog.
 
 Templates: [`config/mcp/`](./config/mcp/).
 
