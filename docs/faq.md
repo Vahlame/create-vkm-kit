@@ -64,4 +64,4 @@ Yes. Invite them to the private repo. **v1:** they re-ran the ultra-prompt once.
 
 ### Large vault: anything beyond `basic-memory` search?
 
-Yes. Activate the **hybrid MCP** via the initializer: `node packages/create-obsidian-memory/dist/index.js --non-interactive --vault "<path>" --with-hybrid --repo-root "<kit-clone>"` (needs `pip install -e packages/obsidian-memory-rag` once). Then run **`obsidian-memory-rag index --vault <path>`** (or use the `vault_fts_index` MCP tool) to build a local **SQLite FTS5** index; `vault_fts_search` returns BM25-ranked hits. See `docs/testing/manual-checks.md` for smoke tests.
+Yes. Activate the **hybrid MCP** via the initializer: `node packages/create-obsidian-memory/src/index.js --non-interactive --vault "<path>" --with-hybrid --repo-root "<kit-clone>"` (needs `pip install -e packages/obsidian-memory-rag` once). Then run **`obsidian-memory-rag index --vault <path>`** (or use the `vault_fts_index` MCP tool) to build a local **SQLite FTS5** index; `vault_fts_search` returns BM25-ranked hits. See `docs/testing/manual-checks.md` for smoke tests.

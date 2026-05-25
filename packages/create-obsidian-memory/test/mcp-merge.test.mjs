@@ -7,7 +7,7 @@ import {
   mergeBasicMemoryServer,
   mergeObsidianHybridServer,
   resolveKitRepoRoot
-} from "../dist/mcp-merge.mjs";
+} from "../src/mcp-merge.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 

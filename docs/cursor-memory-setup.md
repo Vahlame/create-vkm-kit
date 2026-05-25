@@ -37,7 +37,7 @@ Puedes abrir **varios proyectos** a la vez. El `mcp.json` del usuario suele tene
 2. Ejecuta el initializer con **`--with-hybrid`** (detecta el clon por `--repo-root` o por el directorio actual):
 
 ```bash
-node packages/create-obsidian-memory/dist/index.js --non-interactive --vault "C:\RUTA\ABSOLUTA\AL\VAULT" --with-hybrid --repo-root "C:\RUTA\ABSOLUTA\AL\cursor-obsidian-memory-guide"
+node packages/create-obsidian-memory/src/index.js --non-interactive --vault "C:\RUTA\ABSOLUTA\AL\VAULT" --with-hybrid --repo-root "C:\RUTA\ABSOLUTA\AL\cursor-obsidian-memory-guide"
 ```
 
 Si tu cwd ya es la **raíz del clon**, puedes omitir `--repo-root`. Eso **mezcla** `basic-memory` y `obsidian-memory-hybrid` en `mcp.json` sin borrar otras claves. Luego **Developer: Reload Window** en Cursor.
@@ -112,7 +112,7 @@ En **Cursor → Settings → Rules → User Rules**, pega el bloque siguiente. *
 
 **Motivo:** el modelo no persiste entre chats; el vault en git es auditable, portable y tuyo.
 
-> *Bloque para kit v3 (`basic-memory` stdio + `obsidian-memory-hybrid` opcional). Actualiza los nombres de servidor si los renombraste en `mcp.json`.*
+> _Bloque para kit v3 (`basic-memory` stdio + `obsidian-memory-hybrid` opcional). Actualiza los nombres de servidor si los renombraste en `mcp.json`._
 
 ### No confundir con la memoria integrada de Cursor
 
@@ -181,7 +181,7 @@ npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "C:\RUTA\A
 **`basic-memory` + `obsidian-memory-hybrid`** (requiere `pip install -e packages/obsidian-memory-rag` en el mismo clon):
 
 ```bash
-node packages/create-obsidian-memory/dist/index.js --non-interactive --vault "C:\RUTA\ABSOLUTA\AL\VAULT" --with-hybrid --repo-root "C:\RUTA\ABSOLUTA\AL\cursor-obsidian-memory-guide"
+node packages/create-obsidian-memory/src/index.js --non-interactive --vault "C:\RUTA\ABSOLUTA\AL\VAULT" --with-hybrid --repo-root "C:\RUTA\ABSOLUTA\AL\cursor-obsidian-memory-guide"
 ```
 
 > El flag `--with-hybrid` está disponible desde **`@vahlame/create-obsidian-memory@2.0.0-beta.3`** (ya en el clon del repo; en npm desde la próxima publicación de la beta).
