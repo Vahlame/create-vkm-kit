@@ -133,18 +133,26 @@ If `uvx` fails, it is usually **missing uv** or **PATH not refreshed**; see `doc
 ### MCP availability
 
 - When **`basic-memory`** is active, use it for the vault: `read_note`, `write_note`, `edit_note`, `search_notes`, `build_context`, `recent_activity`. Paths are relative to the vault root (`BASIC_MEMORY_HOME`).
-- When **`obsidian-memory-hybrid`** is also active, use `vault_fts_search` for BM25/FTS5 lexical search; after bulk imports or first-time indexing on a large vault, run `vault_fts_index`. If the hybrid is not configured, use `search_notes` from `basic-memory` only.
+- When **`obsidian-memory-hybrid`** is also active, use `vault_fts_search` for BM25/FTS5 lexical search; after bulk imports or first-time indexing on a large vault, run `vault_fts_index`. **`memory_extract_candidates`** proposes bullets for human review before writing to `MEMORY.md` (see closing ritual).
+- If the hybrid is not configured, use `search_notes` and `build_context` from `basic-memory` only.
 - If **no** vault MCP is available, say so explicitly; do not claim you persisted to the vault.
 
-### Startup (tasks that need vault context)
+### Minimal startup (any task with vault context)
 
-1. `read_note` the vault entry file (e.g. `START_HERE.md`).
-2. `read_note` `MEMORY.md`.
-3. Use or create `PROJECTS/<project>.md` for the current folder or repo name; read it if it exists (`<project>` = short stable id).
+1. `read_note("START_HERE.md")` — **always**. It is the short index.
+2. **Do not load more automatically.** `START_HERE.md` lists what notes exist and when to open them; wait until the task demands it.
 
-### On-demand (only when relevant)
+### Before any non-trivial action (pre-action ritual)
 
-- Hard rules: `RULES/<project>.md`.
+Before writing code, installing dependencies, changing config, or making a decision that persists across sessions:
+
+1. Call `build_context(query=<short recap of the user's prompt>)` so `basic-memory` returns the relevant notes ranked by relevance. If `obsidian-memory-hybrid` is available, complement with `vault_fts_search` for exact-term lookups.
+2. `read_note` what `build_context` surfaces (do not blindly load everything).
+3. If the task touches an identifiable project (active folder or repo), open `PROJECTS/<project>.md`; create it with `write_note` only when the task justifies it.
+
+### On-demand (only when the task asks for it)
+
+- Project hard rules: `RULES/<project>.md`.
 - Sprint history: `PROJECTS/<project>/SPRINTS.md`.
 - Runbook: `PROJECTS/<project>/RUNBOOK.md`.
 - Failure patterns: `KNOWN_FAILURES.md`.
@@ -152,16 +160,19 @@ If `uvx` fails, it is usually **missing uv** or **PATH not refreshed**; see `doc
 
 ### During the task
 
-- Log important decisions in `PROJECTS/<project>.md` or `SPRINTS.md` for sprint closures.
+- Do not log decisions turn by turn — leave that for the closing ritual.
 - Never store secrets, tokens, JWTs, or literal hardware IDs.
-- Avoid noise: append to `SESSION_LOG.md` only on real progress (every few turns or when closing).
 
-### When closing the task
+### When closing the task (closing ritual)
 
-- Short append to `SESSION_LOG.md` (date, project, outcome or decision).
-- Cross-cutting lessons in `MEMORY.md`.
-- New hard rule in `RULES/<project>.md`.
-- Discarded approach in `KNOWN_FAILURES.md` with reason.
+1. **Before** writing anything to the vault, call `memory_extract_candidates(summary=<recap of what was learned>)` (if `obsidian-memory-hybrid` is present). It returns bullet candidates and flags ones that look like duplicates of existing `MEMORY.md` entries. If the hybrid is not available, write 1-3 candidate bullets yourself.
+2. **Show the candidates to the human** and wait for explicit confirmation. Do not append anything without it.
+3. For confirmed items:
+   - Cross-cutting lessons → `edit_note("MEMORY.md", …)`.
+   - Project decisions → `PROJECTS/<project>.md`.
+   - New hard rule → `RULES/<project>.md`.
+   - Discarded path → `KNOWN_FAILURES.md` with reason.
+4. Append one line to `SESSION_LOG.md` (ISO date, project, outcome).
 
 ### Style
 

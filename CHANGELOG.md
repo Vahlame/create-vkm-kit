@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **`memory_extract_candidates` MCP tool** in `obsidian-memory-hybrid`: given a free-text summary of the task just finished, returns bullet candidates and flags ones that look like duplicates of existing `MEMORY.md` entries via BM25/FTS5. Read-only — never writes to the vault. Designed to be invoked at the closing-ritual moment defined in the User Rules so memory hygiene stops depending on the chat model "remembering" mid-task. Includes unit tests for `extractBullets` and `pickQueryTerms` helpers.
 - `INSTALAR_MEMORIA.md` / `INSTALAR_MEMORIA.en.md`: v3 installer prompt to paste in Cursor chat; agent runs all setup steps (prereqs, vault, MCP, User Rules, verification, optional git sync + hybrid FTS).
 - `GETTING_STARTED*.md`: quick-install callout at top; OS-specific `mcp.json` paths table; "first install vs update" section.
 - `README*.md`: "Instalación rápida / Quick install" callout at top linking to installer prompt.
@@ -66,6 +67,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **User Rules reframed as ritual-driven** (`docs/cursor-memory-setup{,.en}.md` Step 3 + `INSTALAR_MEMORIA{,.en}.md` Step 4):
+  - **Minimal startup**: `read_note("START_HERE.md")` is the only mandatory read at chat open. Previously the agent loaded `MEMORY.md` + `PROJECTS/<x>.md` every chat, costing 3-15k tokens before processing the user's actual prompt and degrading instruction-following under context dilution.
+  - **Pre-action ritual**: before any non-trivial action (write code, install deps, change config), call `build_context(query=…)` and only read what it surfaces. Existing `basic-memory` tool, previously infrautilized in the Rules.
+  - **Closing ritual**: call `memory_extract_candidates(summary=…)`, show bullets to the human, write to `MEMORY.md` / `PROJECTS/*` / `RULES/*` / `KNOWN_FAILURES.md` only after explicit confirmation. Mid-task per-turn appends to `SESSION_LOG.md` are gone — one append at close.
 - **Capítulo v2 → v3:** guía pública **stdio + `obsidian-memoryd` / git manual** por defecto; HTTP y tareas Windows como opciones **definidas por quien instala**. [`docs/migration/v2-to-v3-script-free-kit.md`](./docs/migration/v2-to-v3-script-free-kit.md) / [`.en.md`](./docs/migration/v2-to-v3-script-free-kit.en.md).
 - **Guías Windows sin plantillas del kit:** `windows-scheduled-vault-sync*`, `windows-basic-memory-always-on*`, `windows-sin-consola-visible*`, `windows-juego-vault-sync*`, `windows-memory-sync-smoke*`, `docs/troubleshooting.md` — sin `.ps1`/`.vbs` publicados para copiar; HTTP y git descritos con **stdio**, **terminal**, **`obsidian-memoryd`** o automatismo propio.
 - **`obsidian-memoryd watch`:** debounce por defecto antes de `git sync` pasa de **2 s** a **45 s** (menos presión al remoto cuando el editor guarda en ráfaga); variable opcional **`OBSIDIAN_MEMORY_DEBOUNCE`** (duración estilo Go, p. ej. `90s`, `2m`; mín. 5 s, máx. 15 m).

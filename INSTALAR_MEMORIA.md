@@ -128,13 +128,18 @@ Indica al usuario que abra **Cursor → Settings → Rules → User Rules** y pe
 
 ### MCP disponible
 - **`basic-memory`** (siempre): `read_note`, `write_note`, `edit_note`, `search_notes`, `build_context`, `recent_activity`. Rutas relativas a `BASIC_MEMORY_HOME`.
-- **`obsidian-memory-hybrid`** (si aparece en verde): `vault_fts_search` para búsqueda BM25/FTS5 rápida; `vault_fts_index` tras importaciones masivas. Si no está activo, usa `search_notes` de `basic-memory`.
+- **`obsidian-memory-hybrid`** (si aparece en verde): `vault_fts_search` (BM25), `vault_fts_index` (refresh), y `memory_extract_candidates` (ritual de cierre — propone bullets para confirmar antes de escribir a `MEMORY.md`). Si no está activo, usa `search_notes` y `build_context` de `basic-memory`.
 - Si **ningún** servidor MCP del vault responde, dilo explícitamente; no afirmes haber persistido.
 
-### Arranque (al inicio de cualquier tarea)
-1. `read_note("START_HERE.md")` — orden de lectura del vault.
-2. `read_note("MEMORY.md")` — preferencias globales y lecciones duraderas.
-3. `read_note("PROJECTS/<proyecto>.md")` donde `<proyecto>` coincide con el nombre corto del repo o carpeta activa. Si no existe, créalo con `write_note`.
+### Arranque mínimo (cualquier tarea con contexto del vault)
+1. `read_note("START_HERE.md")` — **siempre**. Es el índice corto.
+2. **No leas más automáticamente.** Espera a que la tarea lo justifique.
+
+### Antes de acción no trivial (ritual de pre-acción)
+Antes de escribir código, instalar deps, modificar config, o decidir algo que persiste entre sesiones:
+1. `build_context(query=<resumen del prompt del usuario>)` para que `basic-memory` traiga las notas relevantes ranked.
+2. `read_note` lo que devolvió — no cargues todo a ciegas.
+3. Si la tarea toca un proyecto identificable, abre `PROJECTS/<proyecto>.md` (créalo con `write_note` sólo si se justifica).
 
 ### On-demand (solo si aplica)
 - Reglas duras del proyecto: `RULES/<proyecto>.md`
@@ -144,15 +149,14 @@ Indica al usuario que abra **Cursor → Settings → Rules → User Rules** y pe
 - Índice de etiquetas: `TAGS.md`
 
 ### Durante la tarea
-- Registrar decisiones relevantes en `PROJECTS/<proyecto>.md`.
+- No registres decisiones a medida que pasan — déjalo para el ritual de cierre.
 - No guardar secretos, tokens, JWTs ni IDs de hardware literales.
-- Checkpoint en `SESSION_LOG.md` solo con avance real (cada varios mensajes o al cerrar).
 
-### Al cerrar la tarea
-- Entrada breve en `SESSION_LOG.md` (fecha ISO, proyecto, resultado o decisión).
-- Lecciones transversales en `MEMORY.md`.
-- Regla dura nueva en `RULES/<proyecto>.md` si aplica.
-- Camino descartado en `KNOWN_FAILURES.md` con motivo.
+### Al cerrar la tarea (ritual de cierre)
+1. **Antes** de añadir nada al vault, llama `memory_extract_candidates(summary=<resumen>)` si tienes el híbrido. Devuelve bullets candidatos y marca los duplicados de `MEMORY.md`. Sin híbrido, escribe tú 1-3 bullets candidatos.
+2. **Muestra los candidatos al humano** y espera confirmación. No añadas nada sin que confirme.
+3. Para lo confirmado: `MEMORY.md` (lecciones), `PROJECTS/<proyecto>.md` (decisiones), `RULES/<proyecto>.md` (regla dura), `KNOWN_FAILURES.md` (camino descartado).
+4. Una línea en `SESSION_LOG.md` (fecha ISO, proyecto, resultado).
 
 ### Estilo de notas
 - Cortas y accionables. Separar **hechos** e **hipótesis** explícitamente.

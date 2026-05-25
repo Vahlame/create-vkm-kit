@@ -128,13 +128,18 @@ Tell the user to open **Cursor → Settings → Rules → User Rules** and paste
 
 ### Available MCP
 - **`basic-memory`** (always): `read_note`, `write_note`, `edit_note`, `search_notes`, `build_context`, `recent_activity`. Paths are relative to `BASIC_MEMORY_HOME`.
-- **`obsidian-memory-hybrid`** (if green): `vault_fts_search` for fast BM25/FTS5 search; `vault_fts_index` after bulk imports. If not active, use `search_notes` from `basic-memory`.
+- **`obsidian-memory-hybrid`** (if green): `vault_fts_search` (BM25), `vault_fts_index` (refresh), and `memory_extract_candidates` (closing ritual — proposes bullets for human review before writing to `MEMORY.md`). If not active, use `search_notes` and `build_context` from `basic-memory`.
 - If **no** vault MCP server responds, say so explicitly; don't claim to have persisted to the vault.
 
-### On startup (any task touching vault context)
-1. `read_note("START_HERE.md")` — vault reading order.
-2. `read_note("MEMORY.md")` — global preferences and lasting lessons.
-3. `read_note("PROJECTS/<project>.md")` where `<project>` matches the short name of the active repo or folder. Create it with `write_note` if it doesn't exist.
+### Minimal startup (any task with vault context)
+1. `read_note("START_HERE.md")` — **always**. It is the short index.
+2. **Do not load more automatically.** Wait until the task demands it.
+
+### Before non-trivial action (pre-action ritual)
+Before writing code, installing deps, changing config, or making a decision that persists across sessions:
+1. `build_context(query=<short recap of the user's prompt>)` so `basic-memory` returns the relevant notes ranked.
+2. `read_note` what it surfaces — do not blindly load everything.
+3. If the task touches an identifiable project, open `PROJECTS/<project>.md` (create it with `write_note` only when justified).
 
 ### On-demand (only if applicable)
 - Project hard rules: `RULES/<project>.md`
@@ -144,15 +149,14 @@ Tell the user to open **Cursor → Settings → Rules → User Rules** and paste
 - Tag index: `TAGS.md`
 
 ### During the task
-- Record relevant decisions in `PROJECTS/<project>.md`.
+- Do not log decisions turn by turn — leave that for the closing ritual.
 - Don't store secrets, tokens, JWTs, or literal hardware IDs.
-- Checkpoint in `SESSION_LOG.md` only with real progress (every few messages or on close).
 
-### On task close
-- Brief entry in `SESSION_LOG.md` (ISO date, project, result or decision).
-- Cross-cutting lessons in `MEMORY.md`.
-- New project hard rule in `RULES/<project>.md` if applicable.
-- Discarded path in `KNOWN_FAILURES.md` with reason.
+### On task close (closing ritual)
+1. **Before** writing anything to the vault, call `memory_extract_candidates(summary=<recap>)` if the hybrid is available. It returns bullet candidates and flags duplicates of existing `MEMORY.md` entries. Without the hybrid, write 1-3 candidate bullets yourself.
+2. **Show the candidates to the human** and wait for explicit confirmation. Do not append anything without it.
+3. For confirmed items: `MEMORY.md` (lessons), `PROJECTS/<project>.md` (decisions), `RULES/<project>.md` (hard rule), `KNOWN_FAILURES.md` (discarded path).
+4. One line in `SESSION_LOG.md` (ISO date, project, outcome).
 
 ### Note style
 - Short and actionable. Explicitly separate **facts** and **hypotheses**.
