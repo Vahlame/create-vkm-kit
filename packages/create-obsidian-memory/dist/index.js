@@ -205,29 +205,52 @@ tags: [start]
   await writeVaultGitWorkspaceSettings(vault, dryRun);
 }
 
+/** Strip UTF-8 BOM so JSON.parse succeeds (common when mcp.json was saved from PowerShell). */
+function stripLeadingUtf8Bom(text) {
+  return typeof text === "string" && text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+}
+
+/**
+ * Write JSON to `fp` atomically: stage at `<fp>.tmp.<pid>.<ts>`, fsync, rename.
+ * Crash mid-write leaves the original `fp` intact rather than truncating it.
+ * On Linux/macOS the final file is chmod 0o600 — `mcp.json` may carry env
+ * blocks for other MCP servers (API tokens, etc.) that shouldn't be world-readable.
+ * @param {string} fp - target path
+ * @param {unknown} data - JSON-serializable payload
+ */
+async function atomicWriteJson(fp, data) {
+  await fse.ensureDir(path.dirname(fp));
+  const tmp = `${fp}.tmp.${process.pid}.${Date.now()}`;
+  await fse.writeFile(tmp, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  if (process.platform !== "win32") {
+    try {
+      await fse.chmod(tmp, 0o600);
+    } catch {
+      /* best-effort: not all filesystems support chmod */
+    }
+  }
+  await fse.rename(tmp, fp);
+}
+
 /**
  * @param {string} home
  * @param {string} vaultAbs
  * @param {boolean} dryRun
  * @param {{ withHybrid?: boolean, repoRoot?: string | null }} [hybridOpts]
  */
-/** Strip UTF-8 BOM so JSON.parse succeeds (common when mcp.json was saved from PowerShell). */
-function stripLeadingUtf8Bom(text) {
-  return typeof text === "string" && text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
-}
-
 async function writeCursorMcp(home, vaultAbs, dryRun, hybridOpts = {}) {
   const dir = path.join(home, ".cursor");
   const fp = path.join(dir, "mcp.json");
   let parsed = {};
+  /** @type {Buffer | null} */
+  let priorBytes = null;
   if (await fse.pathExists(fp)) {
+    priorBytes = await fse.readFile(fp);
+    const text = stripLeadingUtf8Bom(priorBytes.toString("utf8"));
     try {
-      const raw = stripLeadingUtf8Bom(await fse.readFile(fp, "utf8"));
-      parsed = JSON.parse(raw);
+      parsed = JSON.parse(text);
     } catch {
-      const bak = `${fp}.bak.${Date.now()}`;
-      await fse.copy(fp, bak);
-      console.warn(pc.yellow("Invalid JSON in mcp.json; backed up to"), bak);
+      console.warn(pc.yellow("Invalid JSON in mcp.json; will back up the original before overwriting"));
     }
   }
   let merged = mergeBasicMemoryServer(parsed, vaultAbs);
@@ -241,8 +264,69 @@ async function writeCursorMcp(home, vaultAbs, dryRun, hybridOpts = {}) {
     return;
   }
   await fse.ensureDir(dir);
-  await fse.writeFile(fp, JSON.stringify(merged, null, 2), "utf8");
+  // Always preserve the previous mcp.json before overwriting — agent-driven
+  // installs that go wrong should be 1 `mv` away from recovery, not a re-run
+  // of the IDE wizard. Backups are kept indefinitely; clean up manually.
+  if (priorBytes) {
+    const bak = `${fp}.bak.${Date.now()}`;
+    await fse.writeFile(bak, priorBytes);
+    if (process.platform !== "win32") {
+      try {
+        await fse.chmod(bak, 0o600);
+      } catch {
+        /* ignore */
+      }
+    }
+    console.log(pc.dim("Backed up previous mcp.json to"), bak);
+  }
+  await atomicWriteJson(fp, merged);
   console.log(pc.green("Wrote"), fp);
+}
+
+/**
+ * Install a gitleaks `pre-commit` hook in the vault repo so secrets caught at
+ * commit time block both the user's interactive commits AND the obsidian-memoryd
+ * daemon's auto-commits. Falls through with a warning if gitleaks is not on PATH
+ * at commit time — does not hard-fail commits when the tool isn't installed.
+ * @param {string} vault
+ * @param {boolean} enable
+ * @param {boolean} dryRun
+ */
+async function maybeInstallGitleaksHook(vault, enable, dryRun) {
+  if (!enable) return;
+  const gitDir = path.join(vault, ".git");
+  if (!(await fse.pathExists(gitDir))) {
+    console.warn(pc.yellow("gitleaks hook: vault has no .git; skipping (re-run after git init)"));
+    return;
+  }
+  const hookPath = path.join(gitDir, "hooks", "pre-commit");
+  const script = `#!/usr/bin/env sh
+# obsidian-memory vault: gitleaks pre-commit guard
+# Refuses commits that introduce secrets. Install gitleaks per OS:
+#   macOS:   brew install gitleaks
+#   Windows: winget install gitleaks
+#   Linux:   see https://github.com/gitleaks/gitleaks#installing
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "gitleaks not installed; pre-commit guard skipped." >&2
+  echo "  install: https://github.com/gitleaks/gitleaks" >&2
+  exit 0
+fi
+exec gitleaks protect --staged --no-banner --redact
+`;
+  if (dryRun) {
+    console.log(pc.cyan("[dry-run] would install"), hookPath);
+    return;
+  }
+  await fse.ensureDir(path.dirname(hookPath));
+  await fse.writeFile(hookPath, script, "utf8");
+  if (process.platform !== "win32") {
+    try {
+      await fse.chmod(hookPath, 0o755);
+    } catch {
+      /* ignore */
+    }
+  }
+  console.log(pc.green("Installed gitleaks pre-commit hook at"), hookPath);
 }
 
 /**
@@ -268,6 +352,7 @@ async function runNonInteractive(argv) {
   const noCursorMcp = argv.includes("--no-cursor-mcp");
   const noGitInit = argv.includes("--no-git-init");
   const wantHybrid = argv.includes("--with-hybrid");
+  const wantGitleaks = argv.includes("--with-gitleaks");
   let kitRoot = null;
 
   if (wantHybrid) {
@@ -313,6 +398,7 @@ async function runNonInteractive(argv) {
   }
 
   await writeVaultGitWorkspaceSettings(vault, dryRun);
+  await maybeInstallGitleaksHook(vault, wantGitleaks, dryRun);
 
   console.log(pc.green("\n" + t.summary));
   console.log("- Vault:", vault);
@@ -322,6 +408,9 @@ async function runNonInteractive(argv) {
     console.log(
       pc.dim('  pip install -e "' + path.join(kitRoot, "packages", "obsidian-memory-rag") + '"')
     );
+  }
+  if (wantGitleaks) {
+    console.log("- gitleaks pre-commit hook: installed (vault/.git/hooks/pre-commit)");
   }
   console.log("-", t.ftsHint);
 }
@@ -343,6 +432,7 @@ Non-interactive (CI / scripts):
                   (Merges kit Git/SCM keys into <vault>/.vscode/settings.json — creates or updates.)
   --with-hybrid   Also merge obsidian-memory-hybrid (needs kit clone; use --repo-root or cwd walk)
   --repo-root <path>  Root of cursor-obsidian-memory-guide clone (hybrid bridge + Python src)
+  --with-gitleaks Install gitleaks pre-commit hook in <vault>/.git/hooks/
 
   --help          This message`);
     return;
@@ -469,6 +559,7 @@ Non-interactive (CI / scripts):
   }
 
   await writeVaultGitWorkspaceSettings(vault, dryRun);
+  await maybeInstallGitleaksHook(vault, Boolean(gitleaks), dryRun);
 
   console.log(pc.green("\n" + t.summary));
   console.log("- Vault:", vault);
@@ -484,7 +575,7 @@ Non-interactive (CI / scripts):
     );
   }
   console.log("-", t.ftsHint);
-  if (gitleaks) console.log("- gitleaks: install CLI + hook (see CONTRIBUTING / CI secrets-scan)");
+  if (gitleaks) console.log("- gitleaks pre-commit hook: installed (vault/.git/hooks/pre-commit); install gitleaks CLI to activate");
   if (age) console.log("- age: document keys outside repo");
   if (daemon)
     console.log(
