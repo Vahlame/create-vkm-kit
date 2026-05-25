@@ -23,11 +23,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Removed
 
+- **`compose.observability.yml`** (Langfuse + ClickHouse + Redis + Postgres docker-compose) deleted. The daemon and MCP sidecar never wired metrics or traces to that stack, so shipping the file alongside the docs implied an instrumentation story that did not exist. `docs/observability.md` rewritten honestly: daemon health goes through `obsidian-memoryd doctor`; if you want Langfuse, run it separately and point the optional OTel exporter at it. Closes the "observability decoy" finding from the systems audit.
+- **`obsidian-memoryd self-update` subcommand removed from `usage`.** It was an unimplemented stub that printed "not implemented" and exited 1, which the security audit correctly flagged as inducing false expectation. Will return if/when binaries are signed and verified.
 - **`scripts/windows/`** — `Start-BasicMemoryMcp.ps1`, `Run-Hidden.vbs`, `Get-CursorScheduledTaskConsoleRisk.ps1`, `Start-ObsidianMemorydWatch.ps1` (v3: no kit-shipped Windows integration scripts).
 - **`tools/*.ps1`** — `monitor-console-live.ps1`, `windows-reset-agent-memory.ps1`, `purge-memory-mcp-cache.ps1` (replaced by manual steps in docs; see `tools/README.md`).
 
 ### Added
 
+- **`obsidian-memoryd doctor` command** + daemon state file (`~/.local/state/obsidian-memory/state.json`): heartbeat tick every 60 s while `watch` runs, plus timestamps for last successful `git push`, last `rebase --abort`, and a consecutive-push-failures counter. `doctor` exits non-zero if the heartbeat is older than 5 min or push has failed 3+ times in a row — fills the "bus factor" gap raised by the strategic audit (the daemon previously ran hidden on Windows with no surface for silent failure). 11 new tests cover the round-trip, concurrent updates, heartbeat ticker, doctor formatting (healthy + alarm paths), and push counter mutations.
 - **`memory_extract_candidates` MCP tool** in `obsidian-memory-hybrid`: given a free-text summary of the task just finished, returns bullet candidates and flags ones that look like duplicates of existing `MEMORY.md` entries via BM25/FTS5. Read-only — never writes to the vault. Designed to be invoked at the closing-ritual moment defined in the User Rules so memory hygiene stops depending on the chat model "remembering" mid-task. Includes unit tests for `extractBullets` and `pickQueryTerms` helpers.
 - `INSTALAR_MEMORIA.md` / `INSTALAR_MEMORIA.en.md`: v3 installer prompt to paste in Cursor chat; agent runs all setup steps (prereqs, vault, MCP, User Rules, verification, optional git sync + hybrid FTS).
 - `GETTING_STARTED*.md`: quick-install callout at top; OS-specific `mcp.json` paths table; "first install vs update" section.

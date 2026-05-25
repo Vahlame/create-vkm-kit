@@ -37,9 +37,9 @@ Usage:
   obsidian-memoryd version
   obsidian-memoryd watch [--vault PATH]
   obsidian-memoryd sync once [--vault PATH]
+  obsidian-memoryd doctor [--vault PATH]
   obsidian-memoryd service <install|uninstall|start|stop|status> [--user]
   obsidian-memoryd inspect --last N
-  obsidian-memoryd self-update
 
 Environment:
   BASIC_MEMORY_HOME or OBSIDIAN_MEMORY_VAULT — vault root (git repo)
@@ -93,9 +93,11 @@ func main() {
 			l.Error("inspect", "err", err)
 			os.Exit(1)
 		}
-	case "self-update":
-		fmt.Fprintln(os.Stderr, "self-update: not implemented in this build (track GitHub Releases + SHA256SUMS).")
-		os.Exit(1)
+	case "doctor":
+		v := vaultPath(flagValue(os.Args[2:], "--vault", defaultVault()))
+		if err := doctor(os.Stdout, v, time.Now().UTC()); err != nil {
+			os.Exit(1)
+		}
 	default:
 		fmt.Fprint(os.Stderr, usage)
 		os.Exit(2)
@@ -284,6 +286,7 @@ func pullRebaseStep(parent context.Context, r Runner, to time.Duration, l *slog.
 		} else {
 			l.Warn("rebase aborted due to conflicts; resolve manually then re-sync", "dir", dir)
 		}
+		recordRebaseAbort()
 		return fmt.Errorf("git pull --rebase: conflict, aborted")
 	}
 	return fmt.Errorf("git pull --rebase: %w; output=%s", err, truncate(out, 400))
@@ -298,6 +301,7 @@ func pushStep(parent context.Context, r Runner, to time.Duration, l *slog.Logger
 		cancel()
 		if err == nil {
 			l.Info("git step ok", "step", "push", "attempt", attempt)
+			recordPushSuccess()
 			return nil
 		}
 		lastErr = err
@@ -311,6 +315,7 @@ func pushStep(parent context.Context, r Runner, to time.Duration, l *slog.Logger
 			backoff *= 2
 		}
 	}
+	recordPushFailure()
 	return fmt.Errorf("git push (%d attempts): %w", pushMaxRetries, lastErr)
 }
 
@@ -321,12 +326,72 @@ func truncate(b []byte, n int) string {
 	return string(b[:n]) + "..."
 }
 
+// doctor prints a human-readable health report (heartbeat age, last successful
+// push, unpushed commit count, recent rebase aborts, consecutive push fails)
+// and returns ErrDoctorAlarm if any signal looks bad. Useful when the daemon
+// runs hidden (Windows -H windowsgui) and the user wants to know "is it alive
+// and is it pushing?" without grepping JSONL logs.
+func doctor(out io.Writer, vault string, now time.Time) error {
+	s := readState()
+	const heartbeatStale = 5 * time.Minute
+
+	fmt.Fprintln(out, "obsidian-memoryd doctor")
+	fmt.Fprintln(out, "  state file:               "+stateFilePath())
+	if s.Heartbeat.IsZero() {
+		fmt.Fprintln(out, "  heartbeat:                never (daemon has not run with this state file)")
+	} else {
+		marker := ""
+		if staleHeartbeat(s, now, heartbeatStale) {
+			marker = " ⚠ daemon may be stopped"
+		}
+		fmt.Fprintf(out, "  heartbeat:                %s%s\n", formatAgo(now, s.Heartbeat), marker)
+	}
+	fmt.Fprintf(out, "  last successful push:     %s\n", formatAgo(now, s.LastPush))
+	if !s.LastRebaseAbort.IsZero() {
+		fmt.Fprintf(out, "  last rebase abort:        %s ⚠\n", formatAgo(now, s.LastRebaseAbort))
+	}
+	if s.ConsecutivePushFailures > 0 {
+		marker := ""
+		if s.ConsecutivePushFailures >= 3 {
+			marker = " ⚠ repeated failure"
+		}
+		fmt.Fprintf(out, "  consecutive push fails:   %d%s\n", s.ConsecutivePushFailures, marker)
+	}
+
+	// Unpushed commit count is best-effort: requires a configured upstream.
+	// Failure to compute is silent (no upstream, missing git, etc.).
+	if vault != "" {
+		if fi, err := os.Stat(filepath.Join(vault, ".git")); err == nil && fi.IsDir() {
+			cmd := exec.Command("git", "-C", vault, "rev-list", "@{u}..HEAD", "--count")
+			cmd.Env = append(cmd.Environ(), "GIT_TERMINAL_PROMPT=0")
+			hiddenCmd(cmd)
+			if outBytes, err := cmd.Output(); err == nil {
+				fmt.Fprintf(out, "  unpushed commits (vault): %s", string(outBytes))
+			}
+		}
+	}
+
+	alarm := staleHeartbeat(s, now, heartbeatStale) || s.ConsecutivePushFailures >= 3
+	if alarm {
+		fmt.Fprintln(out, "")
+		fmt.Fprintln(out, "ALARM: one or more signals are unhealthy. See `obsidian-memoryd inspect --last 30` for details.")
+		return ErrDoctorAlarm
+	}
+	return nil
+}
+
 func runWatch(ctx context.Context, l *slog.Logger, root string) error {
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
 		return err
 	}
 	defer w.Close()
+
+	// Heartbeat tick gives `obsidian-memoryd doctor` a way to detect
+	// "daemon silently died" (especially under -H windowsgui where there
+	// is no console to flash an error).
+	stopBeat := startHeartbeat(60 * time.Second)
+	defer stopBeat()
 
 	if err := addRecursive(w, root); err != nil {
 		return err

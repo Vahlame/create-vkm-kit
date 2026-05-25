@@ -16,7 +16,7 @@ Document **short, jurisdiction-neutral** guidance in `docs/observability.md`, `S
 
 - **Positive:** Useful for typical users; stays maintainable and avoids over-specific narratives in the repo.
 - **Negative:** Teams with strict regulatory needs must still involve their own experts.
-- **Neutral:** Optional stacks (`compose.observability.yml`) remain examples only.
+- **Neutral:** Daemon health surfaces via `obsidian-memoryd doctor` (heartbeat, last push, push-failure counter); the old `compose.observability.yml` decoy was removed in v3 since the daemon never wired metrics or traces to it.
 
 ## Alternatives considered
 
