@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { extractBullets, pickQueryTerms } from "../src/hybrid-mcp.mjs";
+// Import from ./extract.mjs (pure helpers), NOT from ./hybrid-mcp.mjs — the
+// latter would spawn StdioServerTransport on import and hang `node --test`
+// forever waiting on stdin. The hybrid module re-exports these for back-compat
+// but tests stay decoupled from the MCP server lifecycle.
+import { extractBullets, pickQueryTerms } from "../src/extract.mjs";
 
 test("extractBullets pulls dash-prefixed items", () => {
   const summary = `Things from this session:

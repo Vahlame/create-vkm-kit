@@ -10,10 +10,16 @@
  */
 import { execa } from "execa";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { extractBullets, pickQueryTerms } from "./extract.mjs";
+
+// Re-export so any consumer that already imports these from hybrid-mcp.mjs keeps
+// working; new consumers should import from ./extract.mjs to avoid loading the
+// whole MCP server module.
+export { extractBullets, pickQueryTerms };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -43,42 +49,6 @@ function requireVault(vaultArg) {
     );
   }
   return v;
-}
-
-/**
- * Pull bullet lines out of free-form summary text. Recognizes "- ..." and "* ..." list items;
- * if none, falls back to sentence splitting. Trims and skips trivial entries.
- * @param {string} text
- * @returns {string[]}
- */
-export function extractBullets(text) {
-  const out = [];
-  for (const raw of text.split(/\r?\n/)) {
-    const line = raw.trim();
-    if (line.startsWith("- ") || line.startsWith("* ")) {
-      const body = line.replace(/^[-*]\s+/, "").trim();
-      if (body.length >= 8) out.push(body);
-    }
-  }
-  if (out.length > 0) return out;
-  // Fallback: sentence split with a minimum length cutoff.
-  return text
-    .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length >= 16);
-}
-
-/**
- * Pick up to 3 meaningful query terms from a bullet for BM25 lookup.
- * Drops stopwords-ish short tokens, keeps alphanumeric/identifier-shaped words.
- * @param {string} bullet
- */
-export function pickQueryTerms(bullet) {
-  const tokens = bullet
-    .split(/\s+/)
-    .map((w) => w.replace(/[.,;:!?()`"']+$/g, "").replace(/^[.,;:!?()`"']+/g, ""))
-    .filter((w) => w.length >= 4 && /^[\w][\w-]*$/.test(w));
-  return tokens.slice(0, 3).join(" ");
 }
 
 async function runRagJson(args, ragSrc) {
@@ -234,7 +204,13 @@ async function main() {
   await server.connect(transport);
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// Guard so importing this module (e.g. from a test) does NOT spawn the stdio
+// server. Without this guard, `node --test` runs that import hybrid-mcp.mjs
+// hang forever because StdioServerTransport waits on stdin.
+const isEntryPoint = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isEntryPoint) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
