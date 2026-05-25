@@ -77,11 +77,11 @@ Show the command output to the user and confirm no errors. If it says `mcp.json 
 
 Show the user the current contents of their `mcp.json` (path depends on OS):
 
-| OS | `mcp.json` path |
-|----|----------------|
-| Windows | `%USERPROFILE%\.cursor\mcp.json` |
-| Linux | `~/.config/Cursor/User/globalStorage/cursor.mcp/mcp.json` |
-| macOS | `~/Library/Application Support/Cursor/User/globalStorage/cursor.mcp/mcp.json` |
+| OS      | `mcp.json` path                                                               |
+| ------- | ----------------------------------------------------------------------------- |
+| Windows | `%USERPROFILE%\.cursor\mcp.json`                                              |
+| Linux   | `~/.config/Cursor/User/globalStorage/cursor.mcp/mcp.json`                     |
+| macOS   | `~/Library/Application Support/Cursor/User/globalStorage/cursor.mcp/mcp.json` |
 
 Confirm that the `basic-memory` entry exists and `BASIC_MEMORY_HOME` points to `<VAULT_PATH>`. Expected:
 
@@ -213,13 +213,13 @@ Restart Cursor. Then use `vault_fts_index` to build the index and `vault_fts_sea
 
 When done, confirm status to the user:
 
-| Component | Status |
-|---|---|
-| Vault created | `<VAULT_PATH>` |
-| `basic-memory` in `mcp.json` | ✓ |
-| User Rules pasted | ✓ |
-| MCP verified | ✓ (or ✗ + instruction) |
-| Git sync | Optional |
-| Hybrid FTS | Optional |
+| Component                    | Status                 |
+| ---------------------------- | ---------------------- |
+| Vault created                | `<VAULT_PATH>`         |
+| `basic-memory` in `mcp.json` | ✓                      |
+| User Rules pasted            | ✓                      |
+| MCP verified                 | ✓ (or ✗ + instruction) |
+| Git sync                     | Optional               |
+| Hybrid FTS                   | Optional               |
 
 **Next chat:** the agent will read `START_HERE.md` → `MEMORY.md` → `PROJECTS/<project>.md` at the start of each task.

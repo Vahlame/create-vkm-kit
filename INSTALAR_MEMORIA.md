@@ -77,11 +77,11 @@ Muestra la salida del comando al usuario y confirma que no hubo errores. Si dice
 
 Muestra al usuario el contenido actual de su `mcp.json` (ruta según SO):
 
-| Sistema | Ruta de `mcp.json` |
-|---------|-------------------|
-| Windows | `%USERPROFILE%\.cursor\mcp.json` |
-| Linux | `~/.config/Cursor/User/globalStorage/cursor.mcp/mcp.json` |
-| macOS | `~/Library/Application Support/Cursor/User/globalStorage/cursor.mcp/mcp.json` |
+| Sistema | Ruta de `mcp.json`                                                            |
+| ------- | ----------------------------------------------------------------------------- |
+| Windows | `%USERPROFILE%\.cursor\mcp.json`                                              |
+| Linux   | `~/.config/Cursor/User/globalStorage/cursor.mcp/mcp.json`                     |
+| macOS   | `~/Library/Application Support/Cursor/User/globalStorage/cursor.mcp/mcp.json` |
 
 Confirma que la entrada `basic-memory` existe y que `BASIC_MEMORY_HOME` apunta a `<VAULT_PATH>`. Ejemplo esperado:
 
@@ -213,13 +213,13 @@ Reinicia Cursor. Luego usa `vault_fts_index` para construir el índice y `vault_
 
 Al terminar, confirma al usuario el estado:
 
-| Componente | Estado |
-|---|---|
-| Vault creado | `<VAULT_PATH>` |
-| `basic-memory` en `mcp.json` | ✓ |
-| User Rules pegadas | ✓ |
-| MCP verificado | ✓ (o ✗ + instrucción) |
-| Git sync | Opcional |
-| Híbrido FTS | Opcional |
+| Componente                   | Estado                |
+| ---------------------------- | --------------------- |
+| Vault creado                 | `<VAULT_PATH>`        |
+| `basic-memory` en `mcp.json` | ✓                     |
+| User Rules pegadas           | ✓                     |
+| MCP verificado               | ✓ (o ✗ + instrucción) |
+| Git sync                     | Opcional              |
+| Híbrido FTS                  | Opcional              |
 
 **Siguiente chat:** el agente leerá `START_HERE.md` → `MEMORY.md` → `PROJECTS/<proyecto>.md` al inicio de cada tarea.

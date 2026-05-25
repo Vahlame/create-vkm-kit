@@ -22,6 +22,13 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+// version is the daemon version. Override at build time with:
+//
+//	go build -ldflags="-X main.version=3.0.0" ./cmd/obsidian-memoryd
+//
+// Keep in sync with agent.toml.
+var version = "3.0.0-dev"
+
 const usage = `obsidian-memoryd — vault git sync helper
 
 Usage:
@@ -46,7 +53,7 @@ func main() {
 	ctx := context.Background()
 	switch os.Args[1] {
 	case "version":
-		fmt.Println("obsidian-memoryd 2.0.0-dev")
+		fmt.Println("obsidian-memoryd " + version)
 	case "watch":
 		v := vaultPath(flagValue(os.Args[2:], "--vault", defaultVault()))
 		if err := runWatch(ctx, l, v); err != nil {
