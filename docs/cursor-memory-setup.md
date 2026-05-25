@@ -135,18 +135,26 @@ En **Cursor → Settings → Rules → User Rules**, pega el bloque siguiente. *
 ### MCP disponible
 
 - Si el servidor **`basic-memory`** está activo, úsalo para el vault: `read_note`, `write_note`, `edit_note`, `search_notes`, `build_context`, `recent_activity`. Las rutas son relativas a la raíz del vault (`BASIC_MEMORY_HOME`).
-- Si además está **`obsidian-memory-hybrid`**, para búsqueda léxica BM25/FTS5 usa `vault_fts_search`; tras importaciones masivas o primera indexación en vault grande, `vault_fts_index`. Si no está el híbrido, basta `search_notes` de `basic-memory`.
+- Si además está **`obsidian-memory-hybrid`**, para búsqueda léxica BM25/FTS5 usa `vault_fts_search`; tras importaciones masivas o primera indexación en vault grande, `vault_fts_index`. **`memory_extract_candidates`** propone bullets para confirmar antes de escribir a `MEMORY.md` (ver ritual de cierre).
+- Si no está el híbrido, usa `search_notes` y `build_context` de `basic-memory`.
 - Si **no** hay MCP del vault disponible, dilo explícitamente; no afirmes haber persistido en el vault.
 
-### Arranque (tareas que toquen contexto del vault)
+### Arranque mínimo (cualquier tarea con contexto del vault)
 
-1. Leer con `read_note` el archivo de entrada del vault (p. ej. `START_HERE.md`).
-2. Leer `MEMORY.md`.
-3. Usar o crear `PROJECTS/<proyecto>.md` alineado al nombre de carpeta o repo actual; leerlo si existe (`<proyecto>` = identificador corto, sin espacios raros).
+1. `read_note("START_HERE.md")` — **siempre**. Es el índice corto.
+2. **No leas más automáticamente.** `START_HERE.md` lista qué notas existen y cuándo abrirlas; espera a que la tarea lo justifique.
 
-### On-demand (solo si aplica)
+### Antes de cualquier acción no trivial (ritual de pre-acción)
 
-- Reglas duras: `RULES/<proyecto>.md`.
+Antes de escribir código, instalar dependencias, modificar config, o tomar decisión que persista entre sesiones:
+
+1. Llama `build_context(query=<resumen del prompt del usuario>)` para que `basic-memory` te traiga las notas relevantes ranked. Si está disponible `obsidian-memory-hybrid`, complementa con `vault_fts_search` para términos exactos.
+2. Lee con `read_note` lo que `build_context` devuelva (no lo cargues todo a ciegas).
+3. Si la tarea toca un proyecto identificable (carpeta o repo activo), abre `PROJECTS/<proyecto>.md`; créalo con `write_note` sólo si la tarea lo justifica.
+
+### On-demand (sólo si la tarea lo pide)
+
+- Reglas duras del proyecto: `RULES/<proyecto>.md`.
 - Historial de sprint: `PROJECTS/<proyecto>/SPRINTS.md`.
 - Runbook: `PROJECTS/<proyecto>/RUNBOOK.md`.
 - Patrones de fallo: `KNOWN_FAILURES.md`.
@@ -154,16 +162,19 @@ En **Cursor → Settings → Rules → User Rules**, pega el bloque siguiente. *
 
 ### Durante la tarea
 
-- Registrar decisiones relevantes en `PROJECTS/<proyecto>.md` o en `SPRINTS.md` si es cierre de sprint.
+- No registrar decisiones a medida que pasan — déjalo para el ritual de cierre.
 - No guardar secretos, tokens, JWTs ni IDs de hardware literales.
-- No llenar el vault de ruido: checkpoint en `SESSION_LOG.md` solo con avance real (cada varios mensajes o al cerrar).
 
-### Al cerrar la tarea
+### Al cerrar la tarea (ritual de cierre)
 
-- Añadir una entrada breve en `SESSION_LOG.md` (fecha, proyecto, resultado o decisión).
-- Lecciones transversales en `MEMORY.md`.
-- Nueva regla dura del proyecto en `RULES/<proyecto>.md`.
-- Camino descartado en `KNOWN_FAILURES.md` con el motivo.
+1. **Antes** de añadir nada al vault, llama `memory_extract_candidates(summary=<resumen de lo aprendido>)` (si está `obsidian-memory-hybrid`). Devuelve bullets candidatos y marca los que parecen duplicar entradas existentes de `MEMORY.md`. Si el híbrido no está, escribe tú mismo 1-3 bullets candidatos.
+2. **Muestra los candidatos al humano** y espera confirmación explícita. No añadas nada sin que confirme.
+3. Para lo confirmado:
+   - Lecciones transversales → `edit_note("MEMORY.md", …)`.
+   - Decisiones de proyecto → `PROJECTS/<proyecto>.md`.
+   - Reglas duras nuevas → `RULES/<proyecto>.md`.
+   - Caminos descartados → `KNOWN_FAILURES.md` con motivo.
+4. Apunta una línea en `SESSION_LOG.md` (fecha ISO, proyecto, resultado).
 
 ### Estilo
 

@@ -39,10 +39,46 @@ function requireVault(vaultArg) {
   const v = vaultArg ? path.resolve(vaultArg) : defaultVaultFromEnv();
   if (!v) {
     throw new Error(
-      "Missing vault: pass `vault` on the tool call or set BASIC_MEMORY_HOME / OBSIDIAN_MEMORY_VAULT",
+      "Missing vault: pass `vault` on the tool call or set BASIC_MEMORY_HOME / OBSIDIAN_MEMORY_VAULT"
     );
   }
   return v;
+}
+
+/**
+ * Pull bullet lines out of free-form summary text. Recognizes "- ..." and "* ..." list items;
+ * if none, falls back to sentence splitting. Trims and skips trivial entries.
+ * @param {string} text
+ * @returns {string[]}
+ */
+export function extractBullets(text) {
+  const out = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (line.startsWith("- ") || line.startsWith("* ")) {
+      const body = line.replace(/^[-*]\s+/, "").trim();
+      if (body.length >= 8) out.push(body);
+    }
+  }
+  if (out.length > 0) return out;
+  // Fallback: sentence split with a minimum length cutoff.
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 16);
+}
+
+/**
+ * Pick up to 3 meaningful query terms from a bullet for BM25 lookup.
+ * Drops stopwords-ish short tokens, keeps alphanumeric/identifier-shaped words.
+ * @param {string} bullet
+ */
+export function pickQueryTerms(bullet) {
+  const tokens = bullet
+    .split(/\s+/)
+    .map((w) => w.replace(/[.,;:!?()`"']+$/g, "").replace(/^[.,;:!?()`"']+/g, ""))
+    .filter((w) => w.length >= 4 && /^[\w][\w-]*$/.test(w));
+  return tokens.slice(0, 3).join(" ");
 }
 
 async function runRagJson(args, ragSrc) {
@@ -53,7 +89,7 @@ async function runRagJson(args, ragSrc) {
   const r = await execa(py, ["-m", "obsidian_memory_rag", ...args], {
     env,
     reject: false,
-    stripFinalNewline: true,
+    stripFinalNewline: true
   });
   if (r.exitCode !== 0) {
     throw new Error(r.stderr || r.stdout || `python exited ${r.exitCode}`);
@@ -69,8 +105,8 @@ async function main() {
     {
       capabilities: { tools: {} },
       instructions:
-        "Hybrid lexical memory: call vault_fts_index after large vault imports, then vault_fts_search for BM25-ranked Markdown hits. Complements basic-memory; does not replace it.",
-    },
+        "Hybrid lexical memory: call vault_fts_index after large vault imports, then vault_fts_search for BM25-ranked Markdown hits. Complements basic-memory; does not replace it."
+    }
   );
 
   server.registerTool(
@@ -85,16 +121,16 @@ async function main() {
           .string()
           .optional()
           .describe("Vault root; defaults to BASIC_MEMORY_HOME / OBSIDIAN_MEMORY_VAULT"),
-        limit: z.number().int().min(1).max(100).optional().default(20),
+        limit: z.number().int().min(1).max(100).optional().default(20)
       },
-      annotations: { readOnlyHint: true },
+      annotations: { readOnlyHint: true }
     },
     async ({ query, vault, limit }) => {
       try {
         const v = requireVault(vault || undefined);
         const data = await runRagJson(
           ["json-search", "--vault", v, "--query", query, "--limit", String(limit ?? 20)],
-          ragSrc,
+          ragSrc
         );
         const text = JSON.stringify(data, null, 2);
         return { content: [{ type: "text", text }] };
@@ -102,7 +138,7 @@ async function main() {
         const msg = e instanceof Error ? e.message : String(e);
         return { content: [{ type: "text", text: msg }], isError: true };
       }
-    },
+    }
   );
 
   server.registerTool(
@@ -113,22 +149,16 @@ async function main() {
         "Refresh the local .obsidian-memory-rag/fts.sqlite index (incremental by mtime/size).",
       inputSchema: {
         vault: z.string().optional().describe("Vault root; defaults to BASIC_MEMORY_HOME"),
-        maxFileBytes: z.number().int().min(4096).max(10_000_000).optional().default(1_048_576),
+        maxFileBytes: z.number().int().min(4096).max(10_000_000).optional().default(1_048_576)
       },
-      annotations: { readOnlyHint: false },
+      annotations: { readOnlyHint: false }
     },
     async ({ vault, maxFileBytes }) => {
       try {
         const v = requireVault(vault || undefined);
         const data = await runRagJson(
-          [
-            "json-index",
-            "--vault",
-            v,
-            "--max-file-bytes",
-            String(maxFileBytes ?? 1_048_576),
-          ],
-          ragSrc,
+          ["json-index", "--vault", v, "--max-file-bytes", String(maxFileBytes ?? 1_048_576)],
+          ragSrc
         );
         const text = JSON.stringify(data, null, 2);
         return { content: [{ type: "text", text }] };
@@ -136,7 +166,68 @@ async function main() {
         const msg = e instanceof Error ? e.message : String(e);
         return { content: [{ type: "text", text: msg }], isError: true };
       }
+    }
+  );
+
+  server.registerTool(
+    "memory_extract_candidates",
+    {
+      title: "Memory extraction candidates (pre-close ritual)",
+      description:
+        "Given a free-text summary of the task/turn just finished, returns bullet candidates that the agent SHOULD propose to the human before appending to MEMORY.md. For each bullet, looks up existing entries via BM25/FTS5 and flags potential duplicates. NEVER writes to the vault — the human approves and the agent then calls write_note / edit_note. Use this at the closing-ritual moment defined in the User Rules.",
+      inputSchema: {
+        summary: z
+          .string()
+          .describe(
+            "Free-text recap of what happened that might be worth remembering long-term (decisions, preferences, lessons)."
+          ),
+        vault: z.string().optional().describe("Vault root; defaults to BASIC_MEMORY_HOME"),
+        memoryFile: z
+          .string()
+          .optional()
+          .default("MEMORY.md")
+          .describe("Path relative to vault to dedup against (default MEMORY.md)"),
+        maxBullets: z.number().int().min(1).max(20).optional().default(6)
+      },
+      annotations: { readOnlyHint: true }
     },
+    async ({ summary, vault, memoryFile, maxBullets }) => {
+      try {
+        const v = requireVault(vault || undefined);
+        const file = memoryFile || "MEMORY.md";
+        const bullets = extractBullets(summary).slice(0, maxBullets ?? 6);
+        const candidates = [];
+        for (const bullet of bullets) {
+          const terms = pickQueryTerms(bullet);
+          let existing = null;
+          if (terms) {
+            try {
+              const data = await runRagJson(
+                ["json-search", "--vault", v, "--query", terms, "--limit", "5"],
+                ragSrc
+              );
+              const hit = (data.hits || []).find((h) => h.path === file);
+              if (hit) {
+                existing = { path: hit.path, snippet: hit.snippet ?? "" };
+              }
+            } catch {
+              // Index missing or query parse error → fall through; bullet is just flagged as new.
+            }
+          }
+          candidates.push({ bullet, query: terms, existing });
+        }
+        const payload = {
+          memoryFile: file,
+          candidates,
+          notice:
+            "These are candidates only. Show them to the human, get explicit confirmation, then call write_note / edit_note. Never auto-append."
+        };
+        return { content: [{ type: "text", text: JSON.stringify(payload, null, 2) }] };
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return { content: [{ type: "text", text: msg }], isError: true };
+      }
+    }
   );
 
   const transport = new StdioServerTransport();
