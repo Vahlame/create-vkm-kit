@@ -20,8 +20,8 @@ uvx --version           # Debe responder (no "no reconocido")
 git --version           # Para el vault git
 ```
 
-- Si **Node** no está: https://nodejs.org/en/download (LTS). En Windows: winget install OpenJS.NodeJS.LTS
-- Si **uv/uvx** no está: https://docs.astral.sh/uv/getting-started/installation/ (Windows: `winget install astral-sh.uv`)
+- Si **Node** no está: <https://nodejs.org/en/download> (LTS). En Windows: `winget install OpenJS.NodeJS.LTS`
+- Si **uv/uvx** no está: <https://docs.astral.sh/uv/getting-started/installation/> (Windows: `winget install astral-sh.uv`)
 - Después de instalar, **cierra y vuelve a abrir el terminal** para refrescar el PATH.
 
 Informa al usuario cuál de las herramientas falta, si alguna, y espera a que la instale antes de continuar.
@@ -57,6 +57,7 @@ node "<KIT_ROOT>\packages\create-obsidian-memory\dist\index.js" `
 ```
 
 **Qué hace este comando:**
+
 - Crea el vault si no existe, con la estructura `START_HERE.md`, `MEMORY.md`, `SESSION_LOG.md`, `PROJECTS/`, `RULES/`, `KNOWN_FAILURES.md`, `TAGS.md`.
 - Añade `.vscode/settings.json` al vault (reduce ruido Git en Windows).
 - Fusiona la entrada `basic-memory` en `%USERPROFILE%\.cursor\mcp.json` (Windows) o `~/.cursor/mcp.json` (Linux/macOS) **sin borrar** otras entradas que ya existieran.
@@ -106,7 +107,7 @@ Si la ruta en `BASIC_MEMORY_HOME` es incorrecta, corrígela directamente en el a
 
 Indica al usuario que abra **Cursor → Settings → Rules → User Rules** y pegue el siguiente bloque completo (reemplazando el contenido previo si ya tenía reglas de versiones anteriores):
 
-```
+```text
 ## Memoria Markdown (vault + MCP v3)
 
 **Motivo:** el modelo no persiste entre chats; el vault en git es auditable, portable y tuyo.
@@ -157,7 +158,7 @@ Pide al usuario que guarde y que **reinicie Cursor** (o haga `Developer: Reload 
 
 Después de que el usuario reinicie Cursor, abre un chat nuevo e intenta leer el vault:
 
-```
+```text
 read_note("START_HERE.md")
 ```
 
@@ -179,10 +180,10 @@ Si el usuario quiere que el vault se sincronice automáticamente con GitHub:
 2. Crea un repo privado en GitHub (`gh repo create memory-agents --private --source <VAULT_PATH> --push`).
 3. Para sincronización automática sin ventanas emergentes en Windows, compila el daemon:
 
-```powershell
-# Desde la raíz del kit
-go build -ldflags="-H windowsgui" -o bin\obsidian-memoryd.exe .\cmd\obsidian-memoryd
-```
+   ```powershell
+   # Desde la raíz del kit
+   go build -ldflags="-H windowsgui" -o bin\obsidian-memoryd.exe .\cmd\obsidian-memoryd
+   ```
 
 4. Crea un acceso directo en `shell:startup` que apunte a `obsidian-memoryd.exe watch --vault "<VAULT_PATH>"`.
 

@@ -7,10 +7,12 @@ This guide does **not** ship or ask you to copy `.ps1`, `.vbs`, or `.bat` from t
 Save-triggered sync with debounce (default **45 s** after the last change; tune with `OBSIDIAN_MEMORY_DEBOUNCE`).
 
 **No console windows on Windows:** the repo ships two build-tag files:
+
 - `proc_windows.go` — each `git` subprocess receives `CREATE_NO_WINDOW + HideWindow: true`; zero console flashes even when the `.exe` is GUI-subsystem (`-H windowsgui`).
 - `proc_other.go` — no-op on Linux/macOS.
 
 Build command for Windows (no console):
+
 ```bash
 go build -ldflags="-H windowsgui" -o bin/obsidian-memoryd.exe ./cmd/obsidian-memoryd
 ```
