@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  BASIC_MEMORY_VERSION,
   mergeBasicMemoryServer,
   mergeObsidianHybridServer,
   resolveKitRepoRoot
@@ -11,10 +12,15 @@ import {
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
-test("mergeBasicMemoryServer adds basic-memory with absolute vault", () => {
+test("mergeBasicMemoryServer adds basic-memory with absolute vault and pinned version", () => {
   const out = mergeBasicMemoryServer({}, "/abs/vault");
   assert.equal(out.mcpServers["basic-memory"].command, "uvx");
-  assert.deepEqual(out.mcpServers["basic-memory"].args, ["basic-memory", "mcp"]);
+  assert.deepEqual(out.mcpServers["basic-memory"].args, [
+    "--from",
+    `basic-memory==${BASIC_MEMORY_VERSION}`,
+    "basic-memory",
+    "mcp"
+  ]);
   assert.equal(out.mcpServers["basic-memory"].env.BASIC_MEMORY_HOME, "/abs/vault");
 });
 

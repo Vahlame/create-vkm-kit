@@ -1,6 +1,20 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+// Pinned basic-memory version. Bumping requires:
+//   1. update this constant
+//   2. update config/mcp/basic-memory.json
+//   3. update scripts/mcp-smoke.mjs
+//   4. update docs/cursor-memory-setup{,.en}.md + INSTALAR_MEMORIA{,.en}.md examples
+//   5. mention the bump in CHANGELOG.md (with rationale: CVE? new tool? compat?)
+// Rationale for pinning: `uvx <pkg> mcp` without a version pin pulls latest from
+// PyPI on every Cursor restart — a supply-chain RCE if the package is taken over.
+export const BASIC_MEMORY_VERSION = "0.21.4";
+
+function basicMemoryArgs() {
+  return ["--from", `basic-memory==${BASIC_MEMORY_VERSION}`, "basic-memory", "mcp"];
+}
+
 /**
  * Merge basic-memory MCP server entry into an existing mcp.json object.
  * @param {unknown} raw - parsed JSON root object
@@ -19,7 +33,7 @@ export function mergeBasicMemoryServer(raw, vaultAbs) {
   const mcpServers = /** @type {Record<string, unknown>} */ (base.mcpServers);
   mcpServers["basic-memory"] = {
     command: "uvx",
-    args: ["basic-memory", "mcp"],
+    args: basicMemoryArgs(),
     env: { BASIC_MEMORY_HOME: vaultAbs }
   };
   return base;
