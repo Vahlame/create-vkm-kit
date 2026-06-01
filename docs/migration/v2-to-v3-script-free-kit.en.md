@@ -35,7 +35,7 @@ Everything in this chapter lives on **`main`**: there is no separate “v3” br
 2. **Default MCP** — **stdio** [`../../config/mcp/basic-memory.json`](../../config/mcp/basic-memory.json) + `BASIC_MEMORY_HOME`.
 3. **Agent rules** — [`../cursor-memory-setup.en.md`](../cursor-memory-setup.en.md) (User Rules) + [`../../AGENTS.md`](../../AGENTS.md) for repo contributors.
 4. **Vault git sync** — [`../../cmd/obsidian-memoryd`](../../cmd/obsidian-memoryd) (`watch`) or **manual git**; [`../setup/windows-scheduled-vault-sync.en.md`](../setup/windows-scheduled-vault-sync.en.md).
-5. **Large vaults** — `obsidian-memory-rag` + hybrid MCP [`../../config/mcp/obsidian-memory-hybrid.json`](../../config/mcp/obsidian-memory-hybrid.json); [`../testing/manual-checks.md`](../testing/manual-checks.md) §6–7.
+5. **Large vaults** — `obsidian-memory-rag` + hybrid MCP. Quick path: `node packages/create-obsidian-memory/src/index.js --non-interactive --vault "<path>" --with-hybrid --repo-root "<kit-clone>"` (requires `pip install -e packages/obsidian-memory-rag` first). Manual config: [`../../config/mcp/obsidian-memory-hybrid.json`](../../config/mcp/obsidian-memory-hybrid.json); [`../testing/manual-checks.md`](../testing/manual-checks.md) §6–7.
 6. **Optional persistent HTTP** — same always-on guide: **no** `.ps1` from this repository is required.
 7. **Repo CI / quality** — unchanged for maintainers: TypeScript (`scripts/sync-agents.ts`) and, for the **legacy v1 prompt**, [`.github/scripts/extract-and-lint.ps1`](../../.github/scripts/extract-and-lint.ps1) in workflows.
 

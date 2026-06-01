@@ -31,7 +31,7 @@ Es una carpeta con archivos como:
 
 **MCP** (“Model Context Protocol”) es el mecanismo por el cual Cursor (u otro cliente) lanza un proceso y le pide operaciones: leer nota, escribir nota, buscar, etc.
 
-En v2 el servidor por defecto es **`basic-memory`**, arrancado con `uvx basic-memory mcp`. La variable **`BASIC_MEMORY_HOME`** le dice **qué carpeta** es el vault. Sin eso, la IA no tiene **a dónde** apuntar.
+En el kit v3 (y v2+) el servidor por defecto es **`basic-memory`**, arrancado con `uvx basic-memory mcp`. La variable **`BASIC_MEMORY_HOME`** le dice **qué carpeta** es el vault. Sin eso, la IA no tiene **a dónde** apuntar.
 
 **Importante:** el MCP no “piensa”. Solo **abre, guarda y busca archivos** según las herramientas que expone. El modelo sigue siendo el que decide qué pedir; las User Rules ayudan a que no se salte pasos.
 
@@ -60,6 +60,8 @@ Nada de esto envía tus notas al modelo “para siempre” en un servidor del pr
 
 `basic-memory` ya puede buscar. Si el vault es **muy grande**, un índice **SQLite FTS5** en tu máquina acelera búsquedas tipo “palabras clave en todo el cuerpo”. Eso es el paquete **`obsidian-memory-rag`**. El **MCP híbrido** expone en el IDE herramientas para **indexar** y **buscar** contra ese índice.
 
+**Cómo activarlo (camino rápido):** usa el inicializador desde el clon del kit — ver [GETTING_STARTED.md paso 6](../GETTING_STARTED.md) y [docs/cursor-memory-setup.md § v3](./cursor-memory-setup.md).
+
 No es obligatorio para empezar. Es una capa de **comodidad y rendimiento**, no el núcleo del sistema.
 
 ## Qué **no** es (para no confundirse)
@@ -68,6 +70,10 @@ No es obligatorio para empezar. Es una capa de **comodidad y rendimiento**, no e
 - **No** es un reemplazo automático de Obsidian: puedes usar Obsidian u otro editor; el vault son archivos.
 - **No** es “memoria en la nube del modelo”: la persistencia útil está en **tus archivos** y tu **git**.
 - **No** garantiza que la IA siempre obedezca: las reglas y el flujo mejoran el comportamiento, pero el modelo puede equivocarse; por eso el vault es revisable por humanos.
+
+## Varias ventanas de Cursor (un vault, varios focos)
+
+Con la config típica (`BASIC_MEMORY_HOME` en tu `mcp.json` de usuario), **todas** las ventanas comparten el **mismo** vault en disco. Eso está bien: usa **`PROJECTS/<repo>.md`** para no mezclar contextos. Si necesitas memorias totalmente aisladas, monta **otro** vault y otra entrada MCP (avanzado).
 
 ## Siguiente paso
 

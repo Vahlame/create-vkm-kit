@@ -1,6 +1,6 @@
 # Manual checks (IDE + MCP)
 
-**Flujo humano:** [`../GETTING_STARTED.md`](../GETTING_STARTED.md) (ES) / [`../GETTING_STARTED.en.md`](../GETTING_STARTED.en.md) (EN). **Idea en palabras simples:** [`../docs/how-memory-works-simple.md`](../docs/how-memory-works-simple.md) / [`../docs/how-memory-works-simple.en.md`](../docs/how-memory-works-simple.en.md). **Cursor (MCP + User Rules):** [`../docs/cursor-memory-setup.md`](../docs/cursor-memory-setup.md) / [English](../docs/cursor-memory-setup.en.md).
+**Flujo humano:** [`GETTING_STARTED.md`](../../GETTING_STARTED.md) (ES) / [`GETTING_STARTED.en.md`](../../GETTING_STARTED.en.md) (EN). **Idea en palabras simples:** [`docs/how-memory-works-simple.md`](../how-memory-works-simple.md) / [`docs/how-memory-works-simple.en.md`](../how-memory-works-simple.en.md). **Cursor (MCP + User Rules):** [`docs/cursor-memory-setup.md`](../cursor-memory-setup.md) / [English](../cursor-memory-setup.en.md).
 
 These steps require a local machine with **Node 20+**, **Python/uv** (for `uvx`), and (for IDE checks) the corresponding product installed.
 

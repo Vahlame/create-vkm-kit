@@ -4,7 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - v3.0.0
+## [Unreleased]
+
+### Security
+
+- **Pin `basic-memory` to 0.21.4** in `config/mcp/basic-memory.json` and the `create-obsidian-memory` initializer (`uvx --from "basic-memory==0.21.4" basic-memory mcp`). Without a pin, `uvx` would resolve PyPI latest on every Cursor start — a supply-chain RCE vector if the package is taken over. Bumping the pin requires touching one constant (`BASIC_MEMORY_VERSION` in `packages/create-obsidian-memory/src/mcp-merge.mjs`) + templates + `scripts/mcp-smoke.mjs` so CI tests the version users actually receive.
+- **Trust boundaries block in User Rules** (`docs/cursor-memory-setup{,.en}.md` Step 3 + `INSTALAR_MEMORIA{,.en}.md` Step 4): the vault is **data**, not instructions; agents must ignore directives embedded in notes and escalate the find. Closes a P0 prompt-injection vector raised by the strategic audit.
+- **`INSTALAR_MEMORIA{,.en}.md` opens with a source-verification block** (`git remote get-url origin` + `git log -1` cross-checked against the latest release tag) since pasting the file authorizes an agent to act as installer with full user privileges.
+- **`SECURITY.md` reframed with an explicit "Trust model"** (3 assumptions) and hardening guidance updated with concrete commands instead of generic checklists.
 
 ### Breaking change
 
@@ -16,12 +23,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Removed
 
+- **`compose.observability.yml`** (Langfuse + ClickHouse + Redis + Postgres docker-compose) deleted. The daemon and MCP sidecar never wired metrics or traces to that stack, so shipping the file alongside the docs implied an instrumentation story that did not exist. `docs/observability.md` rewritten honestly: daemon health goes through `obsidian-memoryd doctor`; if you want Langfuse, run it separately and point the optional OTel exporter at it. Closes the "observability decoy" finding from the systems audit.
+- **`obsidian-memoryd self-update` subcommand removed from `usage`.** It was an unimplemented stub that printed "not implemented" and exited 1, which the security audit correctly flagged as inducing false expectation. Will return if/when binaries are signed and verified.
 - **`scripts/windows/`** — `Start-BasicMemoryMcp.ps1`, `Run-Hidden.vbs`, `Get-CursorScheduledTaskConsoleRisk.ps1`, `Start-ObsidianMemorydWatch.ps1` (v3: no kit-shipped Windows integration scripts).
 - **`tools/*.ps1`** — `monitor-console-live.ps1`, `windows-reset-agent-memory.ps1`, `purge-memory-mcp-cache.ps1` (replaced by manual steps in docs; see `tools/README.md`).
 
 ### Added
 
+- **Vault-locked filesystem tools in `obsidian-memory-hybrid`** — `vault_read_file`, `vault_write_file` (atomic tmp+rename), `vault_edit_file` (find/replace with unique-match guard), `vault_list_directory`. All four resolve paths against `BASIC_MEMORY_HOME` and refuse any path that escapes the vault (incl. symlink resolution). Solves the v2026.1.14 `@modelcontextprotocol/server-filesystem` Roots-takeover bug where the filesystem MCP follows the active project's cwd and loses access to the vault from any non-vault project. With these tools the hybrid MCP is the **authoritative vault surface**; the filesystem MCP becomes optional, scoped to the active project. Tools live in a new pure module `packages/obsidian-memory-mcp/src/vault-fs.mjs` (14 unit tests covering happy paths + path traversal + symlink escape + atomic write + edit guards). Bumps `@vahlame/obsidian-memory-mcp` to 2.0.0-beta.3.
+- **`obsidian-memoryd doctor` command** + daemon state file (`~/.local/state/obsidian-memory/state.json`): heartbeat tick every 60 s while `watch` runs, plus timestamps for last successful `git push`, last `rebase --abort`, and a consecutive-push-failures counter. `doctor` exits non-zero if the heartbeat is older than 5 min or push has failed 3+ times in a row — fills the "bus factor" gap raised by the strategic audit (the daemon previously ran hidden on Windows with no surface for silent failure). 11 new tests cover the round-trip, concurrent updates, heartbeat ticker, doctor formatting (healthy + alarm paths), and push counter mutations.
+- **`memory_extract_candidates` MCP tool** in `obsidian-memory-hybrid`: given a free-text summary of the task just finished, returns bullet candidates and flags ones that look like duplicates of existing `MEMORY.md` entries via BM25/FTS5. Read-only — never writes to the vault. Designed to be invoked at the closing-ritual moment defined in the User Rules so memory hygiene stops depending on the chat model "remembering" mid-task. Includes unit tests for `extractBullets` and `pickQueryTerms` helpers.
+- `INSTALAR_MEMORIA.md` / `INSTALAR_MEMORIA.en.md`: v3 installer prompt to paste in Cursor chat; agent runs all setup steps (prereqs, vault, MCP, User Rules, verification, optional git sync + hybrid FTS).
+- `GETTING_STARTED*.md`: quick-install callout at top; OS-specific `mcp.json` paths table; "first install vs update" section.
+- `README*.md`: "Instalación rápida / Quick install" callout at top linking to installer prompt.
 - **`docs/migration/v2-to-v3-script-free-kit.md`** / **`.en.md`**: capítulo **v2 → v3** (integración avanzada sin scripts del kit; todo en `main`).
+- **`create-obsidian-memory`:** `--with-hybrid` + `--repo-root` merge **`obsidian-memory-hybrid`** into Cursor `mcp.json` alongside **`basic-memory`** (auto-detect kit root from cwd or from package layout in a monorepo clone). Interactive mode asks whether to enable hybrid when the kit layout is found. Tests cover merge + headless flow.
 - ADR-0010–0015 (basic-memory, `AGENTS.md`, Go daemon, Syncthing, hybrid RAG, generic privacy notes in docs).
 - **`obsidian-memory-hybrid` MCP** (`vault_fts_search`, `vault_fts_index`) bridging Node MCP → Python FTS5; sample `config/mcp/obsidian-memory-hybrid.json`.
 - `cmd/obsidian-memoryd/` cross-platform daemon skeleton + `.github/workflows` updates for Go/Node/Python/evals.
@@ -37,6 +53,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **`docs/setup/windows-scheduled-vault-sync.md`** / **`.en.md`**: opciones Windows para git del vault **sin** plantillas PowerShell/VBS del kit (`obsidian-memoryd watch`, git manual, tareas propias).
 - **`docs/setup/windows-basic-memory-always-on.md`** / **`.en.md`**: HTTP opcional para `basic-memory` vía **comandos** o tarea que definas tú; **stdio** como camino por defecto; plantilla `config/mcp/basic-memory-streamable-http.json`.
 - **`docs/cursor-memory-setup.md`** / **`docs/cursor-memory-setup.en.md`**: end-to-end Cursor guide (vault vs MCP vs User Rules, verification, ready-to-paste User Rules for `basic-memory` + optional hybrid).
+- **Docs refresh:** `GETTING_STARTED*`, `how-memory-works-simple*`, `windows-sin-consola-visible*`, and `examples/START_HERE.md` / `.gitignore` / `README` for v3 hybrid path, multi-window guidance, and no legacy Vault-Doctor script.
+- **Root `.gitignore`:** ignore `/bin/` for local `obsidian-memoryd` builds.
 - **ADR-0016:** puerto localhost por defecto **8765** para `basic-memory` Streamable HTTP (evitar colisiones con 8000/8080/3000).
 - **`.vscode/settings.json`** (repo root) and **`examples/.vscode/settings.json`**: workspace defaults that reduce Git/`conhost` churn on Windows when the folder is opened in Cursor or VS Code.
 - **`docs/setup/windows-sin-consola-visible.md`** / **`.en.md`**: checklist (workspace, tareas opcionales, MCP, límites) sin scripts de auditoría del kit.
@@ -53,6 +71,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **User Rules reframed as ritual-driven** (`docs/cursor-memory-setup{,.en}.md` Step 3 + `INSTALAR_MEMORIA{,.en}.md` Step 4):
+  - **Minimal startup**: `read_note("START_HERE.md")` is the only mandatory read at chat open. Previously the agent loaded `MEMORY.md` + `PROJECTS/<x>.md` every chat, costing 3-15k tokens before processing the user's actual prompt and degrading instruction-following under context dilution.
+  - **Pre-action ritual**: before any non-trivial action (write code, install deps, change config), call `build_context(query=…)` and only read what it surfaces. Existing `basic-memory` tool, previously infrautilized in the Rules.
+  - **Closing ritual**: call `memory_extract_candidates(summary=…)`, show bullets to the human, write to `MEMORY.md` / `PROJECTS/*` / `RULES/*` / `KNOWN_FAILURES.md` only after explicit confirmation. Mid-task per-turn appends to `SESSION_LOG.md` are gone — one append at close.
 - **Capítulo v2 → v3:** guía pública **stdio + `obsidian-memoryd` / git manual** por defecto; HTTP y tareas Windows como opciones **definidas por quien instala**. [`docs/migration/v2-to-v3-script-free-kit.md`](./docs/migration/v2-to-v3-script-free-kit.md) / [`.en.md`](./docs/migration/v2-to-v3-script-free-kit.en.md).
 - **Guías Windows sin plantillas del kit:** `windows-scheduled-vault-sync*`, `windows-basic-memory-always-on*`, `windows-sin-consola-visible*`, `windows-juego-vault-sync*`, `windows-memory-sync-smoke*`, `docs/troubleshooting.md` — sin `.ps1`/`.vbs` publicados para copiar; HTTP y git descritos con **stdio**, **terminal**, **`obsidian-memoryd`** o automatismo propio.
 - **`obsidian-memoryd watch`:** debounce por defecto antes de `git sync` pasa de **2 s** a **45 s** (menos presión al remoto cuando el editor guarda en ráfaga); variable opcional **`OBSIDIAN_MEMORY_DEBOUNCE`** (duración estilo Go, p. ej. `90s`, `2m`; mín. 5 s, máx. 15 m).

@@ -10,11 +10,11 @@ An AI model with tools. In this repo, "agent" means any assistant that reads `AG
 
 ### Autosync
 
-**v1 (Windows):** the scheduled task `CursorMemoryAutoSync` often ran a vault-local automation on a short timer to commit and push the vault. **v2:** use **`obsidian-memoryd watch`** (debounced git; default **45 s** quiet period, override with `OBSIDIAN_MEMORY_DEBOUNCE`) or **manual git**; this public guide does not ship Windows script templates to copy.
+**v1 (Windows):** the scheduled task `CursorMemoryAutoSync` often ran a vault-local automation on a short timer to commit and push the vault. **v3 kit:** use **`obsidian-memoryd watch`** (debounced git; default **45 s** quiet period, override with `OBSIDIAN_MEMORY_DEBOUNCE`) or **manual git**. On Windows, build with `-H windowsgui` so no console appears; the kit includes `proc_windows.go` to also hide child `git` process windows.
 
 ### `basic-memory`
 
-Default **v2** MCP server: Python package run as `uvx basic-memory mcp`. Exposes note read/write/search tools against a vault directory. Configure with **`BASIC_MEMORY_HOME`** (absolute path to the vault root).
+Default MCP server in the **v3 kit** (and v2+): Python package run as `uvx basic-memory mcp`. Exposes note read/write/search tools against a vault directory. Configure with **`BASIC_MEMORY_HOME`** (absolute path to the vault root).
 
 ### `BASIC_MEMORY_HOME`
 
@@ -22,7 +22,7 @@ Environment variable pointing at the **vault root** for `basic-memory`. Same rol
 
 ### Cursor
 
-The IDE this pattern was first optimized for. **v2** targets **any MCP-capable agent**; see `AGENTS.md`. The web version is still out of scope for localhost MCP (see FAQ).
+The IDE this pattern was first optimized for. The **v3 kit** targets **any MCP-capable agent**; see `AGENTS.md`. The web version is still out of scope for localhost MCP (see FAQ).
 
 ### Doctor
 
@@ -34,7 +34,7 @@ The IDE this pattern was first optimized for. **v2** targets **any MCP-capable a
 
 ### Health endpoint
 
-**v1:** `http://127.0.0.1:3001/health` on the smith-and-web SSE stack. **v2:** depends on the server you run; use MCP Inspector / client logs rather than assuming `:3001`.
+**v1:** `http://127.0.0.1:3001/health` on the smith-and-web SSE stack. **v3 kit:** depends on the server you run; use MCP Inspector / client logs rather than assuming `:3001`.
 
 ### MCP
 
@@ -54,7 +54,7 @@ A file at the root of the vault holding global, durable preferences and rules. T
 
 ### Obsidian MCP server
 
-**v1:** `@smith-and-web/obsidian-mcp-server` (SSE). **v2 default:** `basic-memory` via `uvx`. Optional live I/O: `cyanheads/obsidian-mcp-server`. Despite the Obsidian branding, you do not necessarily need the Obsidian desktop app if you only use filesystem conventions.
+**v1:** `@smith-and-web/obsidian-mcp-server` (SSE). **v3 kit default:** `basic-memory` via `uvx`. Optional live I/O: `cyanheads/obsidian-mcp-server`. Despite the Obsidian branding, you do not necessarily need the Obsidian desktop app if you only use filesystem conventions.
 
 ### `obsidian-memory-rag`
 
@@ -90,12 +90,12 @@ Free-text instructions you paste into `Cursor Settings -> Rules -> User Rules`. 
 
 ### Vault
 
-The directory your MCP server reads and writes (Markdown + git). **v1** docs often used `%USERPROFILE%\Documents\cursor-memory-vault`. **v2:** any path; set **`BASIC_MEMORY_HOME`** to the vault root. Plain-language overview: `docs/how-memory-works-simple.md` / `.en.md`.
+The directory your MCP server reads and writes (Markdown + git). **v1** docs often used `%USERPROFILE%\Documents\cursor-memory-vault`. **v3 kit:** any path; set **`BASIC_MEMORY_HOME`** to the vault root. Plain-language overview: `docs/how-memory-works-simple.md` / `.en.md`.
 
 ### Watchdog
 
-**v1 (Windows):** scheduled task `CursorObsidianMcpWatchdog` running `Ensure-ObsidianMcp.ps1` to restart the SSE MCP server. **v2:** rely on the IDE to restart `uvx` children, or use your own process supervisor; not part of this repo's default cross-platform kit.
+**v1 (Windows):** scheduled task `CursorObsidianMcpWatchdog` running `Ensure-ObsidianMcp.ps1` to restart the SSE MCP server. **v3 kit:** rely on the IDE to restart `uvx` children, or use your own process supervisor; not part of this repo's default cross-platform kit.
 
 ### `wscript.exe`
 
-Windows Script Host. Older **private v1 vaults** sometimes used `wscript.exe` with a `.vbs` shim so scheduled tasks did not flash a console. The **public v2 guide** does not document copy-paste VBS/PowerShell task templates; see ADR-0003 for historical rationale.
+Windows Script Host. Older **private v1 vaults** sometimes used `wscript.exe` with a `.vbs` shim so scheduled tasks did not flash a console. The **v3 kit** does not ship VBS/PowerShell task templates; instead `obsidian-memoryd` is built with `-H windowsgui` + `proc_windows.go` so child processes are also hidden. See ADR-0003 for historical rationale.

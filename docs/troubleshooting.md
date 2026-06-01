@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Standalone reference for **v2** (`basic-memory`, optional hybrid, Streamable HTTP). Historical **v1** errors (SSE `:3001`, `Ensure-ObsidianMCP.ps1`, etc.) appear only in [`docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md`](./legacy/PROMPT_ULTRA_COMPLETO_v1.md); do not use those flows for new installs.
+Standalone reference for the **v3 kit** (`basic-memory` stdio, optional hybrid FTS, optional Streamable HTTP). Historical **v1** errors (SSE `:3001`, `Ensure-ObsidianMCP.ps1`, etc.) appear only in [`docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md`](./legacy/PROMPT_ULTRA_COMPLETO_v1.md); do not use those flows for new installs.
 
 ## Table of contents
 
@@ -9,7 +9,7 @@ Standalone reference for **v2** (`basic-memory`, optional hybrid, Streamable HTT
 - [Scheduled task errors](#scheduled-task-errors)
 - [MCP / Cursor errors](#mcp--cursor-errors)
 - [Network and timing errors](#network-and-timing-errors)
-- [How to recover from a broken install](#how-to-recover-from-a-broken-install)
+- [How to recover from a broken install (v3 kit)](#how-to-recover-from-a-broken-install-v3-kit)
 
 ## PowerShell errors
 
@@ -25,7 +25,7 @@ git commit -m "x"; if ($LASTEXITCODE -ne 0) { throw "commit failed" }
 
 ### `ConvertFrom-Json: A parameter cannot be found that matches parameter name 'AsHashtable'`
 
-- **Cause:** `-AsHashtable` exists only in PowerShell 7+. The setup script must work on 5.1.
+- **Cause:** `-AsHashtable` exists only in PowerShell 7+. Legacy scripts and CI helpers must work on 5.1.
 - **Fix:** Use plain `ConvertFrom-Json` and `[pscustomobject]` at serialization time. See ADR-0005 for the canonical pattern.
 
 ### `The variable 'X' cannot be retrieved because it has not been set`
@@ -35,7 +35,7 @@ git commit -m "x"; if ($LASTEXITCODE -ne 0) { throw "commit failed" }
 
 ### `the term 'pwsh' is not recognized`
 
-- **Cause:** PowerShell 7 is not installed. The prompt's scripts target Windows PowerShell 5.1 (the `powershell.exe` already shipped with Windows). Some users see this when they copy the CI extractor script to a machine without PS7.
+- **Cause:** PowerShell 7 is not installed. CI and legacy scripts target Windows PowerShell 5.1 (the `powershell.exe` already shipped with Windows). Some users see this when running the CI extractor script without PS7.
 - **Fix:** For the install itself, you do not need pwsh. For local CI, `winget install --id Microsoft.PowerShell`.
 
 ## Git errors
@@ -101,7 +101,7 @@ Close and reopen the terminal (or Cursor) so `uvx` resolves. Verify with `uv --v
 ### `create-obsidian-memory` prints `Invalid JSON in mcp.json` even though the file looks fine
 
 - **Cause:** Some editors (or `Set-Content -Encoding utf8` in older PowerShell) write a **UTF-8 BOM** at the start of `mcp.json`. `JSON.parse` rejects that leading byte unless it is stripped.
-- **Fix:** As of `@vahlame/create-obsidian-memory` **2.0.0-beta.2**, the initializer strips a leading BOM before merging. Re-run non-interactive merge, or remove the BOM manually (re-save as UTF-8 without BOM, or delete the first invisible character).
+- **Fix:** As of `@vahlame/create-obsidian-memory` **2.0.0-beta.2** (current: **beta.3**), the initializer strips a leading BOM before merging. Re-run non-interactive merge, or remove the BOM manually (re-save as UTF-8 without BOM, or delete the first invisible character).
 
 ### Cursor MCP panel: `basic-memory` red / "not available"
 
@@ -115,7 +115,7 @@ Close and reopen the terminal (or Cursor) so `uvx` resolves. Verify with `uv --v
 ### `mcp.json` lost my Linear / Supabase entries
 
 - **Cause:** A previous setup run overwrote the file instead of merging.
-- **Fix:** Restore from `mcp.json.bak`. The current setup script always backs up first and merges, but older versions may have clobbered the file.
+- **Fix:** Restore from `mcp.json.bak`. The current initializer (`create-obsidian-memory`) always backs up first and merges; older v1-era scripts may have clobbered the file.
 
 ### Cursor log: `Transient error connecting to streamableHttp server: fetch failed`
 
@@ -135,8 +135,8 @@ Close and reopen the terminal (or Cursor) so `uvx` resolves. Verify with `uv --v
 
 ### Parpadea una consola grande al sincronizar o al arrancar el MCP
 
-- **Cause:** La tarea programada llama **`powershell.exe`** directamente o el binario es una app de **consola** (por defecto `go build` sin flags).
-- **Fix:** Edita la tarea en `taskschd.msc` o usa un binario **GUI-subsystem** para el daemon: **`obsidian-memoryd`** con `go build -ldflags="-H windowsgui"` (ver [`windows-basic-memory-always-on.md`](./setup/windows-basic-memory-always-on.md)).
+- **Causa:** El binario de `obsidian-memoryd` es app de **consola** (sin `-H windowsgui`), o los subprocesos `git` no tienen `CREATE_NO_WINDOW` (código pre-v3).
+- **Fix (kit v3):** Compila con `go build -ldflags="-H windowsgui" -o bin/obsidian-memoryd.exe ./cmd/obsidian-memoryd`; el repo incluye `proc_windows.go` que añade `CREATE_NO_WINDOW + HideWindow` a cada subproceso `git`, eliminando el flash incluso desde un exe windowsgui. Ver [`windows-scheduled-vault-sync.md`](./setup/windows-scheduled-vault-sync.md).
 
 ### Muchas ventanas de CMD / consola negra al abrir Cursor o al refrescar MCP
 
@@ -167,9 +167,9 @@ Close and reopen the terminal (or Cursor) so `uvx` resolves. Verify with `uv --v
 
 ### Legacy v1 only: `http://127.0.0.1:3001/health` (archived SSE stack)
 
-If you still maintain an **archived** smith-and-web / `:3001` setup from v1, see [`docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md`](./legacy/PROMPT_ULTRA_COMPLETO_v1.md). **v2** does not use `:3001` by default; use MCP Inspector / client logs for `basic-memory` instead.
+If you still maintain an **archived** smith-and-web / `:3001` setup from v1, see [`docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md`](./legacy/PROMPT_ULTRA_COMPLETO_v1.md). The **v3 kit** (and v2+) does not use `:3001` by default; use MCP Inspector / client logs for `basic-memory` instead.
 
-## How to recover from a broken install (v2)
+## How to recover from a broken install (v3 kit)
 
 1. **MCP config:** Back up `%USERPROFILE%\.cursor\mcp.json`, then re-merge with  
    `npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "<absolute-vault-path>"`  

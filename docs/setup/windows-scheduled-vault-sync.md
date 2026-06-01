@@ -4,7 +4,20 @@ Esta guía **no** publica ni pide copiar `.ps1`, `.vbs` ni `.bat` desde el repo.
 
 ## Opción A (recomendada): `obsidian-memoryd watch` (Go)
 
-Sincronización **al guardar** con debounce (por defecto **45 s** tras el último cambio; ajusta con `OBSIDIAN_MEMORY_DEBOUNCE`). Requiere **Go**, compilar desde este repo y ejecutar el binario con `BASIC_MEMORY_HOME` apuntando al vault. Detalles: [`cmd/obsidian-memoryd`](../../cmd/obsidian-memoryd), `agent.toml`, y en Windows el binario puede compilarse con `go build -ldflags="-H windowsgui"` si lo registras en el Programador de tareas **como programa** (ruta al `.exe`), sin capas de script del kit.
+Sincronización **al guardar** con debounce (por defecto **45 s** tras el último cambio; ajusta con `OBSIDIAN_MEMORY_DEBOUNCE`).
+
+**Sin ventanas en Windows:** el repo compila el binario con dos archivos de plataforma:
+
+- `proc_windows.go` — cada subproceso `git` recibe `CREATE_NO_WINDOW + HideWindow: true`; cero consolas, incluso cuando el `.exe` es subsistema GUI (`-H windowsgui`).
+- `proc_other.go` — no-op en Linux/macOS.
+
+Comando de compilación para Windows (sin consola):
+
+```bash
+go build -ldflags="-H windowsgui" -o bin/obsidian-memoryd.exe ./cmd/obsidian-memoryd
+```
+
+Arranque silencioso: **acceso directo en Inicio** apuntando al `.exe`, argumentos `watch`, **Iniciar en** = raíz del vault. No envuelvas en `cmd.exe`. Ajusta la frecuencia: `setx OBSIDIAN_MEMORY_DEBOUNCE 2m`.
 
 ## Opción B: solo git a mano
 

@@ -17,10 +17,9 @@ This is a **fictional** vault index. Copy the idea, not the prose.
 3. `PROJECTS/<project>.md` for the active workspace.
 4. On demand: `RULES/<project>.md`, sprint logs, runbooks, `KNOWN_FAILURES.md`, `TAGS.md`.
 
-## Vault doctor
+## Vault health (v3, kit público)
 
-Run the script the real prompt generates:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File "$env:USERPROFILE\Documents\cursor-memory-vault\scripts\windows\Vault-Doctor.ps1" -WriteReview
-```
+- **Git:** `git status` o el panel Source Control del IDE; sync opcional con **`obsidian-memoryd watch`** (debounce; compilar con `-ldflags="-H windowsgui"` en Windows si no quieres consola) o **git manual**.
+- **MCP / IDE:** la entrada MCP vive en la config del IDE (p. ej. `%USERPROFILE%\.cursor\mcp.json`); las **User Rules** son ajustes del IDE. Este repo de notas es solo Markdown + `.vscode` del workspace.
+- **Híbrido FTS (opcional):** `vault_fts_search` / `vault_fts_index` vía MCP `obsidian-memory-hybrid`; fusionar con `create-obsidian-memory --non-interactive --vault <ruta> --with-hybrid --repo-root <clon-del-kit>` (necesita `pip install -e packages/obsidian-memory-rag` previo; ver `docs/cursor-memory-setup.md`).
+- **Guía del kit:** [`GETTING_STARTED.md`](../GETTING_STARTED.md) y [`docs/cursor-memory-setup.md`](../docs/cursor-memory-setup.md).

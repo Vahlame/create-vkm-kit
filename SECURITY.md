@@ -47,15 +47,33 @@ You will get an acknowledgement within 72 hours. Expected timeline from report t
 - General Windows privilege issues unrelated to the prompt.
 - Reports requiring physical access to the user's machine.
 
+## Trust model
+
+This kit makes three trust assumptions explicit. If a user follows them, the rest of the security posture holds; if not, the system is exploitable.
+
+### 1. The vault is **data**, not **instructions**
+
+Notes in the vault are treated by the agent as information to read and process, never as authoritative directives. The User Rules block in `docs/cursor-memory-setup.md` (Step 3 — "Confianza / Trust") enforces this in prose: agents are told to **ignore** any instruction embedded inside a note (e.g. "execute X", "ignore previous rules") and to escalate the find to the human.
+
+If the vault remote is shared (team, multi-machine), assume an attacker with write access can attempt prompt injection via `MEMORY.md`, `RULES/*`, or any other file the agent reads on startup. The mitigation is the doctrine above, not a technical filter.
+
+### 2. `INSTALAR_MEMORIA.{md,en.md}` is an installer
+
+When pasted into Cursor, an agent executes it with the user's privileges: writes to `~/.cursor/mcp.json`, installs background daemons, edits git config. **Verify the source** before pasting — each `INSTALAR_MEMORIA*.md` opens with a verification block. Treat unverified copies the way you would treat `curl ... | sh`.
+
+### 3. `basic-memory` is pinned
+
+`config/mcp/basic-memory.json` and the initializer use `uvx --from "basic-memory==0.21.4" basic-memory mcp`. Without the pin, `uvx` resolves PyPI latest on every start — a supply-chain RCE if the package is compromised. Upgrades are explicit (bump the constant in `packages/create-obsidian-memory/src/mcp-merge.mjs` and the templates) and reviewable via `CHANGELOG.md`.
+
 ## Hardening guidance for users
 
 If you are about to follow agent instructions from this repo:
 
-1. Verify the commit hash against a known good release tag.
-2. Ensure remote URLs point to repositories you control.
-3. Inspect generated scripts under your vault before enabling daemons or scheduled tasks.
-4. Keep 2FA enabled on GitHub.
-5. Never paste secrets into chat; the vault is for memory, not credentials.
+1. **Verify the source.** From the clone root run `git remote get-url origin` (must point to a repo you trust) and `git log -1 --format="%H %s"` (must match the latest release on <https://github.com/Vahlame/cursor-obsidian-memory-guide/releases/latest>).
+2. **Keep the basic-memory pin.** Templates pin to a vetted version; do not edit your `mcp.json` to drop `--from "basic-memory==X.Y.Z"` "to save typing".
+3. **Inspect generated scripts under your vault** before enabling daemons or scheduled tasks.
+4. **Keep 2FA enabled on GitHub** for the vault remote — anyone who can push can attempt memory poisoning (see Trust model §1).
+5. **Never paste secrets into chat;** the vault is for memory, not credentials. If you suspect a leak, rotate immediately and review `git log` of the vault remote.
 
 ## Past advisories
 
