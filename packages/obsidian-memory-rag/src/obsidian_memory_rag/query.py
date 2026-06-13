@@ -5,9 +5,14 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from .paths import index_db_path
 from .store import connect, init_schema
+from .vector_store import VectorHit, search_vectors
+
+if TYPE_CHECKING:
+    from .embeddings import Embedder
 
 
 def build_match_query(user_query: str) -> str | None:
@@ -78,5 +83,86 @@ def search_vault(
                 snippet=str(r["snip"] or ""),
                 bm25=float(r["score"]),
             )
+        )
+    return out
+
+
+@dataclass
+class HybridHit:
+    path: str
+    title: str
+    snippet: str
+    score: float  # fused Reciprocal-Rank-Fusion score (higher is better)
+    bm25_rank: int | None  # 1-based rank in the BM25 list, or None if absent
+    vector_rank: int | None  # 1-based rank in the vector list, or None if absent
+
+
+def semantic_search(
+    vault: Path, query: str, embedder: "Embedder", *, limit: int = 20
+) -> list[VectorHit]:
+    """Rank notes purely by embedding cosine similarity to ``query``."""
+    vault = vault.resolve()
+    db_path = index_db_path(vault)
+    if not db_path.is_file():
+        return []
+    qvec = embedder.embed([query])[0]
+    conn = connect(db_path)
+    try:
+        return search_vectors(conn, qvec, embedder.name, limit)
+    finally:
+        conn.close()
+
+
+def reciprocal_rank_fusion(
+    rankings: list[list[str]], *, k: int = 60, limit: int = 20
+) -> list[tuple[str, float]]:
+    """Fuse several best-first path rankings into one (RRF; Cormack et al. 2009).
+
+    Each list contributes ``1 / (k + rank)`` per item, so the method is robust to
+    the two rankers using different score scales (BM25 distance vs cosine).
+    """
+    scores: dict[str, float] = {}
+    for ranking in rankings:
+        for rank, path in enumerate(ranking, start=1):
+            scores[path] = scores.get(path, 0.0) + 1.0 / (k + rank)
+    return sorted(scores.items(), key=lambda kv: kv[1], reverse=True)[:limit]
+
+
+def hybrid_search(
+    vault: Path,
+    query: str,
+    embedder: "Embedder",
+    *,
+    limit: int = 20,
+    candidate_pool: int = 50,
+) -> list[HybridHit]:
+    """Combine BM25 (lexical) and vector cosine (semantic) via RRF.
+
+    Degrades gracefully: with no vectors indexed the semantic list is empty and
+    the result is just the BM25 ranking; with no lexical match a note can still
+    surface on semantic similarity alone.
+    """
+    bm = search_vault(vault, query, limit=candidate_pool)
+    sem = semantic_search(vault, query, embedder, limit=candidate_pool)
+    bm_paths = [h.path for h in bm]
+    sem_paths = [h.path for h in sem]
+    fused = reciprocal_rank_fusion([bm_paths, sem_paths], limit=limit)
+
+    bm_rank = {p: i + 1 for i, p in enumerate(bm_paths)}
+    sem_rank = {p: i + 1 for i, p in enumerate(sem_paths)}
+    bm_by_path = {h.path: h for h in bm}
+    sem_by_path = {h.path: h for h in sem}
+
+    out: list[HybridHit] = []
+    for path, score in fused:
+        if path in bm_by_path:
+            title = bm_by_path[path].title
+            snippet = bm_by_path[path].snippet
+        else:
+            sv = sem_by_path.get(path)
+            title = sv.title if sv else ""
+            snippet = sv.preview if sv else ""
+        out.append(
+            HybridHit(path, title, snippet, score, bm_rank.get(path), sem_rank.get(path))
         )
     return out

@@ -5,10 +5,20 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from .markdown_io import read_note
 from .paths import index_db_path
 from .store import connect, init_schema
+from .vector_store import (
+    current_vector_keys,
+    delete_vector,
+    init_vectors,
+    upsert_vector,
+)
+
+if TYPE_CHECKING:
+    from .embeddings import Embedder
 
 
 SKIP_DIR_NAMES = frozenset(
@@ -114,13 +124,11 @@ def index_vault(
                 continue
 
             fp = vault / Path(rel)
-            truncated = False
             try:
                 st_size = fp.stat().st_size
             except OSError:
                 continue
             if st_size > max_file_bytes:
-                truncated = True
                 stats.truncated += 1
             title, body = read_note(fp, max_file_bytes)
 
@@ -138,9 +146,70 @@ def index_vault(
                 stats.inserted += 1
             else:
                 stats.updated += 1
-            if truncated:
-                pass
 
+            pending += 1
+            if pending >= batch_commit_every:
+                conn.execute("COMMIT;")
+                conn.execute("BEGIN IMMEDIATE;")
+                pending = 0
+
+        conn.execute("COMMIT;")
+    finally:
+        conn.close()
+    return stats
+
+
+@dataclass
+class VectorStats:
+    scanned: int = 0
+    embedded: int = 0
+    skipped_unchanged: int = 0
+    removed: int = 0
+
+
+def index_vectors(
+    vault: Path,
+    embedder: "Embedder",
+    *,
+    max_file_bytes: int = 1_048_576,
+    batch_commit_every: int = 64,
+) -> VectorStats:
+    """Build or refresh note embeddings beside the FTS index.
+
+    Idempotent and incremental by ``(path, mtime_ns)`` for the given embedder, so
+    re-running only embeds changed or new notes; vectors for deleted notes are
+    pruned. Kept separate from :func:`index_vault` so the dependency-free FTS path
+    is never affected by enabling semantics.
+    """
+    vault = vault.resolve()
+    db_path = index_db_path(vault)
+    stats = VectorStats()
+    conn = connect(db_path)
+    try:
+        init_vectors(conn)
+        conn.execute("BEGIN IMMEDIATE;")
+        disk_meta: dict[str, int] = {}
+        for fp in _iter_markdown_files(vault):
+            stats.scanned += 1
+            rel = _rel_posix(vault, fp)
+            key = _stat_key(fp)
+            if key is not None:
+                disk_meta[rel] = key[0]
+
+        have = current_vector_keys(conn, embedder.name)
+        for path_str in set(have) - set(disk_meta):
+            delete_vector(conn, path_str)
+            stats.removed += 1
+
+        pending = 0
+        for rel, mtime_ns in disk_meta.items():
+            if have.get(rel) == mtime_ns:
+                stats.skipped_unchanged += 1
+                continue
+            title, body = read_note(vault / Path(rel), max_file_bytes)
+            vec = embedder.embed([f"{title}\n{body}"])[0]
+            upsert_vector(conn, rel, mtime_ns, embedder.name, title, body[:200], vec)
+            stats.embedded += 1
             pending += 1
             if pending >= batch_commit_every:
                 conn.execute("COMMIT;")

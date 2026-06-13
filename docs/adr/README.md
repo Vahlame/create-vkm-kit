@@ -20,6 +20,7 @@ Each file in this directory captures one design decision: what was chosen, what 
 | [ADR-0014](./0014-hybrid-retrieval-sqlite-vec.md)              | Hybrid retrieval (FTS5 + sqlite-vec) as optional RAG sidecar                        | Accepted |
 | [ADR-0015](./0015-privacy-compliance-documentation.md)         | Generic privacy / telemetry guardrails in docs (no legal advice)                    | Accepted |
 | [ADR-0016](./0016-localhost-mcp-default-port.md)               | Default localhost port 8765 for Streamable HTTP `basic-memory` (avoid 8000 clashes) | Accepted |
+| [ADR-0017](./0017-hybrid-query-embeddings.md)                  | Hybrid query: pluggable embeddings + pure-Python cosine (realizes ADR-0014)         | Accepted |
 
 ## Template
 
