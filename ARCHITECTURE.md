@@ -102,8 +102,8 @@ additive layer that preserves the zero-dependency default (ADR-0017).
 - **Index:** [`indexer.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/indexer.py) — incremental FTS index by `(mtime_ns, size)`; `index_vectors` builds embeddings in a separate, equally incremental pass so the FTS path is untouched.
 - **Store:** [`store.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/store.py) — SQLite **FTS5** virtual table (`unicode61 remove_diacritics 2`) tuned for read-heavy agent workloads (WAL, `mmap`, normal sync).
 - **Embeddings:** [`embeddings.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/embeddings.py) — pluggable `Embedder` protocol. The default `HashingEmbedder` is pure-stdlib and deterministic (lexical feature hashing); the optional `fastembed` neural embedder (behind the `[semantic]` extra) adds meaning-based recall. Chosen via `OBSIDIAN_MEMORY_EMBEDDER`.
-- **Vectors:** [`vector_store.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/vector_store.py) — embeddings persisted as float32 BLOBs in the same `fts.sqlite`; brute-force cosine in Python (sub-10 ms for a personal vault; `sqlite-vec` is the documented future acceleration).
-- **Query:** [`query.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/query.py) — `search_vault` (BM25), `semantic_search` (cosine), and `hybrid_search` fusing both via Reciprocal Rank Fusion; degrades to pure FTS when no vectors exist.
+- **Chunking + vectors:** [`chunking.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/chunking.py) splits each note into heading-aware sections; [`vector_store.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/vector_store.py) embeds each chunk into a `note_chunks` table (float32 BLOBs in the same `fts.sqlite`) and ranks by brute-force cosine (sub-10 ms for a personal vault; `sqlite-vec` is the documented future acceleration).
+- **Query:** [`query.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/query.py) — `search_vault` (BM25), `semantic_search` (chunk cosine), and `hybrid_search` fusing both via Reciprocal Rank Fusion and returning the **matching passage** so a caller reads a section, not the whole note; degrades to pure FTS when no chunks exist.
 - **Layout:** the index lives beside the vault in `.obsidian-memory-rag/fts.sqlite` (git-ignored), so it never pollutes the synced notes (ADR-0014 / ADR-0017).
 
 ### 4. `create-obsidian-memory` — initializer (Node)
@@ -165,8 +165,10 @@ each file's `(mtime, size)` against the `indexed_files` table so re-indexing a
 large vault only touches changed notes.
 
 `vault_hybrid_search` follows the identical bridge but calls `json-hybrid-search`,
-which fuses BM25 with vector cosine via Reciprocal Rank Fusion — so a note surfaces
-on meaning or partial match, not just exact keywords. Build the vectors first with
+which fuses BM25 with per-section vector cosine via Reciprocal Rank Fusion — so a
+note surfaces on meaning or partial match, not just exact keywords. Each hit carries
+the matching section's heading + text, so the agent usually answers without a
+follow-up full-note read (the main token saver). Build the vectors first with
 `vault_fts_index({ semantic: true })`; without them the tool returns the BM25
 ranking unchanged (ADR-0017).
 

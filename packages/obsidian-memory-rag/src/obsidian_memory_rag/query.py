@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from .paths import index_db_path
 from .store import connect, init_schema
-from .vector_store import VectorHit, search_vectors
+from .vector_store import ChunkHit, search_chunks
 
 if TYPE_CHECKING:
     from .embeddings import Embedder
@@ -90,8 +90,8 @@ def search_vault(
 @dataclass
 class HybridHit:
     path: str
-    title: str
-    snippet: str
+    heading: str  # the matched chunk's section heading (or note title)
+    snippet: str  # the matched chunk text — the agent reads this, not the whole note
     score: float  # fused Reciprocal-Rank-Fusion score (higher is better)
     bm25_rank: int | None  # 1-based rank in the BM25 list, or None if absent
     vector_rank: int | None  # 1-based rank in the vector list, or None if absent
@@ -99,8 +99,8 @@ class HybridHit:
 
 def semantic_search(
     vault: Path, query: str, embedder: "Embedder", *, limit: int = 20
-) -> list[VectorHit]:
-    """Rank notes purely by embedding cosine similarity to ``query``."""
+) -> list[ChunkHit]:
+    """Rank note *chunks* by embedding cosine similarity to ``query`` (best first)."""
     vault = vault.resolve()
     db_path = index_db_path(vault)
     if not db_path.is_file():
@@ -108,7 +108,7 @@ def semantic_search(
     qvec = embedder.embed([query])[0]
     conn = connect(db_path)
     try:
-        return search_vectors(conn, qvec, embedder.name, limit)
+        return search_chunks(conn, qvec, embedder.name, limit)
     finally:
         conn.close()
 
@@ -143,26 +143,33 @@ def hybrid_search(
     surface on semantic similarity alone.
     """
     bm = search_vault(vault, query, limit=candidate_pool)
-    sem = semantic_search(vault, query, embedder, limit=candidate_pool)
+    # Pull extra chunks so several notes are represented even when one note owns
+    # the top hits; collapse to each note's best (first-seen, since sorted) chunk.
+    sem = semantic_search(vault, query, embedder, limit=candidate_pool * 3)
+    best_chunk: dict[str, ChunkHit] = {}
+    sem_paths: list[str] = []
+    for ch in sem:
+        if ch.path not in best_chunk:
+            best_chunk[ch.path] = ch
+            sem_paths.append(ch.path)
+
     bm_paths = [h.path for h in bm]
-    sem_paths = [h.path for h in sem]
     fused = reciprocal_rank_fusion([bm_paths, sem_paths], limit=limit)
 
     bm_rank = {p: i + 1 for i, p in enumerate(bm_paths)}
     sem_rank = {p: i + 1 for i, p in enumerate(sem_paths)}
     bm_by_path = {h.path: h for h in bm}
-    sem_by_path = {h.path: h for h in sem}
 
     out: list[HybridHit] = []
     for path, score in fused:
-        if path in bm_by_path:
-            title = bm_by_path[path].title
-            snippet = bm_by_path[path].snippet
+        ch = best_chunk.get(path)
+        if ch is not None:
+            heading, snippet = ch.heading, ch.text
         else:
-            sv = sem_by_path.get(path)
-            title = sv.title if sv else ""
-            snippet = sv.preview if sv else ""
+            h = bm_by_path.get(path)
+            heading = h.title if h else ""
+            snippet = h.snippet if h else ""
         out.append(
-            HybridHit(path, title, snippet, score, bm_rank.get(path), sem_rank.get(path))
+            HybridHit(path, heading, snippet, score, bm_rank.get(path), sem_rank.get(path))
         )
     return out

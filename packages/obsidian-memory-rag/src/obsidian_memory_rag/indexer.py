@@ -7,14 +7,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from .chunking import split_into_chunks
 from .markdown_io import read_note
 from .paths import index_db_path
 from .store import connect, init_schema
 from .vector_store import (
-    current_vector_keys,
-    delete_vector,
-    init_vectors,
-    upsert_vector,
+    current_chunk_keys,
+    delete_chunks_for_path,
+    init_chunks,
+    upsert_chunk,
 )
 
 if TYPE_CHECKING:
@@ -162,9 +163,10 @@ def index_vault(
 @dataclass
 class VectorStats:
     scanned: int = 0
-    embedded: int = 0
+    embedded: int = 0  # notes (re)embedded
     skipped_unchanged: int = 0
     removed: int = 0
+    chunks: int = 0  # chunk rows written across all embedded notes
 
 
 def index_vectors(
@@ -174,11 +176,14 @@ def index_vectors(
     max_file_bytes: int = 1_048_576,
     batch_commit_every: int = 64,
 ) -> VectorStats:
-    """Build or refresh note embeddings beside the FTS index.
+    """Build or refresh note-chunk embeddings beside the FTS index.
 
-    Idempotent and incremental by ``(path, mtime_ns)`` for the given embedder, so
-    re-running only embeds changed or new notes; vectors for deleted notes are
-    pruned. Kept separate from :func:`index_vault` so the dependency-free FTS path
+    Each note is split into heading-aware chunks (see :mod:`.chunking`) and every
+    chunk is embedded, so search can return the relevant passage instead of the
+    whole note. Idempotent and incremental by ``(path, mtime_ns)`` for the given
+    embedder: a changed note has all its chunks rebuilt and deleted notes are
+    pruned. ``stats.embedded`` counts notes (re)embedded, ``stats.chunks`` the rows
+    written. Kept separate from :func:`index_vault` so the dependency-free FTS path
     is never affected by enabling semantics.
     """
     vault = vault.resolve()
@@ -186,7 +191,7 @@ def index_vectors(
     stats = VectorStats()
     conn = connect(db_path)
     try:
-        init_vectors(conn)
+        init_chunks(conn)
         conn.execute("BEGIN IMMEDIATE;")
         disk_meta: dict[str, int] = {}
         for fp in _iter_markdown_files(vault):
@@ -196,9 +201,9 @@ def index_vectors(
             if key is not None:
                 disk_meta[rel] = key[0]
 
-        have = current_vector_keys(conn, embedder.name)
+        have = current_chunk_keys(conn, embedder.name)
         for path_str in set(have) - set(disk_meta):
-            delete_vector(conn, path_str)
+            delete_chunks_for_path(conn, path_str, embedder.name)
             stats.removed += 1
 
         pending = 0
@@ -207,9 +212,18 @@ def index_vectors(
                 stats.skipped_unchanged += 1
                 continue
             title, body = read_note(vault / Path(rel), max_file_bytes)
-            vec = embedder.embed([f"{title}\n{body}"])[0]
-            upsert_vector(conn, rel, mtime_ns, embedder.name, title, body[:200], vec)
+            chunks = split_into_chunks(title, body)
+            if not chunks:
+                continue
+            texts = [f"{c.heading}\n{c.text}" if c.heading else c.text for c in chunks]
+            vecs = embedder.embed(texts)
+            delete_chunks_for_path(conn, rel, embedder.name)
+            for c, vec in zip(chunks, vecs):
+                upsert_chunk(
+                    conn, rel, c.ordinal, mtime_ns, embedder.name, c.heading, c.text, vec
+                )
             stats.embedded += 1
+            stats.chunks += len(chunks)
             pending += 1
             if pending >= batch_commit_every:
                 conn.execute("COMMIT;")

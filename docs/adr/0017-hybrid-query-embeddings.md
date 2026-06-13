@@ -34,12 +34,14 @@ default intact.
    recall. Selection is by the `OBSIDIAN_MEMORY_EMBEDDER` env var or an explicit
    name.
 
-2. **Vector store + brute-force cosine** (`vector_store.py`). Embeddings persist
-   as float32 BLOBs in a `note_vectors` table inside the existing `fts.sqlite`.
-   Search is a full-scan cosine (a dot product, since vectors are stored
-   normalized) in Python. For a personal vault (thousands of notes × 256 dims)
-   this is well under 10 ms — fast enough that a native vector extension is not
-   yet warranted.
+2. **Chunking + vector store** (`chunking.py`, `vector_store.py`). Each note is
+   split into heading-aware sections and every chunk's embedding persists as a
+   float32 BLOB in a `note_chunks` table inside the existing `fts.sqlite`. Search
+   is a full-scan cosine (a dot product, since vectors are stored normalized) in
+   Python and returns the matching **passage**, so the caller reads a section
+   rather than the whole note (the main token saver). For a personal vault
+   (hundreds of notes, a few thousand chunks) this is well under 10 ms — fast
+   enough that a native vector extension is not yet warranted.
 
 `hybrid_search` fuses the BM25 and vector rankings with Reciprocal Rank Fusion
 (k = 60) and degrades to pure FTS when no vectors are indexed. The capability is
@@ -77,5 +79,5 @@ exposed via the CLI (`hybrid-search` / `json-hybrid-search`, and `index
 ## References
 
 - ADR-0014 (the decision this implements)
-- `packages/obsidian-memory-rag/src/obsidian_memory_rag/{embeddings,vector_store,query,indexer}.py`
+- `packages/obsidian-memory-rag/src/obsidian_memory_rag/{chunking,embeddings,vector_store,query,indexer}.py`
 - `ARCHITECTURE.md` — Retrieval data flow

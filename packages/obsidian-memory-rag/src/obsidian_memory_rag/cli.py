@@ -120,6 +120,7 @@ def main() -> None:
                 "vectors done:",
                 f"scanned={vstats.scanned}",
                 f"embedded={vstats.embedded}",
+                f"chunks={vstats.chunks}",
                 f"skipped={vstats.skipped_unchanged}",
                 f"removed={vstats.removed}",
             )
@@ -137,8 +138,9 @@ def main() -> None:
             print("no hits (run `index --semantic` first or broaden query)")
             return
         for h in hits:
+            label = f"[{h.heading}]" if h.heading else ""
             print(
-                f"{h.path}\trrf={h.score:.5f}\tbm25={h.bm25_rank} vec={h.vector_rank}\t{h.title!r}"
+                f"{h.path}\trrf={h.score:.5f}\tbm25={h.bm25_rank} vec={h.vector_rank}\t{label}"
             )
             if h.snippet:
                 print(f"  {h.snippet}")
@@ -179,7 +181,7 @@ def main() -> None:
             "hits": [
                 {
                     "path": h.path,
-                    "title": h.title,
+                    "heading": h.heading,
                     "snippet": h.snippet,
                     "score": h.score,
                     "bm25_rank": h.bm25_rank,
@@ -207,6 +209,7 @@ def main() -> None:
             payload["vectors"] = {
                 "scanned": vstats.scanned,
                 "embedded": vstats.embedded,
+                "chunks": vstats.chunks,
                 "skipped_unchanged": vstats.skipped_unchanged,
                 "removed": vstats.removed,
             }

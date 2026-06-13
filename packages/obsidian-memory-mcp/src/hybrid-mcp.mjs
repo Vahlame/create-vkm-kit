@@ -147,7 +147,7 @@ async function main() {
     {
       title: "Vault hybrid search (BM25 + semantic)",
       description:
-        "Relevance-ranked retrieval over the vault: fuses FTS5 BM25 (lexical) with vector cosine (semantic) via Reciprocal Rank Fusion, so notes surface by meaning and partial matches, not just exact keywords. Requires embeddings built by vault_fts_index with semantic:true; without them it gracefully returns the BM25 ranking. The embedder is chosen by the server's OBSIDIAN_MEMORY_EMBEDDER env (default: zero-dependency lexical 'hashing'; set 'fastembed' with the [semantic] extra for neural embeddings).",
+        "Relevance-ranked retrieval over the vault: fuses FTS5 BM25 (lexical) with per-section vector cosine (semantic) via Reciprocal Rank Fusion, so notes surface by meaning and partial matches, not just exact keywords. Each hit returns the matching section (heading + passage), not the whole note — usually enough to answer without a follow-up read_file, which saves tokens. Requires embeddings built by vault_fts_index with semantic:true; without them it gracefully returns the BM25 ranking. The embedder is chosen by the server's OBSIDIAN_MEMORY_EMBEDDER env (default: zero-dependency lexical 'hashing'; set 'fastembed' with the [semantic] extra for neural embeddings).",
       inputSchema: {
         query: z
           .string()

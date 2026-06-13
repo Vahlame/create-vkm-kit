@@ -123,3 +123,25 @@ def test_hybrid_search_without_vectors_is_pure_fts(tmp_path: Path) -> None:
     assert hits
     assert hits[0].path == "notes/deploy.md"
     assert hits[0].vector_rank is None  # nothing from the semantic side
+
+
+def test_hybrid_returns_relevant_chunk_not_whole_note(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    (vault / "guide.md").write_text(
+        "# Guide\n\n"
+        "## Deployment\n\nShip the service to production with zero downtime.\n\n"
+        "## Cooking\n\nBananas and pancakes for a tasty breakfast.\n",
+        encoding="utf-8",
+    )
+    emb = HashingEmbedder(dim=256)
+    index_vault(vault)
+    index_vectors(vault, emb)
+    hits = hybrid_search(vault, "production deployment downtime", emb, limit=3)
+    assert hits
+    top = hits[0]
+    assert top.path == "guide.md"
+    # Token saver: the returned snippet is the matching section, not the whole note.
+    assert "production" in top.snippet.lower()
+    assert "pancakes" not in top.snippet.lower()
+    assert top.heading == "Deployment"
