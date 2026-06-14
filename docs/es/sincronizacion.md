@@ -250,3 +250,20 @@ Test-NetConnection 127.0.0.1 -Port 8765
 Luego, en el cliente: **Settings → MCP** debe mostrar `basic-memory` en verde. Tras editar `mcp.json`, **reinicia el cliente** o ejecuta **Developer: Reload Window**.
 
 > ⚠️ **No** expongas este listener a la red sin TLS y autenticación. Está pensado para `127.0.0.1` (tu propia máquina) y nada más. Para volver a stdio: detén el proceso que ocupa el puerto (`Get-NetTCPConnection` / Administrador de tareas) y restaura el bloque stdio en `mcp.json`.
+
+---
+
+## Mantenimiento del vault (mantenerlo barato de leer)
+
+Con el tiempo el vault crece y leer notas enteras se vuelve caro — sobre todo si lanzas varios
+agentes (cada lectura completa se multiplica × N). Tres herramientas lo mantienen sano (parte de
+[ADR-0018](../adr/0018-multi-agent-token-efficiency.md)):
+
+| Comando / tool                                               | Qué hace                                                                                                                                          |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `obsidian-memory-rag audit --vault "<VAULT>"`                | Lista notas sobre el presupuesto de tokens (~8k), `[[wikilinks]]` rotos y el tamaño de `SESSION_LOG.md`. También como tool MCP **`vault_audit`**. |
+| `obsidian-memory-rag rotate-log --vault "<VAULT>" --keep 12` | Archiva las secciones viejas de `SESSION_LOG.md` a `SESSION_LOG/archive.md`, dejando las 12 recientes. No-destructivo.                            |
+
+> **Regla de oro del ahorro:** que el agente busque con `vault_hybrid_search` (devuelve **solo la
+> sección** relevante) en vez de leer notas enteras, y que las notas grandes (historial, logs)
+> vivan como **archivos** que se leen a demanda. Detalle en la [guía de instalación, User Rules](instalacion.md#paso-4--pegar-las-user-rules-en-cursor).
