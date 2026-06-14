@@ -29,7 +29,7 @@ import (
 //	go build -ldflags="-X main.version=3.0.0" ./cmd/obsidian-memoryd
 //
 // Keep in sync with agent.toml.
-var version = "3.0.0-dev"
+var version = "3.0.0"
 
 const usage = `obsidian-memoryd — vault git sync helper
 

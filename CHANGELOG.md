@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+_No user-facing changes yet._
+
+## [3.0.0] - 2026-06-14
+
 ### Documentation & repository structure
 
 - **Docs reorganized into a clean bilingual tree.** User-facing guides now live under `docs/es/` and `docs/en/` (8 files each: index, how-it-works, install, install-with-agent, sync, troubleshooting, faq, glossary), replacing ~30 overlapping top-level files. The ~5 Windows setup docs collapse into one `sync` guide; `comparison` folds into `faq`; `manual-checks` + `windows-memory-sync-smoke` fold into `install` (Verification) and `sync`. `GETTING_STARTED.md` is superseded by `docs/{es,en}/install.md`; the root keeps the standard OSS file set.
@@ -172,6 +176,7 @@ Prior history was undocumented and is summarized only in git log. Highlights:
 - Addition of `AGENTS.md` and `manifest.json` for machine-readable discoverability.
 - Seven hardening fixes for real-world install gaps.
 
-[Unreleased]: https://github.com/Vahlame/cursor-obsidian-memory-guide/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/Vahlame/cursor-obsidian-memory-guide/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/Vahlame/cursor-obsidian-memory-guide/compare/v1.1.0...v3.0.0
 [1.1.0]: https://github.com/Vahlame/cursor-obsidian-memory-guide/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Vahlame/cursor-obsidian-memory-guide/releases/tag/v1.0.0
