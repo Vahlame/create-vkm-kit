@@ -1,11 +1,9 @@
 # Go daemon local build (see AGENTS.md)
 /bin/
 
-# Editors (track committed workspace defaults; ignore other local .vscode files)
-.vscode/*
-!.vscode/settings.json
-examples/.vscode/*
-!examples/.vscode/settings.json
+# Editors (local-only; the kit no longer commits workspace settings —
+# the initializer writes <vault>/.vscode/settings.json into the user's vault instead)
+.vscode/
 .idea/
 *.swp
 
