@@ -234,7 +234,7 @@ pip install -e "<KIT_ROOT>/packages/obsidian-memory-rag[semantic]"
 #    --semantic wires the neural embedder (fastembed); drop it for the zero-dep lexical mode.
 node "<KIT_ROOT>/packages/create-obsidian-memory/src/index.js" \
   --non-interactive --vault "<VAULT>" \
-  --with-hybrid --semantic --repo-root "<KIT_ROOT>"
+  --with-hybrid --semantic --build-index --repo-root "<KIT_ROOT>"
 ```
 
 `<KIT_ROOT>` is the absolute path to your clone of `cursor-obsidian-memory-guide`. Restart Cursor;
