@@ -18,7 +18,12 @@ import {
   mergeObsidianHybridServer,
   resolveKitRepoRoot,
   hybridMcpPathsFromKitRoot,
-  flagValue
+  flagValue,
+  basicMemoryServer,
+  hybridServer,
+  claudeAddArgv,
+  claudeRemoveArgv,
+  SEMANTIC_EMBEDDER
 } from "./mcp-merge.mjs";
 
 /** Cursor/VS Code workspace defaults: fewer `git` + `conhost` spikes on Windows (SCM polling). */
@@ -332,6 +337,88 @@ exec gitleaks protect --staged --no-banner --redact
   console.log(pc.green("Installed gitleaks pre-commit hook at"), hookPath);
 }
 
+/** Parse `--ide cursor,claude` → lowercased array; default ["cursor"] (back-compat). */
+function idesFromArgs(argv) {
+  const raw = flagValue(argv, "--ide");
+  if (!raw) return ["cursor"];
+  return raw
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+/**
+ * Register the MCP servers in Claude Code via its CLI (`claude mcp add -s user`) —
+ * Claude Code does not read an mcp.json file. Idempotent: removes any same-scope
+ * entry first. Falls back to printing the command if `claude` isn't on PATH.
+ * @param {string} vaultAbs
+ * @param {boolean} dryRun
+ * @param {{ withHybrid?: boolean, repoRoot?: string|null, semantic?: boolean }} [hybridOpts]
+ */
+async function registerClaudeCodeMcp(vaultAbs, dryRun, hybridOpts = {}) {
+  const { withHybrid = false, repoRoot = null, semantic = false } = hybridOpts;
+  /** @type {Array<[string, object]>} */
+  const servers = [["basic-memory", basicMemoryServer(vaultAbs)]];
+  if (withHybrid && repoRoot) {
+    servers.push([
+      "obsidian-memory-hybrid",
+      hybridServer(vaultAbs, path.resolve(repoRoot), { semantic })
+    ]);
+  }
+  for (const [name, server] of servers) {
+    const addArgv = claudeAddArgv(name, server);
+    if (dryRun) {
+      console.log(pc.cyan("[dry-run] claude"), addArgv.join(" "));
+      continue;
+    }
+    try {
+      await execa("claude", claudeRemoveArgv(name), { reject: false }); // ignore "not found"
+      const r = await execa("claude", addArgv, { reject: false });
+      if (r.exitCode === 0) console.log(pc.green("Claude Code MCP added:"), name);
+      else {
+        console.warn(pc.yellow(`claude mcp add ${name} exited ${r.exitCode}; run manually:`));
+        console.log("  claude " + addArgv.join(" "));
+      }
+    } catch {
+      console.warn(pc.yellow("`claude` CLI not found; run manually:"));
+      console.log("  claude " + addArgv.join(" "));
+    }
+  }
+}
+
+/**
+ * Optionally build the local FTS (+semantic) index so search works on first use.
+ * Best-effort: prints the pip command if the Python backend isn't importable.
+ * @param {string} vaultAbs
+ * @param {boolean} dryRun
+ * @param {{ repoRoot?: string|null, semantic?: boolean }} [opts]
+ */
+async function maybeBuildIndex(vaultAbs, dryRun, { repoRoot = null, semantic = false } = {}) {
+  if (!repoRoot) return;
+  const pySrc = path.join(repoRoot, "packages", "obsidian-memory-rag", "src");
+  const args = ["-m", "obsidian_memory_rag", "index", "--vault", vaultAbs];
+  if (semantic) args.push("--semantic", "--embedder", SEMANTIC_EMBEDDER);
+  const py = process.platform === "win32" ? "python" : "python3";
+  if (dryRun) {
+    console.log(pc.cyan("[dry-run] would build index:"), py, args.join(" "));
+    return;
+  }
+  try {
+    const r = await execa(py, args, {
+      env: { ...process.env, PYTHONPATH: pySrc, PYTHONUTF8: "1" },
+      reject: false
+    });
+    if (r.exitCode === 0) console.log(pc.green("Index built"), semantic ? "(semantic)" : "(FTS)");
+    else {
+      const ragPkg = path.join(repoRoot, "packages", "obsidian-memory-rag");
+      console.warn(pc.yellow("Index build skipped/failed — install the backend first:"));
+      console.log('  pip install -e "' + ragPkg + (semantic ? '[semantic]"' : '"'));
+    }
+  } catch {
+    console.warn(pc.yellow("python not found; build the index later (see docs install-fresh-pc)."));
+  }
+}
+
 /**
  * Headless / CI path: no prompts. Requires --vault.
  * @param {string[]} argv
@@ -357,6 +444,8 @@ async function runNonInteractive(argv) {
   const wantHybrid = argv.includes("--with-hybrid");
   const wantSemantic = argv.includes("--semantic");
   const wantGitleaks = argv.includes("--with-gitleaks");
+  const wantBuildIndex = argv.includes("--build-index");
+  const ides = idesFromArgs(argv);
   let kitRoot = null;
 
   if (wantHybrid) {
@@ -388,14 +477,17 @@ async function runNonInteractive(argv) {
     env: { BASIC_MEMORY_HOME: vault }
   };
 
-  if (!noCursorMcp) {
-    await writeCursorMcp(home, vault, dryRun, {
-      withHybrid: wantHybrid,
-      repoRoot: kitRoot,
-      semantic: wantSemantic
-    });
-  } else {
+  const hybridOpts = { withHybrid: wantHybrid, repoRoot: kitRoot, semantic: wantSemantic };
+  if (ides.includes("cursor") && !noCursorMcp) {
+    await writeCursorMcp(home, vault, dryRun, hybridOpts);
+  } else if (ides.includes("cursor") && noCursorMcp) {
     console.log(pc.dim("Skipped Cursor mcp.json (--no-cursor-mcp)"));
+  }
+  if (ides.includes("claude")) {
+    await registerClaudeCodeMcp(vault, dryRun, hybridOpts);
+  }
+  if (wantBuildIndex) {
+    await maybeBuildIndex(vault, dryRun, { repoRoot: kitRoot, semantic: wantSemantic });
   }
 
   if (!noGitInit && !(await fse.pathExists(path.join(vault, ".git")))) {
@@ -418,6 +510,9 @@ async function runNonInteractive(argv) {
       );
     }
   }
+  if (ides.includes("claude")) {
+    console.log("- Claude Code: MCP registered via `claude mcp add -s user` (verify: `claude mcp list`)");
+  }
   if (wantGitleaks) {
     console.log("- gitleaks pre-commit hook: installed (vault/.git/hooks/pre-commit)");
   }
@@ -436,12 +531,15 @@ Interactive (default):
 Non-interactive (CI / scripts):
   --non-interactive | --yes
   --vault <path>  Absolute or cwd-relative vault root (required)
+  --ide <list>    IDEs to wire, comma-separated: cursor, claude (default: cursor).
+                  cursor writes ~/.cursor/mcp.json; claude uses the Claude Code CLI (claude mcp add -s user)
   --no-cursor-mcp Skip writing ~/.cursor/mcp.json
   --no-git-init   Skip git init when .git is missing
                   (Merges kit Git/SCM keys into <vault>/.vscode/settings.json — creates or updates.)
-  --with-hybrid   Also merge obsidian-memory-hybrid (needs kit clone; use --repo-root or cwd walk)
+  --with-hybrid   Also wire obsidian-memory-hybrid (needs kit clone; use --repo-root or cwd walk)
   --repo-root <path>  Root of cursor-obsidian-memory-guide clone (hybrid bridge + Python src)
-  --semantic      With --with-hybrid: neural embeddings (OBSIDIAN_MEMORY_EMBEDDER=fastembed; needs the [semantic] extra)
+  --semantic      With --with-hybrid: neural embeddings (fastembed multilingual; needs the [semantic] extra)
+  --build-index   After wiring, build the local FTS (+semantic) index (needs the Python backend)
   --with-gitleaks Install gitleaks pre-commit hook in <vault>/.git/hooks/
 
   --help          This message`);
@@ -496,6 +594,7 @@ Non-interactive (CI / scripts):
     message: t.ides,
     choices: [
       { title: "Cursor", value: "cursor", selected: true },
+      { title: "Claude Code", value: "claude", selected: false },
       { title: "VS Code / Cline", value: "cline", selected: false },
       { title: "Windsurf", value: "windsurf", selected: false },
       { title: "Zed", value: "zed", selected: false }
@@ -524,7 +623,7 @@ Non-interactive (CI / scripts):
   });
 
   let hybridOpts = { withHybrid: false, repoRoot: null };
-  if (ides?.includes("cursor")) {
+  if (ides?.includes("cursor") || ides?.includes("claude")) {
     const kitRoot = await resolveKitRepoRoot({
       cwd,
       argv: process.argv,
@@ -563,8 +662,11 @@ Non-interactive (CI / scripts):
   if (ides?.includes("cursor")) {
     await writeCursorMcp(home, vault, dryRun, hybridOpts);
   }
+  if (ides?.includes("claude")) {
+    await registerClaudeCodeMcp(vault, dryRun, hybridOpts);
+  }
 
-  const others = (ides || []).filter((x) => x !== "cursor");
+  const others = (ides || []).filter((x) => x !== "cursor" && x !== "claude");
   if (others.length) {
     console.log(pc.yellow(t.otherIdes), others.join(", "));
     console.log(JSON.stringify({ mcpServers: { "basic-memory": mcpSnippet } }, null, 2));

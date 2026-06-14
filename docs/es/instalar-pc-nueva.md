@@ -43,35 +43,22 @@ software. Variables: `<KIT>` = ruta donde clonarás el kit; `<VAULT>` = ruta del
 2. **Clona el kit:** `git clone https://github.com/Vahlame/cursor-obsidian-memory-guide "<KIT>"`.
 3. **Clona el vault:** `git clone "<VAULT_GIT_URL>" "<VAULT>"` (pídeme la URL privada).
 4. **Backend Python + semántico:** `pip install -e "<KIT>/packages/obsidian-memory-rag[semantic]"`.
-5. **Registra el MCP en Claude Code (scope `user` = todos los chats).** Si un servidor ya existe,
-   primero `claude mcp remove <nombre> -s user`. Luego:
+5. **Registra el MCP + construye el índice — UN comando.** El inicializador hace por ti los dos
+   `claude mcp add … -s user` (basic-memory + híbrido) y el build del índice semántico:
 
    ```bash
-   claude mcp add basic-memory -s user \
-     -e BASIC_MEMORY_HOME="<VAULT>" \
-     -- uvx --from basic-memory==0.21.4 basic-memory mcp
-
-   claude mcp add obsidian-memory-hybrid -s user \
-     -e BASIC_MEMORY_HOME="<VAULT>" \
-     -e PYTHONPATH="<KIT>/packages/obsidian-memory-rag/src" \
-     -e PYTHONUTF8=1 \
-     -e OBSIDIAN_MEMORY_EMBEDDER="fastembed:sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2" \
-     -- node "<KIT>/packages/obsidian-memory-mcp/src/hybrid-mcp.mjs"
+   node "<KIT>/packages/create-obsidian-memory/src/index.js" --non-interactive \
+     --vault "<VAULT>" --ide claude --with-hybrid --semantic --repo-root "<KIT>" --build-index
    ```
 
-6. **Construye el índice (con vectores semánticos):**
+   Es **idempotente** (si un servidor ya existía, lo reemplaza). Si `claude` no está en el PATH,
+   imprime los comandos `claude mcp add …` para que los corras a mano.
 
-   ```bash
-   PYTHONPATH="<KIT>/packages/obsidian-memory-rag/src" python -m obsidian_memory_rag index \
-     --vault "<VAULT>" --semantic \
-     --embedder "fastembed:sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-   ```
-
-7. **Reglas globales (passage-first + ahorro).** Abre `<KIT>/docs/es/instalacion.md`, copia el
+6. **Reglas globales (passage-first + ahorro).** Abre `<KIT>/docs/es/instalacion.md`, copia el
    **bloque de User Rules del Paso 4**, y pégalo/anéxalo en `~/.claude/CLAUDE.md` (Claude Code lo
    carga en cada sesión). Si ya tengo un `CLAUDE.md` global, intégralo sin borrar lo mío.
-8. **(Opcional) Sincronización git** del vault: ver `<KIT>/docs/es/sincronizacion.md`.
-9. **Verifica:** `claude mcp list` debe mostrar `basic-memory` y `obsidian-memory-hybrid` en
+7. **(Opcional) Sincronización git** del vault: ver `<KIT>/docs/es/sincronizacion.md`.
+8. **Verifica:** `claude mcp list` debe mostrar `basic-memory` y `obsidian-memory-hybrid` en
    **✓ Connected**. Reinicia Claude Code. En un chat nuevo, una `vault_hybrid_search` debe
    devolver un **pasaje** (no la nota entera). Reporta una tabla de estado final.
 
@@ -93,15 +80,12 @@ git clone https://github.com/Vahlame/cursor-obsidian-memory-guide "<KIT>"
 git clone "<VAULT_GIT_URL>" "<VAULT>"
 pip install -e "<KIT>/packages/obsidian-memory-rag[semantic]"
 
-# 4) Registrar MCP en Claude Code (scope user). Si ya existen: claude mcp remove <nombre> -s user
-claude mcp add basic-memory -s user -e BASIC_MEMORY_HOME="<VAULT>" -- uvx --from basic-memory==0.21.4 basic-memory mcp
-claude mcp add obsidian-memory-hybrid -s user -e BASIC_MEMORY_HOME="<VAULT>" -e PYTHONPATH="<KIT>/packages/obsidian-memory-rag/src" -e PYTHONUTF8=1 -e OBSIDIAN_MEMORY_EMBEDDER="fastembed:sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2" -- node "<KIT>/packages/obsidian-memory-mcp/src/hybrid-mcp.mjs"
+# 4) UN comando: registra el MCP en Claude Code (scope user) + construye el índice semántico
+node "<KIT>/packages/create-obsidian-memory/src/index.js" --non-interactive \
+  --vault "<VAULT>" --ide claude --with-hybrid --semantic --repo-root "<KIT>" --build-index
 
-# 5) Índice semántico
-PYTHONPATH="<KIT>/packages/obsidian-memory-rag/src" python -m obsidian_memory_rag index --vault "<VAULT>" --semantic --embedder "fastembed:sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-
-# 6) Verificar
-claude mcp list   # ambos en ✓ Connected
+# 5) Verificar
+claude mcp list   # basic-memory y obsidian-memory-hybrid en ✓ Connected
 ```
 
 Luego copia el bloque de User Rules ([Paso 4 de la instalación](instalacion.md#paso-4--pegar-las-user-rules-en-cursor)) a `~/.claude/CLAUDE.md` y **reinicia Claude Code**.

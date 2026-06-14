@@ -24,8 +24,65 @@ export function flagValue(argv, name) {
 // PyPI on every Cursor restart — a supply-chain RCE if the package is taken over.
 export const BASIC_MEMORY_VERSION = "0.21.4";
 
+// Default neural embedder for opt-in semantic recall. Multilingual MiniLM so
+// non-English vaults (e.g. Spanish) match by meaning, not just English. Needs the
+// Python `[semantic]` extra. Used by BOTH the Cursor mcp.json merge and the
+// Claude Code `claude mcp add` path so the two configs stay identical.
+export const SEMANTIC_EMBEDDER =
+  "fastembed:sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2";
+
 function basicMemoryArgs() {
   return ["--from", `basic-memory==${BASIC_MEMORY_VERSION}`, "basic-memory", "mcp"];
+}
+
+/**
+ * Canonical `basic-memory` stdio server object ({command, args, env}).
+ * @param {string} vaultAbs
+ */
+export function basicMemoryServer(vaultAbs) {
+  return { command: "uvx", args: basicMemoryArgs(), env: { BASIC_MEMORY_HOME: vaultAbs } };
+}
+
+/**
+ * Canonical `obsidian-memory-hybrid` stdio server object. The UTF-8 env vars keep
+ * the Python bridge correct on legacy Windows consoles; `semantic` wires the
+ * neural embedder. Shared by the Cursor merge and the Claude Code CLI path.
+ * @param {string} vaultAbs
+ * @param {string} kitRepoAbs
+ * @param {{ semantic?: boolean }} [opts]
+ */
+export function hybridServer(vaultAbs, kitRepoAbs, opts = {}) {
+  const { hybridJs, pythonSrc } = hybridMcpPathsFromKitRoot(kitRepoAbs);
+  /** @type {Record<string, string>} */
+  const env = {
+    BASIC_MEMORY_HOME: vaultAbs,
+    PYTHONPATH: pythonSrc,
+    PYTHONUTF8: "1",
+    PYTHONIOENCODING: "utf-8"
+  };
+  if (opts && opts.semantic) env.OBSIDIAN_MEMORY_EMBEDDER = SEMANTIC_EMBEDDER;
+  return { command: "node", args: [hybridJs], env };
+}
+
+/**
+ * Build argv for `claude mcp add <name> -s <scope> -e K=V ... -- <command> <args...>`.
+ * Claude Code registers MCP through its CLI (not an mcp.json file), so the
+ * initializer shells out with this — reusing the same server objects as Cursor.
+ * @param {string} name
+ * @param {{ command: string, args?: string[], env?: Record<string,string> }} server
+ * @param {string} [scope] local | user | project (default `user` = every chat)
+ * @returns {string[]}
+ */
+export function claudeAddArgv(name, server, scope = "user") {
+  const argv = ["mcp", "add", name, "-s", scope];
+  for (const [k, v] of Object.entries(server.env || {})) argv.push("-e", `${k}=${v}`);
+  argv.push("--", server.command, ...(server.args || []));
+  return argv;
+}
+
+/** Build argv for `claude mcp remove <name> -s <scope>` (makes `add` idempotent). */
+export function claudeRemoveArgv(name, scope = "user") {
+  return ["mcp", "remove", name, "-s", scope];
 }
 
 /**
@@ -44,11 +101,7 @@ export function mergeBasicMemoryServer(raw, vaultAbs) {
     base.mcpServers = {};
   }
   const mcpServers = /** @type {Record<string, unknown>} */ (base.mcpServers);
-  mcpServers["basic-memory"] = {
-    command: "uvx",
-    args: basicMemoryArgs(),
-    env: { BASIC_MEMORY_HOME: vaultAbs }
-  };
+  mcpServers["basic-memory"] = basicMemoryServer(vaultAbs);
   return base;
 }
 
@@ -67,29 +120,7 @@ export function mergeObsidianHybridServer(merged, vaultAbs, kitRepoAbs, opts = {
     base.mcpServers = {};
   }
   const mcpServers = /** @type {Record<string, unknown>} */ (base.mcpServers);
-  const hybridJs = path.join(
-    kitRepoAbs,
-    "packages",
-    "obsidian-memory-mcp",
-    "src",
-    "hybrid-mcp.mjs"
-  );
-  const pythonSrc = path.join(kitRepoAbs, "packages", "obsidian-memory-rag", "src");
-  /** @type {Record<string, string>} */
-  const env = {
-    BASIC_MEMORY_HOME: vaultAbs,
-    PYTHONPATH: pythonSrc
-  };
-  // Opt-in neural embeddings: real meaning-based recall instead of the
-  // zero-dependency lexical default. Requires `pip install 'obsidian-memory-rag[semantic]'`.
-  if (opts && opts.semantic) {
-    env.OBSIDIAN_MEMORY_EMBEDDER = "fastembed";
-  }
-  mcpServers["obsidian-memory-hybrid"] = {
-    command: "node",
-    args: [hybridJs],
-    env
-  };
+  mcpServers["obsidian-memory-hybrid"] = hybridServer(vaultAbs, kitRepoAbs, opts);
   return base;
 }
 
