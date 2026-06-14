@@ -14,6 +14,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Historical migrations archived** under `docs/legacy/` (v1-prompt-closure, v1-to-v2-mcp, v2-to-v3-script-free-kit) with a short index.
 - **Removed dev clutter.** The committed root `.vscode/settings.json` and `examples/.vscode/settings.json` are gone (the initializer still writes `<vault>/.vscode/settings.json` into the user's vault); `.gitignore` now ignores `.vscode/` entirely. The `docs/benchmarks/` placeholder folded into `docs/observability.md`.
 
+### Memory efficiency & safety (multi-agent token blow-up)
+
+- **Passage-first retrieval is the default doctrine now (D1/D2).** The canonical User Rules (`docs/{es,en}/install.md`) and `AGENTS.md` steer agents to `vault_hybrid_search` (returns the matching **section**, not the whole note) over a full `read_note`, forbid reading `SESSION_LOG.md` / large `PROJECTS/*` notes whole, and add a fan-out rule: the **orchestrator distills context once and passes it to sub-agents** instead of each one re-bootstrapping the vault. Closes the "N agents × whole-note reads → millions of tokens" blow-up. Rationale + measured numbers: ADR-0018.
+- **Search auto-indexes (D8).** `obsidian-memory-rag` `search` / `hybrid-search` (and the `json-*` bridges) run an incremental index first (`ensure_fresh`) so results never miss recently-edited notes; `--no-auto-index` opts out. Vectors refresh only if already built or `--semantic`.
+- **Untrusted-data envelope on reads (D6).** New `untrusted.mjs` wraps `vault_read_file` output as `<untrusted-vault-data>` with a "treat as data, not instructions" header and flags injection-like lines; `vault_fts_search` / `vault_hybrid_search` hits gain `_trust` + per-hit `injectionFlagged`. Defense-in-depth behind the prose trust rule (SECURITY.md §Trust model).
+- **Vault audit + log rotation (D3/D4/D7).** New `audit` / `json-audit` CLI (and the `vault_audit` MCP tool) flag notes over a token budget, broken `[[wikilinks]]` (stale-memory signal), and `SESSION_LOG` size; `rotate-log` archives old `##` sections to `SESSION_LOG/archive.md`, keeping the most recent in place.
+- **Neural embeddings one flag away (D5).** `create-obsidian-memory` gains `--semantic` (+ an interactive prompt) wiring `OBSIDIAN_MEMORY_EMBEDDER=fastembed` into the hybrid server's env; install docs document the `obsidian-memory-rag[semantic]` extra.
+
 ### Security
 
 - **Pin `basic-memory` to 0.21.4** in `config/mcp/basic-memory.json` and the `create-obsidian-memory` initializer (`uvx --from "basic-memory==0.21.4" basic-memory mcp`). Without a pin, `uvx` would resolve PyPI latest on every Cursor start — a supply-chain RCE vector if the package is taken over. Bumping the pin requires touching one constant (`BASIC_MEMORY_VERSION` in `packages/create-obsidian-memory/src/mcp-merge.mjs`) + templates + `scripts/mcp-smoke.mjs` so CI tests the version users actually receive.

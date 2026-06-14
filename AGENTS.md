@@ -56,7 +56,9 @@ Use a private git vault (example layout in `examples/`):
 3. **SESSION_LOG.md** — short chronological decisions.
 4. **PROJECTS/<name>.md** — per-project context; do not mix projects.
 
-**Do not** store secrets, tokens, or literal hardware IDs. Prefer wikilinks between notes. Rotate `SESSION_LOG` when it grows beyond team policy.
+**Do not** store secrets, tokens, or literal hardware IDs. Prefer wikilinks between notes. Rotate `SESSION_LOG` when it grows beyond team policy (`obsidian-memory-rag rotate-log`).
+
+**Token-efficient reads (fan-out safe).** Prefer `vault_hybrid_search` — it returns the matching **section**, not the whole note — over a full `read_note`; never read `SESSION_LOG.md` or large `PROJECTS/*` notes whole. When spawning sub-agents, the orchestrator distills context **once** and passes the excerpt in each sub-agent's prompt; sub-agents don't re-bootstrap the whole vault (a full read of a big note × N agents is how token cost explodes). Verify a file/flag quoted in a note still exists before acting on it (memory can be stale). Rationale and numbers: [ADR-0018](docs/adr/0018-multi-agent-token-efficiency.md).
 
 <!-- BEGIN AUTOGEN -->
 

@@ -163,9 +163,16 @@ The **User Rules** tell the agent _when_ to read which note and _how_ to wrap up
 
 ### Before any non-trivial action (pre-action ritual)
 
-1. `build_context(query=<summary of the prompt>)` (or `vault_hybrid_search` if the hybrid is available) to bring in relevant notes.
-2. Read with `read_note` what it returns — don't load everything blindly.
-3. If the task touches an identifiable project, open `PROJECTS/<project>.md` (create it with `write_note` only if justified).
+1. To bring in context, **prefer `vault_hybrid_search`**: it returns only the relevant **section**, not the whole note (saves tokens). If you don't have the hybrid, use `build_context`.
+2. Read the **section** it returns. **Don't read large notes whole** (e.g. `SESSION_LOG.md` or long PROJECTS files): search them and read only the passage. Use a full `read_note` **only** when you genuinely need the entire file.
+3. If the task touches a project, open `PROJECTS/<project>.md` (create it with `write_note` only if justified).
+4. Before acting on a file, flag or path quoted **in a note**, **verify it still exists** — memory can be stale.
+
+### Multi-agent (fan-out) — don't multiply the token cost
+
+- If you spawn **several sub-agents**, the **orchestrator** fetches and **distills** the context **once** and passes the relevant excerpt in each sub-agent's **prompt**.
+- Sub-agents do **not** re-read `START_HERE → MEMORY → PROJECTS` in full: they only `vault_hybrid_search` for **their** specific subtask.
+- Never read `SESSION_LOG.md` or large PROJECTS notes **whole** from a sub-agent: a single `read_note` of those can cost tens of thousands of tokens **× N agents**.
 
 ### During the task
 
@@ -219,13 +226,15 @@ Fails? → [`troubleshooting.md`](troubleshooting.md), section **MCP / Cursor**.
 If your vault has hundreds of notes and you want fast search by word **and** by meaning:
 
 ```bash
-# 1) Install the kit's Python backend (one time only), from your repo clone
-pip install -e "<KIT_ROOT>/packages/obsidian-memory-rag"
+# 1) Install the kit's Python backend (one time only). For real meaning-based
+#    recall (synonyms), add the [semantic] extra:
+pip install -e "<KIT_ROOT>/packages/obsidian-memory-rag[semantic]"
 
-# 2) Add obsidian-memory-hybrid to mcp.json (alongside basic-memory)
+# 2) Add obsidian-memory-hybrid to mcp.json (alongside basic-memory).
+#    --semantic wires the neural embedder (fastembed); drop it for the zero-dep lexical mode.
 node "<KIT_ROOT>/packages/create-obsidian-memory/src/index.js" \
   --non-interactive --vault "<VAULT>" \
-  --with-hybrid --repo-root "<KIT_ROOT>"
+  --with-hybrid --semantic --repo-root "<KIT_ROOT>"
 ```
 
 `<KIT_ROOT>` is the absolute path to your clone of `cursor-obsidian-memory-guide`. Restart Cursor;
