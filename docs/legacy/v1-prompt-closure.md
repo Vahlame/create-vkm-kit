@@ -21,7 +21,7 @@ El antiguo prompt v1 era un **brief operativo único** para Windows (Task Schedu
 
 ## Orden recomendado hoy
 
-1. [`GETTING_STARTED.md`](../../GETTING_STARTED.md) (flujo lineal) y [`docs/how-memory-works-simple.md`](../how-memory-works-simple.md) (idea general).
+1. [`docs/es/instalacion.md`](../es/instalacion.md) (flujo lineal) y [`docs/es/como-funciona.md`](../es/como-funciona.md) (idea general).
 2. `README.md` y `AGENTS.md`.
 3. Ejecutar `npx @vahlame/create-obsidian-memory@next` (o copiar el snippet MCP del README).
 4. Validar con `docs/testing/manual-checks.md`.

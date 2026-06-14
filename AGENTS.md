@@ -1,10 +1,10 @@
 # AGENTS.md
 
-Canonical instructions for any AI agent or IDE consuming this repository (Cursor, Claude Code, Copilot, Codex CLI, Aider, Windsurf, Zed, Continue, etc.). **Humans** onboarding this kit: read [`GETTING_STARTED.md`](./GETTING_STARTED.md) (linear) then [`docs/how-memory-works-simple.md`](./docs/how-memory-works-simple.md). For human onboarding of the **pattern** (vault + MCP), read `README.md`.
+Canonical instructions for any AI agent or IDE consuming this repository (Cursor, Claude Code, Copilot, Codex CLI, Aider, Windsurf, Zed, Continue, etc.). **Humans** onboarding this kit: read [`docs/en/install.md`](./docs/en/install.md) (linear) then [`docs/en/how-it-works.md`](./docs/en/how-it-works.md). For human onboarding of the **pattern** (vault + MCP), read `README.md`.
 
 ## Project overview
 
-This project documents and ships **cross-platform** tooling for **Markdown vault memory** exposed to agents through **MCP** (`basic-memory` by default), optional **hybrid SQLite retrieval**, a **Go daemon** for git-backed sync, and an **initializer** CLI. ADRs in `docs/adr/` are the source of truth for design; ADR-0010–0015 cover the v1→v2 stack transition; the **v3 kit layout** (no `.ps1`/`.vbs` shipped, daemon `proc_windows.go` for silent Windows operation) is documented in `docs/migration/v2-to-v3-script-free-kit.*`.
+This project documents and ships **cross-platform** tooling for **Markdown vault memory** exposed to agents through **MCP** (`basic-memory` by default), optional **hybrid SQLite retrieval**, a **Go daemon** for git-backed sync, and an **initializer** CLI. ADRs in `docs/adr/` are the source of truth for design; ADR-0010–0015 cover the v1→v2 stack transition; the **v3 kit layout** (no `.ps1`/`.vbs` shipped, daemon `proc_windows.go` for silent Windows operation) is documented in `docs/legacy/v2-to-v3-script-free-kit.md`.
 
 ## Setup commands
 
@@ -24,7 +24,7 @@ go build -ldflags="-H windowsgui" -o bin/obsidian-memoryd.exe ./cmd/obsidian-mem
 ## Dev environment tips
 
 - **Python / uv:** required for `uvx basic-memory mcp` locally.
-- **Windows symlinks:** enable `git config core.symlinks true` before checkout so `CLAUDE.md` and related links resolve (see `docs/testing/manual-checks.md`).
+- **Windows symlinks:** enable `git config core.symlinks true` before checkout so `CLAUDE.md` and related links resolve (see `docs/en/install.md`).
 - **Vault path placeholder:** use `BASIC_MEMORY_HOME` pointing at your Obsidian vault root (contains `.obsidian/` or your chosen layout).
 
 ## Maintainer pointers
@@ -67,7 +67,7 @@ Use a private git vault (example layout in `examples/`):
 - **Languages:** Markdown (vault + docs), TypeScript (tooling), Go 1.22+ (`obsidian-memoryd`), Python 3.11+ (optional RAG).
 - **Runtimes:** Node 20+, Bun or `npx tsx` for maintainer scripts; `uv` for `basic-memory`.
 - **Primary MCP:** `uvx basic-memory mcp` with `BASIC_MEMORY_HOME=<vault>` (**stdio** in `mcp.json`; recommended default).
-- **Optional transport:** Streamable HTTP URL for `basic-memory` (e.g. `http://127.0.0.1:8765/mcp`) requires a **separate always-on listener** you run (terminal or Task Scheduler action you define; see `docs/setup/windows-basic-memory-always-on.md`); see `config/mcp/basic-memory-streamable-http.json`. Default port **8765** avoids collisions with common dev servers on **8000** / **8080** / **3000** (see ADR-0016).
+- **Optional transport:** Streamable HTTP URL for `basic-memory` (e.g. `http://127.0.0.1:8765/mcp`) requires a **separate always-on listener** you run (terminal or Task Scheduler action you define; see `docs/en/sync.md`); see `config/mcp/basic-memory-streamable-http.json`. Default port **8765** avoids collisions with common dev servers on **8000** / **8080** / **3000** (see ADR-0016).
 - **Optional MCP (FTS5 hybrid):** `node packages/obsidian-memory-mcp/src/hybrid-mcp.mjs` — tools `vault_fts_search` / `vault_fts_index` (Python `obsidian-memory-rag`); see `config/mcp/obsidian-memory-hybrid.json`.
 - **Optional MCP (Obsidian live I/O):** `cyanheads/obsidian-mcp-server` (Streamable HTTP `/mcp`) with path allowlists.
 - **Bridge (legacy clients):** `mcp-remote` pinned **>= 0.1.16** (see `docs/security/mcp-remote-rce.md`).
@@ -84,7 +84,7 @@ Use a private git vault (example layout in `examples/`):
 - **Go daemon:** `go test ./...` from repo root (`go.mod`).
 - **Node packages:** `npm test` in each `packages/*` workspace.
 - **Python RAG:** `pytest` under `packages/obsidian-memory-rag/`.
-- **MCP smoke (local):** see `docs/testing/manual-checks.md` (`@modelcontextprotocol/inspector` + `uvx basic-memory mcp`).
+- **MCP smoke (local):** see `docs/en/install.md` (Verification) (`@modelcontextprotocol/inspector` + `uvx basic-memory mcp`).
 
 ## Security
 
@@ -97,11 +97,9 @@ Use a private git vault (example layout in `examples/`):
 
 ## References
 
-- `docs/setup/memory-repo-sin-automatismos-locales.md` — memoria del agente en el mismo repo git: sin `.bat`/`.ps1`/Programador de tareas; actualización con `git pull`/`git push`.
-- `docs/setup/windows-scheduled-vault-sync.md` — tarea programada Windows para `git pull/push` del vault en intervalos (sin Go); **valor por defecto en la guía: 60 min** entre ejecuciones (menos ruido que 5–10 min).
-- `docs/setup/windows-juego-vault-sync.md` — sync del vault sin tirones ni robo de foco al jugar.
-- `docs/setup/windows-basic-memory-always-on.md` — MCP `basic-memory` persistente (Streamable HTTP + tarea al inicio de sesión).
-- `docs/adr/0016-localhost-mcp-default-port.md` — puerto por defecto **8765** vs colisiones en **8000**.
-- `GETTING_STARTED.md` — linear first-time path (table of steps).
-- `docs/how-memory-works-simple.md` — plain-language mental model (vault / MCP / rules).
+- `docs/en/install.md` / `docs/es/instalacion.md` — first-time install (linear, with verification).
+- `docs/en/how-it-works.md` / `docs/es/como-funciona.md` — plain-language mental model (vault / MCP / User Rules).
+- `docs/en/sync.md` / `docs/es/sincronizacion.md` — vault git sync (daemon `obsidian-memoryd`, manual git, or same-repo) + Windows details (no console window, gaming, optional always-on HTTP, default port **8765**).
+- `docs/adr/0016-localhost-mcp-default-port.md` — default port **8765** vs collisions on **8000** / **8080** / **3000**.
+- `docs/legacy/` — historical v1/v2 migration notes (not needed to install today).
 - `agent.toml` — machine-readable v3 metadata for the daemon and tooling.

@@ -5,7 +5,7 @@ flows between them, and the design patterns they share. The **rationale** for
 each decision lives in [`docs/adr/`](./docs/adr/) — when this document says
 "because X", the ADR is where "X" is argued in full. For agent-facing operating
 instructions see [`AGENTS.md`](./AGENTS.md); for human onboarding see
-[`GETTING_STARTED.md`](./GETTING_STARTED.md).
+[`docs/en/install.md`](./docs/en/install.md).
 
 ## What the system is
 
