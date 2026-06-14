@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Standalone reference for the **v3 kit** (`basic-memory` stdio, optional hybrid FTS, optional Streamable HTTP). Historical **v1** errors (SSE `:3001`, `Ensure-ObsidianMCP.ps1`, etc.) appear only in [`docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md`](./legacy/PROMPT_ULTRA_COMPLETO_v1.md); do not use those flows for new installs.
+Standalone reference for the **v3 kit** (`basic-memory` stdio, optional hybrid FTS + semantic search, optional Streamable HTTP).
 
 ## Table of contents
 
@@ -165,9 +165,10 @@ Close and reopen the terminal (or Cursor) so `uvx` resolves. Verify with `uv --v
 
 ## Network and timing errors
 
-### Legacy v1 only: `http://127.0.0.1:3001/health` (archived SSE stack)
+### `obsidian-memoryd` shows push/pull failing while offline
 
-If you still maintain an **archived** smith-and-web / `:3001` setup from v1, see [`docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md`](./legacy/PROMPT_ULTRA_COMPLETO_v1.md). The **v3 kit** (and v2+) does not use `:3001` by default; use MCP Inspector / client logs for `basic-memory` instead.
+- **Cause:** No network reachable; the debounced git sync cannot reach the remote.
+- **Fix:** None needed — it retries on the next debounced cycle once the network returns. Check health with `obsidian-memoryd doctor` (heartbeat age, last successful push, consecutive failures).
 
 ## How to recover from a broken install (v3 kit)
 

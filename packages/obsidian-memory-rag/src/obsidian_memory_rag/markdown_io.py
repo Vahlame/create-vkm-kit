@@ -25,6 +25,8 @@ def read_note(path: Path, max_bytes: int) -> tuple[str, str]:
     data = path.read_bytes()
     if len(data) > max_bytes:
         data = data[:max_bytes]
-    raw = data.decode("utf-8", errors="replace")
+    # utf-8-sig strips a leading BOM that some editors (and PowerShell) emit, so
+    # it never leaks into the note title or the FTS body.
+    raw = data.decode("utf-8-sig", errors="replace")
     title, body = split_title_body(raw)
     return title, body

@@ -43,7 +43,3 @@ mi-memoria-agente/
 
 - El camino “vault aparte en `Documents` + tareas Windows” sigue en [`windows-scheduled-vault-sync.md`](./windows-scheduled-vault-sync.md) para quien quiera sync por reloj.
 - Este patrón es la alternativa **mínima**: un árbol git, MCP stdio, cero tareas programadas.
-
-## English
-
-Same walkthrough: [`memory-repo-sin-automatismos-locales.en.md`](./memory-repo-sin-automatismos-locales.en.md).

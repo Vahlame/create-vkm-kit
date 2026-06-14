@@ -17,7 +17,8 @@ import {
   mergeBasicMemoryServer,
   mergeObsidianHybridServer,
   resolveKitRepoRoot,
-  hybridMcpPathsFromKitRoot
+  hybridMcpPathsFromKitRoot,
+  flagValue
 } from "./mcp-merge.mjs";
 
 /** Cursor/VS Code workspace defaults: fewer `git` + `conhost` spikes on Windows (SCM polling). */
@@ -94,13 +95,6 @@ function dryRunFromArgs() {
 
 function nonInteractiveFromArgs() {
   return process.argv.includes("--non-interactive") || process.argv.includes("--yes");
-}
-
-/** @param {string[]} argv */
-function flagValue(argv, name) {
-  const i = argv.indexOf(name);
-  if (i >= 0 && i + 1 < argv.length) return argv[i + 1];
-  return null;
 }
 
 async function findVault(cwd, home) {

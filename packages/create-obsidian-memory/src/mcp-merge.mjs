@@ -1,6 +1,19 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+/**
+ * Read the value following a `--flag` in an argv array, or null if absent.
+ * Shared by the initializer entrypoint (index.js) and resolveKitRepoRoot below.
+ * @param {string[]} argv
+ * @param {string} name
+ * @returns {string | null}
+ */
+export function flagValue(argv, name) {
+  const i = argv.indexOf(name);
+  if (i >= 0 && i + 1 < argv.length) return argv[i + 1];
+  return null;
+}
+
 // Pinned basic-memory version. Bumping requires:
 //   1. update this constant
 //   2. update config/mcp/basic-memory.json
@@ -86,12 +99,7 @@ export function hybridMcpPathsFromKitRoot(dir) {
  * @param {{ cwd: string, argv: string[], pathExists: (p: string) => Promise<boolean> }} opts
  */
 export async function resolveKitRepoRoot({ cwd, argv, pathExists }) {
-  const flagValue = (name) => {
-    const i = argv.indexOf(name);
-    if (i >= 0 && i + 1 < argv.length) return argv[i + 1];
-    return null;
-  };
-  const explicit = flagValue("--repo-root");
+  const explicit = flagValue(argv, "--repo-root");
   if (explicit) {
     return path.resolve(cwd, explicit);
   }

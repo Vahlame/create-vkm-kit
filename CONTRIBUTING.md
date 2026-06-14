@@ -1,10 +1,10 @@
 # Contributing
 
-Thanks for considering a contribution. This repository ships **cross-platform** guidance (`AGENTS.md`), optional **Go** and **Node** tooling, and archived **v1** artifacts under `docs/legacy/`.
+Thanks for considering a contribution. This repository ships **cross-platform** guidance (`AGENTS.md`) and optional **Go** and **Node** tooling.
 
 ## What this repo is and is not
 
-- **Is:** cross-platform agent memory guidance (`AGENTS.md`), MCP sample configs, optional Go daemon, initializer, and archived v1 prompt under `docs/legacy/`.
+- **Is:** cross-platform agent memory guidance (`AGENTS.md`), MCP sample configs, optional Go daemon, and initializer.
 - **Is not:** a hosted SaaS. You run MCP servers and vaults locally (or in your infra).
 
 ## Before you open a PR
@@ -30,9 +30,6 @@ npx prettier --check "**/*.{json,yml,yaml,md}"
 # Link check
 npx lychee --no-progress .
 
-# Extract embedded PowerShell from the archived v1 prompt and lint with PSScriptAnalyzer
-pwsh -File .github/scripts/extract-and-lint.ps1
-
 # Go tests (requires Go 1.22+)
 go test ./...
 
@@ -45,14 +42,13 @@ All must pass. CI mirrors these in `.github/workflows/ci.yml`.
 
 ## Types of changes
 
-| Change                                   | Where it goes                             | Needs an ADR?             |
-| ---------------------------------------- | ----------------------------------------- | ------------------------- |
-| Typo, wording, clarification             | the file in question                      | no                        |
-| Script fix inside the legacy v1 prompt   | `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md` | no (mention in CHANGELOG) |
-| Known-error addition                     | `docs/troubleshooting.md`                 | no                        |
-| New design decision                      | new file in `docs/adr/`                   | **yes**                   |
-| Cross-platform installer / daemon change | `cmd/`, `packages/`, `config/`            | yes                       |
-| Breaking change to agent contract        | discuss in an issue first                 | yes                       |
+| Change                                   | Where it goes                  | Needs an ADR? |
+| ---------------------------------------- | ------------------------------ | ------------- |
+| Typo, wording, clarification             | the file in question           | no            |
+| Known-error addition                     | `docs/troubleshooting.md`      | no            |
+| New design decision                      | new file in `docs/adr/`        | **yes**       |
+| Cross-platform installer / daemon change | `cmd/`, `packages/`, `config/` | yes           |
+| Breaking change to agent contract        | discuss in an issue first      | yes           |
 
 ## Commit messages
 

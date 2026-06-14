@@ -37,13 +37,9 @@ Todo lo de este capítulo vive en **`main`**: no hay rama separada para “v3”
 4. **Sincronización git del vault** — [`../../cmd/obsidian-memoryd`](../../cmd/obsidian-memoryd) (`watch`) o **git manual**; [`../setup/windows-scheduled-vault-sync.md`](../setup/windows-scheduled-vault-sync.md).
 5. **Vaults grandes** — `obsidian-memory-rag` + MCP híbrido. Camino rápido: `node packages/create-obsidian-memory/src/index.js --non-interactive --vault "<ruta>" --with-hybrid --repo-root "<clon-del-kit>"` (necesita `pip install -e packages/obsidian-memory-rag` previo). Manual: [`../../config/mcp/obsidian-memory-hybrid.json`](../../config/mcp/obsidian-memory-hybrid.json); [`../testing/manual-checks.md`](../testing/manual-checks.md) §6–7.
 6. **HTTP persistente (opcional)** — misma guía always-on: **no** hace falta ningún `.ps1` del repositorio.
-7. **CI / calidad del repo** — sin cambio para mantenedores: TypeScript (`scripts/sync-agents.ts`) y, para el **prompt legacy v1**, [`.github/scripts/extract-and-lint.ps1`](../../.github/scripts/extract-and-lint.ps1) en workflow.
+7. **CI / calidad del repo** — sin cambio para mantenedores: TypeScript (`scripts/sync-agents.ts`).
 
 ## Historia y ADRs
 
 - El **razonamiento histórico** del shim VBS (ADR-0003) sigue en [`../adr/0003-scheduled-tasks-via-wscript.md`](../adr/0003-scheduled-tasks-via-wscript.md); la cabecera aclara que la **guía pública** ya no publica esa plantilla.
 - El **orden git** sigue en [ADR-0004](../adr/0004-sync-order-add-commit-pull-push.md).
-
-## English
-
-[`v2-to-v3-script-free-kit.en.md`](./v2-to-v3-script-free-kit.en.md).

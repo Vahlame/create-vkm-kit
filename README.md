@@ -4,17 +4,14 @@
 [![Versión](https://img.shields.io/badge/release-v3.0.0--dev-orange.svg)](./CHANGELOG.md)
 [![CI](https://github.com/Vahlame/cursor-obsidian-memory-guide/actions/workflows/ci.yml/badge.svg)](https://github.com/Vahlame/cursor-obsidian-memory-guide/actions/workflows/ci.yml)
 
-> Idiomas: **Español** | [English](./README.en.md)
-
 ## Empieza aquí — elige una ruta
 
 | Tu situación                                       | Lee                                                                                 | Tiempo  |
 | -------------------------------------------------- | ----------------------------------------------------------------------------------- | ------- |
-| **Quiero que el agente lo instale por mí**         | [`INSTALAR_MEMORIA.md`](./INSTALAR_MEMORIA.md) — pégalo en un chat nuevo de Cursor  | ~5 min  |
 | **Voy paso a paso (manual, lineal)**               | [`GETTING_STARTED.md`](./GETTING_STARTED.md) — tabla con cada paso explicado        | ~15 min |
 | **Sólo quiero entender la idea antes de instalar** | [`docs/how-memory-works-simple.md`](./docs/how-memory-works-simple.md) — sin código | ~5 min  |
 
-Las tres rutas convergen en lo mismo: un **vault Markdown + git** que la IA lee y escribe vía **MCP** (`basic-memory` por defecto).
+Las dos rutas convergen en lo mismo: un **vault Markdown + git** que la IA lee y escribe vía **MCP** (`basic-memory` por defecto).
 
 <details>
 <summary><b>Referencia completa (especializaciones opcionales)</b></summary>

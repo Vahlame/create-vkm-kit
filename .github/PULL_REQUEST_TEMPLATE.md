@@ -10,7 +10,7 @@ Keep PRs focused: one change per PR.
 ## Type of change
 
 - [ ] Typo / wording / clarification
-- [ ] Script / daemon fix (`cmd/`, `packages/`, `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md`)
+- [ ] Script / daemon fix (`cmd/`, `packages/`)
 - [ ] New known-error entry (`docs/troubleshooting.md`)
 - [ ] New design decision (includes ADR in `docs/adr/`)
 - [ ] Cross-platform / MCP / initializer change
@@ -23,7 +23,6 @@ Keep PRs focused: one change per PR.
 - [ ] `npx markdownlint-cli "**/*.md" --ignore-path .markdownlintignore` passes
 - [ ] `npx prettier --check "**/*.{json,yml,yaml,md}"` passes
 - [ ] `npx lychee --no-progress --exclude-mail .` passes
-- [ ] `pwsh -File .github/scripts/extract-and-lint.ps1` passes (legacy v1 prompt)
 - [ ] `go test ./...` passes (if Go code touched)
 - [ ] I updated `CHANGELOG.md` under `[Unreleased]`
 - [ ] If this is a breaking change, I bumped `version` in `agent.toml`

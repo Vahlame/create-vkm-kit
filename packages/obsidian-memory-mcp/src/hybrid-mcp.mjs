@@ -16,6 +16,8 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { extractBullets, pickQueryTerms } from "./extract.mjs";
 import { vaultEditFile, vaultListDirectory, vaultReadFile, vaultWriteFile } from "./vault-fs.mjs";
+import { toolHandler } from "./mcp-result.mjs";
+import { maybeStartOtel } from "./telemetry.mjs";
 
 // Re-export so any consumer that already imports these from hybrid-mcp.mjs keeps
 // working; new consumers should import from ./extract.mjs to avoid loading the
@@ -69,6 +71,10 @@ async function runRagJson(args, ragSrc) {
 }
 
 async function main() {
+  // Opt-in tracing: no-ops unless OTEL_EXPORTER_OTLP_ENDPOINT is set and the
+  // optional @opentelemetry/* deps are installed (see docs/observability.md).
+  await maybeStartOtel();
+
   const ragSrc = defaultRagSrc();
 
   const server = new McpServer(
@@ -76,7 +82,7 @@ async function main() {
     {
       capabilities: { tools: {} },
       instructions:
-        "Hybrid lexical memory: call vault_fts_index after large vault imports, then vault_fts_search for BM25-ranked Markdown hits. Complements basic-memory; does not replace it."
+        "Hybrid memory search. Call vault_fts_index (optionally semantic:true) after large vault imports, then vault_fts_search for BM25 lexical hits or vault_hybrid_search for relevance-ranked BM25 + semantic hits. Complements basic-memory; does not replace it."
     }
   );
 
@@ -96,20 +102,13 @@ async function main() {
       },
       annotations: { readOnlyHint: true }
     },
-    async ({ query, vault, limit }) => {
-      try {
-        const v = requireVault(vault || undefined);
-        const data = await runRagJson(
-          ["json-search", "--vault", v, "--query", query, "--limit", String(limit ?? 20)],
-          ragSrc
-        );
-        const text = JSON.stringify(data, null, 2);
-        return { content: [{ type: "text", text }] };
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        return { content: [{ type: "text", text: msg }], isError: true };
-      }
-    }
+    toolHandler(async ({ query, vault, limit }) => {
+      const v = requireVault(vault || undefined);
+      return runRagJson(
+        ["json-search", "--vault", v, "--query", query, "--limit", String(limit ?? 20)],
+        ragSrc
+      );
+    })
   );
 
   server.registerTool(
@@ -120,24 +119,54 @@ async function main() {
         "Refresh the local .obsidian-memory-rag/fts.sqlite index (incremental by mtime/size).",
       inputSchema: {
         vault: z.string().optional().describe("Vault root; defaults to BASIC_MEMORY_HOME"),
-        maxFileBytes: z.number().int().min(4096).max(10_000_000).optional().default(1_048_576)
+        maxFileBytes: z.number().int().min(4096).max(10_000_000).optional().default(1_048_576),
+        semantic: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe("Also build note embeddings so vault_hybrid_search can rank by meaning")
       },
       annotations: { readOnlyHint: false }
     },
-    async ({ vault, maxFileBytes }) => {
-      try {
-        const v = requireVault(vault || undefined);
-        const data = await runRagJson(
-          ["json-index", "--vault", v, "--max-file-bytes", String(maxFileBytes ?? 1_048_576)],
-          ragSrc
-        );
-        const text = JSON.stringify(data, null, 2);
-        return { content: [{ type: "text", text }] };
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        return { content: [{ type: "text", text: msg }], isError: true };
-      }
-    }
+    toolHandler(async ({ vault, maxFileBytes, semantic }) => {
+      const v = requireVault(vault || undefined);
+      const args = [
+        "json-index",
+        "--vault",
+        v,
+        "--max-file-bytes",
+        String(maxFileBytes ?? 1_048_576)
+      ];
+      if (semantic) args.push("--semantic");
+      return runRagJson(args, ragSrc);
+    })
+  );
+
+  server.registerTool(
+    "vault_hybrid_search",
+    {
+      title: "Vault hybrid search (BM25 + semantic)",
+      description:
+        "Relevance-ranked retrieval over the vault: fuses FTS5 BM25 (lexical) with per-section vector cosine (semantic) via Reciprocal Rank Fusion, so notes surface by meaning and partial matches, not just exact keywords. Each hit returns the matching section (heading + passage), not the whole note — usually enough to answer without a follow-up read_file, which saves tokens. Requires embeddings built by vault_fts_index with semantic:true; without them it gracefully returns the BM25 ranking. The embedder is chosen by the server's OBSIDIAN_MEMORY_EMBEDDER env (default: zero-dependency lexical 'hashing'; set 'fastembed' with the [semantic] extra for neural embeddings).",
+      inputSchema: {
+        query: z
+          .string()
+          .describe("Natural-language query (ranked by relevance, not just exact terms)"),
+        vault: z
+          .string()
+          .optional()
+          .describe("Vault root; defaults to BASIC_MEMORY_HOME / OBSIDIAN_MEMORY_VAULT"),
+        limit: z.number().int().min(1).max(100).optional().default(20)
+      },
+      annotations: { readOnlyHint: true }
+    },
+    toolHandler(async ({ query, vault, limit }) => {
+      const v = requireVault(vault || undefined);
+      return runRagJson(
+        ["json-hybrid-search", "--vault", v, "--query", query, "--limit", String(limit ?? 20)],
+        ragSrc
+      );
+    })
   );
 
   server.registerTool(
@@ -153,21 +182,13 @@ async function main() {
       },
       annotations: { readOnlyHint: true }
     },
-    async ({ path, head, tail }) => {
-      try {
-        const v = requireVault();
-        const opts = {};
-        if (head != null) opts.head = head;
-        if (tail != null) opts.tail = tail;
-        const text = await vaultReadFile(v, path, opts);
-        return { content: [{ type: "text", text }] };
-      } catch (e) {
-        return {
-          content: [{ type: "text", text: e instanceof Error ? e.message : String(e) }],
-          isError: true
-        };
-      }
-    }
+    toolHandler(async ({ path, head, tail }) => {
+      const v = requireVault();
+      const opts = {};
+      if (head != null) opts.head = head;
+      if (tail != null) opts.tail = tail;
+      return vaultReadFile(v, path, opts);
+    })
   );
 
   server.registerTool(
@@ -182,18 +203,10 @@ async function main() {
       },
       annotations: { readOnlyHint: false, destructiveHint: true }
     },
-    async ({ path, content }) => {
-      try {
-        const v = requireVault();
-        const result = await vaultWriteFile(v, path, content);
-        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-      } catch (e) {
-        return {
-          content: [{ type: "text", text: e instanceof Error ? e.message : String(e) }],
-          isError: true
-        };
-      }
-    }
+    toolHandler(async ({ path, content }) => {
+      const v = requireVault();
+      return vaultWriteFile(v, path, content);
+    })
   );
 
   server.registerTool(
@@ -216,18 +229,10 @@ async function main() {
       },
       annotations: { readOnlyHint: false }
     },
-    async ({ path, edits }) => {
-      try {
-        const v = requireVault();
-        const result = await vaultEditFile(v, path, edits);
-        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-      } catch (e) {
-        return {
-          content: [{ type: "text", text: e instanceof Error ? e.message : String(e) }],
-          isError: true
-        };
-      }
-    }
+    toolHandler(async ({ path, edits }) => {
+      const v = requireVault();
+      return vaultEditFile(v, path, edits);
+    })
   );
 
   server.registerTool(
@@ -245,18 +250,10 @@ async function main() {
       },
       annotations: { readOnlyHint: true }
     },
-    async ({ path }) => {
-      try {
-        const v = requireVault();
-        const result = await vaultListDirectory(v, path || ".");
-        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-      } catch (e) {
-        return {
-          content: [{ type: "text", text: e instanceof Error ? e.message : String(e) }],
-          isError: true
-        };
-      }
-    }
+    toolHandler(async ({ path }) => {
+      const v = requireVault();
+      return vaultListDirectory(v, path || ".");
+    })
   );
 
   server.registerTool(
@@ -281,43 +278,37 @@ async function main() {
       },
       annotations: { readOnlyHint: true }
     },
-    async ({ summary, vault, memoryFile, maxBullets }) => {
-      try {
-        const v = requireVault(vault || undefined);
-        const file = memoryFile || "MEMORY.md";
-        const bullets = extractBullets(summary).slice(0, maxBullets ?? 6);
-        const candidates = [];
-        for (const bullet of bullets) {
-          const terms = pickQueryTerms(bullet);
-          let existing = null;
-          if (terms) {
-            try {
-              const data = await runRagJson(
-                ["json-search", "--vault", v, "--query", terms, "--limit", "5"],
-                ragSrc
-              );
-              const hit = (data.hits || []).find((h) => h.path === file);
-              if (hit) {
-                existing = { path: hit.path, snippet: hit.snippet ?? "" };
-              }
-            } catch {
-              // Index missing or query parse error → fall through; bullet is just flagged as new.
+    toolHandler(async ({ summary, vault, memoryFile, maxBullets }) => {
+      const v = requireVault(vault || undefined);
+      const file = memoryFile || "MEMORY.md";
+      const bullets = extractBullets(summary).slice(0, maxBullets ?? 6);
+      const candidates = [];
+      for (const bullet of bullets) {
+        const terms = pickQueryTerms(bullet);
+        let existing = null;
+        if (terms) {
+          try {
+            const data = await runRagJson(
+              ["json-search", "--vault", v, "--query", terms, "--limit", "5"],
+              ragSrc
+            );
+            const hit = (data.hits || []).find((h) => h.path === file);
+            if (hit) {
+              existing = { path: hit.path, snippet: hit.snippet ?? "" };
             }
+          } catch {
+            // Index missing or query parse error → fall through; bullet is just flagged as new.
           }
-          candidates.push({ bullet, query: terms, existing });
         }
-        const payload = {
-          memoryFile: file,
-          candidates,
-          notice:
-            "These are candidates only. Show them to the human, get explicit confirmation, then call write_note / edit_note. Never auto-append."
-        };
-        return { content: [{ type: "text", text: JSON.stringify(payload, null, 2) }] };
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        return { content: [{ type: "text", text: msg }], isError: true };
+        candidates.push({ bullet, query: terms, existing });
       }
-    }
+      return {
+        memoryFile: file,
+        candidates,
+        notice:
+          "These are candidates only. Show them to the human, get explicit confirmation, then call write_note / edit_note. Never auto-append."
+      };
+    })
   );
 
   const transport = new StdioServerTransport();

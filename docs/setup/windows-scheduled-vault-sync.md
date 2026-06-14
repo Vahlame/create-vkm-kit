@@ -40,7 +40,3 @@ Sin segundo temporizador solo para el vault: [`memory-repo-sin-automatismos-loca
 ## Programador de tareas (avanzado, por tu cuenta)
 
 Si registras **tú** una tarea que lance `git` u otro binario, revisa en **Programador de tareas** (GUI) la línea de comando y el **código de salida** en el historial. Este repo no incluye plantillas de tarea con PowerShell/VBS para copiar.
-
-## English
-
-Same content: [`windows-scheduled-vault-sync.en.md`](./windows-scheduled-vault-sync.en.md).

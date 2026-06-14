@@ -89,12 +89,12 @@ Copia la plantilla `config/mcp/basic-memory.json` y sustituye `<VAULT_PATH>` por
 
 ### Añadir híbrido FTS (opcional)
 
-Si quieres `vault_fts_search` / `vault_fts_index` en el IDE:
+Si quieres `vault_fts_search` (léxico), `vault_hybrid_search` (léxico + semántico) y `vault_fts_index` en el IDE:
 
 - **Rápido:** `create-obsidian-memory … --with-hybrid` (ver la sección **v3: pulido práctico** más arriba y el **Paso 4**).
 - **A mano:** fusiona `config/mcp/obsidian-memory-hybrid.json`: sustituye `<REPO_ROOT>` por el clon **absoluto** de este repo y `<VAULT_PATH>` por tu vault (o confía en `BASIC_MEMORY_HOME` si ya lo defines en esa entrada).
 
-**Por qué dos servidores:** `basic-memory` cubre lectura/escritura y búsqueda integrada. El híbrido añade un índice **SQLite FTS5 (BM25)** en disco; compensa vaults muy grandes donde `search_notes` no te basta.
+**Por qué dos servidores:** `basic-memory` cubre lectura/escritura y búsqueda integrada. El híbrido añade un índice **SQLite FTS5 (BM25) + vectores** en disco; compensa vaults grandes y permite buscar por **significado** con `vault_hybrid_search` (devuelve la sección relevante, no la nota entera), no solo por palabras exactas.
 
 ## Paso 2: Comprobar que Cursor ve las tools
 
@@ -135,7 +135,7 @@ En **Cursor → Settings → Rules → User Rules**, pega el bloque siguiente. *
 ### MCP disponible
 
 - Si el servidor **`basic-memory`** está activo, úsalo para el vault: `read_note`, `write_note`, `edit_note`, `search_notes`, `build_context`, `recent_activity`. Las rutas son relativas a la raíz del vault (`BASIC_MEMORY_HOME`).
-- Si además está **`obsidian-memory-hybrid`**, para búsqueda léxica BM25/FTS5 usa `vault_fts_search`; tras importaciones masivas o primera indexación en vault grande, `vault_fts_index`. **`memory_extract_candidates`** propone bullets para confirmar antes de escribir a `MEMORY.md` (ver ritual de cierre).
+- Si además está **`obsidian-memory-hybrid`**, para búsqueda léxica exacta (BM25/FTS5) usa `vault_fts_search`, y para búsqueda por **significado/relevancia** (BM25 + semántico, devuelve la sección relevante) usa **`vault_hybrid_search`**; tras importaciones masivas o primera indexación, `vault_fts_index` (acepta `semantic: true` para construir los vectores del híbrido). **`memory_extract_candidates`** propone bullets para confirmar antes de escribir a `MEMORY.md` (ver ritual de cierre).
 - Si no está el híbrido, usa `search_notes` y `build_context` de `basic-memory`.
 - Si **no** hay MCP del vault disponible, dilo explícitamente; no afirmes haber persistido en el vault.
 
@@ -148,7 +148,7 @@ En **Cursor → Settings → Rules → User Rules**, pega el bloque siguiente. *
 
 Antes de escribir código, instalar dependencias, modificar config, o tomar decisión que persista entre sesiones:
 
-1. Llama `build_context(query=<resumen del prompt del usuario>)` para que `basic-memory` te traiga las notas relevantes ranked. Si está disponible `obsidian-memory-hybrid`, complementa con `vault_fts_search` para términos exactos.
+1. Llama `build_context(query=<resumen del prompt del usuario>)` para que `basic-memory` te traiga las notas relevantes ranked. Si está disponible `obsidian-memory-hybrid`, usa **`vault_hybrid_search`** para consultas conceptuales o en lenguaje natural (o `vault_fts_search` para un término exacto).
 2. Lee con `read_note` lo que `build_context` devuelva (no lo cargues todo a ciegas).
 3. Si la tarea toca un proyecto identificable (carpeta o repo activo), abre `PROJECTS/<proyecto>.md`; créalo con `write_note` sólo si la tarea lo justifica.
 
@@ -181,10 +181,6 @@ Antes de escribir código, instalar dependencias, modificar config, o tomar deci
 - Notas cortas y accionables; separar **hechos** e **hipótesis** con palabras explícitas.
 - Usar wikilinks `[[...]]` cuando ayuden a navegar el vault.
 ```
-
-### Versión en inglés
-
-Misma estructura en [`cursor-memory-setup.en.md`](./cursor-memory-setup.en.md) (bloque listo para pegar en inglés).
 
 ## Paso 4: Inicializar o fusionar config sin prompts
 

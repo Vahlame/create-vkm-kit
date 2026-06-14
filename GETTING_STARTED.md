@@ -1,8 +1,6 @@
 # Primer uso: flujo lineal (kit v3)
 
-> **¿Quieres que el agente haga la instalación por ti?** Pega [`INSTALAR_MEMORIA.md`](./INSTALAR_MEMORIA.md) en un chat nuevo de Cursor. El agente ejecutará todos los pasos automáticamente.
->
-> Esta guía es para quien prefiere entender cada paso antes de ejecutarlo.
+> Instalar esta memoria **no** es pegar un prompt: requiere configurar el MCP, (opcional) el índice FTS + Python, y (opcional) el daemon Go de sync. Esta guía explica cada paso en orden.
 
 Lee **en orden**. Cada paso enlaza al siguiente. No saltes pasos salvo que el texto diga “opcional”.
 
@@ -50,7 +48,3 @@ Eso **mezcla** `basic-memory` en el `mcp.json` de Cursor (Windows: `%USERPROFILE
 
 1. [`AGENTS.md`](./AGENTS.md)
 2. [`CONTRIBUTING.md`](./CONTRIBUTING.md)
-
-## English
-
-Same linear path: [`GETTING_STARTED.en.md`](./GETTING_STARTED.en.md).

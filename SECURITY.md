@@ -2,7 +2,7 @@
 
 ## Why this file matters
 
-`AGENTS.md`, `scripts/sync-agents.ts`, and the archived v1 prompt under `docs/legacy/` can drive an AI agent to run commands on a developer machine (install packages, write MCP config, install systemd/LaunchAgent services, push git remotes). A malicious change is effectively an RCE/social-engineering vector against anyone who follows the instructions verbatim.
+`AGENTS.md` and `scripts/sync-agents.ts` can drive an AI agent to run commands on a developer machine (install packages, write MCP config, install systemd/LaunchAgent services, push git remotes). A malicious change is effectively an RCE/social-engineering vector against anyone who follows the instructions verbatim.
 
 Treat issues with agent-facing instructions the same way you would treat issues with a system installer.
 
@@ -24,7 +24,7 @@ Only the latest minor of the current major receives fixes. We will not backport.
 Email the maintainer privately, or use GitHub's "Report a vulnerability" form under the `Security` tab. Include:
 
 - a description of the issue,
-- the file / section of `AGENTS.md` or `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md` involved (or which generated script),
+- the file / section of `AGENTS.md` involved (or which generated script),
 - a proof of concept, or a clear description of the attack scenario,
 - the impact (data exfiltration, code execution, privilege escalation, denial of memory, etc.).
 
@@ -57,9 +57,9 @@ Notes in the vault are treated by the agent as information to read and process, 
 
 If the vault remote is shared (team, multi-machine), assume an attacker with write access can attempt prompt injection via `MEMORY.md`, `RULES/*`, or any other file the agent reads on startup. The mitigation is the doctrine above, not a technical filter.
 
-### 2. `INSTALAR_MEMORIA.{md,en.md}` is an installer
+### 2. Agent-driven setup runs with your privileges
 
-When pasted into Cursor, an agent executes it with the user's privileges: writes to `~/.cursor/mcp.json`, installs background daemons, edits git config. **Verify the source** before pasting — each `INSTALAR_MEMORIA*.md` opens with a verification block. Treat unverified copies the way you would treat `curl ... | sh`.
+`AGENTS.md` and the `create-obsidian-memory` initializer drive an agent to write `~/.cursor/mcp.json`, install background daemons, and edit git config on your behalf. **Verify the source** (clone origin + latest commit) before letting an agent follow repo instructions. Treat an unverified clone the way you would treat `curl ... | sh`.
 
 ### 3. `basic-memory` is pinned
 
