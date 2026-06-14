@@ -11,6 +11,7 @@ Toda la guía de usuario, en orden de lectura recomendado.
 | 1   | [**Cómo funciona**](como-funciona.md)                | Entiende el sistema en 5 min, con diagramas. Sin instalar nada. |
 | 2   | [**Instalación**](instalacion.md)                    | Paso a paso, 100 % repetible, con verificación.                 |
 | —   | [**Instalar con un agente**](instalar-con-agente.md) | ¿Prefieres que lo haga la IA? Pega un archivo y listo.          |
+| —   | [**Instalar en un PC nuevo**](instalar-pc-nueva.md)  | Reproduce todo en una máquina recién formateada (Claude Code).  |
 
 ## Cuando lo necesites
 
