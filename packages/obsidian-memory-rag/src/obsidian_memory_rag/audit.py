@@ -52,6 +52,10 @@ def _wikilink_target(raw: str) -> str:
     """
     target = raw.split("|", 1)[0]  # drop display alias
     target = target.split("#", 1)[0]  # drop section anchor
+    target = target.strip()
+    # Obsidian links may include the .md extension explicitly ([[note.md]]); normalize it off.
+    if target.lower().endswith(".md"):
+        target = target[:-3]
     return target.strip()
 
 
@@ -72,8 +76,13 @@ def audit_vault(
     vault = vault.resolve()
     files = _iter_md_files(vault)
 
-    # Index every note's basename (lowercased, no extension) for link resolution.
+    # Index notes for link resolution two ways: by bare basename (Obsidian
+    # resolves [[note]] by basename anywhere) AND by full relative path without
+    # extension (path-qualified links like [[PROJECTS/foo]]). Both lowercased, posix.
     known_basenames: set[str] = {f.stem.lower() for f in files}
+    known_relpaths: set[str] = {
+        f.relative_to(vault).with_suffix("").as_posix().lower() for f in files
+    }
 
     total_tokens = 0
     oversized: list[dict] = []
@@ -97,7 +106,9 @@ def audit_vault(
             target = _wikilink_target(match.group(1))
             if not target:
                 continue
-            if target.lower() in known_basenames:
+            norm = target.replace("\\", "/").strip("/").lower()
+            basename = norm.rsplit("/", 1)[-1]
+            if basename in known_basenames or norm in known_relpaths:
                 continue
             dedup_key = (rel, target)
             if dedup_key in seen_broken:

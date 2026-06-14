@@ -73,6 +73,23 @@ def test_broken_link_case_insensitive(tmp_path: Path) -> None:
     assert report["broken_links"] == []  # case-insensitive basename match
 
 
+def test_path_qualified_links_resolve(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    _write(vault / "PROJECTS" / "foo.md", "# Foo\n")
+    _write(vault / "STACKS" / "bar.md", "# Bar\n")
+    _write(
+        vault / "ref.md",
+        "[[PROJECTS/foo]] [[STACKS/bar]] [[PROJECTS/foo.md]] [[PROJECTS/missing]]\n",
+    )
+    report = audit_vault(vault)
+    targets = [b["target"] for b in report["broken_links"]]
+    # Folder-qualified links to existing notes resolve (by full path); the
+    # explicit-.md form resolves too; only the truly-missing one is broken.
+    assert "PROJECTS/foo" not in targets
+    assert "STACKS/bar" not in targets
+    assert "PROJECTS/missing" in targets
+
+
 def test_session_log_token_count_and_over_threshold(tmp_path: Path) -> None:
     vault = tmp_path / "vault"
     # 8000 bytes ~= 2000 tokens; threshold 1000 -> over.
