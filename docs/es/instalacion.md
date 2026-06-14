@@ -163,9 +163,16 @@ Las **User Rules** le dicen al agente _cuándo_ leer qué nota y _cómo_ cerrar 
 
 ### Antes de cualquier acción no trivial (ritual de pre-acción)
 
-1. `build_context(query=<resumen del prompt>)` (o `vault_hybrid_search` si está el híbrido) para traer notas relevantes.
-2. Lee con `read_note` lo que devuelva — no cargues todo a ciegas.
-3. Si la tarea toca un proyecto identificable, abre `PROJECTS/<proyecto>.md` (créalo con `write_note` sólo si se justifica).
+1. Para traer contexto, **prefiere `vault_hybrid_search`**: devuelve solo la **sección** relevante, no la nota entera (ahorra tokens). Si no tienes el híbrido, usa `build_context`.
+2. Lee la **sección** que devuelva. **No leas notas grandes enteras** (p. ej. `SESSION_LOG.md` o PROJECTS largos): búscalas y lee solo el pasaje. Usa `read_note` completo **solo** si de verdad necesitas el archivo entero.
+3. Si la tarea toca un proyecto, abre `PROJECTS/<proyecto>.md` (créalo con `write_note` solo si se justifica).
+4. Antes de actuar sobre un archivo, flag o ruta citados **en una nota**, **verifica que siguen existiendo** — la memoria puede estar obsoleta.
+
+### Multi-agente (fan-out) — no multipliques el coste de tokens
+
+- Si lanzas **varios sub-agentes**, el **orquestador** trae y **destila** el contexto **una sola vez** y pasa el extracto relevante en el **prompt** de cada sub-agente.
+- Los sub-agentes **no** re-leen `START_HERE → MEMORY → PROJECTS` completos: solo hacen `vault_hybrid_search` de **su** subtarea concreta.
+- Nunca leas `SESSION_LOG.md` ni PROJECTS grandes **enteros** desde un sub-agente: un solo `read_note` de esas notas puede costar decenas de miles de tokens **× N agentes**.
 
 ### Durante la tarea
 
@@ -219,13 +226,15 @@ Si el agente devuelve el contenido del archivo, **funciona**. Confirmado:
 Si tu vault tiene cientos de notas y quieres búsqueda rápida por palabra **y** por significado:
 
 ```bash
-# 1) Instala el backend Python del kit (una sola vez), desde tu clon del repo
-pip install -e "<KIT_ROOT>/packages/obsidian-memory-rag"
+# 1) Instala el backend Python del kit (una sola vez). Para recall por SIGNIFICADO
+#    real (sinónimos), añade el extra [semantic]:
+pip install -e "<KIT_ROOT>/packages/obsidian-memory-rag[semantic]"
 
-# 2) Añade obsidian-memory-hybrid a mcp.json (junto a basic-memory)
+# 2) Añade obsidian-memory-hybrid a mcp.json (junto a basic-memory).
+#    --semantic cablea el embedder neuronal (fastembed); quítalo para el modo léxico cero-deps.
 node "<KIT_ROOT>/packages/create-obsidian-memory/src/index.js" \
   --non-interactive --vault "<VAULT>" \
-  --with-hybrid --repo-root "<KIT_ROOT>"
+  --with-hybrid --semantic --repo-root "<KIT_ROOT>"
 ```
 
 `<KIT_ROOT>` es la ruta absoluta a tu clon de `cursor-obsidian-memory-guide`. Reinicia Cursor;

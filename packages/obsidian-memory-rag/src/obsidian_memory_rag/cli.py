@@ -9,9 +9,11 @@ import sys
 import time
 from pathlib import Path
 
+from .audit import audit_vault
 from .embeddings import get_embedder
-from .indexer import index_vault, index_vectors
+from .indexer import ensure_fresh, index_vault, index_vectors
 from .query import hybrid_search, search_vault
+from .rotate import rotate_session_log
 
 
 def main() -> None:
@@ -50,6 +52,11 @@ def main() -> None:
     q.add_argument("--vault", type=Path, required=True)
     q.add_argument("query", help="Space-separated terms (AND semantics on body)")
     q.add_argument("--limit", type=int, default=20)
+    q.add_argument(
+        "--no-auto-index",
+        action="store_true",
+        help="Skip the pre-search incremental index refresh (query the index as-is)",
+    )
 
     hs = sub.add_parser(
         "hybrid-search",
@@ -59,6 +66,11 @@ def main() -> None:
     hs.add_argument("query", help="Natural-language query (ranked by relevance, not just keywords)")
     hs.add_argument("--limit", type=int, default=20)
     hs.add_argument("--embedder", default=None)
+    hs.add_argument(
+        "--no-auto-index",
+        action="store_true",
+        help="Skip the pre-search incremental index refresh (query the index as-is)",
+    )
 
     b = sub.add_parser("bench", help="Micro-benchmark repeated search (local perf smoke)")
     b.add_argument("--vault", type=Path, required=True)
@@ -73,6 +85,11 @@ def main() -> None:
     js.add_argument("--vault", type=Path, required=True)
     js.add_argument("--query", required=True)
     js.add_argument("--limit", type=int, default=20)
+    js.add_argument(
+        "--no-auto-index",
+        action="store_true",
+        help="Skip the pre-search incremental index refresh (query the index as-is)",
+    )
 
     jh = sub.add_parser(
         "json-hybrid-search",
@@ -82,6 +99,11 @@ def main() -> None:
     jh.add_argument("--query", required=True)
     jh.add_argument("--limit", type=int, default=20)
     jh.add_argument("--embedder", default=None)
+    jh.add_argument(
+        "--no-auto-index",
+        action="store_true",
+        help="Skip the pre-search incremental index refresh (query the index as-is)",
+    )
 
     ji = sub.add_parser(
         "json-index",
@@ -99,6 +121,42 @@ def main() -> None:
         help="Also build note embeddings for hybrid search",
     )
     ji.add_argument("--embedder", default=None)
+
+    au = sub.add_parser(
+        "audit",
+        help="Human-readable vault health report (sizes, broken links, SESSION_LOG)",
+    )
+    au.add_argument("--vault", type=Path, required=True)
+    au.add_argument(
+        "--budget",
+        type=int,
+        default=8000,
+        help="Per-note token budget; notes above it are flagged (default 8000)",
+    )
+
+    ja = sub.add_parser(
+        "json-audit",
+        help="Print the vault health report as one JSON object (for MCP)",
+    )
+    ja.add_argument("--vault", type=Path, required=True)
+    ja.add_argument("--budget", type=int, default=8000)
+
+    rl = sub.add_parser(
+        "rotate-log",
+        help="Archive old SESSION_LOG.md sections, keeping the newest N",
+    )
+    rl.add_argument("--vault", type=Path, required=True)
+    rl.add_argument(
+        "--keep",
+        type=int,
+        default=8,
+        help="Number of most-recent sections to keep in SESSION_LOG.md (default 8)",
+    )
+    rl.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Report what would move without writing any file",
+    )
 
     args = p.parse_args()
     if args.cmd == "index":
@@ -125,6 +183,8 @@ def main() -> None:
                 f"removed={vstats.removed}",
             )
     elif args.cmd == "search":
+        if not args.no_auto_index:
+            ensure_fresh(args.vault)
         hits = search_vault(args.vault, args.query, limit=args.limit)
         if not hits:
             print("no hits (run `index` first or broaden query)")
@@ -133,7 +193,10 @@ def main() -> None:
             print(f"{h.path}\tbm25={h.bm25:.4f}\t{h.title!r}")
             print(f"  {h.snippet}")
     elif args.cmd == "hybrid-search":
-        hits = hybrid_search(args.vault, args.query, get_embedder(args.embedder), limit=args.limit)
+        embedder = get_embedder(args.embedder)
+        if not args.no_auto_index:
+            ensure_fresh(args.vault, embedder=embedder)
+        hits = hybrid_search(args.vault, args.query, embedder, limit=args.limit)
         if not hits:
             print("no hits (run `index --semantic` first or broaden query)")
             return
@@ -160,6 +223,8 @@ def main() -> None:
         print(f"iterations={args.iterations} query={args.query!r} limit={args.limit}")
         print(f"latency_ms p50={p50:.3f} p95={p95:.3f} min={lat[0]:.3f} max={lat[-1]:.3f}")
     elif args.cmd == "json-search":
+        if not args.no_auto_index:
+            ensure_fresh(args.vault)
         hits = search_vault(args.vault, args.query, limit=args.limit)
         payload = {
             "hits": [
@@ -176,7 +241,10 @@ def main() -> None:
         }
         print(json.dumps(payload, ensure_ascii=False))
     elif args.cmd == "json-hybrid-search":
-        hits = hybrid_search(args.vault, args.query, get_embedder(args.embedder), limit=args.limit)
+        embedder = get_embedder(args.embedder)
+        if not args.no_auto_index:
+            ensure_fresh(args.vault, embedder=embedder)
+        hits = hybrid_search(args.vault, args.query, embedder, limit=args.limit)
         payload = {
             "hits": [
                 {
@@ -214,6 +282,37 @@ def main() -> None:
                 "removed": vstats.removed,
             }
         print(json.dumps(payload, ensure_ascii=False))
+    elif args.cmd == "audit":
+        report = audit_vault(args.vault, budget_tokens=args.budget)
+        totals = report["totals"]
+        print(
+            f"audit: notes={totals['notes']} tokens~={totals['tokens']} "
+            f"budget={report['budget_tokens']}"
+        )
+        oversized = report["oversized"]
+        print(f"oversized ({len(oversized)}):")
+        for item in oversized:
+            print(f"  {item['path']}\t{item['tokens']} tokens")
+        broken = report["broken_links"]
+        print(f"broken_links ({len(broken)}):")
+        for item in broken:
+            print(f"  {item['source']} -> [[{item['target']}]]")
+        sl = report["session_log"]
+        if sl is None:
+            print("session_log: (none)")
+        else:
+            flag = " OVER THRESHOLD" if sl["over_threshold"] else ""
+            print(f"session_log: {sl['path']} {sl['tokens']} tokens{flag}")
+    elif args.cmd == "json-audit":
+        report = audit_vault(args.vault, budget_tokens=args.budget)
+        print(json.dumps(report, ensure_ascii=False))
+    elif args.cmd == "rotate-log":
+        res = rotate_session_log(args.vault, keep=args.keep, dry_run=args.dry_run)
+        prefix = "rotate-log (dry-run):" if args.dry_run else "rotate-log:"
+        print(
+            f"{prefix} sections={res.sections_total} kept={res.kept} "
+            f"archived={res.archived} archive={res.archive_path}"
+        )
 
 
 if __name__ == "__main__":

@@ -57,8 +57,10 @@ export function mergeBasicMemoryServer(raw, vaultAbs) {
  * @param {Record<string, unknown>} merged - output of mergeBasicMemoryServer (or compatible)
  * @param {string} vaultAbs - absolute vault root
  * @param {string} kitRepoAbs - absolute path to cursor-obsidian-memory-guide clone (contains packages/)
+ * @param {{ semantic?: boolean }} [opts] - semantic:true wires OBSIDIAN_MEMORY_EMBEDDER=fastembed
+ *   so vault_hybrid_search ranks by meaning (needs the Python `[semantic]` extra installed).
  */
-export function mergeObsidianHybridServer(merged, vaultAbs, kitRepoAbs) {
+export function mergeObsidianHybridServer(merged, vaultAbs, kitRepoAbs, opts = {}) {
   const base = /** @type {Record<string, unknown>} */ (JSON.parse(JSON.stringify(merged)));
   const servers = base.mcpServers;
   if (!servers || typeof servers !== "object" || Array.isArray(servers)) {
@@ -73,13 +75,20 @@ export function mergeObsidianHybridServer(merged, vaultAbs, kitRepoAbs) {
     "hybrid-mcp.mjs"
   );
   const pythonSrc = path.join(kitRepoAbs, "packages", "obsidian-memory-rag", "src");
+  /** @type {Record<string, string>} */
+  const env = {
+    BASIC_MEMORY_HOME: vaultAbs,
+    PYTHONPATH: pythonSrc
+  };
+  // Opt-in neural embeddings: real meaning-based recall instead of the
+  // zero-dependency lexical default. Requires `pip install 'obsidian-memory-rag[semantic]'`.
+  if (opts && opts.semantic) {
+    env.OBSIDIAN_MEMORY_EMBEDDER = "fastembed";
+  }
   mcpServers["obsidian-memory-hybrid"] = {
     command: "node",
     args: [hybridJs],
-    env: {
-      BASIC_MEMORY_HOME: vaultAbs,
-      PYTHONPATH: pythonSrc
-    }
+    env
   };
   return base;
 }
