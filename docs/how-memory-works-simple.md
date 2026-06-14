@@ -56,13 +56,18 @@ Bloque listo para copiar: [`cursor-memory-setup.md`](./cursor-memory-setup.md#pa
 
 Nada de esto envía tus notas al modelo “para siempre” en un servidor del proveedor del LLM: lo que persiste es **lo que escribes en archivos** y lo que subes a **tu** remoto si lo configuras.
 
-## Opcional: búsqueda muy rápida en vaults enormes (`obsidian-memory-rag` + híbrido)
+## Opcional: búsqueda por palabras Y por significado (`obsidian-memory-rag` + híbrido)
 
-`basic-memory` ya puede buscar. Si el vault es **muy grande**, un índice **SQLite FTS5** en tu máquina acelera búsquedas tipo “palabras clave en todo el cuerpo”. Eso es el paquete **`obsidian-memory-rag`**. El **MCP híbrido** expone en el IDE herramientas para **indexar** y **buscar** contra ese índice.
+`basic-memory` ya puede buscar. Si el vault es **grande**, un índice local acelera y afina la búsqueda. Eso es el paquete **`obsidian-memory-rag`**, y el **MCP híbrido** lo expone en el IDE con dos herramientas:
 
-**Cómo activarlo (camino rápido):** usa el inicializador desde el clon del kit — ver [GETTING_STARTED.md paso 6](../GETTING_STARTED.md) y [docs/cursor-memory-setup.md § v3](./cursor-memory-setup.md).
+- **`vault_fts_search`** — búsqueda **léxica** (SQLite FTS5 / BM25): rápida y exacta por palabras clave.
+- **`vault_hybrid_search`** — búsqueda **híbrida**: mezcla lo léxico con lo **semántico** (por significado), así “el daemon que sincroniza git” encuentra la nota aunque no uses esas palabras exactas. Y devuelve **solo la sección relevante** de la nota, no la nota entera — eso te **ahorra tokens**.
 
-No es obligatorio para empezar. Es una capa de **comodidad y rendimiento**, no el núcleo del sistema.
+Por defecto la parte semántica es léxica (cero dependencias); para sinónimos reales instalas el extra `[semantic]` y un modelo de embeddings. Detalle: [`ADR-0017`](./adr/0017-hybrid-query-embeddings.md).
+
+**Cómo activarlo (camino rápido):** usa el inicializador desde el clon del kit — ver [GETTING_STARTED.md paso 6](../GETTING_STARTED.md) y [docs/cursor-memory-setup.md](./cursor-memory-setup.md).
+
+No es obligatorio para empezar. Es una capa de **comodidad, recall y ahorro de tokens**, no el núcleo del sistema.
 
 ## Qué **no** es (para no confundirse)
 
