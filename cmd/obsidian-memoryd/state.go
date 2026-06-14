@@ -93,10 +93,12 @@ func updateState(mutate func(*DaemonState)) error {
 func startHeartbeat(interval time.Duration) func() {
 	tick := time.NewTicker(interval)
 	done := make(chan struct{})
+	stopped := make(chan struct{})
 	// Initial beat so `doctor` works right after startup without waiting for
 	// the first tick.
 	_ = updateState(func(s *DaemonState) { s.Heartbeat = time.Now().UTC() })
 	go func() {
+		defer close(stopped)
 		for {
 			select {
 			case <-tick.C:
@@ -108,9 +110,15 @@ func startHeartbeat(interval time.Duration) func() {
 			}
 		}
 	}()
+	// stop() blocks until the goroutine has fully returned, so no heartbeat
+	// write can land after the caller proceeds. Without this wait the writer
+	// could fire one more updateState() after stop() returns, racing a tmp dir
+	// teardown (flaky "directory not empty" on macOS) and leaving the daemon's
+	// last state write non-deterministic on shutdown.
 	return func() {
 		tick.Stop()
 		close(done)
+		<-stopped
 	}
 }
 
