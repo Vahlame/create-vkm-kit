@@ -47,7 +47,7 @@ is the MCP server; everything else (semantic search, sync daemon) is optional.
 sin romper otras entradas, hace backup):
 
 ```bash
-npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "<RUTA_ABSOLUTA_AL_VAULT>"
+npx @vahlame/create-obsidian-memory -- --non-interactive --vault "<RUTA_ABSOLUTA_AL_VAULT>"
 ```
 
 Luego pega las **User Rules** y verifica. Los pasos completos (y la verificación) están en la guía:

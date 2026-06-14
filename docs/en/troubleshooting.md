@@ -80,7 +80,7 @@ To re-merge a known-good `basic-memory` entry, replacing `<path>` with the full
 path to your vault:
 
 ```powershell
-npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "<path>"
+npx @vahlame/create-obsidian-memory -- --non-interactive --vault "<path>"
 ```
 
 ### `mcp.json` lost my Linear / Supabase entries
@@ -453,7 +453,7 @@ removes vault content unless you explicitly delete folders yourself.
    entry (replace `<absolute-vault-path>` with your vault's full path):
 
    ```powershell
-   npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "<absolute-vault-path>"
+   npx @vahlame/create-obsidian-memory -- --non-interactive --vault "<absolute-vault-path>"
    ```
 
    The file to back up first is `%USERPROFILE%\.cursor\mcp.json`. This restores a
