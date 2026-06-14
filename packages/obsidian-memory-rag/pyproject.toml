@@ -1,6 +1,6 @@
 [project]
 name = "obsidian-memory-rag"
-version = "2.0.0b1"
+version = "3.0.0"
 description = "Optional hybrid FTS5 + vector (semantic) indexer for Markdown vaults"
 readme = "README.md"
 requires-python = ">=3.11"

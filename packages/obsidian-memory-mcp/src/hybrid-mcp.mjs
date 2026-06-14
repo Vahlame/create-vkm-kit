@@ -103,7 +103,7 @@ async function main() {
   const ragSrc = defaultRagSrc();
 
   const server = new McpServer(
-    { name: "obsidian-memory-hybrid", version: "2.0.0-beta.3" },
+    { name: "obsidian-memory-hybrid", version: "3.0.0" },
     {
       capabilities: { tools: {} },
       instructions:
