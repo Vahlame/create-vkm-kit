@@ -62,7 +62,7 @@ const messages = {
     summary: "Listo. Pasos siguientes",
     otherIdes: "Copia este bloque MCP en la config del IDE:",
     ftsHint:
-      "Opcional (vaults grandes): MCP obsidian-memory-hybrid (tras pip install -e …/obsidian-memory-rag) o obsidian-memory-rag index manual; ver docs/testing/manual-checks.md §6–7.",
+      "Opcional (vaults grandes): MCP obsidian-memory-hybrid (tras pip install -e …/obsidian-memory-rag) o obsidian-memory-rag index manual; ver docs/es/instalacion.md (Verificación).",
     hybridQ:
       "¿Añadir MCP obsidian-memory-hybrid (FTS5 / BM25) además de basic-memory? (requiere clon del kit y pip install -e packages/obsidian-memory-rag)"
   },
@@ -77,7 +77,7 @@ const messages = {
     summary: "Done. Next steps",
     otherIdes: "Paste this MCP block into each IDE's config:",
     ftsHint:
-      "Optional (large vaults): obsidian-memory-hybrid MCP (after pip install -e …/obsidian-memory-rag) or manual obsidian-memory-rag index; see docs/testing/manual-checks.md §6–7.",
+      "Optional (large vaults): obsidian-memory-hybrid MCP (after pip install -e …/obsidian-memory-rag) or manual obsidian-memory-rag index; see docs/en/install.md (Verification).",
     hybridQ:
       "Add obsidian-memory-hybrid MCP (FTS5 / BM25) in addition to basic-memory? (needs this repo clone + pip install -e packages/obsidian-memory-rag)"
   }

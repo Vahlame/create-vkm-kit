@@ -1,20 +1,46 @@
-# Docs
+# Documentación · Documentation
 
-Documentation for the **agent memory pattern** (`AGENTS.md`, MCP configs, optional Go daemon, optional RAG). **v3** (script-free public kit) is described in [`migration/v2-to-v3-script-free-kit.md`](./migration/v2-to-v3-script-free-kit.md).
+Elige tu idioma · Pick your language:
 
-| File                                                                                               | Purpose                                                                                  |
-| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| [`adr/`](./adr/)                                                                                   | Architecture Decision Records (current stack: ADR-0010 onward).                          |
-| [`troubleshooting.md`](./troubleshooting.md)                                                       | Known errors and fixes (MCP, Windows tasks, ports).                                      |
-| [`faq.md`](./faq.md)                                                                               | Frequently asked questions about the pattern.                                            |
-| [`glossary.md`](./glossary.md)                                                                     | Definitions: MCP, vault, stdio vs HTTP, hybrid MCP, etc.                                 |
-| [`comparison.md`](./comparison.md)                                                                 | Positioning vs Cursor built-in memory, mem0, Letta, and alternatives.                    |
-| [`observability.md`](./observability.md)                                                           | Telemetry redaction and optional Langfuse / OTel notes.                                  |
-| [`setup/windows-sin-consola-visible.md`](./setup/windows-sin-consola-visible.md)                   | Windows: workspace Git, tasks, MCP, console flashes.                                     |
-| [`setup/windows-juego-vault-sync.md`](./setup/windows-juego-vault-sync.md)                         | Windows: vault sync vs gaming (latency, focus).                                          |
-| [`setup/windows-basic-memory-always-on.md`](./setup/windows-basic-memory-always-on.md)             | Optional HTTP `basic-memory`: terminal or **your** Task Scheduler action; stdio default. |
-| [`setup/windows-scheduled-vault-sync.md`](./setup/windows-scheduled-vault-sync.md)                 | Vault git: `obsidian-memoryd`, manual git, or **your** automation (no kit `.ps1`).       |
-| [`setup/memory-repo-sin-automatismos-locales.md`](./setup/memory-repo-sin-automatismos-locales.md) | Agent memory colocated in one git clone — no extra local automation.                     |
-| [`migration/v2-to-v3-script-free-kit.md`](./migration/v2-to-v3-script-free-kit.md)                 | **v2 → v3:** public kit without shipped scripts; advanced MCP/git/FTS/HTTP integration.  |
+<table>
+<tr>
+<td align="center" width="50%">
 
-Human onboarding starts at [`README.md`](../README.md).
+<h3>🇪🇸 Español</h3>
+
+**[→ Abrir la documentación](es/README.md)**
+
+[Cómo funciona](es/como-funciona.md) ·
+[Instalación](es/instalacion.md) ·
+[FAQ](es/faq.md)
+
+</td>
+<td align="center" width="50%">
+
+<h3>🇬🇧 English</h3>
+
+**[→ Open the documentation](en/README.md)**
+
+[How it works](en/how-it-works.md) ·
+[Install](en/install.md) ·
+[FAQ](en/faq.md)
+
+</td>
+</tr>
+</table>
+
+---
+
+## Mapa de `docs/` · Map of `docs/`
+
+| Carpeta / archivo        | Contenido                                                                  |
+| ------------------------ | -------------------------------------------------------------------------- |
+| [`es/`](es/)             | Documentación de usuario en **español**.                                   |
+| [`en/`](en/)             | User documentation in **English**.                                         |
+| [`adr/`](adr/)           | Architecture Decision Records — el _porqué_ de cada decisión (EN).         |
+| [`security/`](security/) | Avisos de seguridad concretos (p. ej. `mcp-remote`).                       |
+| [`legacy/`](legacy/)     | Histórico de versiones anteriores (v1/v2). No necesario para instalar hoy. |
+| [`assets/`](assets/)     | Diagramas e imágenes.                                                      |
+
+> Arquitectura técnica del repo: [`../ARCHITECTURE.md`](../ARCHITECTURE.md).
+> Onboarding humano empieza en el [README principal](../README.md).

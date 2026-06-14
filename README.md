@@ -1,66 +1,99 @@
-# Memoria de agente con Markdown + MCP (kit v3)
+<p align="center">
+  <img src="docs/assets/hero.svg" alt="Tu agente habla con servidores MCP, que leen y escriben notas Markdown en tu vault git; un daemon opcional sincroniza con un remoto" width="840">
+</p>
 
-[![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-blue.svg)](./LICENSE)
-[![Versión](https://img.shields.io/badge/release-v3.0.0--dev-orange.svg)](./CHANGELOG.md)
-[![CI](https://github.com/Vahlame/cursor-obsidian-memory-guide/actions/workflows/ci.yml/badge.svg)](https://github.com/Vahlame/cursor-obsidian-memory-guide/actions/workflows/ci.yml)
+<h1 align="center">🧠 Memoria persistente para tu agente de IA</h1>
+<h3 align="center">Persistent memory for your AI agent</h3>
 
-## Empieza aquí — elige una ruta
+<p align="center">
+  <em>Tus notas en Markdown + git. El modelo las lee y escribe vía MCP. Todo local, todo tuyo.</em><br>
+  <em>Your notes in Markdown + git. The model reads & writes them via MCP. All local, all yours.</em>
+</p>
 
-| Tu situación                                       | Lee                                                                                 | Tiempo  |
-| -------------------------------------------------- | ----------------------------------------------------------------------------------- | ------- |
-| **Voy paso a paso (manual, lineal)**               | [`GETTING_STARTED.md`](./GETTING_STARTED.md) — tabla con cada paso explicado        | ~15 min |
-| **Sólo quiero entender la idea antes de instalar** | [`docs/how-memory-works-simple.md`](./docs/how-memory-works-simple.md) — sin código | ~5 min  |
+<p align="center">
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/licencia-MIT-blue.svg" alt="MIT"></a>
+  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v3-orange.svg" alt="Release"></a>
+  <a href="https://github.com/Vahlame/cursor-obsidian-memory-guide/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/cursor-obsidian-memory-guide/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+</p>
 
-Las dos rutas convergen en lo mismo: un **vault Markdown + git** que la IA lee y escribe vía **MCP** (`basic-memory` por defecto).
+<p align="center">
+  <b>📖 Documentación completa:</b>&nbsp;
+  <a href="docs/es/README.md">🇪🇸 Español</a>&nbsp;·&nbsp;
+  <a href="docs/en/README.md">🇬🇧 English</a>
+</p>
 
-<details>
-<summary><b>Referencia completa (especializaciones opcionales)</b></summary>
+---
 
-> **Migración v2 → v3 (todo en `main`):** el kit **ya no incluye** scripts Windows en `scripts/windows/` ni `tools/*.ps1`; ver [`docs/migration/v2-to-v3-script-free-kit.md`](./docs/migration/v2-to-v3-script-free-kit.md).
+## ¿Qué es esto? · What is this?
 
-1. **Cursor (detalle):** [`docs/cursor-memory-setup.md`](./docs/cursor-memory-setup.md) — MCP + User Rules listo para pegar; stdio vs URL y `memory://`.
-2. **Probar que MCP responde:** [`docs/testing/manual-checks.md`](./docs/testing/manual-checks.md); Windows extra: [`docs/testing/windows-memory-sync-smoke.md`](./docs/testing/windows-memory-sync-smoke.md).
-3. **Algo falla:** [`docs/troubleshooting.md`](./docs/troubleshooting.md) — incluye consolas que parpadean; diagnóstico con **Administrador de tareas**.
-4. **MCP por HTTP (opcional, Windows):** [`docs/setup/windows-basic-memory-always-on.md`](./docs/setup/windows-basic-memory-always-on.md) — sólo si stdio no basta.
-5. **Git del vault (opcional):** [`docs/setup/windows-scheduled-vault-sync.md`](./docs/setup/windows-scheduled-vault-sync.md) (`obsidian-memoryd` o git manual).
-6. **Sin automatismos extra en tu PC:** memoria en el mismo repo git que ya actualizas — [`docs/setup/memory-repo-sin-automatismos-locales.md`](./docs/setup/memory-repo-sin-automatismos-locales.md).
-7. **Windows sin ventanas CMD / tirones (gaming):** [`docs/setup/windows-sin-consola-visible.md`](./docs/setup/windows-sin-consola-visible.md) · [`docs/setup/windows-juego-vault-sync.md`](./docs/setup/windows-juego-vault-sync.md).
-8. **Vault ya creado:** vuelve a ejecutar el inicializador para **fusionar** config sin perder claves:
-   - Solo `basic-memory`: `npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "RUTA"`
-   - Con híbrido FTS: `node packages/create-obsidian-memory/src/index.js --non-interactive --vault "RUTA" --with-hybrid --repo-root "RUTA_DEL_CLON"` (instala antes `pip install -e packages/obsidian-memory-rag`).
+🇪🇸 Un **kit multiplataforma** que le da a la IA (Cursor, Claude Code…) una **memoria que
+sobrevive entre chats**: una carpeta de notas Markdown bajo git que el agente lee y escribe a
+través de **MCP** (el puente entre el editor y tus archivos). Sin servicio en la nube. La pieza
+obligatoria es solo el servidor MCP; lo demás (búsqueda semántica, daemon de sync) es opcional.
 
-</details>
+🇬🇧 A **cross-platform kit** that gives your AI (Cursor, Claude Code…) **memory that survives
+across chats**: a folder of Markdown notes under git that the agent reads and writes through
+**MCP** (the bridge between the editor and your files). No cloud service. The only required piece
+is the MCP server; everything else (semantic search, sync daemon) is optional.
 
-## Qué es este repo (una viñeta)
+> ¿Cómo fluye la información? El diagrama de arriba lo resume; el detalle visual está en
+> [**Cómo funciona**](docs/es/como-funciona.md) · [**How it works**](docs/en/how-it-works.md).
 
-Kit **multiplataforma** para que la IA lea y escriba **tus** notas Markdown vía **MCP** (`basic-memory` por defecto), con piezas opcionales: índice **FTS5** local, **MCP híbrido** en el IDE, y daemon **Go** para git. Las decisiones de diseño están en [`docs/adr/`](./docs/adr/).
+---
 
-## Snippet MCP mínimo (referencia rápida)
+## Instalación rápida · Quick install
 
-```json
-{
-  "mcpServers": {
-    "basic-memory": {
-      "command": "uvx",
-      "args": ["--from", "basic-memory==0.21.4", "basic-memory", "mcp"],
-      "env": { "BASIC_MEMORY_HOME": "/ruta/absoluta/al/vault" }
-    }
-  }
-}
+**Un comando** conecta tu editor a un vault nuevo o existente (crea el vault, fusiona `mcp.json`
+sin romper otras entradas, hace backup):
+
+```bash
+npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "<RUTA_ABSOLUTA_AL_VAULT>"
 ```
 
-> **Nota de seguridad:** el `--from "basic-memory==0.21.4"` **pinea** la versión. Sin pin, `uvx` baja la última de PyPI en cada arranque de Cursor — si el paquete se compromete (account takeover, squatting), el modelo ejecuta código arbitrario con tus permisos. Para actualizar, sube el pin a mano tras revisar el changelog de basic-memory.
+Luego pega las **User Rules** y verifica. Los pasos completos (y la verificación) están en la guía:
 
-Plantilla y variantes: [`config/mcp/`](./config/mcp/).
+<table>
+<tr>
+<td align="center" width="50%">
 
-## Comparación, privacidad, contribuir
+🇪🇸 **[Guía de instalación →](docs/es/instalacion.md)**
 
-- Honestidad vs otras soluciones: [`docs/comparison.md`](./docs/comparison.md).
-- Privacidad / telemetría: [`docs/observability.md`](./docs/observability.md).
-- Contribuir y ADRs: [`CONTRIBUTING.md`](./CONTRIBUTING.md) y [`docs/adr/`](./docs/adr/).
-- Instrucciones para agentes que tocan **este** repo: [`AGENTS.md`](./AGENTS.md).
-- Índice de documentación: [`docs/README.md`](./docs/README.md).
+o deja que [**un agente lo instale**](docs/es/instalar-con-agente.md)
 
-## Licencia
+</td>
+<td align="center" width="50%">
 
-MIT (`LICENSE`).
+🇬🇧 **[Install guide →](docs/en/install.md)**
+
+or let [**an agent install it**](docs/en/install-with-agent.md)
+
+</td>
+</tr>
+</table>
+
+---
+
+## Qué incluye · What's inside
+
+| Pieza · Piece                                                          | Lenguaje | Rol                                                                      |
+| ---------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------ |
+| [`packages/create-obsidian-memory/`](packages/create-obsidian-memory/) | Node     | Instalador `npx`: fusiona el MCP y crea el vault.                        |
+| [`packages/obsidian-memory-mcp/`](packages/obsidian-memory-mcp/)       | Node     | MCP "híbrido": tools del vault + búsqueda léxica/semántica.              |
+| [`packages/obsidian-memory-rag/`](packages/obsidian-memory-rag/)       | Python   | Motor de búsqueda FTS5/BM25 + vectorial (cero dependencias por defecto). |
+| [`cmd/obsidian-memoryd/`](cmd/obsidian-memoryd/)                       | Go       | Daemon opcional: vigila el vault y sincroniza git.                       |
+
+Mapa técnico completo y diagramas de flujo: [`ARCHITECTURE.md`](ARCHITECTURE.md). El _porqué_ de
+cada decisión: [`docs/adr/`](docs/adr/).
+
+---
+
+## Más · More
+
+- **Seguridad / confianza:** [`SECURITY.md`](SECURITY.md) — el vault es **datos**, no instrucciones.
+- **Comparación con alternativas:** [FAQ 🇪🇸](docs/es/faq.md) · [FAQ 🇬🇧](docs/en/faq.md).
+- **Contribuir:** [`CONTRIBUTING.md`](CONTRIBUTING.md) · **Para agentes que tocan este repo:** [`AGENTS.md`](AGENTS.md).
+- **Privacidad / telemetría:** [`docs/observability.md`](docs/observability.md).
+
+## Licencia · License
+
+MIT — ver [`LICENSE`](LICENSE).

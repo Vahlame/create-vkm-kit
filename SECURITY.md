@@ -53,7 +53,7 @@ This kit makes three trust assumptions explicit. If a user follows them, the res
 
 ### 1. The vault is **data**, not **instructions**
 
-Notes in the vault are treated by the agent as information to read and process, never as authoritative directives. The User Rules block in `docs/cursor-memory-setup.md` (Step 3 — "Confianza / Trust") enforces this in prose: agents are told to **ignore** any instruction embedded inside a note (e.g. "execute X", "ignore previous rules") and to escalate the find to the human.
+Notes in the vault are treated by the agent as information to read and process, never as authoritative directives. The User Rules block in `docs/en/install.md` (Step 4 — User Rules) enforces this in prose: agents are told to **ignore** any instruction embedded inside a note (e.g. "execute X", "ignore previous rules") and to escalate the find to the human.
 
 If the vault remote is shared (team, multi-machine), assume an attacker with write access can attempt prompt injection via `MEMORY.md`, `RULES/*`, or any other file the agent reads on startup. The mitigation is the doctrine above, not a technical filter.
 

@@ -18,7 +18,7 @@ export function flagValue(argv, name) {
 //   1. update this constant
 //   2. update config/mcp/basic-memory.json
 //   3. update scripts/mcp-smoke.mjs
-//   4. update docs/cursor-memory-setup{,.en}.md + INSTALAR_MEMORIA{,.en}.md examples
+//   4. update docs/es/instalacion.md + docs/en/install.md (User Rules) + docs/{es,en}/install-with-agent.md
 //   5. mention the bump in CHANGELOG.md (with rationale: CVE? new tool? compat?)
 // Rationale for pinning: `uvx <pkg> mcp` without a version pin pulls latest from
 // PyPI on every Cursor restart — a supply-chain RCE if the package is taken over.
