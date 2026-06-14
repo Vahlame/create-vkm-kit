@@ -32,15 +32,15 @@ No meaningful slowdown for normal vault sizes. The MCP server runs out of proces
 
 ### Can I rename `MEMORY.md` or `SESSION_LOG.md`?
 
-You can, but you would have to change your **User Rules** (and any scripts that hard-code the names) accordingly. The names are convention, not protocol. Edit the pasted User Rules block in `docs/cursor-memory-setup.md` / `.en.md` to match your filenames.
+You can, but you would have to change your **User Rules** (and any scripts that hard-code the names) accordingly. The names are convention, not protocol. Edit the pasted User Rules block in `docs/cursor-memory-setup.md` to match your filenames.
 
 ### How do I uninstall?
 
-**v3 kit:** remove the **`basic-memory`** entry (or rename the server) from your IDE MCP config (`%USERPROFILE%\.cursor\mcp.json`), stop **`obsidian-memoryd`** if you installed it (kill process / remove Startup shortcut), and delete local sidecar data under **`<vault>/.obsidian-memory-rag/`** if you no longer want the FTS index. Your Markdown vault remains yours. **v1 (Windows):** `docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md` section 8 describes `Uninstall-Cursor-Memory.ps1` (scheduled tasks + `mcp.json.bak`).
+**v3 kit:** remove the **`basic-memory`** entry (or rename the server) from your IDE MCP config (`%USERPROFILE%\.cursor\mcp.json`), stop **`obsidian-memoryd`** if you installed it (kill process / remove Startup shortcut), and delete local sidecar data under **`<vault>/.obsidian-memory-rag/`** if you no longer want the FTS index. Your Markdown vault remains yours.
 
 ### Why Windows-first?
 
-The maintainer's first end-to-end install was Windows (ADR-0007). The **v3 kit** is **cross-platform**; the repo ships Linux/macOS pointers at `PROMPT_ULTRA_COMPLETO.linux.md` and `PROMPT_ULTRA_COMPLETO.macos.md` (short redirects) plus the Go daemon for non-Windows sync.
+The maintainer's first end-to-end install was Windows (ADR-0007). The **v3 kit** is **cross-platform**, with the Go daemon (`cmd/obsidian-memoryd`) handling non-Windows sync.
 
 ### Will this work on Cursor Web / cursor.com?
 

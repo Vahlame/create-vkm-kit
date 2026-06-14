@@ -103,7 +103,3 @@ npm test
 ```
 
 En `packages/obsidian-memory-rag`: `python -m pytest tests/ -q`.
-
-## English
-
-Same checklist: [`windows-memory-sync-smoke.en.md`](./windows-memory-sync-smoke.en.md).

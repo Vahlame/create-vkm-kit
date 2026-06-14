@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Standalone reference for the **v3 kit** (`basic-memory` stdio, optional hybrid FTS, optional Streamable HTTP). Historical **v1** errors (SSE `:3001`, `Ensure-ObsidianMCP.ps1`, etc.) appear only in [`docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md`](./legacy/PROMPT_ULTRA_COMPLETO_v1.md); do not use those flows for new installs.
+Standalone reference for the **v3 kit** (`basic-memory` stdio, optional hybrid FTS, optional Streamable HTTP). Historical **v1** errors (SSE `:3001`, `Ensure-ObsidianMCP.ps1`, etc.) are no longer documented in-repo; do not use those flows for new installs.
 
 ## Table of contents
 
@@ -167,7 +167,7 @@ Close and reopen the terminal (or Cursor) so `uvx` resolves. Verify with `uv --v
 
 ### Legacy v1 only: `http://127.0.0.1:3001/health` (archived SSE stack)
 
-If you still maintain an **archived** smith-and-web / `:3001` setup from v1, see [`docs/legacy/PROMPT_ULTRA_COMPLETO_v1.md`](./legacy/PROMPT_ULTRA_COMPLETO_v1.md). The **v3 kit** (and v2+) does not use `:3001` by default; use MCP Inspector / client logs for `basic-memory` instead.
+If you still maintain an **archived** smith-and-web / `:3001` setup from v1: the **v3 kit** (and v2+) does not use `:3001` by default; use MCP Inspector / client logs for `basic-memory` instead.
 
 ## How to recover from a broken install (v3 kit)
 

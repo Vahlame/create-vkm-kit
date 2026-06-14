@@ -1,6 +1,6 @@
 # Manual checks (IDE + MCP)
 
-**Flujo humano:** [`GETTING_STARTED.md`](../../GETTING_STARTED.md) (ES) / [`GETTING_STARTED.en.md`](../../GETTING_STARTED.en.md) (EN). **Idea en palabras simples:** [`docs/how-memory-works-simple.md`](../how-memory-works-simple.md) / [`docs/how-memory-works-simple.en.md`](../how-memory-works-simple.en.md). **Cursor (MCP + User Rules):** [`docs/cursor-memory-setup.md`](../cursor-memory-setup.md) / [English](../cursor-memory-setup.en.md).
+**Flujo humano:** [`GETTING_STARTED.md`](../../GETTING_STARTED.md). **Idea en palabras simples:** [`docs/how-memory-works-simple.md`](../how-memory-works-simple.md). **Cursor (MCP + User Rules):** [`docs/cursor-memory-setup.md`](../cursor-memory-setup.md).
 
 These steps require a local machine with **Node 20+**, **Python/uv** (for `uvx`), and (for IDE checks) the corresponding product installed.
 
@@ -79,4 +79,3 @@ Call **`vault_fts_index`** once, then **`vault_fts_search`** with a query that e
 After vault + any Task Scheduler setup you chose, run the consolidated checklist (scheduled tasks if present, `LastTaskResult`, git status, optional HTTP MCP port (default **8765**), optional `obsidian-memory-rag`, monorepo `npm test`):
 
 - Spanish: [`windows-memory-sync-smoke.md`](./windows-memory-sync-smoke.md)
-- English: [`windows-memory-sync-smoke.en.md`](./windows-memory-sync-smoke.en.md)

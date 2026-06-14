@@ -78,7 +78,3 @@ Con la config típica (`BASIC_MEMORY_HOME` en tu `mcp.json` de usuario), **todas
 ## Siguiente paso
 
 Instalación ordenada: [`../GETTING_STARTED.md`](../GETTING_STARTED.md).
-
-## English
-
-Same explanation: [`how-memory-works-simple.en.md`](./how-memory-works-simple.en.md).

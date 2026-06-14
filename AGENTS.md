@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Canonical instructions for any AI agent or IDE consuming this repository (Cursor, Claude Code, Copilot, Codex CLI, Aider, Windsurf, Zed, Continue, etc.). **Humans** onboarding this kit: read [`GETTING_STARTED.md`](./GETTING_STARTED.md) (linear) then [`docs/how-memory-works-simple.md`](./docs/how-memory-works-simple.md); English: [`GETTING_STARTED.en.md`](./GETTING_STARTED.en.md) / [`docs/how-memory-works-simple.en.md`](./docs/how-memory-works-simple.en.md). For human onboarding of the **pattern** (vault + MCP), read `README.md` / `README.en.md`.
+Canonical instructions for any AI agent or IDE consuming this repository (Cursor, Claude Code, Copilot, Codex CLI, Aider, Windsurf, Zed, Continue, etc.). **Humans** onboarding this kit: read [`GETTING_STARTED.md`](./GETTING_STARTED.md) (linear) then [`docs/how-memory-works-simple.md`](./docs/how-memory-works-simple.md). For human onboarding of the **pattern** (vault + MCP), read `README.md`.
 
 ## Project overview
 
@@ -97,12 +97,11 @@ Use a private git vault (example layout in `examples/`):
 
 ## References
 
-- `docs/setup/memory-repo-sin-automatismos-locales.md` / `.en.md` — memoria del agente en el mismo repo git: sin `.bat`/`.ps1`/Programador de tareas; actualización con `git pull`/`git push`.
-- `docs/setup/windows-scheduled-vault-sync.md` / `.en.md` — tarea programada Windows para `git pull/push` del vault en intervalos (sin Go); **valor por defecto en la guía: 60 min** entre ejecuciones (menos ruido que 5–10 min).
-- `docs/setup/windows-juego-vault-sync.md` / `.en.md` — sync del vault sin tirones ni robo de foco al jugar.
-- `docs/setup/windows-basic-memory-always-on.md` / `.en.md` — MCP `basic-memory` persistente (Streamable HTTP + tarea al inicio de sesión).
+- `docs/setup/memory-repo-sin-automatismos-locales.md` — memoria del agente en el mismo repo git: sin `.bat`/`.ps1`/Programador de tareas; actualización con `git pull`/`git push`.
+- `docs/setup/windows-scheduled-vault-sync.md` — tarea programada Windows para `git pull/push` del vault en intervalos (sin Go); **valor por defecto en la guía: 60 min** entre ejecuciones (menos ruido que 5–10 min).
+- `docs/setup/windows-juego-vault-sync.md` — sync del vault sin tirones ni robo de foco al jugar.
+- `docs/setup/windows-basic-memory-always-on.md` — MCP `basic-memory` persistente (Streamable HTTP + tarea al inicio de sesión).
 - `docs/adr/0016-localhost-mcp-default-port.md` — puerto por defecto **8765** vs colisiones en **8000**.
-- `GETTING_STARTED.md` / `GETTING_STARTED.en.md` — linear first-time path (table of steps).
-- `docs/how-memory-works-simple.md` / `docs/how-memory-works-simple.en.md` — plain-language mental model (vault / MCP / rules).
-- `docs/legacy/README.md` — historical artifacts on disk (maintainers only; not part of default onboarding).
+- `GETTING_STARTED.md` — linear first-time path (table of steps).
+- `docs/how-memory-works-simple.md` — plain-language mental model (vault / MCP / rules).
 - `agent.toml` — machine-readable v3 metadata for the daemon and tooling.

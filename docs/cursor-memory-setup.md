@@ -182,10 +182,6 @@ Antes de escribir código, instalar dependencias, modificar config, o tomar deci
 - Usar wikilinks `[[...]]` cuando ayuden a navegar el vault.
 ```
 
-### Versión en inglés
-
-Misma estructura en [`cursor-memory-setup.en.md`](./cursor-memory-setup.en.md) (bloque listo para pegar en inglés).
-
 ## Paso 4: Inicializar o fusionar config sin prompts
 
 Desde la raíz de un clon de este repo (o con `npx @vahlame/create-obsidian-memory@next` cuando publiquemos la beta con `--with-hybrid`):

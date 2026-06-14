@@ -48,7 +48,3 @@ En Cursor: **Settings → MCP** → `basic-memory` en verde. Tras cambiar `mcp.j
 ## Plantilla JSON HTTP
 
 [`config/mcp/basic-memory-streamable-http.json`](../../config/mcp/basic-memory-streamable-http.json).
-
-## English
-
-[`windows-basic-memory-always-on.en.md`](./windows-basic-memory-always-on.en.md).

@@ -27,13 +27,8 @@ jobs:
         run: npx --yes markdownlint-cli "**/*.md" --ignore-path .markdownlintignore
       - name: prettier
         run: npx --yes prettier --check "**/*.{json,yml,yaml,md}"
-      - name: es-en parity check
-        run: node scripts/check-es-en-parity.mjs
       - name: sync agents
         run: npm run sync-agents:check
-      - name: extract and lint embedded PowerShell (legacy prompt)
-        shell: pwsh
-        run: ./.github/scripts/extract-and-lint.ps1
       - name: validate agent.toml (tomllib)
         run: python -c "import pathlib,tomllib;tomllib.loads(pathlib.Path('agent.toml').read_text(encoding='utf-8'));print('agent.toml ok')"
 
