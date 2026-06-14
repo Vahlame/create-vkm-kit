@@ -64,7 +64,9 @@ const messages = {
     ftsHint:
       "Opcional (vaults grandes): MCP obsidian-memory-hybrid (tras pip install -e …/obsidian-memory-rag) o obsidian-memory-rag index manual; ver docs/es/instalacion.md (Verificación).",
     hybridQ:
-      "¿Añadir MCP obsidian-memory-hybrid (FTS5 / BM25) además de basic-memory? (requiere clon del kit y pip install -e packages/obsidian-memory-rag)"
+      "¿Añadir MCP obsidian-memory-hybrid (FTS5 / BM25) además de basic-memory? (requiere clon del kit y pip install -e packages/obsidian-memory-rag)",
+    semanticQ:
+      "¿Usar embeddings neuronales (fastembed) para recall por significado? (requiere el extra [semantic])"
   },
   en: {
     title: "create-obsidian-memory",
@@ -79,7 +81,9 @@ const messages = {
     ftsHint:
       "Optional (large vaults): obsidian-memory-hybrid MCP (after pip install -e …/obsidian-memory-rag) or manual obsidian-memory-rag index; see docs/en/install.md (Verification).",
     hybridQ:
-      "Add obsidian-memory-hybrid MCP (FTS5 / BM25) in addition to basic-memory? (needs this repo clone + pip install -e packages/obsidian-memory-rag)"
+      "Add obsidian-memory-hybrid MCP (FTS5 / BM25) in addition to basic-memory? (needs this repo clone + pip install -e packages/obsidian-memory-rag)",
+    semanticQ:
+      "Use neural embeddings (fastembed) for meaning-based recall? (needs the [semantic] extra)"
   }
 };
 
@@ -253,9 +257,9 @@ async function writeCursorMcp(home, vaultAbs, dryRun, hybridOpts = {}) {
     }
   }
   let merged = mergeBasicMemoryServer(parsed, vaultAbs);
-  const { withHybrid = false, repoRoot = null } = hybridOpts;
+  const { withHybrid = false, repoRoot = null, semantic = false } = hybridOpts;
   if (withHybrid && repoRoot) {
-    merged = mergeObsidianHybridServer(merged, vaultAbs, path.resolve(repoRoot));
+    merged = mergeObsidianHybridServer(merged, vaultAbs, path.resolve(repoRoot), { semantic });
   }
   if (dryRun) {
     console.log(pc.cyan("[dry-run] would write"), fp);
@@ -351,6 +355,7 @@ async function runNonInteractive(argv) {
   const noCursorMcp = argv.includes("--no-cursor-mcp");
   const noGitInit = argv.includes("--no-git-init");
   const wantHybrid = argv.includes("--with-hybrid");
+  const wantSemantic = argv.includes("--semantic");
   const wantGitleaks = argv.includes("--with-gitleaks");
   let kitRoot = null;
 
@@ -386,7 +391,8 @@ async function runNonInteractive(argv) {
   if (!noCursorMcp) {
     await writeCursorMcp(home, vault, dryRun, {
       withHybrid: wantHybrid,
-      repoRoot: kitRoot
+      repoRoot: kitRoot,
+      semantic: wantSemantic
     });
   } else {
     console.log(pc.dim("Skipped Cursor mcp.json (--no-cursor-mcp)"));
@@ -404,9 +410,13 @@ async function runNonInteractive(argv) {
   console.log("- MCP:", JSON.stringify(mcpSnippet));
   if (wantHybrid && kitRoot) {
     console.log("- obsidian-memory-hybrid: merged (kit root", kitRoot + ")");
-    console.log(
-      pc.dim('  pip install -e "' + path.join(kitRoot, "packages", "obsidian-memory-rag") + '"')
-    );
+    const ragPkg = path.join(kitRoot, "packages", "obsidian-memory-rag");
+    console.log(pc.dim('  pip install -e "' + ragPkg + (wantSemantic ? '[semantic]"' : '"')));
+    if (wantSemantic) {
+      console.log(
+        pc.dim("  embedder: fastembed (OBSIDIAN_MEMORY_EMBEDDER); build once with vault_fts_index semantic:true")
+      );
+    }
   }
   if (wantGitleaks) {
     console.log("- gitleaks pre-commit hook: installed (vault/.git/hooks/pre-commit)");
@@ -431,6 +441,7 @@ Non-interactive (CI / scripts):
                   (Merges kit Git/SCM keys into <vault>/.vscode/settings.json — creates or updates.)
   --with-hybrid   Also merge obsidian-memory-hybrid (needs kit clone; use --repo-root or cwd walk)
   --repo-root <path>  Root of cursor-obsidian-memory-guide clone (hybrid bridge + Python src)
+  --semantic      With --with-hybrid: neural embeddings (OBSIDIAN_MEMORY_EMBEDDER=fastembed; needs the [semantic] extra)
   --with-gitleaks Install gitleaks pre-commit hook in <vault>/.git/hooks/
 
   --help          This message`);
@@ -529,7 +540,13 @@ Non-interactive (CI / scripts):
       if (hybrid) {
         const { hybridJs, pythonSrc } = hybridMcpPathsFromKitRoot(kitRoot);
         if ((await fse.pathExists(hybridJs)) && (await fse.pathExists(pythonSrc))) {
-          hybridOpts = { withHybrid: true, repoRoot: kitRoot };
+          const { semantic } = await prompts({
+            type: "confirm",
+            name: "semantic",
+            message: t.semanticQ,
+            initial: false
+          });
+          hybridOpts = { withHybrid: true, repoRoot: kitRoot, semantic: Boolean(semantic) };
         } else {
           console.warn(pc.yellow("Hybrid paths not found; skipping obsidian-memory-hybrid."));
         }
@@ -565,13 +582,11 @@ Non-interactive (CI / scripts):
   console.log("- MCP:", JSON.stringify(mcpSnippet));
   if (hybridOpts.withHybrid && hybridOpts.repoRoot) {
     console.log("- obsidian-memory-hybrid: enabled (kit", hybridOpts.repoRoot + ")");
-    console.log(
-      pc.dim(
-        '  pip install -e "' +
-          path.join(hybridOpts.repoRoot, "packages", "obsidian-memory-rag") +
-          '"'
-      )
-    );
+    const ragPkg = path.join(hybridOpts.repoRoot, "packages", "obsidian-memory-rag");
+    console.log(pc.dim('  pip install -e "' + ragPkg + (hybridOpts.semantic ? '[semantic]"' : '"')));
+    if (hybridOpts.semantic) {
+      console.log(pc.dim("  embedder: fastembed; build once with vault_fts_index semantic:true"));
+    }
   }
   console.log("-", t.ftsHint);
   if (gitleaks) console.log("- gitleaks pre-commit hook: installed (vault/.git/hooks/pre-commit); install gitleaks CLI to activate");

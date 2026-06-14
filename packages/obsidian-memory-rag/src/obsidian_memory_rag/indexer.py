@@ -14,6 +14,7 @@ from .store import connect, init_schema
 from .vector_store import (
     current_chunk_keys,
     delete_chunks_for_path,
+    has_any_chunks,
     init_chunks,
     upsert_chunk,
 )
@@ -158,6 +159,57 @@ def index_vault(
     finally:
         conn.close()
     return stats
+
+
+@dataclass
+class FreshStats:
+    """What :func:`ensure_fresh` refreshed before a query ran."""
+
+    fts: IndexStats
+    vectors: VectorStats | None = None  # None => semantic refresh was skipped
+
+
+def _vault_has_vectors(vault: Path) -> bool:
+    """True if a vector index already exists for this vault (note_chunks non-empty).
+
+    Cheap and safe to call on a never-indexed vault: it just opens the sidecar DB
+    (creating the dir) and probes the chunk table, which is created on demand.
+    """
+    conn = connect(index_db_path(vault.resolve()))
+    try:
+        return has_any_chunks(conn)
+    finally:
+        conn.close()
+
+
+def ensure_fresh(
+    vault: Path,
+    *,
+    semantic: bool = False,
+    embedder: "Embedder | None" = None,
+    max_file_bytes: int = 1_048_576,
+) -> FreshStats:
+    """Refresh the index just before a search so recent edits are visible (D8).
+
+    Always runs the incremental :func:`index_vault` — it is cheap because unchanged
+    files are skipped by ``(mtime_ns, size)``. The semantic vectors are refreshed
+    via :func:`index_vectors` **only if** they already exist for this vault, or the
+    caller explicitly asks with ``semantic=True``; this preserves the zero-dependency
+    default so a user who never opted into embeddings is never forced to build them.
+    """
+    vault = vault.resolve()
+    fts = index_vault(vault, max_file_bytes=max_file_bytes)
+
+    vectors: VectorStats | None = None
+    if semantic or _vault_has_vectors(vault):
+        if embedder is None:
+            # Lazy import: keeps embeddings out of the dependency-free FTS path.
+            from .embeddings import get_embedder
+
+            embedder = get_embedder(None)
+        vectors = index_vectors(vault, embedder, max_file_bytes=max_file_bytes)
+
+    return FreshStats(fts=fts, vectors=vectors)
 
 
 @dataclass
