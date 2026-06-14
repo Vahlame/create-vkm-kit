@@ -5,8 +5,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   BASIC_MEMORY_VERSION,
+  SEMANTIC_EMBEDDER,
   mergeBasicMemoryServer,
   mergeObsidianHybridServer,
+  basicMemoryServer,
+  hybridServer,
+  claudeAddArgv,
   resolveKitRepoRoot
 } from "../src/mcp-merge.mjs";
 
@@ -56,8 +60,32 @@ test("mergeObsidianHybridServer with semantic wires the fastembed embedder", () 
   const sem = mergeObsidianHybridServer(base, "/vault", repoRoot, { semantic: true });
   assert.equal(
     sem.mcpServers["obsidian-memory-hybrid"].env.OBSIDIAN_MEMORY_EMBEDDER,
-    "fastembed"
+    SEMANTIC_EMBEDDER
   );
+});
+
+test("claudeAddArgv builds `claude mcp add -s user -e … -- cmd args`", () => {
+  const argv = claudeAddArgv("basic-memory", basicMemoryServer("/v"));
+  assert.deepEqual(argv.slice(0, 5), ["mcp", "add", "basic-memory", "-s", "user"]);
+  assert.ok(argv.includes("BASIC_MEMORY_HOME=/v"));
+  const dd = argv.indexOf("--");
+  assert.ok(dd > 0);
+  assert.deepEqual(argv.slice(dd + 1), [
+    "uvx",
+    "--from",
+    `basic-memory==${BASIC_MEMORY_VERSION}`,
+    "basic-memory",
+    "mcp"
+  ]);
+});
+
+test("claudeAddArgv for hybrid carries the semantic embedder env", () => {
+  const argv = claudeAddArgv(
+    "obsidian-memory-hybrid",
+    hybridServer("/v", repoRoot, { semantic: true })
+  );
+  assert.ok(argv.some((a) => a.startsWith("OBSIDIAN_MEMORY_EMBEDDER=fastembed")));
+  assert.equal(argv[argv.indexOf("--") + 1], "node");
 });
 
 test("resolveKitRepoRoot finds repo from cwd walk", async () => {
