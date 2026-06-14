@@ -1,10 +1,28 @@
 {
   "name": "@vahlame/create-obsidian-memory",
-  "version": "2.0.0-beta.3",
+  "version": "3.0.0",
   "description": "Interactive initializer for Obsidian-style agent memory (v3 kit)",
+  "license": "MIT",
+  "homepage": "https://github.com/Vahlame/cursor-obsidian-memory-guide#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vahlame/cursor-obsidian-memory-guide.git",
+    "directory": "packages/create-obsidian-memory"
+  },
+  "keywords": [
+    "mcp",
+    "obsidian",
+    "cursor",
+    "claude-code",
+    "agent-memory",
+    "basic-memory"
+  ],
+  "files": [
+    "src"
+  ],
   "type": "module",
   "bin": {
-    "create-obsidian-memory": "./src/index.js"
+    "create-obsidian-memory": "src/index.js"
   },
   "scripts": {
     "test": "node --test"

@@ -64,7 +64,7 @@ Este es el camino **repetible**: el instalador `create-obsidian-memory` escribe 
 anterior y crea el vault si falta.
 
 ```bash
-npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "<VAULT>"
+npx @vahlame/create-obsidian-memory -- --non-interactive --vault "<VAULT>"
 ```
 
 **Qué hace, exactamente:**
@@ -249,7 +249,7 @@ Vuelve a ejecutar el instalador para recoger claves nuevas en `mcp.json` **sin p
 tuyas. No hace falta reinstalar Node ni uv si ya funcionaban:
 
 ```bash
-npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "<VAULT>"
+npx @vahlame/create-obsidian-memory -- --non-interactive --vault "<VAULT>"
 ```
 
 Compara también tus User Rules con el bloque del **Paso 4** por si cambió.

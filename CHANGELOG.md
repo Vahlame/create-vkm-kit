@@ -6,7 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-_No user-facing changes yet._
+### Changed
+
+- **Package versions aligned to 3.0.0 and `@vahlame/create-obsidian-memory` prepared for its first npm publish.** The package was never published, so the docs' `npx` command 404'd; docs now use the bare `npx @vahlame/create-obsidian-memory` (latest) instead of `@next`. `obsidian-memory-mcp` stays `private` (run from the clone); `obsidian-memory-rag` stays `pip install -e` from source. The actual `npm publish` is a manual step (requires npm auth).
 
 ## [3.0.0] - 2026-06-14
 

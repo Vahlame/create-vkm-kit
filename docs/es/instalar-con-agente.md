@@ -65,7 +65,7 @@ node "<KIT_ROOT>\packages\create-obsidian-memory\src\index.js" `
   --vault "<VAULT>"
 ```
 
-Si no hay clon disponible, usa npm: `npx @vahlame/create-obsidian-memory@next -- --non-interactive --vault "<VAULT>"`.
+Si no hay clon disponible, usa npm: `npx @vahlame/create-obsidian-memory -- --non-interactive --vault "<VAULT>"`.
 
 **Qué hace:** crea el vault si no existe (`START_HERE.md`, `MEMORY.md`, `SESSION_LOG.md`,
 `PROJECTS/`), fusiona `basic-memory` en `mcp.json` **sin borrar** otras entradas, hace backup
