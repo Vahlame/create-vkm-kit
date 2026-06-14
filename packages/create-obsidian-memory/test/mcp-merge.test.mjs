@@ -46,6 +46,20 @@ test("mergeObsidianHybridServer adds obsidian-memory-hybrid with absolute paths"
   );
 });
 
+test("mergeObsidianHybridServer with semantic wires the fastembed embedder", () => {
+  const base = mergeBasicMemoryServer({}, "/vault");
+  const plain = mergeObsidianHybridServer(base, "/vault", repoRoot);
+  assert.equal(
+    plain.mcpServers["obsidian-memory-hybrid"].env.OBSIDIAN_MEMORY_EMBEDDER,
+    undefined
+  );
+  const sem = mergeObsidianHybridServer(base, "/vault", repoRoot, { semantic: true });
+  assert.equal(
+    sem.mcpServers["obsidian-memory-hybrid"].env.OBSIDIAN_MEMORY_EMBEDDER,
+    "fastembed"
+  );
+});
+
 test("resolveKitRepoRoot finds repo from cwd walk", async () => {
   const nested = path.join(repoRoot, "packages", "create-obsidian-memory", "dist");
   const found = await resolveKitRepoRoot({

@@ -93,6 +93,18 @@ def delete_chunks_for_path(
         )
 
 
+def has_any_chunks(conn: sqlite3.Connection) -> bool:
+    """True if the ``note_chunks`` table holds at least one row (any embedder).
+
+    Used to decide whether a vault has ever opted into semantic vectors, so the
+    auto-refresh can keep them current without forcing an embedding build on a
+    user who never enabled them.
+    """
+    init_chunks(conn)
+    row = conn.execute("SELECT 1 FROM note_chunks LIMIT 1").fetchone()
+    return row is not None
+
+
 def current_chunk_keys(conn: sqlite3.Connection, embedder: str) -> dict[str, int]:
     """Map ``path -> mtime_ns`` for notes already chunked by ``embedder``.
 
