@@ -10,6 +10,7 @@ import time
 from pathlib import Path
 
 from .audit import audit_vault
+from .complete import complete as complete_prefix
 from .embeddings import get_embedder
 from .indexer import ensure_fresh, index_vault, index_vectors
 from .query import hybrid_search, search_vault
@@ -67,6 +68,11 @@ def main() -> None:
     hs.add_argument("--limit", type=int, default=20)
     hs.add_argument("--embedder", default=None)
     hs.add_argument(
+        "--graph",
+        action="store_true",
+        help="Also fuse in notes adjacent in the [[wikilink]] graph (link-aware recall)",
+    )
+    hs.add_argument(
         "--no-auto-index",
         action="store_true",
         help="Skip the pre-search incremental index refresh (query the index as-is)",
@@ -99,6 +105,11 @@ def main() -> None:
     jh.add_argument("--query", required=True)
     jh.add_argument("--limit", type=int, default=20)
     jh.add_argument("--embedder", default=None)
+    jh.add_argument(
+        "--graph",
+        action="store_true",
+        help="Also fuse in notes adjacent in the [[wikilink]] graph (link-aware recall)",
+    )
     jh.add_argument(
         "--no-auto-index",
         action="store_true",
@@ -158,6 +169,32 @@ def main() -> None:
         help="Report what would move without writing any file",
     )
 
+    cp = sub.add_parser(
+        "complete",
+        help="Prefix autocomplete over note titles, filenames and inline #tags (Trie)",
+    )
+    cp.add_argument("--vault", type=Path, required=True)
+    cp.add_argument("prefix", help="Prefix to complete (case-insensitive)")
+    cp.add_argument("--limit", type=int, default=20)
+    cp.add_argument(
+        "--no-auto-index",
+        action="store_true",
+        help="Skip the pre-search incremental index refresh (query the index as-is)",
+    )
+
+    jcp = sub.add_parser(
+        "json-complete",
+        help="Print autocomplete matches as one JSON object (for MCP)",
+    )
+    jcp.add_argument("--vault", type=Path, required=True)
+    jcp.add_argument("--prefix", required=True)
+    jcp.add_argument("--limit", type=int, default=20)
+    jcp.add_argument(
+        "--no-auto-index",
+        action="store_true",
+        help="Skip the pre-search incremental index refresh (query the index as-is)",
+    )
+
     args = p.parse_args()
     if args.cmd == "index":
         stats = index_vault(args.vault, max_file_bytes=args.max_file_bytes)
@@ -196,14 +233,15 @@ def main() -> None:
         embedder = get_embedder(args.embedder)
         if not args.no_auto_index:
             ensure_fresh(args.vault, embedder=embedder)
-        hits = hybrid_search(args.vault, args.query, embedder, limit=args.limit)
+        hits = hybrid_search(args.vault, args.query, embedder, limit=args.limit, graph=args.graph)
         if not hits:
             print("no hits (run `index --semantic` first or broaden query)")
             return
         for h in hits:
             label = f"[{h.heading}]" if h.heading else ""
             print(
-                f"{h.path}\trrf={h.score:.5f}\tbm25={h.bm25_rank} vec={h.vector_rank}\t{label}"
+                f"{h.path}\trrf={h.score:.5f}\t"
+                f"bm25={h.bm25_rank} vec={h.vector_rank} graph={h.graph_rank}\t{label}"
             )
             if h.snippet:
                 print(f"  {h.snippet}")
@@ -244,7 +282,7 @@ def main() -> None:
         embedder = get_embedder(args.embedder)
         if not args.no_auto_index:
             ensure_fresh(args.vault, embedder=embedder)
-        hits = hybrid_search(args.vault, args.query, embedder, limit=args.limit)
+        hits = hybrid_search(args.vault, args.query, embedder, limit=args.limit, graph=args.graph)
         payload = {
             "hits": [
                 {
@@ -254,6 +292,7 @@ def main() -> None:
                     "score": h.score,
                     "bm25_rank": h.bm25_rank,
                     "vector_rank": h.vector_rank,
+                    "graph_rank": h.graph_rank,
                 }
                 for h in hits
             ],
@@ -312,6 +351,25 @@ def main() -> None:
         print(
             f"{prefix} sections={res.sections_total} kept={res.kept} "
             f"archived={res.archived} archive={res.archive_path}"
+        )
+    elif args.cmd == "complete":
+        if not args.no_auto_index:
+            ensure_fresh(args.vault)
+        matches = complete_prefix(args.vault, args.prefix, limit=args.limit)
+        if not matches:
+            print("no completions (index the vault or try a shorter prefix)")
+            return
+        for m in matches:
+            print(m)
+    elif args.cmd == "json-complete":
+        if not args.no_auto_index:
+            ensure_fresh(args.vault)
+        matches = complete_prefix(args.vault, args.prefix, limit=args.limit)
+        print(
+            json.dumps(
+                {"prefix": args.prefix, "matches": matches, "count": len(matches)},
+                ensure_ascii=False,
+            )
         )
 
 

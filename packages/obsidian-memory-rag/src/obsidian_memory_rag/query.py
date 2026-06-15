@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from .graphlink import neighbor_paths
 from .paths import index_db_path
 from .store import connect, init_schema
 from .vector_store import ChunkHit, search_chunks
@@ -95,6 +96,7 @@ class HybridHit:
     score: float  # fused Reciprocal-Rank-Fusion score (higher is better)
     bm25_rank: int | None  # 1-based rank in the BM25 list, or None if absent
     vector_rank: int | None  # 1-based rank in the vector list, or None if absent
+    graph_rank: int | None = None  # 1-based rank among [[wikilink]] neighbours, or None
 
 
 def semantic_search(
@@ -128,6 +130,51 @@ def reciprocal_rank_fusion(
     return sorted(scores.items(), key=lambda kv: kv[1], reverse=True)[:limit]
 
 
+def graph_neighbors(vault: Path, seeds: list[str], *, limit: int = 50) -> list[str]:
+    """Notes one hop from ``seeds`` in the ``[[wikilink]]`` graph (best first).
+
+    Thin DB-opening wrapper over :func:`graphlink.neighbor_paths`; returns ``[]``
+    when no index exists yet.
+    """
+    vault = vault.resolve()
+    db_path = index_db_path(vault)
+    if not db_path.is_file():
+        return []
+    conn = connect(db_path)
+    try:
+        init_schema(conn)
+        return neighbor_paths(conn, seeds, limit=limit)
+    finally:
+        conn.close()
+
+
+def _note_cards(vault: Path, paths: list[str]) -> dict[str, tuple[str, str]]:
+    """``path -> (title, short snippet)`` for notes lacking a chunk/BM25 hit.
+
+    Used to give graph-only neighbours a display heading + passage without a
+    second full read. Pulls the title and a body prefix from the FTS index.
+    """
+    out: dict[str, tuple[str, str]] = {}
+    if not paths:
+        return out
+    db_path = index_db_path(vault.resolve())
+    if not db_path.is_file():
+        return out
+    conn = connect(db_path)
+    try:
+        placeholders = ",".join("?" * len(paths))
+        rows = conn.execute(
+            f"SELECT path, title, substr(body, 1, 240) AS snip "
+            f"FROM vault_fts WHERE path IN ({placeholders})",
+            list(paths),
+        ).fetchall()
+    finally:
+        conn.close()
+    for r in rows:
+        out[str(r["path"])] = (str(r["title"] or ""), str(r["snip"] or "").strip())
+    return out
+
+
 def hybrid_search(
     vault: Path,
     query: str,
@@ -135,12 +182,19 @@ def hybrid_search(
     *,
     limit: int = 20,
     candidate_pool: int = 50,
+    graph: bool = False,
+    graph_seeds: int = 10,
 ) -> list[HybridHit]:
     """Combine BM25 (lexical) and vector cosine (semantic) via RRF.
 
     Degrades gracefully: with no vectors indexed the semantic list is empty and
     the result is just the BM25 ranking; with no lexical match a note can still
     surface on semantic similarity alone.
+
+    With ``graph=True`` a third ranking is fused in: notes one hop from the
+    strongest ``graph_seeds`` hits in the ``[[wikilink]]`` graph (ADR-0019). RRF's
+    ``1/(k+rank)`` damping keeps this a soft boost — a strongly-linked note can
+    surface, but the link signal cannot outvote agreement between BM25 and cosine.
     """
     bm = search_vault(vault, query, limit=candidate_pool)
     # Pull extra chunks so several notes are represented even when one note owns
@@ -154,11 +208,26 @@ def hybrid_search(
             sem_paths.append(ch.path)
 
     bm_paths = [h.path for h in bm]
-    fused = reciprocal_rank_fusion([bm_paths, sem_paths], limit=limit)
+    rankings = [bm_paths, sem_paths]
+
+    graph_paths: list[str] = []
+    if graph:
+        seeds = list(dict.fromkeys(bm_paths[:graph_seeds] + sem_paths[:graph_seeds]))
+        graph_paths = graph_neighbors(vault, seeds, limit=candidate_pool)
+        if graph_paths:
+            rankings.append(graph_paths)
+
+    fused = reciprocal_rank_fusion(rankings, limit=limit)
 
     bm_rank = {p: i + 1 for i, p in enumerate(bm_paths)}
     sem_rank = {p: i + 1 for i, p in enumerate(sem_paths)}
+    graph_rank = {p: i + 1 for i, p in enumerate(graph_paths)}
     bm_by_path = {h.path: h for h in bm}
+
+    # Graph-only neighbours have neither a chunk nor a BM25 row — fetch a card so
+    # they still display a heading + passage.
+    need_card = [p for p, _ in fused if p not in best_chunk and p not in bm_by_path]
+    cards = _note_cards(vault, need_card)
 
     out: list[HybridHit] = []
     for path, score in fused:
@@ -167,9 +236,19 @@ def hybrid_search(
             heading, snippet = ch.heading, ch.text
         else:
             h = bm_by_path.get(path)
-            heading = h.title if h else ""
-            snippet = h.snippet if h else ""
+            if h is not None:
+                heading, snippet = h.title, h.snippet
+            else:
+                heading, snippet = cards.get(path, ("", ""))
         out.append(
-            HybridHit(path, heading, snippet, score, bm_rank.get(path), sem_rank.get(path))
+            HybridHit(
+                path,
+                heading,
+                snippet,
+                score,
+                bm_rank.get(path),
+                sem_rank.get(path),
+                graph_rank.get(path),
+            )
         )
     return out

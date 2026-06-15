@@ -121,15 +121,17 @@ None of this "uploads your notes forever" to a server owned by the AI provider. 
 
 `basic-memory` already searches. If your vault is **large**, a local index speeds up and sharpens
 the search. That's the **`obsidian-memory-rag`** package, exposed in the IDE by the **hybrid MCP**
-with two tools:
+with these tools:
 
-| Tool                  | What it does                                                                                                                                                                                                                     |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vault_fts_search`    | **Lexical** search (SQLite FTS5 / BM25): fast and exact by keywords.                                                                                                                                                             |
-| `vault_hybrid_search` | **Hybrid** search: mixes the lexical with the **semantic** (by meaning). "The daemon that syncs git" finds the note even if you don't use those exact words — and returns **only the relevant section**, which **saves tokens**. |
+| Tool                  | What it does                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vault_fts_search`    | **Lexical** search (SQLite FTS5 / BM25): fast and exact by keywords.                                                                                                                                                                                                                                                                                                                    |
+| `vault_hybrid_search` | **Hybrid** search: mixes the lexical with the **semantic** (by meaning). "The daemon that syncs git" finds the note even if you don't use those exact words — and returns **only the relevant section**, which **saves tokens**. With `graph: true` it also follows your `[[wikilinks]]`, so a note linked from a strong hit surfaces even when its own text barely matches (ADR-0019). |
+| `vault_complete`      | **Autocomplete** a prefix to the note titles, filenames and `#tags` that actually exist — handy to resolve a half-remembered name before searching or linking.                                                                                                                                                                                                                          |
 
 It's not required to get started. It's a layer of **convenience, better recall and token savings**,
-not the core. Technical detail: [ADR-0017](../adr/0017-hybrid-query-embeddings.md).
+not the core. Technical detail: [ADR-0017](../adr/0017-hybrid-query-embeddings.md) (hybrid query) and
+[ADR-0019](../adr/0019-graph-aware-retrieval.md) (graph-aware recall + autocomplete).
 
 ### Why this saves tokens (and scales to many agents)
 

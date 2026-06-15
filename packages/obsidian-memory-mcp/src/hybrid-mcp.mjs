@@ -103,7 +103,7 @@ async function main() {
   const ragSrc = defaultRagSrc();
 
   const server = new McpServer(
-    { name: "obsidian-memory-hybrid", version: "3.0.0" },
+    { name: "obsidian-memory-hybrid", version: "3.5.0" },
     {
       capabilities: { tools: {} },
       instructions:
@@ -182,17 +182,56 @@ async function main() {
           .string()
           .optional()
           .describe("Vault root; defaults to BASIC_MEMORY_HOME / OBSIDIAN_MEMORY_VAULT"),
+        limit: z.number().int().min(1).max(100).optional().default(20),
+        graph: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe(
+            "Also fuse in notes one hop away in the [[wikilink]] graph (link-aware recall): a note strongly linked from a top hit can surface even if it barely matches the query text. Soft boost — cannot outrank BM25+semantic agreement. Adds a graph_rank to each hit."
+          )
+      },
+      annotations: { readOnlyHint: true }
+    },
+    toolHandler(async ({ query, vault, limit, graph }) => {
+      const v = requireVault(vault || undefined);
+      const args = [
+        "json-hybrid-search",
+        "--vault",
+        v,
+        "--query",
+        query,
+        "--limit",
+        String(limit ?? 20)
+      ];
+      if (graph) args.push("--graph");
+      const result = await runRagJson(args, ragSrc);
+      return flagHits(result);
+    })
+  );
+
+  server.registerTool(
+    "vault_complete",
+    {
+      title: "Vault autocomplete (titles, filenames, #tags)",
+      description:
+        "Prefix autocomplete over note titles, filename stems and inline #tags, backed by a Trie over the FTS index. Use it to resolve a partial name to the notes/tags that actually exist before searching, linking, or writing — cheaper than a full search when you only need to disambiguate a name. Returns { prefix, matches, count }.",
+      inputSchema: {
+        prefix: z.string().describe("Prefix to complete (case-insensitive)"),
+        vault: z
+          .string()
+          .optional()
+          .describe("Vault root; defaults to BASIC_MEMORY_HOME / OBSIDIAN_MEMORY_VAULT"),
         limit: z.number().int().min(1).max(100).optional().default(20)
       },
       annotations: { readOnlyHint: true }
     },
-    toolHandler(async ({ query, vault, limit }) => {
+    toolHandler(async ({ prefix, vault, limit }) => {
       const v = requireVault(vault || undefined);
-      const result = await runRagJson(
-        ["json-hybrid-search", "--vault", v, "--query", query, "--limit", String(limit ?? 20)],
+      return runRagJson(
+        ["json-complete", "--vault", v, "--prefix", prefix, "--limit", String(limit ?? 20)],
         ragSrc
       );
-      return flagHits(result);
     })
   );
 

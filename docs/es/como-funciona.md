@@ -122,15 +122,17 @@ configuras.
 
 `basic-memory` ya busca. Si tu vault es **grande**, un índice local acelera y afina la
 búsqueda. Eso es el paquete **`obsidian-memory-rag`**, expuesto en el IDE por el **MCP híbrido**
-con dos herramientas:
+con estas herramientas:
 
-| Herramienta           | Qué hace                                                                                                                                                                                                                                   |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `vault_fts_search`    | Búsqueda **léxica** (SQLite FTS5 / BM25): rápida y exacta por palabras clave.                                                                                                                                                              |
-| `vault_hybrid_search` | Búsqueda **híbrida**: mezcla lo léxico con lo **semántico** (por significado). "El daemon que sincroniza git" encuentra la nota aunque no uses esas palabras exactas — y devuelve **solo la sección relevante**, lo que **ahorra tokens**. |
+| Herramienta           | Qué hace                                                                                                                                                                                                                                                                                                                                                                                           |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vault_fts_search`    | Búsqueda **léxica** (SQLite FTS5 / BM25): rápida y exacta por palabras clave.                                                                                                                                                                                                                                                                                                                      |
+| `vault_hybrid_search` | Búsqueda **híbrida**: mezcla lo léxico con lo **semántico** (por significado). "El daemon que sincroniza git" encuentra la nota aunque no uses esas palabras exactas — y devuelve **solo la sección relevante**, lo que **ahorra tokens**. Con `graph: true` además sigue tus `[[wikilinks]]`, así una nota enlazada desde un hit fuerte aflora aunque su propio texto apenas coincida (ADR-0019). |
+| `vault_complete`      | **Autocompletado** de un prefijo a los títulos de nota, nombres de archivo y `#tags` que existen de verdad — útil para resolver un nombre a medias antes de buscar o enlazar.                                                                                                                                                                                                                      |
 
 No es obligatorio para empezar. Es una capa de **comodidad, mejor recall y ahorro de tokens**,
-no el núcleo. Detalle técnico: [ADR-0017](../adr/0017-hybrid-query-embeddings.md).
+no el núcleo. Detalle técnico: [ADR-0017](../adr/0017-hybrid-query-embeddings.md) (consulta híbrida) y
+[ADR-0019](../adr/0019-graph-aware-retrieval.md) (recall por grafo + autocompletado).
 
 ### Por qué esto ahorra tokens (y escala a muchos agentes)
 

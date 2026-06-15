@@ -80,9 +80,10 @@ tools, split into small modules so the pure logic is unit-testable without
 spawning the transport.
 
 - **Entry point / wiring:** [`src/hybrid-mcp.mjs`](./packages/obsidian-memory-mcp/src/hybrid-mcp.mjs) — registers tools and connects `StdioServerTransport`. A `main()` entry-point guard prevents the server from spawning on `import` (so tests can import siblings safely).
-- **Tools (nine):**
+- **Tools (ten):**
   - `vault_fts_search` / `vault_fts_index` — bridge to the Python RAG engine via `execa` (BM25 lexical search + incremental index).
-  - `vault_hybrid_search` — BM25 + per-section vector cosine fused via RRF; returns the **matching section**, not the whole note (the passage-first default — ADR-0017/0018).
+  - `vault_hybrid_search` — BM25 + per-section vector cosine fused via RRF; returns the **matching section**, not the whole note (the passage-first default — ADR-0017/0018). Optional `graph: true` fuses in a third ranking of `[[wikilink]]`-adjacent notes (ADR-0019).
+  - `vault_complete` — prefix autocomplete over note titles, filename stems and inline `#tags` (Trie over the FTS index; ADR-0019).
   - `vault_read_file` / `vault_write_file` / `vault_edit_file` / `vault_list_directory` — **vault-locked** filesystem access (reads are wrapped in an untrusted-data envelope, ADR-0018 D6).
   - `vault_audit` — vault health: notes over a token budget, broken `[[wikilinks]]`, `SESSION_LOG` size (bridges the Python `json-audit`).
   - `memory_extract_candidates` — pre-close ritual: turn a free-text recap into dedup-checked memory bullets (read-only; never writes).
@@ -100,12 +101,13 @@ The Node sidecar shells out to it; it can also be used directly as a CLI. Lexica
 search (FTS5 / BM25) is always available; semantic and hybrid search are an
 additive layer that preserves the zero-dependency default (ADR-0017).
 
-- **CLI:** [`cli.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/cli.py) — `index` (with `--semantic`), `search` / `hybrid-search` (auto-index incrementally before querying; `--no-auto-index` to skip), `bench`, `audit` (note-budget + broken-`[[wikilink]]` + `SESSION_LOG` report), `rotate-log` (archive old `SESSION_LOG` sections to `SESSION_LOG/archive.md`), and machine-readable `json-search` / `json-hybrid-search` / `json-index` / `json-audit` (the bridge surface).
+- **CLI:** [`cli.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/cli.py) — `index` (with `--semantic`), `search` / `hybrid-search` (auto-index incrementally before querying; `--no-auto-index` to skip; `--graph` for wikilink-aware recall), `complete` (Trie prefix autocomplete), `bench`, `audit` (note-budget + broken-`[[wikilink]]` + `SESSION_LOG` report), `rotate-log` (archive old `SESSION_LOG` sections to `SESSION_LOG/archive.md`), and machine-readable `json-search` / `json-hybrid-search` / `json-index` / `json-audit` / `json-complete` (the bridge surface).
 - **Index:** [`indexer.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/indexer.py) — incremental FTS index by `(mtime_ns, size)`; `index_vectors` builds embeddings in a separate, equally incremental pass so the FTS path is untouched.
 - **Store:** [`store.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/store.py) — SQLite **FTS5** virtual table (`unicode61 remove_diacritics 2`) tuned for read-heavy agent workloads (WAL, `mmap`, normal sync).
 - **Embeddings:** [`embeddings.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/embeddings.py) — pluggable `Embedder` protocol. The default `HashingEmbedder` is pure-stdlib and deterministic (lexical feature hashing); the optional `fastembed` neural embedder (behind the `[semantic]` extra) adds meaning-based recall. Chosen via `OBSIDIAN_MEMORY_EMBEDDER`.
 - **Chunking + vectors:** [`chunking.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/chunking.py) splits each note into heading-aware sections; [`vector_store.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/vector_store.py) embeds each chunk into a `note_chunks` table (float32 BLOBs in the same `fts.sqlite`) and ranks by brute-force cosine (sub-10 ms for a personal vault; `sqlite-vec` is the documented future acceleration).
-- **Query:** [`query.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/query.py) — `search_vault` (BM25), `semantic_search` (chunk cosine), and `hybrid_search` fusing both via Reciprocal Rank Fusion and returning the **matching passage** so a caller reads a section, not the whole note; degrades to pure FTS when no chunks exist.
+- **Query:** [`query.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/query.py) — `search_vault` (BM25), `semantic_search` (chunk cosine), and `hybrid_search` fusing them via Reciprocal Rank Fusion and returning the **matching passage** so a caller reads a section, not the whole note; degrades to pure FTS when no chunks exist. With `graph=True` it adds a third RRF input from `graph_neighbors`.
+- **Graph + autocomplete:** [`graphlink.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/graphlink.py) parses the `[[wikilink]]` graph from the FTS bodies and ranks notes one hop from the strongest hits (ADR-0019); [`trie.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/trie.py) + [`complete.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/complete.py) back prefix autocompletion over titles / filenames / `#tags`.
 - **Layout:** the index lives beside the vault in `.obsidian-memory-rag/fts.sqlite` (git-ignored), so it never pollutes the synced notes (ADR-0014 / ADR-0017).
 
 ### 4. `create-obsidian-memory` — initializer (Node)
