@@ -277,6 +277,25 @@ tags: [start]
   await fse.writeFile(path.join(vault, "SESSION_LOG.md"), "# SESSION_LOG\n\n", "utf8");
   await fse.ensureDir(path.join(vault, "PROJECTS"));
   await fse.writeFile(path.join(vault, "PROJECTS", ".gitkeep"), "", "utf8");
+  // Evolving-memory homes: STACKS/ (one note per tech) + PRACTICES/ (hypotheses → confirmed).
+  await fse.ensureDir(path.join(vault, "STACKS"));
+  await fse.writeFile(path.join(vault, "STACKS", ".gitkeep"), "", "utf8");
+  await fse.ensureDir(path.join(vault, "PRACTICES"));
+  const practices =
+    lang === "en"
+      ? {
+          obs: "# Observations (hypotheses)\n\nOne line each: `date · file:line · pattern · status: pending|confirmed|dismissed`. Promote confirmed ones to `confirmed-bad.md`.\n",
+          good: "# Confirmed good practices\n\nPatterns the user prefers — reinforce them when they apply.\n",
+          bad: "# Confirmed anti-patterns\n\nPatterns the user rejected — flag (ask, don't impose) when they reappear.\n"
+        }
+      : {
+          obs: "# Observaciones (hipótesis)\n\nUna línea cada una: `fecha · archivo:línea · patrón · status: pending|confirmed|dismissed`. Promueve las confirmadas a `confirmed-bad.md`.\n",
+          good: "# Buenas prácticas confirmadas\n\nPatrones que el usuario prefiere — refuérzalos cuando apliquen.\n",
+          bad: "# Anti-patrones confirmados\n\nPatrones que el usuario rechazó — avisa (pregunta, no impongas) si reaparecen.\n"
+        };
+  await fse.writeFile(path.join(vault, "PRACTICES", "observations.md"), practices.obs, "utf8");
+  await fse.writeFile(path.join(vault, "PRACTICES", "confirmed-good.md"), practices.good, "utf8");
+  await fse.writeFile(path.join(vault, "PRACTICES", "confirmed-bad.md"), practices.bad, "utf8");
   await fse.writeFile(path.join(vault, ".gitignore"), ".obsidian-memory-rag/\n", "utf8");
   await writeVaultGitWorkspaceSettings(vault, dryRun);
 }
