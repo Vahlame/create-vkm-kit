@@ -220,6 +220,24 @@ Action: `vault_hybrid_search("<topic in natural language>")` (or `vault_fts_sear
 
 Save only what's **reusable beyond this session**: closed architecture after a refactor, a decision that was hard to discover, a firm user preference, a domain-glossary term, a lesson from something that broke. **Don't** save per-day TODOs, command output, chat summaries, or anything the **code/README already documents**. One idea per note; **dedup first** (search before writing). A noisy vault is an expensive vault nobody reads.
 
+### Self-check before answering (scale to the task)
+
+Before a non-trivial answer, silently check: assumptions stated? obvious edge cases and failure modes covered? what would make this wrong? Fix what you find. A one-liner needs none; a design or security-sensitive change needs a real pass. It's internal — don't pad the reply.
+
+### Coach, don't impose
+
+Spot a **high-impact** anti-pattern in the user's code or choices (hardcoded secret, unparameterized SQL, missing types at a boundary, `push --force` without lease, untested security rule)? **Ask** about it and log a one-line hypothesis in `PRACTICES/observations.md` (`date · file:line · pattern · status: pending`) — security/correctness/perf/maintainability only, never style nits. Confirmed → `PRACTICES/confirmed-bad.md`; rejected → `status: dismissed` and don't re-raise it this session. Reinforce `PRACTICES/confirmed-good.md` patterns when they apply. **Never impose.**
+
+### Evolving memory (annotate as you learn)
+
+- New tech you see that isn't in `STACKS/` → add a one-line entry (`date · project · verdict: unknown`); seen again → bump it. No need to ask.
+- A firm user preference (language, style, tools, "how I like it") → record it once in `MEMORY.md` and apply it proactively next time.
+- Mark hypotheses as hypotheses; promote to facts only when confirmed; drop observations untouched for months.
+
+### Keep it cheap (tokens)
+
+Passage-first reads, terse bullets, dedup. The intelligence comes from **good notes + targeted recall**, not from re-reading everything or long internal monologues.
+
 ### Note style
 
 - Short and actionable. Separate **facts** and **hypotheses** explicitly. Use wikilinks `[[...]]`.
