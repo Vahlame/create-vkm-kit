@@ -31,6 +31,11 @@ test("non-interactive defaults the vault to ~/Documents/obsidian-memory-vault an
   const vault = path.join(home, "Documents", "obsidian-memory-vault");
   assert.ok(fs.existsSync(path.join(vault, ".obsidian")), "default vault created");
   assert.ok(fs.existsSync(path.join(vault, "START_HERE.md")), "starter notes scaffolded");
+  assert.ok(
+    fs.existsSync(path.join(vault, "PRACTICES", "observations.md")),
+    "PRACTICES scaffolded (evolving memory)"
+  );
+  assert.ok(fs.existsSync(path.join(vault, "STACKS")), "STACKS scaffolded (evolving memory)");
 });
 
 test("non-interactive accepts the vault as a positional arg and creates it if missing", () => {

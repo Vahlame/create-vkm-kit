@@ -53,7 +53,23 @@ Busca **antes de responder** cuando la tarea continúa trabajo previo, se nombra
 
 ### Qué guardar (alto valor)
 
-Solo lo **reutilizable más allá de la sesión** (arquitectura cerrada, decisiones costosas, preferencias firmes, lecciones). **Nunca** TODOs del día, salida de comandos, ni lo que el código ya documenta. Una idea por nota; **deduplica antes**. Separa **hechos** e **hipótesis**. Wikilinks \`[[...]]\`.`,
+Solo lo **reutilizable más allá de la sesión** (arquitectura cerrada, decisiones costosas, preferencias firmes, lecciones). **Nunca** TODOs del día, salida de comandos, ni lo que el código ya documenta. Una idea por nota; **deduplica antes**. Separa **hechos** e **hipótesis**. Wikilinks \`[[...]]\`.
+
+### Auto-cuestiónate antes de responder (escala a la tarea)
+
+Antes de una respuesta no trivial, chequea en silencio: ¿supuestos explícitos? ¿casos límite y modos de fallo cubiertos? ¿qué la haría incorrecta? Corrige lo que encuentres. Un one-liner no necesita nada; un diseño o algo sensible a seguridad, sí. Es interno — no infles la respuesta.
+
+### Acompaña, no impongas
+
+¿Ves un anti-patrón de **alto impacto** en el código/decisiones del usuario (secreto hardcodeado, SQL sin parametrizar, sin tipos en un boundary, \`push --force\` sin lease, regla de seguridad sin probar)? **Pregúntalo** y anota una hipótesis de una línea en \`PRACTICES/observations.md\` (\`fecha · archivo:línea · patrón · status: pending\`) — solo seguridad/correctness/perf/mantenibilidad, nunca estética. Confirmado → \`PRACTICES/confirmed-bad.md\`; rechazado → \`status: dismissed\` y no lo repitas esta sesión. Refuerza \`PRACTICES/confirmed-good.md\` cuando aplique. **Nunca impongas.**
+
+### Memoria evolutiva (anota mientras aprendes)
+
+- Tech nueva que no esté en \`STACKS/\` → entrada de una línea (\`fecha · proyecto · verdict: unknown\`); vista otra vez → increméntala. Sin preguntar.
+- Preferencia firme del usuario (idioma, estilo, herramientas, "como me gusta") → anótala una vez en \`MEMORY.md\` y aplícala proactivamente.
+- Marca las hipótesis como tales; promuévelas a hechos solo al confirmarse; descarta observaciones que llevan meses sin tocarse.
+
+**Mantenlo barato (tokens):** lecturas passage-first, bullets concisos, deduplica. La inteligencia viene de **buenas notas + recall dirigido**, no de releer todo ni de monólogos largos.`,
   en: `## Markdown memory (vault + MCP)
 
 > **Block managed by \`create-obsidian-memory\`.** Don't edit between the
@@ -98,7 +114,23 @@ Search **before answering** when the task continues prior work, names a project/
 
 ### What to save (high-signal)
 
-Only what's **reusable beyond the session** (closed architecture, hard-won decisions, firm preferences, lessons). **Never** per-day TODOs, command output, or what the code already documents. One idea per note; **dedup first**. Separate **facts** and **hypotheses**. Wikilinks \`[[...]]\`.`
+Only what's **reusable beyond the session** (closed architecture, hard-won decisions, firm preferences, lessons). **Never** per-day TODOs, command output, or what the code already documents. One idea per note; **dedup first**. Separate **facts** and **hypotheses**. Wikilinks \`[[...]]\`.
+
+### Self-check before answering (scale to the task)
+
+Before a non-trivial answer, silently check: assumptions stated? obvious edge cases and failure modes covered? what would make this wrong? Fix what you find. A one-liner needs none; a design or security-sensitive change needs a real pass. It's internal — don't pad the reply.
+
+### Coach, don't impose
+
+Spot a **high-impact** anti-pattern in the user's code/choices (hardcoded secret, unparameterized SQL, missing types at a boundary, \`push --force\` without lease, untested security rule)? **Ask** about it and log a one-line hypothesis in \`PRACTICES/observations.md\` (\`date · file:line · pattern · status: pending\`) — security/correctness/perf/maintainability only, never style nits. Confirmed → \`PRACTICES/confirmed-bad.md\`; rejected → \`status: dismissed\`, don't re-raise it this session. Reinforce \`PRACTICES/confirmed-good.md\` patterns when they apply. **Never impose.**
+
+### Evolving memory (annotate as you learn)
+
+- New tech you see that's not in \`STACKS/\` → add a one-line entry (\`date · project · verdict: unknown\`); seen again → bump it. No need to ask.
+- A firm user preference (language, style, tools, "how I like it") → record it once in \`MEMORY.md\` and apply it proactively.
+- Mark hypotheses as hypotheses; promote to facts only when confirmed; drop observations untouched for months.
+
+**Keep it cheap (tokens):** passage-first reads, terse bullets, dedup. Intelligence comes from **good notes + targeted recall**, not from re-reading everything or long monologues.`
 };
 
 /**
