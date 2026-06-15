@@ -537,7 +537,7 @@ func installSystemdUser(l *slog.Logger) error {
 	unit := filepath.Join(unitDir, "obsidian-memoryd.service")
 	home := os.Getenv("BASIC_MEMORY_HOME")
 	if home == "" {
-		home = "%h/Documents/cursor-memory-vault"
+		home = "%h/Documents/obsidian-memory-vault"
 	}
 	content := fmt.Sprintf(`[Unit]
 Description=Obsidian memory daemon (user)

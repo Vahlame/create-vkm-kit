@@ -49,8 +49,8 @@ The **vault** is the folder where your Markdown notes will live. It can be new o
 
 Default suggestion:
 
-- **Windows:** `%USERPROFILE%\Documents\cursor-memory-vault`
-- **Linux / macOS:** `~/Documents/cursor-memory-vault`
+- **Windows:** `%USERPROFILE%\Documents\obsidian-memory-vault`
+- **Linux / macOS:** `~/Documents/obsidian-memory-vault`
 
 Note that **absolute** path; we'll call it `<VAULT>`. (The Step 2 installer creates it if it doesn't
 exist, with `START_HERE.md`, `MEMORY.md`, `SESSION_LOG.md` and `PROJECTS/`.)

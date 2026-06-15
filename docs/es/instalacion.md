@@ -49,8 +49,8 @@ El **vault** es la carpeta donde vivirán tus notas Markdown. Puede ser nueva o 
 
 Sugerencia por defecto:
 
-- **Windows:** `%USERPROFILE%\Documents\cursor-memory-vault`
-- **Linux / macOS:** `~/Documents/cursor-memory-vault`
+- **Windows:** `%USERPROFILE%\Documents\obsidian-memory-vault`
+- **Linux / macOS:** `~/Documents/obsidian-memory-vault`
 
 Anota esa ruta **absoluta**; la llamaremos `<VAULT>`. (El instalador del paso 2 la crea si no
 existe, con `START_HERE.md`, `MEMORY.md`, `SESSION_LOG.md` y `PROJECTS/`.)

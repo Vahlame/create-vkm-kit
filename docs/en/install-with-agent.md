@@ -50,7 +50,7 @@ continue with missing tools.
 ## Step 1 — Vault path
 
 Ask the user where they want the vault. By default:
-`%USERPROFILE%\Documents\cursor-memory-vault` (Windows) / `~/Documents/cursor-memory-vault`
+`%USERPROFILE%\Documents\obsidian-memory-vault` (Windows) / `~/Documents/obsidian-memory-vault`
 (Linux/macOS). Note it as `<VAULT>`.
 
 ## Step 2 — Create the vault and connect the MCP

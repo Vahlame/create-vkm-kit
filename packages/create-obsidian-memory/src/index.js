@@ -59,7 +59,7 @@ const messages = {
   es: {
     title: "create-obsidian-memory",
     vaultQ: "Ruta del vault (debe contener .obsidian o crearemos uno)",
-    createVault: "Crear un vault nuevo en ~/Documents/cursor-memory-vault",
+    createVault: "Crear un vault nuevo en ~/Documents/obsidian-memory-vault",
     ides: "IDEs a configurar (espacio para MCP)",
     gitleaks: "Activar hook pre-commit gitleaks",
     age: "Activar cifrado age para datos sensibles (mas friccion)",
@@ -76,7 +76,7 @@ const messages = {
   en: {
     title: "create-obsidian-memory",
     vaultQ: "Vault path (must contain .obsidian or we create a sample)",
-    createVault: "Create a new vault at ~/Documents/cursor-memory-vault",
+    createVault: "Create a new vault at ~/Documents/obsidian-memory-vault",
     ides: "IDEs to wire for MCP",
     gitleaks: "Enable gitleaks pre-commit hook",
     age: "Enable age encryption (more friction)",
@@ -133,9 +133,9 @@ function positionalVault(argv) {
   return null;
 }
 
-/** Default vault when none is given: ~/Documents/cursor-memory-vault. */
+/** Default vault when none is given: ~/Documents/obsidian-memory-vault. */
 function defaultVaultPath(home) {
-  return path.join(home, "Documents", "cursor-memory-vault");
+  return path.join(home, "Documents", "obsidian-memory-vault");
 }
 
 async function findVault(cwd, home) {
@@ -464,7 +464,7 @@ async function runNonInteractive(argv) {
   const dryRun = dryRunFromArgs();
   const t = messages[lang];
   // Vault path: --vault wins, else the first positional arg, else the default
-  // (~/Documents/cursor-memory-vault). No flag required for the common case.
+  // (~/Documents/obsidian-memory-vault). No flag required for the common case.
   const vaultRaw = flagValue(argv, "--vault") || positionalVault(argv);
   const usedDefault = !vaultRaw;
   const vault = path.resolve(cwd, vaultRaw || defaultVaultPath(home));
@@ -574,7 +574,7 @@ async function main() {
 Examples:
   create-obsidian-memory                 # interactive wizard
   create-obsidian-memory ./my-vault -y   # headless, into ./my-vault
-  create-obsidian-memory -y              # headless, default ~/Documents/cursor-memory-vault
+  create-obsidian-memory -y              # headless, default ~/Documents/obsidian-memory-vault
 
 Interactive (default):
   --lang en       English prompts
@@ -582,7 +582,7 @@ Interactive (default):
 
 Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
   [vault]         Vault path as the first argument (or --vault <path>); defaults to
-                  ~/Documents/cursor-memory-vault and is created if it doesn't exist.
+                  ~/Documents/obsidian-memory-vault and is created if it doesn't exist.
   --ide <list>    IDEs to wire, comma-separated: cursor, claude (default: cursor).
                   cursor writes ~/.cursor/mcp.json; claude uses the Claude Code CLI (claude mcp add -s user)
   --no-cursor-mcp Skip writing ~/.cursor/mcp.json
