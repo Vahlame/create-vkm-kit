@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-06-15
+
 ### Added
 
 - **Graph-aware retrieval over the `[[wikilink]]` graph (`obsidian-memory-rag` / `obsidian-memory-mcp` → 3.5.0; ADR-0019).** The vault is a knowledge graph (`PROJECTS ↔ STACKS ↔ PRACTICES ↔ RULES`), and the link structure was already parsed for the broken-link audit — but retrieval ignored it. `hybrid_search` now takes an opt-in `graph=True` (`--graph` on `hybrid-search` / `json-hybrid-search`; `graph: true` on the `vault_hybrid_search` MCP tool) that fuses a **third ranking** into the existing RRF: notes one hop from the strongest hits, counting out-links **and** back-links. RRF's `1/(k+rank)` damping keeps it a soft boost — a note linked from a strong hit (e.g. `STACKS/sqlite.md` from a matched `PROJECTS/*` note) can surface even when its own text barely matches, without out-voting BM25+semantic agreement. Each hit gains a `graph_rank`. The graph is parsed on demand from the always-fresh FTS bodies (no separate edge table to backfill or let go stale); O(N) per query, the same order as the existing brute-force cosine. **Default stays off** pending an adherence eval (`new graphlink.py`).
@@ -193,7 +195,8 @@ Prior history was undocumented and is summarized only in git log. Highlights:
 - Addition of `AGENTS.md` and `manifest.json` for machine-readable discoverability.
 - Seven hardening fixes for real-world install gaps.
 
-[Unreleased]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.5.0...HEAD
+[3.5.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.0.0...v3.5.0
 [3.0.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v1.1.0...v3.0.0
 [1.1.0]: https://github.com/Vahlame/obsidian-memory-kit/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Vahlame/obsidian-memory-kit/releases/tag/v1.0.0
