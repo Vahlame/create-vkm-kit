@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **Simpler "install with an agent" (`docs/{es,en}/install-with-agent.md`).** Collapsed the paste-into-chat installer from 7 steps to **4 core + 1 optional**, and made it **self-contained for both Cursor and Claude Code** — the old "Using Claude Code? go to fresh-PC Path A" redirect is gone. Key enabler: the basic install is **clone-free for both IDEs** (`--ide claude` registers `basic-memory` via `claude mcp add`; only `--with-hybrid` needs the kit clone), so the core path is a single `npx @vkmikc/create-obsidian-memory "<VAULT>" -y [--ide claude] --rules all`. `--rules all` now installs the User Rules automatically (idempotent marked block in `~/.claude/CLAUDE.md` / `AGENTS.md` / `.cursor/rules/`), so the manual copy-paste of the rules drops to a single residual step — Cursor's _global_ User Rules — and Claude Code needs none. Source-verification block re-anchored to the npm package (`@vkmikc/create-obsidian-memory`) for the clone-free path. Filenames unchanged → all existing cross-links intact. Docs-only.
+
 ## [3.5.0] - 2026-06-15
 
 ### Added

@@ -2,25 +2,16 @@
 
 # Instalar con un agente (pégalo en el chat)
 
-Este archivo es un **instalador para un agente**: lo pegas en un chat de Cursor (o Claude Code)
-y el agente ejecuta todos los pasos por ti, reportando cada uno. Es la alternativa "manos libres"
-a la [instalación manual](instalacion.md).
+¿No quieres seguir la [guía manual](instalacion.md)? Pega el bloque de abajo en un chat de
+**Cursor** o **Claude Code**: el agente instala y verifica todo, y tú solo **apruebas los
+comandos**. Funciona para ambos IDEs — la instalación básica no necesita clon.
 
-**¿Usas Claude Code?** El bloque de abajo apunta a **Cursor** (escribe `mcp.json`, que Claude
-Code no lee). Para Claude Code, sigue mejor [`instalar-pc-nueva.md`](instalar-pc-nueva.md) **Camino A**
-— su bloque de agente usa `--ide claude` para registrar los servidores vía `claude mcp add`.
-
-> ## ⚠️ Antes de pegar esto — verifica el origen
+> ## ⚠️ Antes de pegar esto — es una acción tipo `curl … | sh`
 >
-> Este archivo **autoriza a un agente a actuar como instalador con tus permisos** (toca
-> `~/.cursor/mcp.json`, instala paquetes, edita git). Trátalo como un `curl ... | sh`:
->
-> 1. **Léelo desde tu propio clon local**, no de un enlace al azar (Discord, X, un PR sin revisar).
-> 2. En la raíz del clon, corre `git remote get-url origin` y `git log -1 --format="%H %s"`:
->    `origin` debe ser `https://github.com/Vahlame/obsidian-memory-kit.git` (o tu fork
->    legítimo) y el commit debe coincidir con la última release de
->    <https://github.com/Vahlame/obsidian-memory-kit/releases/latest>.
-> 3. Si algo no cuadra, **no pegues nada** y abre un issue.
+> El bloque autoriza a un agente a instalar un paquete npm, editar tu config MCP y tocar git.
+> Pégalo **solo desde este repo** (<https://github.com/Vahlame/obsidian-memory-kit>) y verifica que
+> el paquete que instala es **`@vkmikc/create-obsidian-memory`**. Si algo no cuadra, no pegues nada
+> y abre un issue.
 
 ---
 
@@ -28,115 +19,71 @@ Code no lee). Para Claude Code, sigue mejor [`instalar-pc-nueva.md`](instalar-pc
 
 ---
 
-Eres un agente de Cursor/Claude Code. Tu tarea es instalar y **verificar** el sistema de
-**memoria Markdown** en esta máquina. Sigue los pasos en orden; ejecuta los comandos y **reporta
-el resultado de cada uno** antes de continuar. Si no conoces la ruta del clon del kit, pregúntala
-o usa el directorio de trabajo actual; la llamaremos `<KIT_ROOT>`.
+Eres un agente de Cursor o Claude Code. Instala y **verifica** el sistema de **memoria Markdown**
+en esta máquina. Ejecuta cada comando, **reporta su resultado** y pide aprobación antes de
+cualquier cosa que instale software.
 
-## Paso 0 — Prerrequisitos
-
-Comprueba que existen Node 20+, uvx y git:
+**1 · Prerrequisitos.** Deben existir; instala lo que falte y luego pídeme reabrir la terminal
+para que se refresque el `PATH`:
 
 ```bash
-node --version
-uvx --version
-git --version
+node --version   # ≥ 20
+uvx --version    # cualquiera — ejecuta el MCP basic-memory
+git --version    # cualquiera
 ```
 
-Si falta alguno, indícale al usuario cómo instalarlo (Windows: `winget install OpenJS.NodeJS.LTS`,
-`winget install astral-sh.uv`) y **espera** a que reabra la terminal antes de seguir. No continúes
-con herramientas faltantes.
+> Windows: `winget install OpenJS.NodeJS.LTS astral-sh.uv Git.Git` · macOS: `brew install node uv git`.
 
-## Paso 1 — Ruta del vault
-
-Pregunta al usuario dónde quiere el vault. Por defecto:
-`%USERPROFILE%\Documents\obsidian-memory-vault` (Windows) / `~/Documents/obsidian-memory-vault`
-(Linux/macOS). Anótala como `<VAULT>`.
-
-## Paso 2 — Crear el vault y conectar el MCP
-
-Ejecuta el instalador desde el clon del kit:
+**2 · Instalar — un solo comando.** Pregúntame la carpeta del vault (por defecto
+`~/Documents/obsidian-memory-vault`, en Windows `%USERPROFILE%\Documents\obsidian-memory-vault`);
+llámala `<VAULT>`. Ejecuta la línea del IDE en el que corres — pregúntame si no estás seguro:
 
 ```bash
-node "<KIT_ROOT>/packages/create-obsidian-memory/src/index.js" --non-interactive --vault "<VAULT>"
+# Cursor
+npx @vkmikc/create-obsidian-memory "<VAULT>" -y --rules all
+
+# Claude Code  (registra vía `claude mcp add`, no mcp.json)
+npx @vkmikc/create-obsidian-memory "<VAULT>" -y --ide claude --rules all
 ```
 
-En PowerShell (Windows), el salto de línea es con `` ` ``:
+Un comando hace todo: crea el vault si no existe (`START_HERE.md`, `MEMORY.md`, `SESSION_LOG.md`,
+`PROJECTS/`), conecta el MCP **`basic-memory`** con versión fijada (haciendo backup de tu config
+previa primero), e instala las **User Rules** de memoria como bloque marcado idempotente en
+`~/.claude/CLAUDE.md`, `./AGENTS.md` y `.cursor/rules/` (nunca pisa tu contenido). Muestra la
+salida y confirma que no hubo errores.
 
-```powershell
-node "<KIT_ROOT>\packages\create-obsidian-memory\src\index.js" `
-  --non-interactive `
-  --vault "<VAULT>"
+**3 · User Rules globales de Cursor (solo Cursor).** El Paso 2 ya escribió la regla de _proyecto_
+(`.cursor/rules/obsidian-memory.mdc`). Para cobertura _global_, muéstrame el bloque marcado (entre
+los marcadores `obsidian-memory:start`/`end`) y dime que lo pegue en
+**Cursor → Settings → Rules → User Rules** — Cursor guarda las reglas globales fuera de cualquier
+archivo. **Claude Code: omite esto** — `~/.claude/CLAUDE.md` ya quedó hecho.
+
+**4 · Reinicia y verifica.** Dime que ejecute **Developer: Reload Window** (Cursor) o reinicie
+Claude Code. Luego, en un chat nuevo, comprueba que funciona:
+
+```text
+Lee START_HERE.md de mi vault y dime qué contiene.
 ```
 
-Si no hay clon disponible, usa npm: `npx @vkmikc/create-obsidian-memory "<VAULT>" -y`.
+Si vuelve el contenido, reporta una tabla de estado — vault (`<VAULT>`) ✓ · MCP conectado ✓ ·
+reglas instaladas ✓ · prueba de lectura ✓. Si falla, consulta
+[`troubleshooting.md`](troubleshooting.md) → **MCP / Cursor**.
 
-**Qué hace:** crea el vault si no existe (`START_HERE.md`, `MEMORY.md`, `SESSION_LOG.md`,
-`PROJECTS/`), fusiona `basic-memory` en `mcp.json` **sin borrar** otras entradas, hace backup
-`mcp.json.bak.<fecha>`, y escribe `<VAULT>/.vscode/settings.json`. Muestra la salida y confirma
-que no hubo errores.
-
-## Paso 3 — Verificar `mcp.json`
-
-Muestra al usuario la entrada `basic-memory` de su `mcp.json` (Windows: `%USERPROFILE%\.cursor\mcp.json`).
-Confirma que `BASIC_MEMORY_HOME` apunta a `<VAULT>` y que los args incluyen el pin
-`--from "basic-memory==0.21.4"` (seguridad supply-chain). Si la ruta está mal, corrígela.
-
-## Paso 4 — User Rules
-
-Abre [`docs/es/instalacion.md`](instalacion.md) en `<KIT_ROOT>`, copia **el bloque completo de
-User Rules del Paso 4** y muéstraselo al usuario para que lo pegue en
-**Cursor → Settings → Rules → User Rules** (es la fuente única; no lo reescribas de memoria).
-Pídele que guarde y haga **Developer: Reload Window**.
-
-## Paso 5 — Probar de extremo a extremo
-
-Tras el reinicio, en un chat nuevo intenta leer una nota del vault (p. ej. `read_note("START_HERE.md")`).
-Si responde con el contenido, la instalación es correcta. Confirma al usuario:
-
-- ✅ `basic-memory` conectado (vault en `<VAULT>`)
-- ✅ Las tools MCP responden
-- ✅ User Rules activas
-
-Si falla, consulta [`docs/es/troubleshooting.md`](troubleshooting.md) → sección **MCP / Cursor**.
-
-## Paso 6 (opcional) — Sincronización git
-
-Si el usuario quiere copia de seguridad / multi-máquina, ofréceselo y sigue
-[`docs/es/sincronizacion.md`](sincronizacion.md) (daemon `obsidian-memoryd`, git manual, o mismo
-repo). Para Windows sin ventanas: compila con `go build -ldflags="-H windowsgui" -o bin/obsidian-memoryd.exe ./cmd/obsidian-memoryd`
-y crea un acceso directo en `shell:startup` a `obsidian-memoryd watch --vault "<VAULT>"`. Salud
-del daemon: `obsidian-memoryd doctor`.
-
-## Paso 7 (opcional) — Búsqueda híbrida (vaults grandes)
-
-Si el vault es grande y se quiere búsqueda por palabra y por significado:
+**5 · (Opcional) Búsqueda híbrida — solo vaults grandes.** Buscar por palabra **y** por significado
+necesita el kit **clonado** y Python ≥ 3.11. Pídeme una ruta de clon `<KIT>` y luego:
 
 ```bash
-pip install -e "<KIT_ROOT>/packages/obsidian-memory-rag"
-node "<KIT_ROOT>/packages/create-obsidian-memory/src/index.js" \
-  --non-interactive --vault "<VAULT>" --with-hybrid --repo-root "<KIT_ROOT>"
+git clone https://github.com/Vahlame/obsidian-memory-kit "<KIT>"
+pip install -e "<KIT>/packages/obsidian-memory-rag[semantic]"
+node "<KIT>/packages/create-obsidian-memory/src/index.js" -y --vault "<VAULT>" --with-hybrid --semantic --build-index --repo-root "<KIT>"
 ```
 
-En **Claude Code**, añade `--ide claude` (registra vía `claude mcp add`, no `mcp.json`) y
-`--build-index` para construir el índice en el mismo comando:
-
-```bash
-pip install -e "<KIT_ROOT>/packages/obsidian-memory-rag"
-node "<KIT_ROOT>/packages/create-obsidian-memory/src/index.js" \
-  --non-interactive --vault "<VAULT>" --ide claude --with-hybrid --build-index --repo-root "<KIT_ROOT>"
-```
-
-Reinicia el IDE. Construye el índice con `vault_fts_index` (usa `semantic: true` para los
-vectores) y busca con `vault_hybrid_search`.
-
-## Resumen final
-
-Reporta una tabla de estado: vault creado (`<VAULT>`), `basic-memory` en `mcp.json` (✓), User
-Rules pegadas (✓), MCP verificado (✓/✗ + instrucción), git sync (opcional), híbrido (opcional).
-Recuérdale que en el siguiente chat el agente leerá `START_HERE.md` → `MEMORY.md` →
-`PROJECTS/<proyecto>.md` al inicio de cada tarea.
+En Claude Code añade `--ide claude` a la última línea. Reinicia el IDE; entonces responden las
+tools `obsidian-memory-hybrid` (`vault_hybrid_search`, …).
 
 ---
 
 — fin del bloque para pegar —
+
+> ¿Montas una **máquina nueva completa** (clonar tu repo privado del vault, `CLAUDE.md` global y el
+> índice semántico de una vez)? Usa [`instalar-pc-nueva.md`](instalar-pc-nueva.md) en su lugar.
