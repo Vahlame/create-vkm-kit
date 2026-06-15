@@ -69,7 +69,7 @@ If the vault remote is shared (team, multi-machine), assume an attacker with wri
 
 If you are about to follow agent instructions from this repo:
 
-1. **Verify the source.** From the clone root run `git remote get-url origin` (must point to a repo you trust) and `git log -1 --format="%H %s"` (must match the latest release on <https://github.com/Vahlame/cursor-obsidian-memory-guide/releases/latest>).
+1. **Verify the source.** From the clone root run `git remote get-url origin` (must point to a repo you trust) and `git log -1 --format="%H %s"` (must match the latest release on <https://github.com/Vahlame/obsidian-memory-kit/releases/latest>).
 2. **Keep the basic-memory pin.** Templates pin to a vetted version; do not edit your `mcp.json` to drop `--from "basic-memory==X.Y.Z"` "to save typing".
 3. **Inspect generated scripts under your vault** before enabling daemons or scheduled tasks.
 4. **Keep 2FA enabled on GitHub** for the vault remote — anyone who can push can attempt memory poisoning (see Trust model §1).

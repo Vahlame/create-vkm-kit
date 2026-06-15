@@ -17,9 +17,9 @@ instead — its agent block uses `--ide claude` to register the servers via `cla
 >
 > 1. **Read it from your own local clone**, not from a random link (Discord, X, an unreviewed PR).
 > 2. At the root of the clone, run `git remote get-url origin` and `git log -1 --format="%H %s"`:
->    `origin` must be `https://github.com/Vahlame/cursor-obsidian-memory-guide.git` (or your
+>    `origin` must be `https://github.com/Vahlame/obsidian-memory-kit.git` (or your
 >    legitimate fork) and the commit must match the latest release at
->    <https://github.com/Vahlame/cursor-obsidian-memory-guide/releases/latest>.
+>    <https://github.com/Vahlame/obsidian-memory-kit/releases/latest>.
 > 3. If something doesn't add up, **paste nothing** and open an issue.
 
 ---

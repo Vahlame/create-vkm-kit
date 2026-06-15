@@ -109,7 +109,7 @@ export function mergeBasicMemoryServer(raw, vaultAbs) {
  * Add `obsidian-memory-hybrid` MCP (Node bridge + Python FTS5) after `basic-memory` is set.
  * @param {Record<string, unknown>} merged - output of mergeBasicMemoryServer (or compatible)
  * @param {string} vaultAbs - absolute vault root
- * @param {string} kitRepoAbs - absolute path to cursor-obsidian-memory-guide clone (contains packages/)
+ * @param {string} kitRepoAbs - absolute path to obsidian-memory-kit clone (contains packages/)
  * @param {{ semantic?: boolean }} [opts] - semantic:true wires OBSIDIAN_MEMORY_EMBEDDER=fastembed
  *   so vault_hybrid_search ranks by meaning (needs the Python `[semantic]` extra installed).
  */
