@@ -18,7 +18,7 @@
 ## 2026-05-01
 
 - example-app: medido el importador (hipotesis del 22). Confirmado: la barra rebota porque el callback de progreso usa `len()` de chunks, no bytes leidos. Fix = pasar bytes acumulados al evento.
-- aprendizaje: rotar `SESSION_LOG.md` cuando supere 500 lineas. Mover a `SESSION_LOG_2026-Q1.md` para que el contexto del modelo no se sature.
+- aprendizaje: rotar `SESSION_LOG.md` cuando crezca para que el contexto del modelo no se sature. En v3 no se mueve a mano: `obsidian-memory-rag rotate-log` archiva las entradas viejas a `SESSION_LOG/archive.md`.
 
 ## 2026-05-13
 

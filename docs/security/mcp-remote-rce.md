@@ -15,4 +15,7 @@ Document and enforce **`mcp-remote@^0.1.16` minimum** anywhere we still bridge S
 
 ## References
 
-- npm advisory / upstream release notes for `mcp-remote` (check registry changelog when bumping).
+- **No public CVE id** is tracked here; this guidance is based on the upstream
+  `mcp-remote` changelog / release notes, not a numbered advisory. Check the
+  registry changelog (`npm view mcp-remote`) when bumping the pin.
+- Kit-wide security model and disclosure process: [`../../SECURITY.md`](../../SECURITY.md).

@@ -13,6 +13,8 @@ Toda la guía de usuario, en orden de lectura recomendado.
 | —   | [**Instalar con un agente**](instalar-con-agente.md) | ¿Prefieres que lo haga la IA? Pega un archivo y listo.          |
 | —   | [**Instalar en un PC nuevo**](instalar-pc-nueva.md)  | Reproduce todo en una máquina recién formateada (Claude Code).  |
 
+> 🤖 **Claude Code** registra el MCP vía `claude mcp add` (no usa `mcp.json`) — ver [instalar en un PC nuevo](instalar-pc-nueva.md).
+
 ## Cuando lo necesites
 
 | Documento                                   | Para qué                                                  |

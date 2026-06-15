@@ -36,7 +36,7 @@ Tu memoria puede incluir nombres de clientes, arquitecturas internas, ideas a me
 
 ### ¿Pueden escribir varias máquinas a la vez?
 
-Sí, con matices. La sincronización usa `git pull --rebase`, que combina bien las ediciones que no se solapan. Si dos máquinas editan **la misma línea** de `MEMORY.md` antes de que corra la siguiente sincronización, tendrás un conflicto de git que resolver a mano. Es raro, porque el agente **añade** en vez de sobrescribir. Conviene usar intervalos de sincronización **más largos** (el daemon agrupa cada 45 s por defecto; las guías de tarea programada usan 60 minutos) para no martillear el repositorio remoto.
+Sí, con matices. La sincronización usa `git pull --rebase`, que combina bien las ediciones que no se solapan. Si dos máquinas editan **la misma línea** de `MEMORY.md` antes de que corra la siguiente sincronización, tendrás un conflicto de git que resolver a mano. Es raro, porque el agente **añade** en vez de sobrescribir. Conviene usar intervalos de sincronización **más largos** (el daemon agrupa cada 45 s por defecto; si usas tu propio planificador, prefiere intervalos más largos) para no martillear el repositorio remoto.
 
 ### ¿Ralentiza Cursor?
 
@@ -44,13 +44,22 @@ No de forma apreciable con vaults de tamaño normal. El servidor MCP corre **fue
 
 ### ¿Puedo buscar por significado, no solo por palabras exactas?
 
-Sí — eso es lo que hace **`vault_hybrid_search`**. Combina la búsqueda léxica BM25 (FTS5, palabras exactas) con similitud **semántica** por vectores (significado), fusionando ambas con un método llamado RRF (Reciprocal Rank Fusion). Así, una consulta como _"el daemon que sincroniza git"_ encuentra la nota correcta aunque no uses esas palabras exactas.
+Sí — eso es lo que hace **`vault_hybrid_search`**. Combina la búsqueda léxica BM25 (FTS5, palabras exactas) con similitud **semántica** por vectores (significado), fusionando ambas con un método llamado RRF (Reciprocal Rank Fusion). Así, una consulta como _"el daemon que sincroniza git"_ encuentra la nota correcta aunque no uses esas palabras exactas. Si aún no hay vectores semánticos construidos, degrada a BM25 puro.
+
+```mermaid
+flowchart LR
+  Q[consulta / query] --> BM[BM25 / FTS5<br/>palabras exactas]
+  Q --> VEC[vector cosine<br/>significado / meaning]
+  BM --> RRF[Reciprocal Rank Fusion<br/>k=60]
+  VEC --> RRF
+  RRF --> HIT[mejor pasaje<br/>heading + sección]
+```
 
 > El motor de significado por defecto no necesita instalar nada (es léxico y ya funciona). Para coincidencias reales por sinónimos, instala el extra `[semantic]`, define `OBSIDIAN_MEMORY_EMBEDDER=fastembed:<modelo>` y reconstruye los vectores con `vault_fts_index({ semantic: true })`. Detalle de diseño en ADR-0017.
 
 ### ¿La búsqueda híbrida ahorra tokens de verdad?
 
-Para proyectos conocidos, sí. La búsqueda devuelve el **fragmento** que coincide (un encabezado + un pasaje de unos cientos de caracteres), no la nota entera, así que el agente normalmente responde **sin** tener que leer el archivo completo después. En una nota grande, eso es la diferencia entre leer un pasaje (~cientos de tokens) y un archivo de 8 KB (~miles). El coste fijo es la descripción de las herramientas de la sesión más el índice que se inyecta al arrancar; una o dos búsquedas sobre notas reales lo recuperan. Datos en `docs/benchmarks/retrieval.md`.
+Para proyectos conocidos, sí. La búsqueda devuelve el **fragmento** que coincide (un encabezado + un pasaje de unos cientos de caracteres), no la nota entera, así que el agente normalmente responde **sin** tener que leer el archivo completo después. En una nota grande, eso es la diferencia entre leer un pasaje (~cientos de tokens) y un archivo de 8 KB (~miles). El coste fijo es la descripción de las herramientas de la sesión más el índice que se inyecta al arrancar; una o dos búsquedas sobre notas reales lo recuperan. Mídelo tú mismo con `obsidian-memory-rag bench --vault "<VAULT>"`; la justificación de diseño está en ADR-0014 y ADR-0017.
 
 ### ¿Puedo renombrar `MEMORY.md` o `SESSION_LOG.md`?
 
@@ -97,7 +106,7 @@ node packages/create-obsidian-memory/src/index.js \
   --non-interactive --vault "<ruta>" --with-hybrid --repo-root "<clon-del-kit>"
 ```
 
-Construye el índice con `obsidian-memory-rag index --vault <ruta> --semantic` (o la herramienta MCP `vault_fts_index` con `semantic: true`). A partir de ahí, `vault_fts_search` devuelve resultados BM25 y `vault_hybrid_search` devuelve pasajes BM25 + semánticos ordenados por relevancia. Pruebas de humo en `docs/testing/manual-checks.md`.
+Construye el índice con `obsidian-memory-rag index --vault <ruta> --semantic` (o la herramienta MCP `vault_fts_index` con `semantic: true`). A partir de ahí, `vault_fts_search` devuelve resultados BM25 y `vault_hybrid_search` devuelve pasajes BM25 + semánticos ordenados por relevancia. Verifícalo de extremo a extremo con los pasos de "Verificación" en [instalación](instalacion.md) más el chequeo de salud `vault_audit`.
 
 ## Comparación con alternativas
 

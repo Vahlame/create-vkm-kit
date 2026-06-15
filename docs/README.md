@@ -14,6 +14,9 @@ Elige tu idioma · Pick your language:
 [Instalación](es/instalacion.md) ·
 [FAQ](es/faq.md)
 
+[Instalar con un agente](es/instalar-con-agente.md) ·
+[PC nuevo](es/instalar-pc-nueva.md)
+
 </td>
 <td align="center" width="50%">
 
@@ -25,6 +28,9 @@ Elige tu idioma · Pick your language:
 [Install](en/install.md) ·
 [FAQ](en/faq.md)
 
+[Install with agent](en/install-with-agent.md) ·
+[Fresh PC](en/install-fresh-pc.md)
+
 </td>
 </tr>
 </table>
@@ -33,14 +39,15 @@ Elige tu idioma · Pick your language:
 
 ## Mapa de `docs/` · Map of `docs/`
 
-| Carpeta / archivo        | Contenido                                                                  |
-| ------------------------ | -------------------------------------------------------------------------- |
-| [`es/`](es/)             | Documentación de usuario en **español**.                                   |
-| [`en/`](en/)             | User documentation in **English**.                                         |
-| [`adr/`](adr/)           | Architecture Decision Records — el _porqué_ de cada decisión (EN).         |
-| [`security/`](security/) | Avisos de seguridad concretos (p. ej. `mcp-remote`).                       |
-| [`legacy/`](legacy/)     | Histórico de versiones anteriores (v1/v2). No necesario para instalar hoy. |
-| [`assets/`](assets/)     | Diagramas e imágenes.                                                      |
+| Carpeta / archivo                      | Contenido                                                                             |
+| -------------------------------------- | ------------------------------------------------------------------------------------- |
+| [`es/`](es/)                           | Documentación de usuario en **español**.                                              |
+| [`en/`](en/)                           | User documentation in **English**.                                                    |
+| [`adr/`](adr/)                         | Architecture Decision Records — el _porqué_ de cada decisión (EN).                    |
+| [`observability.md`](observability.md) | Privacidad / telemetría: salud del daemon (`obsidian-memoryd doctor`), OTel opcional. |
+| [`security/`](security/)               | Avisos de seguridad concretos (p. ej. `mcp-remote`).                                  |
+| [`legacy/`](legacy/)                   | Histórico de versiones anteriores (v1/v2). No necesario para instalar hoy.            |
+| [`assets/`](assets/)                   | Diagramas e imágenes.                                                                 |
 
 > Arquitectura técnica del repo: [`../ARCHITECTURE.md`](../ARCHITECTURE.md).
 > Onboarding humano empieza en el [README principal](../README.md).

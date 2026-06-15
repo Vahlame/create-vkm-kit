@@ -75,14 +75,16 @@ Keeps the vault's git history moving without the user thinking about it.
 
 ### 2. `obsidian-memory-mcp` — hybrid MCP sidecar (Node)
 
-The agent's authoritative window into the vault. Stdio MCP server exposing seven
+The agent's authoritative window into the vault. Stdio MCP server exposing nine
 tools, split into small modules so the pure logic is unit-testable without
 spawning the transport.
 
 - **Entry point / wiring:** [`src/hybrid-mcp.mjs`](./packages/obsidian-memory-mcp/src/hybrid-mcp.mjs) — registers tools and connects `StdioServerTransport`. A `main()` entry-point guard prevents the server from spawning on `import` (so tests can import siblings safely).
-- **Tools:**
-  - `vault_fts_search` / `vault_fts_index` — bridge to the Python RAG engine via `execa`.
-  - `vault_read_file` / `vault_write_file` / `vault_edit_file` / `vault_list_directory` — **vault-locked** filesystem access.
+- **Tools (nine):**
+  - `vault_fts_search` / `vault_fts_index` — bridge to the Python RAG engine via `execa` (BM25 lexical search + incremental index).
+  - `vault_hybrid_search` — BM25 + per-section vector cosine fused via RRF; returns the **matching section**, not the whole note (the passage-first default — ADR-0017/0018).
+  - `vault_read_file` / `vault_write_file` / `vault_edit_file` / `vault_list_directory` — **vault-locked** filesystem access (reads are wrapped in an untrusted-data envelope, ADR-0018 D6).
+  - `vault_audit` — vault health: notes over a token budget, broken `[[wikilinks]]`, `SESSION_LOG` size (bridges the Python `json-audit`).
   - `memory_extract_candidates` — pre-close ritual: turn a free-text recap into dedup-checked memory bullets (read-only; never writes).
 - **Why the vault-locked tools exist:** `@modelcontextprotocol/server-filesystem` uses **MCP Roots** — when the client advertises `roots`, the filesystem server replaces its allowed directories with the client's, so it tracks the _active project's_ cwd and loses the vault. These tools read `BASIC_MEMORY_HOME` once and never leave it. See the module header in [`src/vault-fs.mjs`](./packages/obsidian-memory-mcp/src/vault-fs.mjs).
 - **Module split (single-responsibility):**
@@ -98,7 +100,7 @@ The Node sidecar shells out to it; it can also be used directly as a CLI. Lexica
 search (FTS5 / BM25) is always available; semantic and hybrid search are an
 additive layer that preserves the zero-dependency default (ADR-0017).
 
-- **CLI:** [`cli.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/cli.py) — `index` (with `--semantic`), `search`, `hybrid-search`, `bench`, and machine-readable `json-search` / `json-hybrid-search` / `json-index` (the bridge surface).
+- **CLI:** [`cli.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/cli.py) — `index` (with `--semantic`), `search` / `hybrid-search` (auto-index incrementally before querying; `--no-auto-index` to skip), `bench`, `audit` (note-budget + broken-`[[wikilink]]` + `SESSION_LOG` report), `rotate-log` (archive old `SESSION_LOG` sections to `SESSION_LOG/archive.md`), and machine-readable `json-search` / `json-hybrid-search` / `json-index` / `json-audit` (the bridge surface).
 - **Index:** [`indexer.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/indexer.py) — incremental FTS index by `(mtime_ns, size)`; `index_vectors` builds embeddings in a separate, equally incremental pass so the FTS path is untouched.
 - **Store:** [`store.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/store.py) — SQLite **FTS5** virtual table (`unicode61 remove_diacritics 2`) tuned for read-heavy agent workloads (WAL, `mmap`, normal sync).
 - **Embeddings:** [`embeddings.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/embeddings.py) — pluggable `Embedder` protocol. The default `HashingEmbedder` is pure-stdlib and deterministic (lexical feature hashing); the optional `fastembed` neural embedder (behind the `[semantic]` extra) adds meaning-based recall. Chosen via `OBSIDIAN_MEMORY_EMBEDDER`.
@@ -133,14 +135,17 @@ sequenceDiagram
   participant Agent
   participant MCP as MCP server
   participant Vault as Vault (.md + git)
-  Agent->>MCP: read START_HERE.md (session open)
-  MCP->>Vault: read file
-  Vault-->>Agent: note content
+  Agent->>MCP: read START_HERE.md (session open — the one mandatory full read)
+  MCP-->>Agent: short index
+  Note over Agent: passage-first (ADR-0018): fetch a section, not a whole note
+  Agent->>MCP: vault_hybrid_search(query)
+  MCP->>Vault: BM25 + vector cosine, fused (RRF)
+  Vault-->>Agent: matching section (heading + passage)
   Note over Agent: ...work happens...
   Agent->>MCP: memory_extract_candidates(summary)
   MCP-->>Agent: dedup-checked bullets (no write)
   Agent->>Agent: confirm with human
-  Agent->>MCP: write_file / edit_file (only after confirmation)
+  Agent->>MCP: vault_write_file / vault_edit_file (only after confirmation)
   MCP->>Vault: atomic write
 ```
 

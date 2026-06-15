@@ -82,6 +82,18 @@ npx @vahlame/create-obsidian-memory -- --non-interactive --vault "<VAULT>"
 | Linux   | `~/.config/Cursor/User/globalStorage/cursor.mcp/mcp.json`                     |
 | macOS   | `~/Library/Application Support/Cursor/User/globalStorage/cursor.mcp/mcp.json` |
 
+> **¿Usas Claude Code en lugar de Cursor?** Claude Code **no** lee `mcp.json`; registra los
+> servidores con el CLI `claude mcp`. Usa el initializer con `--ide claude` (corre `claude mcp add`
+> por ti, y `--build-index` construye el índice de búsqueda en la misma pasada):
+>
+> ```bash
+> node "<KIT>/packages/create-obsidian-memory/src/index.js" --non-interactive \
+>   --vault "<VAULT>" --ide claude --with-hybrid --build-index --repo-root "<KIT>"
+> ```
+>
+> Para el flujo completo en máquina nueva (clonar kit + vault, backend semántico, `CLAUDE.md`
+> global), ve [`instalar-pc-nueva.md`](instalar-pc-nueva.md) (Claude Code).
+
 <details>
 <summary><b>Alternativa manual</b> (sin el instalador): edita <code>mcp.json</code> a mano</summary>
 
@@ -153,7 +165,7 @@ Las **User Rules** le dicen al agente _cuándo_ leer qué nota y _cómo_ cerrar 
 ### MCP disponible
 
 - **`basic-memory`** (siempre): `read_note`, `write_note`, `edit_note`, `search_notes`, `build_context`, `recent_activity`. Rutas relativas a `BASIC_MEMORY_HOME`.
-- **`obsidian-memory-hybrid`** (si está en verde): `vault_fts_search` (léxico/BM25), `vault_hybrid_search` (léxico + semántico; preferible para consultas conceptuales — devuelve la sección relevante), `vault_fts_index` (acepta `semantic: true`), y `memory_extract_candidates` (ritual de cierre).
+- **`obsidian-memory-hybrid`** (si está en verde): `vault_fts_search` (léxico/BM25), `vault_hybrid_search` (léxico + semántico; preferible para consultas conceptuales — devuelve la sección relevante), `vault_fts_index` (acepta `semantic: true`), `vault_audit` (salud del vault: notas sobredimensionadas, `[[wikilinks]]` rotos, tamaño de `SESSION_LOG`), y `memory_extract_candidates` (ritual de cierre).
 - Si **ningún** MCP del vault responde, dilo explícitamente; no afirmes haber persistido.
 
 ### Arranque mínimo (cualquier tarea con contexto del vault)
@@ -192,6 +204,11 @@ Las **User Rules** le dicen al agente _cuándo_ leer qué nota y _cómo_ cerrar 
 ```
 
 Guarda y haz **Developer: Reload Window** (o reinicia Cursor).
+
+> **Mantenimiento del vault.** Con el tiempo, las notas crecen y `SESSION_LOG.md` se infla. Mantén
+> el vault barato de leer con `vault_audit` (notas sobredimensionadas, `[[wikilinks]]` rotos, tamaño
+> del log) y `rotate-log` (archiva secciones viejas de `SESSION_LOG`). Ambos están documentados en
+> [`sincronizacion.md` → Mantenimiento del vault](sincronizacion.md#mantenimiento-del-vault-mantenerlo-barato-de-leer).
 
 ---
 

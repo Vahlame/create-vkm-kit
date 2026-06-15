@@ -13,6 +13,8 @@ The whole user guide, in the recommended reading order.
 | —   | [**Install with an agent**](install-with-agent.md) | Prefer the AI to do it? Paste one file and you're done.             |
 | —   | [**Install on a fresh PC**](install-fresh-pc.md)   | Reproduce everything on a freshly wiped machine (Claude Code).      |
 
+> 🤖 **Claude Code** registers MCP via `claude mcp add` (no `mcp.json`) — see [install on a fresh PC](install-fresh-pc.md).
+
 ## When you need it
 
 | Document                              | What for                                                    |

@@ -4,7 +4,7 @@ Canonical instructions for any AI agent or IDE consuming this repository (Cursor
 
 ## Project overview
 
-This project documents and ships **cross-platform** tooling for **Markdown vault memory** exposed to agents through **MCP** (`basic-memory` by default), optional **hybrid SQLite retrieval**, a **Go daemon** for git-backed sync, and an **initializer** CLI. ADRs in `docs/adr/` are the source of truth for design; ADR-0010–0015 cover the v1→v2 stack transition; the **v3 kit layout** (no `.ps1`/`.vbs` shipped, daemon `proc_windows.go` for silent Windows operation) is documented in `docs/legacy/v2-to-v3-script-free-kit.md`.
+This project documents and ships **cross-platform** tooling for **Markdown vault memory** exposed to agents through **MCP** — `basic-memory` for read/write/search, plus the **`obsidian-memory-hybrid`** sidecar that adds passage-first hybrid (BM25 + semantic) retrieval, vault-locked file tools and `vault_audit` (the recommended vault surface) — a **Go daemon** for git-backed sync, and an **initializer** CLI (`--ide cursor,claude`). ADRs in `docs/adr/` are the source of truth for design; ADR-0010–0015 cover the v1→v2 stack transition; the **v3 kit layout** (no `.ps1`/`.vbs` shipped, daemon `proc_windows.go` for silent Windows operation) is documented in `docs/legacy/v2-to-v3-script-free-kit.md`.
 
 ## Setup commands
 
@@ -14,6 +14,10 @@ npm install
 
 # Regenerate AGENTS autogen block + IDE rules
 npm run sync-agents
+
+# Wire an IDE to a vault — Cursor writes mcp.json; Claude Code registers via `claude mcp add`:
+#   node packages/create-obsidian-memory/src/index.js --non-interactive \
+#     --vault <vault> --ide cursor,claude --with-hybrid --semantic --build-index --repo-root .
 
 # Go daemon (from repo root)
 go build -o bin/obsidian-memoryd ./cmd/obsidian-memoryd
@@ -70,7 +74,7 @@ Use a private git vault (example layout in `examples/`):
 - **Runtimes:** Node 20+, Bun or `npx tsx` for maintainer scripts; `uv` for `basic-memory`.
 - **Primary MCP:** `uvx basic-memory mcp` with `BASIC_MEMORY_HOME=<vault>` (**stdio** in `mcp.json`; recommended default).
 - **Optional transport:** Streamable HTTP URL for `basic-memory` (e.g. `http://127.0.0.1:8765/mcp`) requires a **separate always-on listener** you run (terminal or Task Scheduler action you define; see `docs/en/sync.md`); see `config/mcp/basic-memory-streamable-http.json`. Default port **8765** avoids collisions with common dev servers on **8000** / **8080** / **3000** (see ADR-0016).
-- **Optional MCP (FTS5 hybrid):** `node packages/obsidian-memory-mcp/src/hybrid-mcp.mjs` — tools `vault_fts_search` / `vault_fts_index` (Python `obsidian-memory-rag`); see `config/mcp/obsidian-memory-hybrid.json`.
+- **Hybrid MCP (recommended vault surface):** `node packages/obsidian-memory-mcp/src/hybrid-mcp.mjs` — nine tools: `vault_hybrid_search` (BM25 + semantic via RRF; returns the matching **section** — passage-first), `vault_fts_search` / `vault_fts_index`, vault-locked `vault_read_file` / `vault_write_file` / `vault_edit_file` / `vault_list_directory`, `vault_audit` (vault health), `memory_extract_candidates`. Bridges Python `obsidian-memory-rag`; see `config/mcp/obsidian-memory-hybrid.json`. Wire it in Claude Code with `create-obsidian-memory --ide claude` (runs `claude mcp add`).
 - **Optional MCP (Obsidian live I/O):** `cyanheads/obsidian-mcp-server` (Streamable HTTP `/mcp`) with path allowlists.
 - **Bridge (legacy clients):** `mcp-remote` pinned **>= 0.1.16** (see `docs/security/mcp-remote-rce.md`).
 

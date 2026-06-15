@@ -82,6 +82,18 @@ npx @vahlame/create-obsidian-memory -- --non-interactive --vault "<VAULT>"
 | Linux   | `~/.config/Cursor/User/globalStorage/cursor.mcp/mcp.json`                     |
 | macOS   | `~/Library/Application Support/Cursor/User/globalStorage/cursor.mcp/mcp.json` |
 
+> **Using Claude Code instead of Cursor?** Claude Code does **not** read `mcp.json`; it registers
+> servers through the `claude mcp` CLI. Use the `--ide claude` initializer (it runs `claude mcp add`
+> for you, and `--build-index` builds the search index in the same shot):
+>
+> ```bash
+> node "<KIT>/packages/create-obsidian-memory/src/index.js" --non-interactive \
+>   --vault "<VAULT>" --ide claude --with-hybrid --build-index --repo-root "<KIT>"
+> ```
+>
+> For the complete fresh-machine flow (clone kit + vault, semantic backend, global `CLAUDE.md`),
+> see [`install-fresh-pc.md`](install-fresh-pc.md) (Claude Code).
+
 <details>
 <summary><b>Manual alternative</b> (without the installer): edit <code>mcp.json</code> by hand</summary>
 
@@ -153,7 +165,7 @@ The **User Rules** tell the agent _when_ to read which note and _how_ to wrap up
 ### Available MCP
 
 - **`basic-memory`** (always): `read_note`, `write_note`, `edit_note`, `search_notes`, `build_context`, `recent_activity`. Paths relative to `BASIC_MEMORY_HOME`.
-- **`obsidian-memory-hybrid`** (if it's green): `vault_fts_search` (lexical/BM25), `vault_hybrid_search` (lexical + semantic; preferable for conceptual queries — returns the relevant section), `vault_fts_index` (accepts `semantic: true`), and `memory_extract_candidates` (wrap-up ritual).
+- **`obsidian-memory-hybrid`** (if it's green): `vault_fts_search` (lexical/BM25), `vault_hybrid_search` (lexical + semantic; preferable for conceptual queries — returns the relevant section), `vault_fts_index` (accepts `semantic: true`), `vault_audit` (vault health: oversized notes, broken `[[wikilinks]]`, `SESSION_LOG` size), and `memory_extract_candidates` (wrap-up ritual).
 - If **no** vault MCP responds, say so explicitly; don't claim to have persisted.
 
 ### Minimal startup (any task with vault context)
@@ -192,6 +204,11 @@ The **User Rules** tell the agent _when_ to read which note and _how_ to wrap up
 ```
 
 Save and do **Developer: Reload Window** (or restart Cursor).
+
+> **Vault maintenance.** Over time, notes grow and `SESSION_LOG.md` balloons. Keep the vault cheap
+> to read with `vault_audit` (oversized notes, broken `[[wikilinks]]`, log size) and `rotate-log`
+> (archives old `SESSION_LOG` sections). Both are documented in
+> [`sync.md` → Vault maintenance](sync.md#vault-maintenance-keep-it-cheap-to-read).
 
 ---
 

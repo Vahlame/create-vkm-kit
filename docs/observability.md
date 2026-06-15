@@ -34,8 +34,27 @@ vault with the bench CLI and record hardware, embedder, and vault size next to t
 obsidian-memory-rag bench --vault "<VAULT>" --iterations 200 --query "memory"
 ```
 
-Brute-force cosine is sub-10 ms for a personal vault; `sqlite-vec` acceleration is documented as
-future work (ADR-0014 / ADR-0017).
+The vector/semantic half of hybrid retrieval **is shipped** (ADR-0017): the default
+`HashingEmbedder` (pure-stdlib, lexical vectors) runs out of the box, and the optional
+`fastembed` extra (`pip install 'obsidian-memory-rag[semantic]'` →
+`OBSIDIAN_MEMORY_EMBEDDER=fastembed`) adds true meaning-based recall. Search is a full-scan
+cosine in Python, sub-10 ms for a personal vault. `sqlite-vec` is **deferred acceleration** for
+very large vaults — not unshipped functionality, just an optimization that slots in behind the
+same `vector_store` interface when brute-force cosine stops being fast enough (ADR-0014 / ADR-0017).
+
+## Vault health
+
+`obsidian-memory-rag audit` (and the `vault_audit` MCP tool) surfaces oversized notes (over the
+~8k-token budget), broken `[[wikilinks]]` (a stale-memory signal), and `SESSION_LOG.md` size.
+`rotate-log` archives old `SESSION_LOG.md` sections to `SESSION_LOG/archive.md`, keeping the most
+recent in place (non-destructive). Together they keep retrieval cheap as the vault grows.
+
+| Surface          | Command / tool                              | Signals                                                        |
+| ---------------- | ------------------------------------------- | -------------------------------------------------------------- |
+| Daemon health    | `obsidian-memoryd doctor`                   | heartbeat age, last successful push, consecutive push failures |
+| MCP-level traces | Pino JSON + OTLP exporter (sidecar)         | operation names, durations, W3C `traceparent` propagation      |
+| Vault health     | `obsidian-memory-rag audit` / `vault_audit` | oversized notes, broken `[[wikilinks]]`, `SESSION_LOG.md` size |
+| Log rotation     | `obsidian-memory-rag rotate-log`            | archives old `SESSION_LOG.md` sections (non-destructive)       |
 
 ## What this repo deliberately does not ship
 
