@@ -3,10 +3,10 @@
   "version": "3.0.0",
   "description": "Interactive initializer for Obsidian-style agent memory (v3 kit)",
   "license": "MIT",
-  "homepage": "https://github.com/Vahlame/cursor-obsidian-memory-guide#readme",
+  "homepage": "https://github.com/Vahlame/obsidian-memory-kit#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Vahlame/cursor-obsidian-memory-guide.git",
+    "url": "git+https://github.com/Vahlame/obsidian-memory-kit.git",
     "directory": "packages/create-obsidian-memory"
   },
   "keywords": [

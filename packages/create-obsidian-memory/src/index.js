@@ -453,7 +453,7 @@ async function runNonInteractive(argv) {
     if (!kitRoot) {
       console.error(
         pc.red(
-          "--with-hybrid: pass --repo-root <path-to-cursor-obsidian-memory-guide-clone> or run from that clone (cwd walk)."
+          "--with-hybrid: pass --repo-root <path-to-obsidian-memory-kit-clone> or run from that clone (cwd walk)."
         )
       );
       process.exit(2);
@@ -537,7 +537,7 @@ Non-interactive (CI / scripts):
   --no-git-init   Skip git init when .git is missing
                   (Merges kit Git/SCM keys into <vault>/.vscode/settings.json — creates or updates.)
   --with-hybrid   Also wire obsidian-memory-hybrid (needs kit clone; use --repo-root or cwd walk)
-  --repo-root <path>  Root of cursor-obsidian-memory-guide clone (hybrid bridge + Python src)
+  --repo-root <path>  Root of obsidian-memory-kit clone (hybrid bridge + Python src)
   --semantic      With --with-hybrid: neural embeddings (fastembed multilingual; needs the [semantic] extra)
   --build-index   After wiring, build the local FTS (+semantic) index (needs the Python backend)
   --with-gitleaks Install gitleaks pre-commit hook in <vault>/.git/hooks/

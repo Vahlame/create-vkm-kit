@@ -3,8 +3,8 @@ http://127\.0\.0\.1:3001/.*
 http://localhost:3001/.*
 
 # Pre-release links that resolve once v1.0.0 tag is published.
-https://github\.com/Vahlame/cursor-obsidian-memory-guide/releases/tag/v.*
-https://github\.com/Vahlame/cursor-obsidian-memory-guide/compare/.*
+https://github\.com/Vahlame/obsidian-memory-kit/releases/tag/v.*
+https://github\.com/Vahlame/obsidian-memory-kit/compare/.*
 
 # Placeholder used by the prompt.
 .*<REPO_URL_PRIVADO>.*

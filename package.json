@@ -1,5 +1,5 @@
 {
-  "name": "cursor-obsidian-memory-guide",
+  "name": "obsidian-memory-kit",
   "private": true,
   "workspaces": [
     "packages/*"
