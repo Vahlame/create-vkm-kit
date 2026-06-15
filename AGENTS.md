@@ -62,6 +62,8 @@ Use a private git vault (example layout in `examples/`):
 
 **Do not** store secrets, tokens, or literal hardware IDs. Prefer wikilinks between notes. Rotate `SESSION_LOG` when it grows beyond team policy (`obsidian-memory-rag rotate-log`).
 
+**Recall proactively; write sparingly.** Search the vault _before answering_ (don't wait to be asked) whenever a task continues prior work, names a project/person/tool you may have notes on, repeats an earlier question, or revisits a decision — `vault_hybrid_search("<topic>")` and answer from the returned section. Save only what's reusable beyond the session (closed architecture, hard-won decisions, firm preferences, lessons); never per-day TODOs, command output, or what the code already documents. Dedup before writing (search first) — a noisy vault is one nobody reads.
+
 **Token-efficient reads (fan-out safe).** Prefer `vault_hybrid_search` — it returns the matching **section**, not the whole note — over a full `read_note`; never read `SESSION_LOG.md` or large `PROJECTS/*` notes whole. When spawning sub-agents, the orchestrator distills context **once** and passes the excerpt in each sub-agent's prompt; sub-agents don't re-bootstrap the whole vault (a full read of a big note × N agents is how token cost explodes). Verify a file/flag quoted in a note still exists before acting on it (memory can be stale). Rationale and numbers: [ADR-0018](docs/adr/0018-multi-agent-token-efficiency.md).
 
 <!-- BEGIN AUTOGEN -->

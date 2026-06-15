@@ -171,7 +171,20 @@ The **User Rules** tell the agent _when_ to read which note and _how_ to wrap up
 ### Minimal startup (any task with vault context)
 
 1. `read_note("START_HERE.md")` — **always**. It's the short index.
-2. **Don't read more automatically.** Wait until the task justifies it.
+2. On any **non-trivial** task, also load `MEMORY.md` (global preferences + cross-cutting lessons) — it's small and shapes how you work.
+3. **Don't read more automatically.** Wait until the task justifies it.
+
+### When to consult the vault — without being asked
+
+Proactively search the vault **before answering** when any of these holds (this is what makes the memory pay off — don't wait to be told to "check your notes"):
+
+- The task **continues prior work**, or is non-trivial on a project, person, library or tool you may already have notes on.
+- The user **names** a project, client, person, library or recurring technical topic.
+- You're about to make an **architectural or tooling decision** the user may have already settled in another session.
+- The user says "**as usual / how I like it / like last time**".
+- A question **feels repeated**.
+
+Action: `vault_hybrid_search("<topic in natural language>")` (or `vault_fts_search` for an exact identifier/symbol). The returned **section is usually enough** — answer from it without opening the whole note.
 
 ### Before any non-trivial action (pre-action ritual)
 
@@ -197,6 +210,10 @@ The **User Rules** tell the agent _when_ to read which note and _how_ to wrap up
 2. **Show the candidates to the human** and wait for confirmation. Don't add anything without confirmation.
 3. For what's confirmed: `MEMORY.md` (lessons), `PROJECTS/<project>.md` (decisions), `RULES/<project>.md` (hard rule), `KNOWN_FAILURES.md` (discarded path).
 4. One line in `SESSION_LOG.md` (ISO date, project, outcome).
+
+### What's worth saving (keep the memory high-signal)
+
+Save only what's **reusable beyond this session**: closed architecture after a refactor, a decision that was hard to discover, a firm user preference, a domain-glossary term, a lesson from something that broke. **Don't** save per-day TODOs, command output, chat summaries, or anything the **code/README already documents**. One idea per note; **dedup first** (search before writing). A noisy vault is an expensive vault nobody reads.
 
 ### Note style
 

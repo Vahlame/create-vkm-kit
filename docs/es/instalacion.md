@@ -171,7 +171,20 @@ Las **User Rules** le dicen al agente _cuándo_ leer qué nota y _cómo_ cerrar 
 ### Arranque mínimo (cualquier tarea con contexto del vault)
 
 1. `read_note("START_HERE.md")` — **siempre**. Es el índice corto.
-2. **No leas más automáticamente.** Espera a que la tarea lo justifique.
+2. En cualquier tarea **no trivial**, carga también `MEMORY.md` (preferencias globales + lecciones transversales) — es pequeño y condiciona cómo trabajas.
+3. **No leas más automáticamente.** Espera a que la tarea lo justifique.
+
+### Cuándo consultar el vault — sin que te lo pidan
+
+Busca en el vault **antes de responder** cuando se cumpla alguna de estas (esto es lo que hace que la memoria valga la pena — no esperes a que te digan "revisa tus notas"):
+
+- La tarea **continúa trabajo previo**, o es no trivial sobre un proyecto, persona, librería o herramienta de los que quizá ya tengas notas.
+- El usuario **nombra** un proyecto, cliente, persona, librería o tema técnico recurrente.
+- Vas a tomar una **decisión de arquitectura o de herramientas** que el usuario quizá ya zanjó en otra sesión.
+- El usuario dice "**como siempre / a mi gusto / como la última vez**".
+- Una pregunta **se siente repetida**.
+
+Acción: `vault_hybrid_search("<tema en lenguaje natural>")` (o `vault_fts_search` para un identificador exacto). La **sección que devuelve suele bastar** — responde con ella sin abrir la nota entera.
 
 ### Antes de cualquier acción no trivial (ritual de pre-acción)
 
@@ -197,6 +210,10 @@ Las **User Rules** le dicen al agente _cuándo_ leer qué nota y _cómo_ cerrar 
 2. **Muestra los candidatos al humano** y espera confirmación. No añadas nada sin que confirme.
 3. Para lo confirmado: `MEMORY.md` (lecciones), `PROJECTS/<proyecto>.md` (decisiones), `RULES/<proyecto>.md` (regla dura), `KNOWN_FAILURES.md` (camino descartado).
 4. Una línea en `SESSION_LOG.md` (fecha ISO, proyecto, resultado).
+
+### Qué vale la pena guardar (mantén la memoria con alto valor)
+
+Guarda solo lo **reutilizable más allá de esta sesión**: arquitectura cerrada tras un refactor, una decisión que costó descubrir, una preferencia firme del usuario, un término de glosario de dominio, una lección de algo que se rompió. **No** guardes TODOs del día, salida de comandos, resúmenes de chat, ni nada que el **código/README ya documenta**. Una idea por nota; **deduplica antes** (busca antes de escribir). Un vault ruidoso es un vault caro que nadie lee.
 
 ### Estilo de notas
 
