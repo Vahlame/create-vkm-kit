@@ -145,6 +145,12 @@ Las **User Rules** le dicen al agente _cuándo_ leer qué nota y _cómo_ cerrar 
 > Los nombres `basic-memory` y `obsidian-memory-hybrid` deben **coincidir** con las claves de tu
 > `mcp.json`. Si renombraste un servidor, ajústalo también aquí.
 
+**Atajo:** el initializer puede instalar este mismo bloque por ti — córrelo con `--rules all` (o te
+pregunta en modo interactivo). Escribe un bloque marcado idempotente en `~/.claude/CLAUDE.md`,
+`./AGENTS.md` y `.cursor/rules/obsidian-memory.mdc`, sin pisar tu contenido. Las User Rules
+**globales** de Cursor siguen necesitando el pegado manual de abajo (el IDE las guarda fuera de
+cualquier archivo).
+
 ```markdown
 ## Memoria Markdown (vault + MCP)
 

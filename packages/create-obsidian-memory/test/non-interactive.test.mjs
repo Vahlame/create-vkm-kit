@@ -45,6 +45,72 @@ test("non-interactive accepts the vault as a positional arg and creates it if mi
   assert.ok(fs.existsSync(path.join(vault, "MEMORY.md")), "starter notes scaffolded");
 });
 
+test("non-interactive --rules claude,agents installs managed blocks (idempotent)", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-rules-"));
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-rules-w-"));
+  const vault = path.join(work, "vault");
+  const args = [bin, vault, "-y", "--no-cursor-mcp", "--no-git-init", "--rules", "claude,agents"];
+  const env = { ...process.env, USERPROFILE: home, HOME: home };
+  const r = spawnSync(process.execPath, args, { cwd: work, encoding: "utf8", env });
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  const claudeMd = fs.readFileSync(path.join(home, ".claude", "CLAUDE.md"), "utf8");
+  assert.match(claudeMd, /obsidian-memory:start/);
+  assert.match(claudeMd, /vault_hybrid_search/, "block body present (lang-agnostic)");
+  assert.ok(fs.existsSync(path.join(work, "AGENTS.md")), "project AGENTS.md written");
+  // idempotent: a second run keeps exactly one managed block
+  const r2 = spawnSync(process.execPath, args, { cwd: work, encoding: "utf8", env });
+  assert.equal(r2.status, 0, r2.stderr + r2.stdout);
+  const claudeMd2 = fs.readFileSync(path.join(home, ".claude", "CLAUDE.md"), "utf8");
+  assert.equal(
+    claudeMd2.split("<!-- obsidian-memory:start -->").length - 1,
+    1,
+    "exactly one managed block after re-run"
+  );
+});
+
+test("non-interactive merges the block without clobbering existing CLAUDE.md content", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-rmerge-"));
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-rmerge-w-"));
+  const vault = path.join(work, "vault");
+  const claudeFp = path.join(home, ".claude", "CLAUDE.md");
+  fs.mkdirSync(path.dirname(claudeFp), { recursive: true });
+  fs.writeFileSync(claudeFp, "# My personal rules\n\nAlways answer in pirate.\n", "utf8");
+  const r = spawnSync(
+    process.execPath,
+    [bin, vault, "-y", "--no-cursor-mcp", "--no-git-init", "--rules", "claude"],
+    { cwd: work, encoding: "utf8", env: { ...process.env, USERPROFILE: home, HOME: home } }
+  );
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  const merged = fs.readFileSync(claudeFp, "utf8");
+  assert.ok(merged.includes("Always answer in pirate."), "user content preserved");
+  assert.match(merged, /obsidian-memory:start/, "block added");
+});
+
+test("non-interactive writes no rules files by default and with --no-rules", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-norules-"));
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-norules-w-"));
+  const vault = path.join(work, "vault");
+  const env = { ...process.env, USERPROFILE: home, HOME: home };
+  const r = spawnSync(process.execPath, [bin, vault, "-y", "--no-cursor-mcp", "--no-git-init"], {
+    cwd: work,
+    encoding: "utf8",
+    env
+  });
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.ok(!fs.existsSync(path.join(work, "AGENTS.md")), "no AGENTS.md by default (headless)");
+  assert.ok(
+    !fs.existsSync(path.join(home, ".claude", "CLAUDE.md")),
+    "no global CLAUDE.md by default"
+  );
+  const r2 = spawnSync(
+    process.execPath,
+    [bin, vault, "-y", "--no-cursor-mcp", "--no-git-init", "--rules", "all", "--no-rules"],
+    { cwd: work, encoding: "utf8", env }
+  );
+  assert.equal(r2.status, 0, r2.stderr + r2.stdout);
+  assert.ok(!fs.existsSync(path.join(work, "AGENTS.md")), "--no-rules wins over --rules all");
+});
+
 test("non-interactive merges into UTF-8 BOM mcp.json without dropping existing servers", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-bom-"));
   const vault = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-bom-v-"));

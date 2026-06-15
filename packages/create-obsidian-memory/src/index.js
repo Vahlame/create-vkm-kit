@@ -25,6 +25,7 @@ import {
   claudeRemoveArgv,
   SEMANTIC_EMBEDDER
 } from "./mcp-merge.mjs";
+import { installRules } from "./rules-merge.mjs";
 
 /** Cursor/VS Code workspace defaults: fewer `git` + `conhost` spikes on Windows (SCM polling). */
 const VAULT_VSCODE_GIT_SETTINGS = {
@@ -71,7 +72,9 @@ const messages = {
     hybridQ:
       "¿Añadir MCP obsidian-memory-hybrid (FTS5 / BM25) además de basic-memory? (requiere clon del kit y pip install -e packages/obsidian-memory-rag)",
     semanticQ:
-      "¿Usar embeddings neuronales (fastembed) para recall por significado? (requiere el extra [semantic])"
+      "¿Usar embeddings neuronales (fastembed) para recall por significado? (requiere el extra [semantic])",
+    rulesQ:
+      "¿Instalar las reglas de memoria en CLAUDE.md / AGENTS.md / .cursor? (bloque marcado; no pisa tu contenido)"
   },
   en: {
     title: "create-obsidian-memory",
@@ -88,7 +91,9 @@ const messages = {
     hybridQ:
       "Add obsidian-memory-hybrid MCP (FTS5 / BM25) in addition to basic-memory? (needs this repo clone + pip install -e packages/obsidian-memory-rag)",
     semanticQ:
-      "Use neural embeddings (fastembed) for meaning-based recall? (needs the [semantic] extra)"
+      "Use neural embeddings (fastembed) for meaning-based recall? (needs the [semantic] extra)",
+    rulesQ:
+      "Install the memory rules into CLAUDE.md / AGENTS.md / .cursor? (marked block; won't clobber your content)"
   }
 };
 
@@ -112,7 +117,7 @@ function nonInteractiveFromArgs() {
 
 // Long flags that consume the NEXT token as their value, so it isn't mistaken
 // for the positional vault path.
-const VALUE_FLAGS = new Set(["--vault", "--ide", "--repo-root", "--lang"]);
+const VALUE_FLAGS = new Set(["--vault", "--ide", "--repo-root", "--lang", "--rules"]);
 
 /**
  * First bare (non-flag) CLI argument = vault path shorthand, so you can write
@@ -136,6 +141,37 @@ function positionalVault(argv) {
 /** Default vault when none is given: ~/Documents/obsidian-memory-vault. */
 function defaultVaultPath(home) {
   return path.join(home, "Documents", "obsidian-memory-vault");
+}
+
+/**
+ * Which agent-config files to install the memory-rules block into. Derived from
+ * --ide (wiring an IDE also drops its rules) unless overridden:
+ *   --no-rules / --rules none → []   ·   --rules all → claude+agents+cursor
+ *   --rules a,b → explicit    ·   default → agents (+claude if --ide claude) (+cursor if --ide cursor)
+ * @param {string[]} argv
+ * @param {string[]} ides
+ * @returns {string[]}
+ */
+function rulesTargetsFromArgs(argv, ides, { defaultFromIde = false } = {}) {
+  if (argv.includes("--no-rules")) return [];
+  const raw = flagValue(argv, "--rules");
+  const valid = ["claude", "agents", "cursor"];
+  if (raw) {
+    const v = raw.trim().toLowerCase();
+    if (v === "none") return [];
+    if (v === "all") return [...valid];
+    return v
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => valid.includes(s));
+  }
+  // Headless with no --rules → write nothing (don't surprise-touch global files).
+  // Interactive derives a default from the selected IDEs, then asks for confirmation.
+  if (!defaultFromIde) return [];
+  const targets = ["agents"];
+  if (ides.includes("claude")) targets.push("claude");
+  if (ides.includes("cursor")) targets.push("cursor");
+  return targets;
 }
 
 async function findVault(cwd, home) {
@@ -530,6 +566,11 @@ async function runNonInteractive(argv) {
     await maybeBuildIndex(vault, dryRun, { repoRoot: kitRoot, semantic: wantSemantic });
   }
 
+  const ruleTargets = rulesTargetsFromArgs(argv, ides);
+  if (ruleTargets.length) {
+    await installRules(ruleTargets, lang, { home, cwd, dryRun });
+  }
+
   if (!noGitInit && !(await fse.pathExists(path.join(vault, ".git")))) {
     await execa("git", ["init"], { cwd: vault, stdio: "inherit" });
   }
@@ -563,6 +604,16 @@ async function runNonInteractive(argv) {
   if (wantGitleaks) {
     console.log("- gitleaks pre-commit hook: installed (vault/.git/hooks/pre-commit)");
   }
+  if (ruleTargets.length) {
+    console.log("- Memory rules installed into:", ruleTargets.join(", "));
+    if (ides.includes("cursor")) {
+      console.log(
+        pc.dim(
+          "  Cursor GLOBAL User Rules can't be auto-written — paste the block from install.md Step 4 into Settings → Rules → User Rules."
+        )
+      );
+    }
+  }
   console.log("-", t.ftsHint);
 }
 
@@ -593,6 +644,13 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
   --semantic      With --with-hybrid: neural embeddings (fastembed multilingual; needs the [semantic] extra)
   --build-index   After wiring, build the local FTS (+semantic) index (needs the Python backend)
   --with-gitleaks Install gitleaks pre-commit hook in <vault>/.git/hooks/
+  --rules <list>  Install the memory-rules block into agent configs: claude
+                  (~/.claude/CLAUDE.md, global), agents (./AGENTS.md), cursor
+                  (.cursor/rules/obsidian-memory.mdc). Or 'all' / 'none'.
+                  Headless writes NOTHING unless you pass --rules (use 'all' for
+                  full coverage); interactive asks (deriving from --ide). Idempotent
+                  marked block (obsidian-memory:start/end) — never clobbers content.
+  --no-rules      Don't write any rules file.
 
   --help          This message`);
     return;
@@ -724,6 +782,20 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
     await registerClaudeCodeMcp(vault, dryRun, hybridOpts);
   }
 
+  let ruleTargets = rulesTargetsFromArgs(process.argv, ides || [], { defaultFromIde: true });
+  if (ruleTargets.length && !process.argv.includes("--no-rules")) {
+    const { rules } = await prompts({
+      type: "confirm",
+      name: "rules",
+      message: t.rulesQ,
+      initial: true
+    });
+    if (!rules) ruleTargets = [];
+  }
+  if (ruleTargets.length) {
+    await installRules(ruleTargets, lang, { home, cwd, dryRun });
+  }
+
   const others = (ides || []).filter((x) => x !== "cursor" && x !== "claude");
   if (others.length) {
     console.log(pc.yellow(t.otherIdes), others.join(", "));
@@ -761,6 +833,16 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
       "- obsidian-memoryd:",
       "`obsidian-memoryd service install --user && obsidian-memoryd service start`"
     );
+  if (ruleTargets.length) {
+    console.log("- Memory rules installed into:", ruleTargets.join(", "));
+    if (ides?.includes("cursor")) {
+      console.log(
+        pc.dim(
+          "  Cursor GLOBAL User Rules can't be auto-written — paste install.md Step 4 into Settings → Rules → User Rules."
+        )
+      );
+    }
+  }
 }
 
 main().catch((e) => {
