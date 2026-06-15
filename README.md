@@ -43,11 +43,13 @@ is the MCP server; everything else (semantic search, sync daemon) is optional.
 
 ## Instalación rápida · Quick install
 
-**Un comando** conecta tu editor a un vault nuevo o existente (crea el vault, fusiona `mcp.json`
-sin romper otras entradas, hace backup):
+**Un comando** conecta tu editor a un vault (lo crea si no existe, fusiona `mcp.json` sin romper
+otras entradas, hace backup). Sin parámetros = asistente interactivo; con `-y` no pregunta nada:
 
 ```bash
-npx @vkmikc/create-obsidian-memory -- --non-interactive --vault "<RUTA_ABSOLUTA_AL_VAULT>"
+npx @vkmikc/create-obsidian-memory                 # asistente interactivo
+npx @vkmikc/create-obsidian-memory -y              # sin preguntas → ~/Documents/cursor-memory-vault
+npx @vkmikc/create-obsidian-memory "<RUTA>" -y     # sin preguntas, en la ruta que elijas
 ```
 
 > 🤖 **Claude Code (PC nuevo · fresh PC):** registra el MCP vía `claude mcp add` y construye el

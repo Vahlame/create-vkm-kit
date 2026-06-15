@@ -59,7 +59,7 @@ const messages = {
   es: {
     title: "create-obsidian-memory",
     vaultQ: "Ruta del vault (debe contener .obsidian o crearemos uno)",
-    createVault: "Crear ./obsidian-vault de ejemplo",
+    createVault: "Crear un vault nuevo en ~/Documents/cursor-memory-vault",
     ides: "IDEs a configurar (espacio para MCP)",
     gitleaks: "Activar hook pre-commit gitleaks",
     age: "Activar cifrado age para datos sensibles (mas friccion)",
@@ -76,7 +76,7 @@ const messages = {
   en: {
     title: "create-obsidian-memory",
     vaultQ: "Vault path (must contain .obsidian or we create a sample)",
-    createVault: "Create ./obsidian-vault sample",
+    createVault: "Create a new vault at ~/Documents/cursor-memory-vault",
     ides: "IDEs to wire for MCP",
     gitleaks: "Enable gitleaks pre-commit hook",
     age: "Enable age encryption (more friction)",
@@ -103,7 +103,39 @@ function dryRunFromArgs() {
 }
 
 function nonInteractiveFromArgs() {
-  return process.argv.includes("--non-interactive") || process.argv.includes("--yes");
+  return (
+    process.argv.includes("--non-interactive") ||
+    process.argv.includes("--yes") ||
+    process.argv.includes("-y")
+  );
+}
+
+// Long flags that consume the NEXT token as their value, so it isn't mistaken
+// for the positional vault path.
+const VALUE_FLAGS = new Set(["--vault", "--ide", "--repo-root", "--lang"]);
+
+/**
+ * First bare (non-flag) CLI argument = vault path shorthand, so you can write
+ * `create-obsidian-memory ./my-vault` instead of `--vault ./my-vault`.
+ * @param {string[]} argv
+ */
+function positionalVault(argv) {
+  const args = argv.slice(2);
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (a === "--") continue;
+    if (a.startsWith("-")) {
+      if (VALUE_FLAGS.has(a)) i++; // skip this flag's value
+      continue;
+    }
+    return a;
+  }
+  return null;
+}
+
+/** Default vault when none is given: ~/Documents/cursor-memory-vault. */
+function defaultVaultPath(home) {
+  return path.join(home, "Documents", "cursor-memory-vault");
 }
 
 async function findVault(cwd, home) {
@@ -258,7 +290,9 @@ async function writeCursorMcp(home, vaultAbs, dryRun, hybridOpts = {}) {
     try {
       parsed = JSON.parse(text);
     } catch {
-      console.warn(pc.yellow("Invalid JSON in mcp.json; will back up the original before overwriting"));
+      console.warn(
+        pc.yellow("Invalid JSON in mcp.json; will back up the original before overwriting")
+      );
     }
   }
   let merged = mergeBasicMemoryServer(parsed, vaultAbs);
@@ -429,15 +463,21 @@ async function runNonInteractive(argv) {
   const lang = langFromArgs();
   const dryRun = dryRunFromArgs();
   const t = messages[lang];
-  const vaultRaw = flagValue(argv, "--vault");
-  if (!vaultRaw) {
-    console.error(pc.red("--vault <path> is required with --non-interactive"));
-    process.exit(2);
-  }
-  const vault = path.resolve(cwd, vaultRaw);
-  if (!(await fse.pathExists(vault))) {
-    console.error(pc.red("Vault path does not exist:"), vault);
-    process.exit(2);
+  // Vault path: --vault wins, else the first positional arg, else the default
+  // (~/Documents/cursor-memory-vault). No flag required for the common case.
+  const vaultRaw = flagValue(argv, "--vault") || positionalVault(argv);
+  const usedDefault = !vaultRaw;
+  const vault = path.resolve(cwd, vaultRaw || defaultVaultPath(home));
+  // Create a starter vault if the path isn't one yet, instead of erroring — a
+  // one-shot install shouldn't require pre-creating the folder by hand.
+  let createdVault = false;
+  if (!(await fse.pathExists(path.join(vault, ".obsidian")))) {
+    if (dryRun) {
+      console.log(pc.cyan("[dry-run] would create starter vault at"), vault);
+    } else {
+      await scaffoldNewVault(vault, lang, dryRun);
+      createdVault = true;
+    }
   }
   const noCursorMcp = argv.includes("--no-cursor-mcp");
   const noGitInit = argv.includes("--no-git-init");
@@ -498,7 +538,10 @@ async function runNonInteractive(argv) {
   await maybeInstallGitleaksHook(vault, wantGitleaks, dryRun);
 
   console.log(pc.green("\n" + t.summary));
-  console.log("- Vault:", vault);
+  console.log(
+    "- Vault:",
+    vault + (usedDefault ? " (default)" : "") + (createdVault ? " (created)" : "")
+  );
   console.log("- MCP:", JSON.stringify(mcpSnippet));
   if (wantHybrid && kitRoot) {
     console.log("- obsidian-memory-hybrid: merged (kit root", kitRoot + ")");
@@ -506,12 +549,16 @@ async function runNonInteractive(argv) {
     console.log(pc.dim('  pip install -e "' + ragPkg + (wantSemantic ? '[semantic]"' : '"')));
     if (wantSemantic) {
       console.log(
-        pc.dim("  embedder: fastembed (OBSIDIAN_MEMORY_EMBEDDER); build once with vault_fts_index semantic:true")
+        pc.dim(
+          "  embedder: fastembed (OBSIDIAN_MEMORY_EMBEDDER); build once with vault_fts_index semantic:true"
+        )
       );
     }
   }
   if (ides.includes("claude")) {
-    console.log("- Claude Code: MCP registered via `claude mcp add -s user` (verify: `claude mcp list`)");
+    console.log(
+      "- Claude Code: MCP registered via `claude mcp add -s user` (verify: `claude mcp list`)"
+    );
   }
   if (wantGitleaks) {
     console.log("- gitleaks pre-commit hook: installed (vault/.git/hooks/pre-commit)");
@@ -522,15 +569,20 @@ async function runNonInteractive(argv) {
 async function main() {
   const argv = process.argv;
   if (argv.includes("--help")) {
-    console.log(`Usage: create-obsidian-memory [options]
+    console.log(`Usage: create-obsidian-memory [vault] [options]
+
+Examples:
+  create-obsidian-memory                 # interactive wizard
+  create-obsidian-memory ./my-vault -y   # headless, into ./my-vault
+  create-obsidian-memory -y              # headless, default ~/Documents/cursor-memory-vault
 
 Interactive (default):
   --lang en       English prompts
   --dry-run       Show merged Cursor mcp.json only (no write)
 
-Non-interactive (CI / scripts):
-  --non-interactive | --yes
-  --vault <path>  Absolute or cwd-relative vault root (required)
+Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
+  [vault]         Vault path as the first argument (or --vault <path>); defaults to
+                  ~/Documents/cursor-memory-vault and is created if it doesn't exist.
   --ide <list>    IDEs to wire, comma-separated: cursor, claude (default: cursor).
                   cursor writes ~/.cursor/mcp.json; claude uses the Claude Code CLI (claude mcp add -s user)
   --no-cursor-mcp Skip writing ~/.cursor/mcp.json
@@ -559,7 +611,13 @@ Non-interactive (CI / scripts):
 
   const cwd = process.cwd();
   const home = process.env.HOME || process.env.USERPROFILE || cwd;
-  let vault = await findVault(cwd, home);
+  const posVault = positionalVault(argv);
+  let vault = posVault ? path.resolve(cwd, posVault) : await findVault(cwd, home);
+
+  // A positional path that isn't a vault yet → scaffold it, no prompt needed.
+  if (vault && !(await fse.pathExists(path.join(vault, ".obsidian")))) {
+    await scaffoldNewVault(vault, lang, dryRun);
+  }
 
   if (!vault) {
     const { ok } = await prompts({
@@ -569,14 +627,14 @@ Non-interactive (CI / scripts):
       initial: true
     });
     if (ok) {
-      vault = path.join(cwd, "obsidian-vault");
+      vault = defaultVaultPath(home);
       await scaffoldNewVault(vault, lang, dryRun);
     } else {
       const { p } = await prompts({
         type: "text",
         name: "p",
         message: t.vaultQ,
-        initial: cwd
+        initial: defaultVaultPath(home)
       });
       vault = p;
     }
@@ -685,13 +743,18 @@ Non-interactive (CI / scripts):
   if (hybridOpts.withHybrid && hybridOpts.repoRoot) {
     console.log("- obsidian-memory-hybrid: enabled (kit", hybridOpts.repoRoot + ")");
     const ragPkg = path.join(hybridOpts.repoRoot, "packages", "obsidian-memory-rag");
-    console.log(pc.dim('  pip install -e "' + ragPkg + (hybridOpts.semantic ? '[semantic]"' : '"')));
+    console.log(
+      pc.dim('  pip install -e "' + ragPkg + (hybridOpts.semantic ? '[semantic]"' : '"'))
+    );
     if (hybridOpts.semantic) {
       console.log(pc.dim("  embedder: fastembed; build once with vault_fts_index semantic:true"));
     }
   }
   console.log("-", t.ftsHint);
-  if (gitleaks) console.log("- gitleaks pre-commit hook: installed (vault/.git/hooks/pre-commit); install gitleaks CLI to activate");
+  if (gitleaks)
+    console.log(
+      "- gitleaks pre-commit hook: installed (vault/.git/hooks/pre-commit); install gitleaks CLI to activate"
+    );
   if (age) console.log("- age: document keys outside repo");
   if (daemon)
     console.log(

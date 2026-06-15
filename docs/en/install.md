@@ -64,7 +64,7 @@ entry into your `mcp.json` **without deleting** others you already have, makes a
 previous file and creates the vault if it's missing.
 
 ```bash
-npx @vkmikc/create-obsidian-memory -- --non-interactive --vault "<VAULT>"
+npx @vkmikc/create-obsidian-memory "<VAULT>" -y
 ```
 
 **What it does, exactly:**
@@ -266,7 +266,7 @@ Run the installer again to pick up new keys in `mcp.json` **without losing** you
 to reinstall Node or uv if they already worked:
 
 ```bash
-npx @vkmikc/create-obsidian-memory -- --non-interactive --vault "<VAULT>"
+npx @vkmikc/create-obsidian-memory "<VAULT>" -y
 ```
 
 Also compare your User Rules with the **Step 4** block in case it changed.

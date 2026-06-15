@@ -20,15 +20,29 @@ test("non-interactive --dry-run exits 0 and prints dry-run", () => {
   assert.match(r.stdout, /\[dry-run\]/);
 });
 
-test("non-interactive without --vault exits 2", () => {
+test("non-interactive defaults the vault to ~/Documents/cursor-memory-vault and creates it", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-def-"));
   const r = spawnSync(
     process.execPath,
     [bin, "--non-interactive", "--no-cursor-mcp", "--no-git-init"],
-    {
-      encoding: "utf8"
-    }
+    { encoding: "utf8", env: { ...process.env, USERPROFILE: home, HOME: home } }
   );
-  assert.equal(r.status, 2);
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  const vault = path.join(home, "Documents", "cursor-memory-vault");
+  assert.ok(fs.existsSync(path.join(vault, ".obsidian")), "default vault created");
+  assert.ok(fs.existsSync(path.join(vault, "START_HERE.md")), "starter notes scaffolded");
+});
+
+test("non-interactive accepts the vault as a positional arg and creates it if missing", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-pos-"));
+  const vault = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-pos-v-")), "vault");
+  const r = spawnSync(process.execPath, [bin, vault, "-y", "--no-cursor-mcp", "--no-git-init"], {
+    encoding: "utf8",
+    env: { ...process.env, USERPROFILE: home, HOME: home }
+  });
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.ok(fs.existsSync(path.join(vault, ".obsidian")), "positional vault created");
+  assert.ok(fs.existsSync(path.join(vault, "MEMORY.md")), "starter notes scaffolded");
 });
 
 test("non-interactive merges into UTF-8 BOM mcp.json without dropping existing servers", () => {
