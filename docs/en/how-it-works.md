@@ -121,15 +121,43 @@ None of this "uploads your notes forever" to a server owned by the AI provider. 
 
 `basic-memory` already searches. If your vault is **large**, a local index speeds up and sharpens
 the search. That's the **`obsidian-memory-rag`** package, exposed in the IDE by the **hybrid MCP**
-with two tools:
+with these tools:
 
-| Tool                  | What it does                                                                                                                                                                                                                     |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vault_fts_search`    | **Lexical** search (SQLite FTS5 / BM25): fast and exact by keywords.                                                                                                                                                             |
-| `vault_hybrid_search` | **Hybrid** search: mixes the lexical with the **semantic** (by meaning). "The daemon that syncs git" finds the note even if you don't use those exact words — and returns **only the relevant section**, which **saves tokens**. |
+| Tool                  | What it does                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vault_fts_search`    | **Lexical** search (SQLite FTS5 / BM25): fast and exact by keywords.                                                                                                                                                                                                                                                                                                                    |
+| `vault_hybrid_search` | **Hybrid** search: mixes the lexical with the **semantic** (by meaning). "The daemon that syncs git" finds the note even if you don't use those exact words — and returns **only the relevant section**, which **saves tokens**. With `graph: true` it also follows your `[[wikilinks]]`, so a note linked from a strong hit surfaces even when its own text barely matches (ADR-0019). |
+| `vault_complete`      | **Autocomplete** a prefix to the note titles, filenames and `#tags` that actually exist — handy to resolve a half-remembered name before searching or linking.                                                                                                                                                                                                                          |
 
 It's not required to get started. It's a layer of **convenience, better recall and token savings**,
-not the core. Technical detail: [ADR-0017](../adr/0017-hybrid-query-embeddings.md).
+not the core. Technical detail: [ADR-0017](../adr/0017-hybrid-query-embeddings.md) (hybrid query) and
+[ADR-0019](../adr/0019-graph-aware-retrieval.md) (graph-aware recall + autocomplete).
+
+### The retrieval stack at a glance (old + new)
+
+The same question is answered by **three rankers at once**, then **fused** — none wins outright, which is what keeps results balanced. Lexical and semantic are the original layers; the **graph** ranker is new in 3.5 and is opt-in:
+
+```mermaid
+flowchart LR
+  Q["your question"] --> L["BM25 lexical<br/>exact words"]
+  Q --> S["vector semantic<br/>by meaning"]
+  Q --> G["graph link-hops<br/>opt-in · new in 3.5"]
+  L --> F["RRF fusion<br/>(rank, not raw scores)"]
+  S --> F
+  G --> F
+  F --> P["matching section<br/>(passage-first)"]
+```
+
+**What the graph step adds.** A note that barely matches the words can still be the most relevant one when a strong hit links to it. The graph follows those `[[wikilinks]]` so the companion note surfaces anyway:
+
+```mermaid
+flowchart LR
+  Q["query: SQLite errors<br/>in the inventory app"] --> H["PROJECTS/inv.md<br/>strong text hit"]
+  H -. "links to" .-> N["STACKS/sqlite.md<br/>weak text match"]
+  N --> R["pulled into results<br/>by the link, not the words"]
+```
+
+(`vault_complete` is the small sibling: type a prefix, get the titles / filenames / `#tags` that actually exist — a Trie lookup, no search needed.)
 
 ### Why this saves tokens (and scales to many agents)
 

@@ -122,15 +122,43 @@ configuras.
 
 `basic-memory` ya busca. Si tu vault es **grande**, un índice local acelera y afina la
 búsqueda. Eso es el paquete **`obsidian-memory-rag`**, expuesto en el IDE por el **MCP híbrido**
-con dos herramientas:
+con estas herramientas:
 
-| Herramienta           | Qué hace                                                                                                                                                                                                                                   |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `vault_fts_search`    | Búsqueda **léxica** (SQLite FTS5 / BM25): rápida y exacta por palabras clave.                                                                                                                                                              |
-| `vault_hybrid_search` | Búsqueda **híbrida**: mezcla lo léxico con lo **semántico** (por significado). "El daemon que sincroniza git" encuentra la nota aunque no uses esas palabras exactas — y devuelve **solo la sección relevante**, lo que **ahorra tokens**. |
+| Herramienta           | Qué hace                                                                                                                                                                                                                                                                                                                                                                                           |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vault_fts_search`    | Búsqueda **léxica** (SQLite FTS5 / BM25): rápida y exacta por palabras clave.                                                                                                                                                                                                                                                                                                                      |
+| `vault_hybrid_search` | Búsqueda **híbrida**: mezcla lo léxico con lo **semántico** (por significado). "El daemon que sincroniza git" encuentra la nota aunque no uses esas palabras exactas — y devuelve **solo la sección relevante**, lo que **ahorra tokens**. Con `graph: true` además sigue tus `[[wikilinks]]`, así una nota enlazada desde un hit fuerte aflora aunque su propio texto apenas coincida (ADR-0019). |
+| `vault_complete`      | **Autocompletado** de un prefijo a los títulos de nota, nombres de archivo y `#tags` que existen de verdad — útil para resolver un nombre a medias antes de buscar o enlazar.                                                                                                                                                                                                                      |
 
 No es obligatorio para empezar. Es una capa de **comodidad, mejor recall y ahorro de tokens**,
-no el núcleo. Detalle técnico: [ADR-0017](../adr/0017-hybrid-query-embeddings.md).
+no el núcleo. Detalle técnico: [ADR-0017](../adr/0017-hybrid-query-embeddings.md) (consulta híbrida) y
+[ADR-0019](../adr/0019-graph-aware-retrieval.md) (recall por grafo + autocompletado).
+
+### El stack de recuperación de un vistazo (viejo + nuevo)
+
+La misma pregunta la responden **tres rankers a la vez** y luego se **fusionan** — ninguno gana por sí solo, y eso mantiene los resultados equilibrados. Léxico y semántico son las capas originales; el ranker de **grafo** es nuevo en 3.5 y es opt-in:
+
+```mermaid
+flowchart LR
+  Q["tu pregunta"] --> L["BM25 léxico<br/>palabras exactas"]
+  Q --> S["vector semántico<br/>por significado"]
+  Q --> G["saltos por enlaces<br/>opt-in · nuevo en 3.5"]
+  L --> F["fusión RRF<br/>(por rango, no scores crudos)"]
+  S --> F
+  G --> F
+  F --> P["sección que coincide<br/>(passage-first)"]
+```
+
+**Qué añade el paso de grafo.** Una nota que apenas coincide en palabras puede ser la más relevante si un hit fuerte la enlaza. El grafo sigue esos `[[wikilinks]]` y la nota-compañera aflora igual:
+
+```mermaid
+flowchart LR
+  Q["consulta: errores de SQLite<br/>en la app de inventario"] --> H["PROJECTS/inv.md<br/>hit fuerte por texto"]
+  H -. "enlaza a" .-> N["STACKS/sqlite.md<br/>coincidencia débil"]
+  N --> R["traída a resultados<br/>por el enlace, no las palabras"]
+```
+
+(`vault_complete` es el hermano pequeño: escribes un prefijo y obtienes los títulos / nombres / `#tags` que existen de verdad — una búsqueda en Trie, sin search.)
 
 ### Por qué esto ahorra tokens (y escala a muchos agentes)
 

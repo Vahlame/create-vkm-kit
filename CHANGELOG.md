@@ -6,8 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-06-15
+
+### Added
+
+- **Graph-aware retrieval over the `[[wikilink]]` graph (`obsidian-memory-rag` / `obsidian-memory-mcp` → 3.5.0; ADR-0019).** The vault is a knowledge graph (`PROJECTS ↔ STACKS ↔ PRACTICES ↔ RULES`), and the link structure was already parsed for the broken-link audit — but retrieval ignored it. `hybrid_search` now takes an opt-in `graph=True` (`--graph` on `hybrid-search` / `json-hybrid-search`; `graph: true` on the `vault_hybrid_search` MCP tool) that fuses a **third ranking** into the existing RRF: notes one hop from the strongest hits, counting out-links **and** back-links. RRF's `1/(k+rank)` damping keeps it a soft boost — a note linked from a strong hit (e.g. `STACKS/sqlite.md` from a matched `PROJECTS/*` note) can surface even when its own text barely matches, without out-voting BM25+semantic agreement. Each hit gains a `graph_rank`. The graph is parsed on demand from the always-fresh FTS bodies (no separate edge table to backfill or let go stale); O(N) per query, the same order as the existing brute-force cosine. **Default stays off** pending an adherence eval (`new graphlink.py`).
+- **`vault_complete` — prefix autocomplete over note titles, filenames and inline `#tags` (Trie).** New `complete` / `json-complete` CLI commands and `vault_complete` MCP tool, backed by a `trie.py` prefix tree (`O(len(prefix))` to the branch + `O(matches)`); resolves a half-remembered name to what actually exists before searching, linking or writing.
+- **Top-k vector search via a bounded heap.** `vector_store.search_chunks` now uses `heapq.nlargest` (O(n·log k)) instead of fully sorting all candidates (O(n·log n)) — it only ever needs the top `limit`.
+
 ### Changed
 
+- **Initializer + docs aligned to 3.5.0 with graph-retrieval visuals (`@vkmikc/create-obsidian-memory` → 3.5.0).** The npm landing README and the how-it-works / cómo-funciona guides now document graph-aware recall + `vault_complete`, and the install guides list the new tool + the `graph` option. Two new Mermaid diagrams in how-it-works make the search layers legible at a glance: the **three-ranker retrieval stack** (lexical + semantic + graph → RRF → passage) and the **link-expansion** example (a weakly-matching note pulled in by a `[[wikilink]]` from a strong hit). Docs / version-alignment only — no initializer `src/` change.
 - **Package versions aligned to 3.0.0 and `@vkmikc/create-obsidian-memory` prepared for its first npm publish.** The package was never published, so the docs' `npx` command 404'd; docs now use the bare `npx @vkmikc/create-obsidian-memory` (latest) instead of `@next`. `obsidian-memory-mcp` stays `private` (run from the clone); `obsidian-memory-rag` stays `pip install -e` from source. Published under the maintainer's **personal npm scope `@vkmikc`** (the `@vahlame` org scope is not registered on npm), so the initializer was renamed from `@vahlame/create-obsidian-memory` to `@vkmikc/create-obsidian-memory`; the install command is now `npx @vkmikc/create-obsidian-memory` / `npm create @vkmikc/obsidian-memory`. The actual `npm publish` is a manual step (requires npm auth + OTP).
 - **Repository renamed `cursor-obsidian-memory-guide` → `obsidian-memory-kit`.** The kit is IDE-agnostic (Cursor, Claude Code, …); the old slug implied "Cursor only". GitHub redirects the old URLs, but all in-repo references were updated (clone URLs, source-verification blocks, badges, `package.json` `repository`/`homepage`, the Go module path `github.com/Vahlame/obsidian-memory-kit`). The local clone folder name is unaffected.
 - **Concurrent-edit guidance (Obsidian + the agent)** added to the sync guide: MCP writes are atomic (temp+rename), dynamic logs are append-only/agent-owned, and git rebase is the conflict backstop.
@@ -186,7 +195,8 @@ Prior history was undocumented and is summarized only in git log. Highlights:
 - Addition of `AGENTS.md` and `manifest.json` for machine-readable discoverability.
 - Seven hardening fixes for real-world install gaps.
 
-[Unreleased]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.5.0...HEAD
+[3.5.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.0.0...v3.5.0
 [3.0.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v1.1.0...v3.0.0
 [1.1.0]: https://github.com/Vahlame/obsidian-memory-kit/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Vahlame/obsidian-memory-kit/releases/tag/v1.0.0

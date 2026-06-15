@@ -16,6 +16,7 @@ compared against a query embedded by another.
 
 from __future__ import annotations
 
+import heapq
 import math
 import sqlite3
 from array import array
@@ -121,7 +122,12 @@ def current_chunk_keys(conn: sqlite3.Connection, embedder: str) -> dict[str, int
 def search_chunks(
     conn: sqlite3.Connection, query_vec: array, embedder: str, limit: int
 ) -> list[ChunkHit]:
-    """Brute-force cosine over all chunks built by ``embedder``, best first."""
+    """Brute-force cosine over all chunks built by ``embedder``, best first.
+
+    Only the top ``limit`` are kept, via a bounded heap (``heapq.nlargest`` is
+    O(n·log k) — it never fully sorts the n candidates), so growing the vault
+    costs scoring time but not an n·log n sort of the whole candidate set.
+    """
     init_chunks(conn)
     cur = conn.execute(
         "SELECT path, ordinal, heading, text, vec FROM note_chunks WHERE embedder = ?",
@@ -142,5 +148,4 @@ def search_chunks(
                 score,
             )
         )
-    hits.sort(key=lambda h: h.score, reverse=True)
-    return hits[:limit]
+    return heapq.nlargest(limit, hits, key=lambda h: h.score)
