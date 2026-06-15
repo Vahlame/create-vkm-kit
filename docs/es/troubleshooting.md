@@ -63,11 +63,10 @@ antiguas de PowerShell) escriben una marca invisible llamada **BOM de UTF-8** al
 inicio mismo de `mcp.json`. El lector de JSON (`JSON.parse`) rechaza ese byte
 inicial aunque todo lo demás sea válido.
 
-**Solución.** Desde `@vahlame/create-obsidian-memory` **2.0.0-beta.2** (actual:
-**beta.3**), el inicializador elimina automáticamente un BOM inicial antes de
-fusionar. Vuelve a ejecutar la fusión no interactiva, o quita el BOM a mano:
-vuelve a guardar el archivo como **UTF-8 sin BOM**, o borra el primer carácter
-invisible de arriba.
+**Solución.** El inicializador (v3.0.0+) elimina automáticamente un BOM de UTF-8
+inicial antes de fusionar. Vuelve a ejecutar la fusión no interactiva, o quita el
+BOM a mano: vuelve a guardar el archivo como **UTF-8 sin BOM**, o borra el primer
+carácter invisible de arriba.
 
 ### Panel MCP de Cursor: `basic-memory` aparece en rojo / "no disponible"
 

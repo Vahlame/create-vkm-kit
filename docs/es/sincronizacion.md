@@ -23,8 +23,11 @@ flowchart LR
     B -- No, debounce<br/>cumplido --> C[git add -A]
     C --> D[git commit]
     D --> E[git pull --rebase]
-    E --> F[git push]
-    F --> G[Esperar el<br/>siguiente cambio]
+    E --> H{¿Conflicto?}
+    H -- Sí --> I[rebase --abort<br/>+ avisa en el log<br/>nada se rompió]
+    I --> G[Esperar el<br/>siguiente cambio]
+    H -- No --> F[git push<br/>reintenta 3× con back-off]
+    F --> G
     G --> A
 ```
 
@@ -183,7 +186,7 @@ Esta sección recoge lo específico de Windows. Si usas Linux o macOS, puedes sa
 En Windows, ciertos procesos abren una ventana negra de consola que parpadea y roba el foco. Las causas habituales son **el IDE** (Git y extensiones), **los servidores MCP** (`node`, `uvx`, `npx`) y **tareas programadas** que lanzan `powershell.exe` o `cmd.exe`. Para acercarte a "cero parpadeos" en el uso normal del vault:
 
 - **Abre siempre la carpeta correcta.** Los ajustes del repo viven en **`.vscode/settings.json`** y solo aplican si abres el **directorio raíz** del repo o del vault (**File → Open Folder**), no un archivo suelto. Tras actualizar el repo, ejecuta **Developer: Reload Window** una vez.
-- **Ajustes ya incluidos.** En la raíz (y en el vault, vía el inicializador o `examples/.vscode/`) el kit desactiva el sondeo agresivo de Git, parte de la decoración SCM, y excluye del watcher rutas ruidosas (`.obsidian/`, cachés de build). También pone `git.terminalAuthentication: false` para no forzar consola al autenticar.
+- **Ajustes ya incluidos.** Los ajustes SCM viven en el `.vscode/settings.json` de la raíz del repo y el inicializador escribe los mismos valores por defecto en `<vault>/.vscode/settings.json`. Desactivan el sondeo agresivo de Git, parte de la decoración SCM, y excluyen del watcher rutas ruidosas (`.obsidian/`, cachés de build). También ponen `git.terminalAuthentication: false` para no forzar consola al autenticar.
 - **Si ves ventanas con título `…\Git\bin\git.exe` o `bin\sh.exe`**, fija en tu JSON (User o workspace) la ruta al git "limpio":
 
   ```json
@@ -259,10 +262,11 @@ Con el tiempo el vault crece y leer notas enteras se vuelve caro — sobre todo 
 agentes (cada lectura completa se multiplica × N). Tres herramientas lo mantienen sano (parte de
 [ADR-0018](../adr/0018-multi-agent-token-efficiency.md)):
 
-| Comando / tool                                               | Qué hace                                                                                                                                          |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `obsidian-memory-rag audit --vault "<VAULT>"`                | Lista notas sobre el presupuesto de tokens (~8k), `[[wikilinks]]` rotos y el tamaño de `SESSION_LOG.md`. También como tool MCP **`vault_audit`**. |
-| `obsidian-memory-rag rotate-log --vault "<VAULT>" --keep 12` | Archiva las secciones viejas de `SESSION_LOG.md` a `SESSION_LOG/archive.md`, dejando las 12 recientes. No-destructivo.                            |
+| Comando / tool                                               | Qué hace                                                                                                                                                                  |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `obsidian-memory-rag audit --vault "<VAULT>"`                | Lista notas sobre el presupuesto de tokens (~8k), `[[wikilinks]]` rotos y el tamaño de `SESSION_LOG.md`. También como tool MCP **`vault_audit`**.                         |
+| `obsidian-memory-rag rotate-log --vault "<VAULT>" --keep 12` | Archiva las secciones viejas de `SESSION_LOG.md` a `SESSION_LOG/archive.md`, dejando las 12 recientes. No-destructivo.                                                    |
+| **`vault_hybrid_search`** (hábito de búsqueda, tool MCP)     | La palanca diaria: devuelve la **sección relevante** en vez de la nota entera, así las lecturas siguen baratas según crece el vault. Úsala antes de una lectura completa. |
 
 > **Regla de oro del ahorro:** que el agente busque con `vault_hybrid_search` (devuelve **solo la
 > sección** relevante) en vez de leer notas enteras, y que las notas grandes (historial, logs)

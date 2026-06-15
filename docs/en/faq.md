@@ -36,7 +36,7 @@ Your memory may include client names, internal architectures, half-formed ideas,
 
 ### Can multiple machines write at the same time?
 
-Yes, with caveats. Sync uses `git pull --rebase`, which merges non-overlapping edits cleanly. If two machines edit **the same line** of `MEMORY.md` before the next sync runs, you get a git conflict to resolve by hand. This is rare because the agent **appends** rather than overwrites. Prefer **longer** sync intervals (the daemon batches every 45 s by default; scheduled-task guides default to 60 minutes) so you're not hammering the remote.
+Yes, with caveats. Sync uses `git pull --rebase`, which merges non-overlapping edits cleanly. If two machines edit **the same line** of `MEMORY.md` before the next sync runs, you get a git conflict to resolve by hand. This is rare because the agent **appends** rather than overwrites. Prefer **longer** sync intervals (the daemon batches every 45 s by default; if you use your own scheduler, prefer longer intervals) so you're not hammering the remote.
 
 ### Does it slow Cursor down?
 
@@ -44,13 +44,22 @@ Not noticeably for normal vault sizes. The MCP server runs **out of process**; c
 
 ### Can I search by meaning, not just exact keywords?
 
-Yes — that's what **`vault_hybrid_search`** does. It combines lexical BM25 search (FTS5, exact words) with **semantic** vector similarity (meaning), fusing the two with a method called RRF (Reciprocal Rank Fusion). So a query like _"the daemon that syncs git"_ finds the right note even without those exact words.
+Yes — that's what **`vault_hybrid_search`** does. It combines lexical BM25 search (FTS5, exact words) with **semantic** vector similarity (meaning), fusing the two with a method called RRF (Reciprocal Rank Fusion). So a query like _"the daemon that syncs git"_ finds the right note even without those exact words. If no semantic vectors are built yet, it degrades to pure BM25.
+
+```mermaid
+flowchart LR
+  Q[consulta / query] --> BM[BM25 / FTS5<br/>palabras exactas]
+  Q --> VEC[vector cosine<br/>significado / meaning]
+  BM --> RRF[Reciprocal Rank Fusion<br/>k=60]
+  VEC --> RRF
+  RRF --> HIT[mejor pasaje<br/>heading + sección]
+```
 
 > The default meaning engine needs nothing installed (it's lexical and works out of the box). For true synonym matching, install the `[semantic]` extra, set `OBSIDIAN_MEMORY_EMBEDDER=fastembed:<model>`, and rebuild the vectors with `vault_fts_index({ semantic: true })`. Design detail in ADR-0017.
 
 ### Does the hybrid search actually save tokens?
 
-For known projects, yes. Search returns the matching **chunk** (a heading + a few-hundred-character passage), not the whole note, so the agent usually answers **without** a follow-up full-file read. On a large note that's the difference between reading a passage (~hundreds of tokens) and an 8 KB file (~thousands). The fixed overhead is the session's tool descriptions plus the index injected at startup; one or two retrievals on real notes recover it. Numbers in `docs/benchmarks/retrieval.md`.
+For known projects, yes. Search returns the matching **chunk** (a heading + a few-hundred-character passage), not the whole note, so the agent usually answers **without** a follow-up full-file read. On a large note that's the difference between reading a passage (~hundreds of tokens) and an 8 KB file (~thousands). The fixed overhead is the session's tool descriptions plus the index injected at startup; one or two retrievals on real notes recover it. Measure it yourself with `obsidian-memory-rag bench --vault "<VAULT>"`; the design rationale lives in ADR-0014 and ADR-0017.
 
 ### Can I rename `MEMORY.md` or `SESSION_LOG.md`?
 
@@ -97,7 +106,7 @@ node packages/create-obsidian-memory/src/index.js \
   --non-interactive --vault "<path>" --with-hybrid --repo-root "<kit-clone>"
 ```
 
-Build the index with `obsidian-memory-rag index --vault <path> --semantic` (or the `vault_fts_index` MCP tool with `semantic: true`). From then on, `vault_fts_search` returns BM25 hits and `vault_hybrid_search` returns relevance-ranked BM25 + semantic passages. Smoke tests in `docs/testing/manual-checks.md`.
+Build the index with `obsidian-memory-rag index --vault <path> --semantic` (or the `vault_fts_index` MCP tool with `semantic: true`). From then on, `vault_fts_search` returns BM25 hits and `vault_hybrid_search` returns relevance-ranked BM25 + semantic passages. Verify it end-to-end with the "Verification" steps in [install](install.md) plus the `vault_audit` health check.
 
 ## Comparison with alternatives
 

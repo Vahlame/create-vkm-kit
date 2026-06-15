@@ -31,7 +31,7 @@ Todo lo de este capítulo vive en **`main`**: no hay rama separada para “v3”
 
 ## Camino de integración avanzada **sin** scripts del kit (orden recomendado)
 
-1. **Vault y git** — `npx @vahlame/create-obsidian-memory@next`, plantilla [`../../examples/`](../../examples/).
+1. **Vault y git** — `npx @vahlame/create-obsidian-memory`, plantilla [`../../examples/`](../../examples/).
 2. **MCP por defecto** — **stdio** [`../../config/mcp/basic-memory.json`](../../config/mcp/basic-memory.json) + `BASIC_MEMORY_HOME`.
 3. **Reglas del agente** — [`../es/instalacion.md`](../es/instalacion.md) (User Rules) + [`../../AGENTS.md`](../../AGENTS.md) para quien trabaja en el repo.
 4. **Sincronización git del vault** — [`../../cmd/obsidian-memoryd`](../../cmd/obsidian-memoryd) (`watch`) o **git manual**; [`../es/sincronizacion.md`](../es/sincronizacion.md).

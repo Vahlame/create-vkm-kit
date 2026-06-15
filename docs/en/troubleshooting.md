@@ -61,10 +61,10 @@ write an invisible marker called a **UTF-8 BOM** at the very start of
 `mcp.json`. The JSON reader (`JSON.parse`) rejects that leading byte even though
 everything else is valid.
 
-**Fix.** As of `@vahlame/create-obsidian-memory` **2.0.0-beta.2** (current:
-**beta.3**), the initializer strips a leading BOM automatically before merging.
-Re-run the non-interactive merge, or remove the BOM by hand: re-save the file as
-**UTF-8 without BOM**, or delete the first invisible character at the top.
+**Fix.** The initializer (v3.0.0+) strips a leading UTF-8 BOM automatically
+before merging. Re-run the non-interactive merge, or remove the BOM by hand:
+re-save the file as **UTF-8 without BOM**, or delete the first invisible
+character at the top.
 
 ### Cursor MCP panel: `basic-memory` shows red / "not available"
 

@@ -28,7 +28,7 @@ v1 used the Node package `@smith-and-web/obsidian-mcp-server` with **SSE** on `h
 
 ## v1 “final checklist” vs v2
 
-See **`docs/migration/v1-prompt-closure.md`** for how the old Windows ultra-prompt deliverables map to v2 tooling in this public repo.
+See [**`v1-prompt-closure.md`**](./v1-prompt-closure.md) for how the old Windows ultra-prompt deliverables map to v2 tooling in this public repo.
 
 ## Validation
 

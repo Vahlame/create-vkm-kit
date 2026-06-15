@@ -23,8 +23,11 @@ flowchart LR
     B -- No, debounce<br/>elapsed --> C[git add -A]
     C --> D[git commit]
     D --> E[git pull --rebase]
-    E --> F[git push]
-    F --> G[Wait for the<br/>next change]
+    E --> H{Conflict?}
+    H -- Yes --> I[rebase --abort<br/>+ warn in log<br/>nothing broken]
+    I --> G[Wait for the<br/>next change]
+    H -- No --> F[git push<br/>retry 3× with back-off]
+    F --> G
     G --> A
 ```
 
@@ -183,7 +186,7 @@ This section gathers the Windows-specific bits. If you're on Linux or macOS, you
 On Windows, certain processes pop a black console window that flickers and steals focus. The usual culprits are **the IDE** (Git and extensions), **MCP servers** (`node`, `uvx`, `npx`), and **scheduled tasks** that launch `powershell.exe` or `cmd.exe`. To get close to "zero flashes" in normal vault use:
 
 - **Always open the right folder.** The repo's settings live in **`.vscode/settings.json`** and only apply if you open the **root directory** of the repo or vault (**File → Open Folder**), not a loose file. After updating the repo, run **Developer: Reload Window** once.
-- **Settings already included.** At the root (and in the vault, via the initializer or `examples/.vscode/`) the kit disables aggressive Git polling, some SCM decoration, and excludes noisy paths from the watcher (`.obsidian/`, build caches). It also sets `git.terminalAuthentication: false` so Git doesn't force a console when authenticating.
+- **Settings already included.** The SCM settings ship at the repo-root `.vscode/settings.json` and the initializer writes the same defaults into `<vault>/.vscode/settings.json`. They disable aggressive Git polling, some SCM decoration, and exclude noisy paths from the watcher (`.obsidian/`, build caches). They also set `git.terminalAuthentication: false` so Git doesn't force a console when authenticating.
 - **If you see windows titled `…\Git\bin\git.exe` or `bin\sh.exe`**, pin the path to the "clean" git in your JSON (User or workspace):
 
   ```json
@@ -259,10 +262,11 @@ Over time the vault grows and reading whole notes gets expensive — especially 
 full read is multiplied × N agents). Three tools keep it healthy (part of
 [ADR-0018](../adr/0018-multi-agent-token-efficiency.md)):
 
-| Command / tool                                               | What it does                                                                                                                     |
-| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| `obsidian-memory-rag audit --vault "<VAULT>"`                | Lists notes over the token budget (~8k), broken `[[wikilinks]]`, and `SESSION_LOG.md` size. Also the **`vault_audit`** MCP tool. |
-| `obsidian-memory-rag rotate-log --vault "<VAULT>" --keep 12` | Archives old `SESSION_LOG.md` sections to `SESSION_LOG/archive.md`, keeping the most recent 12. Non-destructive.                 |
+| Command / tool                                               | What it does                                                                                                                                       |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `obsidian-memory-rag audit --vault "<VAULT>"`                | Lists notes over the token budget (~8k), broken `[[wikilinks]]`, and `SESSION_LOG.md` size. Also the **`vault_audit`** MCP tool.                   |
+| `obsidian-memory-rag rotate-log --vault "<VAULT>" --keep 12` | Archives old `SESSION_LOG.md` sections to `SESSION_LOG/archive.md`, keeping the most recent 12. Non-destructive.                                   |
+| **`vault_hybrid_search`** (search habit, MCP tool)           | The everyday lever: returns the **matching section** instead of the whole note, so reads stay cheap as the vault grows. Use it before a full read. |
 
 > **Golden rule for savings:** let the agent search with `vault_hybrid_search` (returns **only the
 > relevant section**) instead of reading whole notes, and keep large notes (history, logs) as

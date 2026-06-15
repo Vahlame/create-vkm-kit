@@ -45,7 +45,7 @@ Everything happens **locally**. There's no third-party server in the middle.
    ┌─────────────┐      ┌──────────────┐      ┌──────────────────────┐
    │  1. VAULT   │      │   2. MCP     │      │   3. USER RULES      │
    │  folder of  │ <==> │  the bridge  │ <==  │  the "how to use"    │
-   │  .md notes  │      │ (read/write) │      │  (Cursor only)       │
+   │  .md notes  │      │ (read/write) │      │  (usage rules)       │
    └─────────────┘      └──────────────┘      └──────────────────────┘
      WHAT is saved        HOW it's accessed      WHEN to use it
 ```
@@ -75,10 +75,11 @@ without it, the AI doesn't know where to point.
 > ⚠️ The MCP **doesn't "think"**. It only opens, saves and searches files. The model still decides what
 > to ask for; the User Rules help it not skip steps.
 
-### 3. The User Rules — the "how to use" (Cursor only)
+### 3. The User Rules — the "how to use" (Cursor) / `CLAUDE.md` (Claude Code)
 
-They are a piece of text you paste into Cursor's settings. They **do not** replace the MCP (without an
-MCP, the rules can't read the disk). They serve two purposes:
+They are a piece of text you paste into **Cursor → Settings → Rules → User Rules** — or, in
+**Claude Code**, into `~/.claude/CLAUDE.md` (loaded automatically every session). They **do not**
+replace the MCP (without an MCP, the rules can't read the disk). They serve two purposes:
 
 1. **Reading rhythm:** "start with `START_HERE`, then `MEMORY`, then the current project".
 2. **Hygiene:** "don't save secrets", "log the wrap-ups in `SESSION_LOG`".
@@ -129,6 +130,36 @@ with two tools:
 
 It's not required to get started. It's a layer of **convenience, better recall and token savings**,
 not the core. Technical detail: [ADR-0017](../adr/0017-hybrid-query-embeddings.md).
+
+### Why this saves tokens (and scales to many agents)
+
+A whole-note read pours the **entire** note into the model's context. Passage-first retrieval
+returns just the **matching section** — usually a few hundred tokens instead of tens of thousands:
+
+```mermaid
+flowchart TB
+  subgraph before["❌ Whole-note read (expensive)"]
+    direction LR
+    A1[agent] --> A2["read_note(PROJECTS/X.md)"] --> A3["whole note<br/>~27,000 tokens"]
+  end
+  subgraph after["✅ Passage-first (cheap)"]
+    direction LR
+    B1[agent] --> B2["vault_hybrid_search(query)"] --> B3["matching section<br/>~150 tokens"]
+  end
+```
+
+This matters most with **many agents**: if you fan out N sub-agents and each reads whole notes, the
+cost multiplies by N. The rule (ADR-0018): the **orchestrator** fetches and distills context **once**
+and passes the excerpt to each sub-agent; sub-agents only `vault_hybrid_search` their subtask and
+never re-read the whole vault.
+
+```mermaid
+flowchart LR
+  O["orchestrator<br/>distills context once"] --> S1[sub-agent A]
+  O --> S2[sub-agent B]
+  O --> S3[sub-agent C]
+  S1 & S2 & S3 -. only a hybrid_search,<br/>no whole-note reads .-> V[("vault")]
+```
 
 ---
 

@@ -45,7 +45,7 @@ Todo ocurre **en local**. No hay servidor de terceros en medio.
    ┌─────────────┐      ┌──────────────┐      ┌──────────────────────┐
    │  1. VAULT   │      │   2. MCP     │      │   3. USER RULES      │
    │  carpeta de │ <==> │  el puente   │ <==  │  el "modo de uso"    │
-   │  notas .md  │      │ (lee/escribe)│      │  (solo en Cursor)    │
+   │  notas .md  │      │ (lee/escribe)│      │  (reglas de uso)     │
    └─────────────┘      └──────────────┘      └──────────────────────┘
      QUÉ se guarda         CÓMO se accede        CUÁNDO usarlo
 ```
@@ -75,10 +75,11 @@ sin eso, la IA no sabe a dónde apuntar.
 > ⚠️ El MCP **no "piensa"**. Solo abre, guarda y busca archivos. El modelo sigue decidiendo qué
 > pedir; las User Rules ayudan a que no se salte pasos.
 
-### 3. Las User Rules — el "modo de uso" (solo en Cursor)
+### 3. Las User Rules — el "modo de uso" (Cursor) / `CLAUDE.md` (Claude Code)
 
-Son un texto que pegas en la configuración de Cursor. **No** sustituyen al MCP (sin MCP, las
-reglas no pueden leer el disco). Sirven para dos cosas:
+Son un texto que pegas en **Cursor → Settings → Rules → User Rules** — o, en **Claude Code**, en
+`~/.claude/CLAUDE.md` (se carga en cada sesión). **No** sustituyen al MCP (sin MCP, las reglas no
+pueden leer el disco). Sirven para dos cosas:
 
 1. **Ritmo de lectura:** "empieza por `START_HERE`, luego `MEMORY`, luego el proyecto actual".
 2. **Higiene:** "no guardes secretos", "anota los cierres en `SESSION_LOG`".
@@ -130,6 +131,37 @@ con dos herramientas:
 
 No es obligatorio para empezar. Es una capa de **comodidad, mejor recall y ahorro de tokens**,
 no el núcleo. Detalle técnico: [ADR-0017](../adr/0017-hybrid-query-embeddings.md).
+
+### Por qué esto ahorra tokens (y escala a muchos agentes)
+
+Leer una nota entera vuelca **toda** la nota al contexto del modelo. La búsqueda passage-first
+devuelve solo la **sección que coincide** — normalmente unos cientos de tokens en vez de decenas
+de miles:
+
+```mermaid
+flowchart TB
+  subgraph antes["❌ Leer la nota entera (caro)"]
+    direction LR
+    A1[agente] --> A2["read_note(PROJECTS/X.md)"] --> A3["nota completa<br/>~27.000 tokens"]
+  end
+  subgraph ahora["✅ Passage-first (barato)"]
+    direction LR
+    B1[agente] --> B2["vault_hybrid_search(consulta)"] --> B3["sección que coincide<br/>~150 tokens"]
+  end
+```
+
+Importa sobre todo con **muchos agentes**: si lanzas N sub-agentes y cada uno lee notas enteras,
+el coste se multiplica por N. La regla ([ADR-0018](../adr/0018-multi-agent-token-efficiency.md)): el
+**orquestador** trae y destila el contexto **una vez** y pasa el extracto a cada sub-agente; los
+sub-agentes solo hacen `vault_hybrid_search` de su subtarea y nunca releen el vault entero.
+
+```mermaid
+flowchart LR
+  O["orquestador<br/>destila el contexto 1×"] --> S1[sub-agente A]
+  O --> S2[sub-agente B]
+  O --> S3[sub-agente C]
+  S1 & S2 & S3 -. solo un hybrid_search,<br/>sin leer notas enteras .-> V[("vault")]
+```
 
 ---
 

@@ -65,7 +65,7 @@
   <rect x="384" y="244" width="192" height="48" rx="9" class="pill"/>
   <rect x="384" y="244" width="5" height="48" rx="2.5" fill="var(--mcp)"/>
   <text x="400" y="262" class="mono">obsidian-memory-hybrid</text>
-  <text x="400" y="280" class="mut">búsqueda léxica + semántica</text>
+  <text x="400" y="280" class="mut">léxica + semántica + audit</text>
 
   <!-- Vault card -->
   <rect x="688" y="150" width="232" height="150" rx="12" class="card"/>
@@ -87,7 +87,7 @@
   <!-- FTS index attached to MCP -->
   <line x1="480" y1="312" x2="480" y2="340" class="flow"/>
   <rect x="364" y="340" width="232" height="34" rx="9" class="pill"/>
-  <text x="480" y="361" class="mut" text-anchor="middle">índice FTS5 · .obsidian-memory-rag/fts.sqlite</text>
+  <text x="480" y="361" class="mut" text-anchor="middle">índice FTS5 + vectores semánticos (local)</text>
 
   <!-- ============ BOTTOM BAND: sync path ============ -->
 

@@ -50,6 +50,11 @@ sin romper otras entradas, hace backup):
 npx @vahlame/create-obsidian-memory -- --non-interactive --vault "<RUTA_ABSOLUTA_AL_VAULT>"
 ```
 
+> 🤖 **Claude Code (PC nuevo · fresh PC):** registra el MCP vía `claude mcp add` y construye el
+> índice en el mismo comando — añade `--ide cursor,claude --with-hybrid --build-index`. Guía
+> completa: [🇪🇸 instalar en PC nueva](docs/es/instalar-pc-nueva.md) ·
+> [🇬🇧 fresh-PC install](docs/en/install-fresh-pc.md).
+
 Luego pega las **User Rules** y verifica. Los pasos completos (y la verificación) están en la guía:
 
 <table>
@@ -75,12 +80,12 @@ or let [**an agent install it**](docs/en/install-with-agent.md)
 
 ## Qué incluye · What's inside
 
-| Pieza · Piece                                                          | Lenguaje | Rol                                                                      |
-| ---------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------ |
-| [`packages/create-obsidian-memory/`](packages/create-obsidian-memory/) | Node     | Instalador `npx`: fusiona el MCP y crea el vault.                        |
-| [`packages/obsidian-memory-mcp/`](packages/obsidian-memory-mcp/)       | Node     | MCP "híbrido": tools del vault + búsqueda léxica/semántica.              |
-| [`packages/obsidian-memory-rag/`](packages/obsidian-memory-rag/)       | Python   | Motor de búsqueda FTS5/BM25 + vectorial (cero dependencias por defecto). |
-| [`cmd/obsidian-memoryd/`](cmd/obsidian-memoryd/)                       | Go       | Daemon opcional: vigila el vault y sincroniza git.                       |
+| Pieza · Piece                                                          | Lenguaje | Rol                                                                                                            |
+| ---------------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------- |
+| [`packages/create-obsidian-memory/`](packages/create-obsidian-memory/) | Node     | Instalador `npx` **(npm)**: fusiona el MCP y crea el vault.                                                    |
+| [`packages/obsidian-memory-mcp/`](packages/obsidian-memory-mcp/)       | Node     | MCP "híbrido" **(privado; corre desde el clon)**: tools del vault + búsqueda léxica/semántica.                 |
+| [`packages/obsidian-memory-rag/`](packages/obsidian-memory-rag/)       | Python   | Motor de búsqueda FTS5/BM25 + vectorial **(`pip install -e` desde el código)**; cero dependencias por defecto. |
+| [`cmd/obsidian-memoryd/`](cmd/obsidian-memoryd/)                       | Go       | Daemon opcional: vigila el vault y sincroniza git.                                                             |
 
 Mapa técnico completo y diagramas de flujo: [`ARCHITECTURE.md`](ARCHITECTURE.md). El _porqué_ de
 cada decisión: [`docs/adr/`](docs/adr/).

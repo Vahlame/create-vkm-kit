@@ -6,6 +6,10 @@ This file is an **installer for an agent**: you paste it into a Cursor chat (or 
 and the agent runs all the steps for you, reporting each one. It's the "hands-free" alternative
 to the [manual installation](install.md).
 
+**Using Claude Code?** The block below targets **Cursor** (it writes `mcp.json`, which Claude
+Code does not read). For Claude Code, follow [`install-fresh-pc.md`](install-fresh-pc.md) **Path A**
+instead — its agent block uses `--ide claude` to register the servers via `claude mcp add`.
+
 > ## ⚠️ Before pasting this — verify the source
 >
 > This file **authorizes an agent to act as an installer with your permissions** (it touches
@@ -114,7 +118,16 @@ node "<KIT_ROOT>/packages/create-obsidian-memory/src/index.js" \
   --non-interactive --vault "<VAULT>" --with-hybrid --repo-root "<KIT_ROOT>"
 ```
 
-Restart Cursor. Build the index with `vault_fts_index` (use `semantic: true` for the
+On **Claude Code**, add `--ide claude` (registers via `claude mcp add`, not `mcp.json`) and
+`--build-index` to build the index in the same command:
+
+```bash
+pip install -e "<KIT_ROOT>/packages/obsidian-memory-rag"
+node "<KIT_ROOT>/packages/create-obsidian-memory/src/index.js" \
+  --non-interactive --vault "<VAULT>" --ide claude --with-hybrid --build-index --repo-root "<KIT_ROOT>"
+```
+
+Restart the IDE. Build the index with `vault_fts_index` (use `semantic: true` for the
 vectors) and search with `vault_hybrid_search`.
 
 ## Final summary

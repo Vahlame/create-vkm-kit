@@ -7,6 +7,7 @@
   "scripts": {
     "sync-agents": "npx --yes tsx scripts/sync-agents.ts",
     "sync-agents:check": "npx --yes tsx scripts/sync-agents.ts --check",
+    "linkcheck": "node scripts/linkcheck.mjs .",
     "eval:adherence": "node evals/run-adherence-ci.mjs",
     "test": "npm run test --workspaces --if-present"
   },
