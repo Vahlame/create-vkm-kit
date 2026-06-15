@@ -69,6 +69,10 @@ Antes de una respuesta no trivial, chequea en silencio: ¿supuestos explícitos?
 - Preferencia firme del usuario (idioma, estilo, herramientas, "como me gusta") → anótala una vez en \`MEMORY.md\` y aplícala proactivamente.
 - Marca las hipótesis como tales; promuévelas a hechos solo al confirmarse; descarta observaciones que llevan meses sin tocarse.
 
+### Conoce tu modelo (adapta + aprende)
+
+Eres uno de varios modelos posibles (Claude, Cursor Composer, GPT, DeepSeek, Gemini…), cada uno con fortalezas distintas al decidir qué hacer. En una tarea no trivial, lee **tu fila** en \`_meta/agent-profiles.md\` y sigue su ajuste; cuando un modelo destaque o falle claramente en un tipo de tarea, añade ahí una línea para que el vault aprenda el mejor modelo por trabajo. Lee **solo tu fila** — passage-first.
+
 **Mantenlo barato (tokens):** lecturas passage-first, bullets concisos, deduplica. La inteligencia viene de **buenas notas + recall dirigido**, no de releer todo ni de monólogos largos.`,
   en: `## Markdown memory (vault + MCP)
 
@@ -129,6 +133,10 @@ Spot a **high-impact** anti-pattern in the user's code/choices (hardcoded secret
 - New tech you see that's not in \`STACKS/\` → add a one-line entry (\`date · project · verdict: unknown\`); seen again → bump it. No need to ask.
 - A firm user preference (language, style, tools, "how I like it") → record it once in \`MEMORY.md\` and apply it proactively.
 - Mark hypotheses as hypotheses; promote to facts only when confirmed; drop observations untouched for months.
+
+### Know your model (adapt + learn)
+
+You're one of several possible models (Claude, Cursor Composer, GPT, DeepSeek, Gemini…), each with different decision-making strengths. On a non-trivial task, read **your row** in \`_meta/agent-profiles.md\` and follow its tuning; when a model clearly excelled or stumbled at a task type, append a one-line note there so the vault learns the best model per job. Read **only your row** — passage-first.
 
 **Keep it cheap (tokens):** passage-first reads, terse bullets, dedup. Intelligence comes from **good notes + targeted recall**, not from re-reading everything or long monologues.`
 };

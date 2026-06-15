@@ -36,6 +36,10 @@ test("non-interactive defaults the vault to ~/Documents/obsidian-memory-vault an
     "PRACTICES scaffolded (evolving memory)"
   );
   assert.ok(fs.existsSync(path.join(vault, "STACKS")), "STACKS scaffolded (evolving memory)");
+  assert.ok(
+    fs.existsSync(path.join(vault, "_meta", "agent-profiles.md")),
+    "agent-profiles scaffolded (per-model adaptive layer)"
+  );
 });
 
 test("non-interactive accepts the vault as a positional arg and creates it if missing", () => {

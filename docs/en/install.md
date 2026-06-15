@@ -234,6 +234,10 @@ Spot a **high-impact** anti-pattern in the user's code or choices (hardcoded sec
 - A firm user preference (language, style, tools, "how I like it") → record it once in `MEMORY.md` and apply it proactively next time.
 - Mark hypotheses as hypotheses; promote to facts only when confirmed; drop observations untouched for months.
 
+### Know your model (adapt + learn)
+
+You're one of several possible models (Claude, Cursor Composer, GPT, DeepSeek, Gemini…), each with different decision-making strengths. On a non-trivial task, read **your row** in `_meta/agent-profiles.md` and follow its tuning; when a model clearly excelled or stumbled at a task type, append a one-line note there so the vault learns the best model per job. Read **only your row** — passage-first.
+
 ### Keep it cheap (tokens)
 
 Passage-first reads, terse bullets, dedup. The intelligence comes from **good notes + targeted recall**, not from re-reading everything or long internal monologues.
