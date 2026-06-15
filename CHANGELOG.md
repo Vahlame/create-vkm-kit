@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - **Package versions aligned to 3.0.0 and `@vkmikc/create-obsidian-memory` prepared for its first npm publish.** The package was never published, so the docs' `npx` command 404'd; docs now use the bare `npx @vkmikc/create-obsidian-memory` (latest) instead of `@next`. `obsidian-memory-mcp` stays `private` (run from the clone); `obsidian-memory-rag` stays `pip install -e` from source. Published under the maintainer's **personal npm scope `@vkmikc`** (the `@vahlame` org scope is not registered on npm), so the initializer was renamed from `@vahlame/create-obsidian-memory` to `@vkmikc/create-obsidian-memory`; the install command is now `npx @vkmikc/create-obsidian-memory` / `npm create @vkmikc/obsidian-memory`. The actual `npm publish` is a manual step (requires npm auth + OTP).
+- **Repository renamed `cursor-obsidian-memory-guide` → `obsidian-memory-kit`.** The kit is IDE-agnostic (Cursor, Claude Code, …); the old slug implied "Cursor only". GitHub redirects the old URLs, but all in-repo references were updated (clone URLs, source-verification blocks, badges, `package.json` `repository`/`homepage`, the Go module path `github.com/Vahlame/obsidian-memory-kit`). The local clone folder name is unaffected.
+- **Concurrent-edit guidance (Obsidian + the agent)** added to the sync guide: MCP writes are atomic (temp+rename), dynamic logs are append-only/agent-owned, and git rebase is the conflict backstop.
 
 ## [3.0.0] - 2026-06-14
 
@@ -178,7 +180,7 @@ Prior history was undocumented and is summarized only in git log. Highlights:
 - Addition of `AGENTS.md` and `manifest.json` for machine-readable discoverability.
 - Seven hardening fixes for real-world install gaps.
 
-[Unreleased]: https://github.com/Vahlame/cursor-obsidian-memory-guide/compare/v3.0.0...HEAD
-[3.0.0]: https://github.com/Vahlame/cursor-obsidian-memory-guide/compare/v1.1.0...v3.0.0
-[1.1.0]: https://github.com/Vahlame/cursor-obsidian-memory-guide/releases/tag/v1.1.0
-[1.0.0]: https://github.com/Vahlame/cursor-obsidian-memory-guide/releases/tag/v1.0.0
+[Unreleased]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v1.1.0...v3.0.0
+[1.1.0]: https://github.com/Vahlame/obsidian-memory-kit/releases/tag/v1.1.0
+[1.0.0]: https://github.com/Vahlame/obsidian-memory-kit/releases/tag/v1.0.0

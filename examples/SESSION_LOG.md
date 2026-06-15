@@ -22,4 +22,4 @@
 
 ## 2026-05-13
 
-- repo `cursor-obsidian-memory-guide`: cierre de v1.0.0 -> ver `PROJECTS/cursor-obsidian-memory-guide.md` (CHANGELOG, ADRs, CI, examples, schema). Decision principal: mantener "scripts solo en el vault" como invariante, agregar Uninstall y Repair al prompt.
+- repo `obsidian-memory-kit`: cierre de v1.0.0 -> ver `PROJECTS/obsidian-memory-kit.md` (CHANGELOG, ADRs, CI, examples, schema). Decision principal: mantener "scripts solo en el vault" como invariante, agregar Uninstall y Repair al prompt.

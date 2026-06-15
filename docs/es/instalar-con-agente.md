@@ -17,9 +17,9 @@ Code no lee). Para Claude Code, sigue mejor [`instalar-pc-nueva.md`](instalar-pc
 >
 > 1. **Léelo desde tu propio clon local**, no de un enlace al azar (Discord, X, un PR sin revisar).
 > 2. En la raíz del clon, corre `git remote get-url origin` y `git log -1 --format="%H %s"`:
->    `origin` debe ser `https://github.com/Vahlame/cursor-obsidian-memory-guide.git` (o tu fork
+>    `origin` debe ser `https://github.com/Vahlame/obsidian-memory-kit.git` (o tu fork
 >    legítimo) y el commit debe coincidir con la última release de
->    <https://github.com/Vahlame/cursor-obsidian-memory-guide/releases/latest>.
+>    <https://github.com/Vahlame/obsidian-memory-kit/releases/latest>.
 > 3. Si algo no cuadra, **no pegues nada** y abre un issue.
 
 ---

@@ -40,7 +40,7 @@ private notes repo URL (ask me if you don't have it).
    `git --version`. Install what's missing (Windows: `winget install OpenJS.NodeJS.LTS`,
    `winget install astral-sh.uv`, `winget install Python.Python.3.12`, `winget install Git.Git`;
    macOS: `brew install node uv python git`). Tell me and **reopen the terminal** after installing.
-2. **Clone the kit:** `git clone https://github.com/Vahlame/cursor-obsidian-memory-guide "<KIT>"`.
+2. **Clone the kit:** `git clone https://github.com/Vahlame/obsidian-memory-kit "<KIT>"`.
 3. **Clone the vault:** `git clone "<VAULT_GIT_URL>" "<VAULT>"` (ask me for the private URL).
 4. **Python backend + semantic:** `pip install -e "<KIT>/packages/obsidian-memory-rag[semantic]"`.
 5. **Register the MCP + build the index — ONE command.** The initializer runs both
@@ -76,7 +76,7 @@ winget install OpenJS.NodeJS.LTS astral-sh.uv Python.Python.3.12 Git.Git
 #    close and reopen the terminal to refresh PATH
 
 # 1-3) Clone kit + vault, install the semantic backend
-git clone https://github.com/Vahlame/cursor-obsidian-memory-guide "<KIT>"
+git clone https://github.com/Vahlame/obsidian-memory-kit "<KIT>"
 git clone "<VAULT_GIT_URL>" "<VAULT>"
 pip install -e "<KIT>/packages/obsidian-memory-rag[semantic]"
 

@@ -8,7 +8,7 @@ It configures the [`basic-memory`](https://github.com/basicmachines-co/basic-mem
 and/or **Claude Code**, points it at your vault, and can build the local search index — in one
 command.
 
-Part of the [cursor-obsidian-memory-guide](https://github.com/Vahlame/cursor-obsidian-memory-guide)
+Part of the [obsidian-memory-kit](https://github.com/Vahlame/obsidian-memory-kit)
 kit. Full docs (English + Spanish), architecture and ADRs live there.
 
 ## Quick start
@@ -47,7 +47,7 @@ it from the clone or pass `--repo-root <clone>`. The plain `basic-memory` path n
 | `--no-cursor-mcp`            | Skip writing `~/.cursor/mcp.json`.                                                              |
 | `--no-git-init`              | Skip `git init` when the vault has no `.git`.                                                   |
 | `--with-hybrid`              | Also wire `obsidian-memory-hybrid` (needs a kit clone; use `--repo-root` or cwd walk).          |
-| `--repo-root <path>`         | Root of the `cursor-obsidian-memory-guide` clone (hybrid bridge + Python source).               |
+| `--repo-root <path>`         | Root of the `obsidian-memory-kit` clone (hybrid bridge + Python source).                        |
 | `--semantic`                 | With `--with-hybrid`: neural embeddings (fastembed multilingual; needs the `[semantic]` extra). |
 | `--build-index`              | After wiring, build the local FTS (+ semantic) index (needs the Python backend).                |
 | `--with-gitleaks`            | Install a gitleaks pre-commit hook in `<vault>/.git/hooks/`.                                    |
@@ -65,4 +65,4 @@ it from the clone or pass `--repo-root <clone>`. The plain `basic-memory` path n
 
 ## License
 
-MIT © Vahlame. See the [repository](https://github.com/Vahlame/cursor-obsidian-memory-guide) for details.
+MIT © Vahlame. See the [repository](https://github.com/Vahlame/obsidian-memory-kit) for details.

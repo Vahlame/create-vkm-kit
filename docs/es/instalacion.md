@@ -254,7 +254,7 @@ node "<KIT_ROOT>/packages/create-obsidian-memory/src/index.js" \
   --with-hybrid --semantic --build-index --repo-root "<KIT_ROOT>"
 ```
 
-`<KIT_ROOT>` es la ruta absoluta a tu clon de `cursor-obsidian-memory-guide`. Reinicia Cursor;
+`<KIT_ROOT>` es la ruta absoluta a tu clon de `obsidian-memory-kit`. Reinicia Cursor;
 luego construye el índice con `vault_fts_index` (con `semantic: true` para los vectores) y busca
 con `vault_hybrid_search`. Comprobaciones detalladas: [verificación avanzada](#verificación-avanzada-opcional).
 

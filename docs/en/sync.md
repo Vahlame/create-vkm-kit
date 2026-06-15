@@ -99,6 +99,16 @@ The daemon runs the safe order `add → commit → pull --rebase → push`, with
 - The `push` **retries up to 3 times** with growing back-off, in case the remote bounces for a moment.
 - It runs `git` with `GIT_TERMINAL_PROMPT=0`, so if credentials are missing it fails fast instead of hanging on a password prompt no one will type.
 
+### Concurrent edits (Obsidian open while the agent writes)
+
+The MCP write tools (`vault_write_file`, `vault_edit_file`) write **atomically** (temp file + rename), so the agent can never leave a note half-written even if you have it open in Obsidian — you just see the file update under you. To keep a human and the agent from fighting over the _same_ note:
+
+- **Dynamic logs are append-only and agent-owned.** `SESSION_LOG.md` (and the `rotate-log` archive) are appended, not rewritten — let the agent own them.
+- **Edits are surgical, not full-file.** `vault_edit_file` replaces a unique passage, so edits to _different_ sections of the same note don't collide.
+- **Git is the backstop.** If you and the daemon commit overlapping changes, `pull --rebase` surfaces the conflict and auto-aborts (above) — nothing is lost or force-pushed; you resolve it normally.
+
+Rule of thumb: keep notes **you** hand-edit heavily and notes the **agent** maintains in separate files/folders, and concurrency stops being a concern.
+
 ### Health check: `doctor`
 
 Since the daemon runs hidden, you need a way to ask it "are you still alive and pushing?". That's `doctor`:

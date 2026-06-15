@@ -99,6 +99,16 @@ El daemon ejecuta el orden seguro `add → commit → pull --rebase → push`, c
 - El `push` **reintenta hasta 3 veces** con espera creciente, por si el remoto rebota un instante.
 - Lanza `git` con `GIT_TERMINAL_PROMPT=0`, así que si faltan credenciales falla rápido en vez de quedarse colgado esperando una contraseña que nadie va a teclear.
 
+### Ediciones simultáneas (Obsidian abierto mientras el agente escribe)
+
+Las tools MCP de escritura (`vault_write_file`, `vault_edit_file`) escriben de forma **atómica** (archivo temporal + rename), así que el agente nunca deja una nota a medio escribir aunque la tengas abierta en Obsidian — solo verás el archivo actualizarse. Para que humano y agente no peleen por la _misma_ nota:
+
+- **Los logs dinámicos son append-only y los gestiona el agente.** `SESSION_LOG.md` (y el archivo de `rotate-log`) se agregan, no se reescriben — deja que el agente sea su dueño.
+- **Las ediciones son quirúrgicas, no de archivo entero.** `vault_edit_file` reemplaza un pasaje único, así que ediciones a _secciones distintas_ de la misma nota no chocan.
+- **Git es la red de seguridad.** Si tú y el daemon hacéis commits que se solapan, `pull --rebase` saca el conflicto y aborta solo (arriba) — no se pierde nada ni se fuerza push; lo resuelves normal.
+
+Regla práctica: mantén en archivos/carpetas separados las notas que **tú** editas mucho a mano y las que mantiene el **agente**, y la concurrencia deja de ser un problema.
+
 ### Comprobar salud: `doctor`
 
 Como el daemon corre oculto, necesitas una forma de preguntarle "¿sigues vivo y empujando?". Eso es `doctor`:

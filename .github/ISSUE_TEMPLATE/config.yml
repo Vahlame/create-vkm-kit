@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Question or discussion
-    url: https://github.com/Vahlame/cursor-obsidian-memory-guide/discussions
+    url: https://github.com/Vahlame/obsidian-memory-kit/discussions
     about: For "how do I...?" and showcase posts.
   - name: Security issue
-    url: https://github.com/Vahlame/cursor-obsidian-memory-guide/security/advisories/new
+    url: https://github.com/Vahlame/obsidian-memory-kit/security/advisories/new
     about: Report a vulnerability privately. Do not open a public issue.

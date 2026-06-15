@@ -1,4 +1,4 @@
-module github.com/Vahlame/cursor-obsidian-memory-guide
+module github.com/Vahlame/obsidian-memory-kit
 
 go 1.22
 

@@ -1,5 +1,5 @@
 schemaVersion = 1
-name = "cursor-obsidian-memory-guide"
+name = "obsidian-memory-kit"
 title = "Obsidian-style agent memory (cross-platform)"
 version = "3.0.0"
 primaryAgentFile = "AGENTS.md"
@@ -9,7 +9,7 @@ vaultEnvVar = "BASIC_MEMORY_HOME"
 
 [daemon]
 binary = "obsidian-memoryd"
-module = "github.com/Vahlame/cursor-obsidian-memory-guide/cmd/obsidian-memoryd"
+module = "github.com/Vahlame/obsidian-memory-kit/cmd/obsidian-memoryd"
 
 [topics]
 tags = [
