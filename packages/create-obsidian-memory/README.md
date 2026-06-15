@@ -1,4 +1,4 @@
-# @vahlame/create-obsidian-memory
+# @vkmikc/create-obsidian-memory
 
 Interactive initializer for **Obsidian-style, file-based agent memory** — a Markdown vault your
 AI coding agent reads and writes across sessions, wired to your IDE over **MCP**.
@@ -15,9 +15,9 @@ kit. Full docs (English + Spanish), architecture and ADRs live there.
 
 ```bash
 # Interactive (recommended the first time)
-npm create @vahlame/obsidian-memory@latest
+npm create @vkmikc/obsidian-memory@latest
 # or
-npx @vahlame/create-obsidian-memory@latest
+npx @vkmikc/create-obsidian-memory@latest
 ```
 
 The wizard asks for your vault path and which IDE(s) to wire, then writes the MCP config and an

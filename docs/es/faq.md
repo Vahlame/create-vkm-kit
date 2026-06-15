@@ -95,7 +95,7 @@ Sí. Invítalo al repositorio privado. Ejecuta `create-obsidian-memory` para fus
 
 ### ¿Cómo actualizo?
 
-`git pull` de este repo para docs y herramientas; sube la versión de **`@vahlame/create-obsidian-memory`** si usas el inicializador; refresca los pins de MCP si el `CHANGELOG.md` / `SECURITY.md` lo indican. Puedes volver a correr `create-obsidian-memory --non-interactive --vault "<ruta>"` para re-fusionar una config limpia. Tu vault sigue separado.
+`git pull` de este repo para docs y herramientas; sube la versión de **`@vkmikc/create-obsidian-memory`** si usas el inicializador; refresca los pins de MCP si el `CHANGELOG.md` / `SECURITY.md` lo indican. Puedes volver a correr `create-obsidian-memory --non-interactive --vault "<ruta>"` para re-fusionar una config limpia. Tu vault sigue separado.
 
 ### Vault grande: ¿algo más allá de la búsqueda de `basic-memory`?
 
