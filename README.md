@@ -48,7 +48,7 @@ otras entradas, hace backup). Sin parámetros = asistente interactivo; con `-y` 
 
 ```bash
 npx @vkmikc/create-obsidian-memory                 # asistente interactivo
-npx @vkmikc/create-obsidian-memory -y              # sin preguntas → ~/Documents/cursor-memory-vault
+npx @vkmikc/create-obsidian-memory -y              # sin preguntas → ~/Documents/obsidian-memory-vault
 npx @vkmikc/create-obsidian-memory "<RUTA>" -y     # sin preguntas, en la ruta que elijas
 ```
 

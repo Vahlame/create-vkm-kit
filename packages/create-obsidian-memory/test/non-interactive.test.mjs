@@ -20,7 +20,7 @@ test("non-interactive --dry-run exits 0 and prints dry-run", () => {
   assert.match(r.stdout, /\[dry-run\]/);
 });
 
-test("non-interactive defaults the vault to ~/Documents/cursor-memory-vault and creates it", () => {
+test("non-interactive defaults the vault to ~/Documents/obsidian-memory-vault and creates it", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-def-"));
   const r = spawnSync(
     process.execPath,
@@ -28,7 +28,7 @@ test("non-interactive defaults the vault to ~/Documents/cursor-memory-vault and 
     { encoding: "utf8", env: { ...process.env, USERPROFILE: home, HOME: home } }
   );
   assert.equal(r.status, 0, r.stderr + r.stdout);
-  const vault = path.join(home, "Documents", "cursor-memory-vault");
+  const vault = path.join(home, "Documents", "obsidian-memory-vault");
   assert.ok(fs.existsSync(path.join(vault, ".obsidian")), "default vault created");
   assert.ok(fs.existsSync(path.join(vault, "START_HERE.md")), "starter notes scaffolded");
 });
