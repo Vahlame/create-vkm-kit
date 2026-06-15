@@ -4,9 +4,9 @@ Interactive initializer for **Obsidian-style, file-based agent memory** — a Ma
 AI coding agent reads and writes across sessions, wired to your IDE over **MCP**.
 
 It configures the [`basic-memory`](https://github.com/basicmachines-co/basic-memory) MCP server
-(and, optionally, the `obsidian-memory-hybrid` BM25 + semantic retrieval sidecar) for **Cursor**
-and/or **Claude Code**, points it at your vault, and can build the local search index — in one
-command.
+(and, optionally, the `obsidian-memory-hybrid` **BM25 + semantic + graph-aware** retrieval sidecar)
+for **Cursor** and/or **Claude Code**, points it at your vault, and can build the local search
+index — in one command.
 
 Part of the [obsidian-memory-kit](https://github.com/Vahlame/obsidian-memory-kit)
 kit. Full docs (English + Spanish), architecture and ADRs live there.
@@ -79,6 +79,7 @@ It writes an **idempotent marked block** (`<!-- obsidian-memory:start --> … <!
 Beyond wiring the MCP, the kit installs a **memory protocol** (the rules block above) and scaffolds a vault designed to get smarter over time while staying token-cheap:
 
 - **Passage-first recall** — the agent pulls the matching _section_ of a note (`vault_hybrid_search`), not the whole file, and checks the vault _before answering_ when a task continues prior work or names a known project/person/tool.
+- **Graph-aware recall + autocomplete (v3.5)** — `vault_hybrid_search` can follow your `[[wikilinks]]` (opt-in `graph: true`), so a note linked from a strong hit surfaces even when its own words barely match; `vault_complete` resolves a prefix to the titles / filenames / `#tags` that exist. See [how it works](https://github.com/Vahlame/obsidian-memory-kit/blob/main/docs/en/how-it-works.md#the-retrieval-stack-at-a-glance-old--new).
 - **Self-check** — before non-trivial answers it sanity-checks its own assumptions and edge cases (scaled to the task, internal — no padding).
 - **Coach, don't impose** — flags high-impact anti-patterns in your code as a _question_ and logs them to `PRACTICES/observations.md`; promotes to `confirmed-{good,bad}.md` only when you confirm.
 - **Evolving memory** — records new tech in `STACKS/`, firm preferences in `MEMORY.md`, hypotheses → facts.

@@ -134,6 +134,32 @@ No es obligatorio para empezar. Es una capa de **comodidad, mejor recall y ahorr
 no el núcleo. Detalle técnico: [ADR-0017](../adr/0017-hybrid-query-embeddings.md) (consulta híbrida) y
 [ADR-0019](../adr/0019-graph-aware-retrieval.md) (recall por grafo + autocompletado).
 
+### El stack de recuperación de un vistazo (viejo + nuevo)
+
+La misma pregunta la responden **tres rankers a la vez** y luego se **fusionan** — ninguno gana por sí solo, y eso mantiene los resultados equilibrados. Léxico y semántico son las capas originales; el ranker de **grafo** es nuevo en 3.5 y es opt-in:
+
+```mermaid
+flowchart LR
+  Q["tu pregunta"] --> L["BM25 léxico<br/>palabras exactas"]
+  Q --> S["vector semántico<br/>por significado"]
+  Q --> G["saltos por enlaces<br/>opt-in · nuevo en 3.5"]
+  L --> F["fusión RRF<br/>(por rango, no scores crudos)"]
+  S --> F
+  G --> F
+  F --> P["sección que coincide<br/>(passage-first)"]
+```
+
+**Qué añade el paso de grafo.** Una nota que apenas coincide en palabras puede ser la más relevante si un hit fuerte la enlaza. El grafo sigue esos `[[wikilinks]]` y la nota-compañera aflora igual:
+
+```mermaid
+flowchart LR
+  Q["consulta: errores de SQLite<br/>en la app de inventario"] --> H["PROJECTS/inv.md<br/>hit fuerte por texto"]
+  H -. "enlaza a" .-> N["STACKS/sqlite.md<br/>coincidencia débil"]
+  N --> R["traída a resultados<br/>por el enlace, no las palabras"]
+```
+
+(`vault_complete` es el hermano pequeño: escribes un prefijo y obtienes los títulos / nombres / `#tags` que existen de verdad — una búsqueda en Trie, sin search.)
+
 ### Por qué esto ahorra tokens (y escala a muchos agentes)
 
 Leer una nota entera vuelca **toda** la nota al contexto del modelo. La búsqueda passage-first

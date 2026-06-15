@@ -133,6 +133,32 @@ It's not required to get started. It's a layer of **convenience, better recall a
 not the core. Technical detail: [ADR-0017](../adr/0017-hybrid-query-embeddings.md) (hybrid query) and
 [ADR-0019](../adr/0019-graph-aware-retrieval.md) (graph-aware recall + autocomplete).
 
+### The retrieval stack at a glance (old + new)
+
+The same question is answered by **three rankers at once**, then **fused** — none wins outright, which is what keeps results balanced. Lexical and semantic are the original layers; the **graph** ranker is new in 3.5 and is opt-in:
+
+```mermaid
+flowchart LR
+  Q["your question"] --> L["BM25 lexical<br/>exact words"]
+  Q --> S["vector semantic<br/>by meaning"]
+  Q --> G["graph link-hops<br/>opt-in · new in 3.5"]
+  L --> F["RRF fusion<br/>(rank, not raw scores)"]
+  S --> F
+  G --> F
+  F --> P["matching section<br/>(passage-first)"]
+```
+
+**What the graph step adds.** A note that barely matches the words can still be the most relevant one when a strong hit links to it. The graph follows those `[[wikilinks]]` so the companion note surfaces anyway:
+
+```mermaid
+flowchart LR
+  Q["query: SQLite errors<br/>in the inventory app"] --> H["PROJECTS/inv.md<br/>strong text hit"]
+  H -. "links to" .-> N["STACKS/sqlite.md<br/>weak text match"]
+  N --> R["pulled into results<br/>by the link, not the words"]
+```
+
+(`vault_complete` is the small sibling: type a prefix, get the titles / filenames / `#tags` that actually exist — a Trie lookup, no search needed.)
+
 ### Why this saves tokens (and scales to many agents)
 
 A whole-note read pours the **entire** note into the model's context. Passage-first retrieval

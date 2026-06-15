@@ -170,7 +170,7 @@ Rules still need the manual paste below (the IDE stores them outside any file).
 ### Available MCP
 
 - **`basic-memory`** (always): `read_note`, `write_note`, `edit_note`, `search_notes`, `build_context`, `recent_activity`. Paths relative to `BASIC_MEMORY_HOME`.
-- **`obsidian-memory-hybrid`** (if it's green): `vault_fts_search` (lexical/BM25), `vault_hybrid_search` (lexical + semantic; preferable for conceptual queries — returns the relevant section), `vault_fts_index` (accepts `semantic: true`), `vault_audit` (vault health: oversized notes, broken `[[wikilinks]]`, `SESSION_LOG` size), and `memory_extract_candidates` (wrap-up ritual).
+- **`obsidian-memory-hybrid`** (if it's green): `vault_fts_search` (lexical/BM25), `vault_hybrid_search` (lexical + semantic; preferable for conceptual queries — returns the relevant section; accepts `graph: true` to also follow `[[wikilinks]]`, ADR-0019), `vault_complete` (prefix autocomplete over titles / filenames / `#tags`), `vault_fts_index` (accepts `semantic: true`), `vault_audit` (vault health: oversized notes, broken `[[wikilinks]]`, `SESSION_LOG` size), and `memory_extract_candidates` (wrap-up ritual).
 - If **no** vault MCP responds, say so explicitly; don't claim to have persisted.
 
 ### Minimal startup (any task with vault context)

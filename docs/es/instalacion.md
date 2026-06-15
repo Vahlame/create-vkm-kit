@@ -171,7 +171,7 @@ cualquier archivo).
 ### MCP disponible
 
 - **`basic-memory`** (siempre): `read_note`, `write_note`, `edit_note`, `search_notes`, `build_context`, `recent_activity`. Rutas relativas a `BASIC_MEMORY_HOME`.
-- **`obsidian-memory-hybrid`** (si está en verde): `vault_fts_search` (léxico/BM25), `vault_hybrid_search` (léxico + semántico; preferible para consultas conceptuales — devuelve la sección relevante), `vault_fts_index` (acepta `semantic: true`), `vault_audit` (salud del vault: notas sobredimensionadas, `[[wikilinks]]` rotos, tamaño de `SESSION_LOG`), y `memory_extract_candidates` (ritual de cierre).
+- **`obsidian-memory-hybrid`** (si está en verde): `vault_fts_search` (léxico/BM25), `vault_hybrid_search` (léxico + semántico; preferible para consultas conceptuales — devuelve la sección relevante; acepta `graph: true` para seguir además los `[[wikilinks]]`, ADR-0019), `vault_complete` (autocompletado de prefijo sobre títulos / nombres / `#tags`), `vault_fts_index` (acepta `semantic: true`), `vault_audit` (salud del vault: notas sobredimensionadas, `[[wikilinks]]` rotos, tamaño de `SESSION_LOG`), y `memory_extract_candidates` (ritual de cierre).
 - Si **ningún** MCP del vault responde, dilo explícitamente; no afirmes haber persistido.
 
 ### Arranque mínimo (cualquier tarea con contexto del vault)
