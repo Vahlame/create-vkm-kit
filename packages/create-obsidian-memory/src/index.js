@@ -296,6 +296,59 @@ tags: [start]
   await fse.writeFile(path.join(vault, "PRACTICES", "observations.md"), practices.obs, "utf8");
   await fse.writeFile(path.join(vault, "PRACTICES", "confirmed-good.md"), practices.good, "utf8");
   await fse.writeFile(path.join(vault, "PRACTICES", "confirmed-bad.md"), practices.bad, "utf8");
+  // Per-model adaptive layer: the rules point here; the agent reads only its own row.
+  await fse.ensureDir(path.join(vault, "_meta"));
+  const profilesDoc =
+    lang === "en"
+      ? `# Agent profiles (which model, and what it's good at)
+
+This vault may be driven by different models, each with different strengths when deciding what to do.
+On a non-trivial task, read **your** row, follow its tuning, and **append a one-line observation** when
+a model clearly excelled or stumbled at a task type — over time this learns the best model per job.
+
+> Starting defaults — general, and they evolve. Correct them with real observations below.
+
+| Model | Decision-making strength | Lean on it for | Tune the memory |
+| --- | --- | --- | --- |
+| Claude Opus / Sonnet | Reliable instruction-following + tool use, structured multi-step | agentic refactors, careful reviews, self-critique | full self-check + coaching; long context OK but stay passage-first |
+| Cursor Composer | Fast in-IDE multi-file edits | big mechanical edits across the codebase | action-first; lean on STACKS/ patterns; shorter deliberation |
+| GPT (incl. reasoning models) | Planning + tool orchestration | decomposing fuzzy tasks, multi-tool flows | decompose explicitly; verify tool results before trusting them |
+| DeepSeek (V3 / R1) | Deep, cheap code/math reasoning | hard logic / algorithm problems | afford a deeper self-check on tricky logic; keep notes terse |
+| Gemini | Very large context, multimodal | long-document / many-file synthesis | may load more, but passage-first still wins on cost/latency |
+
+## Observations (evolving — append one line each)
+
+Format: \`date · model · task type · what worked / what to avoid\`
+
+<!-- example -->
+
+- 2026-01-15 · Composer · auth/security change · missed an RLS edge case → add a Claude self-check pass for security-sensitive work
+`
+      : `# Perfiles de agente (qué modelo, y en qué destaca)
+
+Este vault lo pueden conducir distintos modelos, cada uno con fortalezas distintas al decidir qué hacer.
+En una tarea no trivial, lee **tu** fila, sigue su ajuste y **añade una observación de una línea** cuando
+un modelo destaque o falle claramente en un tipo de tarea — con el tiempo aprende el mejor modelo por trabajo.
+
+> Defaults de partida — generales, y evolucionan. Corrígelos con observaciones reales abajo.
+
+| Modelo | Fortaleza al decidir | Aprovéchalo para | Ajusta la memoria |
+| --- | --- | --- | --- |
+| Claude Opus / Sonnet | Sigue instrucciones + tool use fiable, multi-paso | refactors agénticos, revisiones, autocrítica | self-check completo + coaching; contexto largo OK pero passage-first |
+| Cursor Composer | Edición multi-archivo rápida en el IDE | cambios mecánicos amplios | acción primero; apóyate en STACKS/; menos deliberación |
+| GPT (incl. razonadores) | Planificación + orquestación de tools | descomponer tareas difusas, multi-tool | descompón explícito; verifica resultados de tools |
+| DeepSeek (V3 / R1) | Razonamiento profundo de código/mates, barato | lógica / algoritmos difíciles | permite un self-check más profundo; notas concisas |
+| Gemini | Contexto enorme, multimodal | síntesis de muchos archivos / docs largos | puede cargar más, pero passage-first sigue ganando en coste |
+
+## Observaciones (evolutivo — una línea cada una)
+
+Formato: \`fecha · modelo · tipo de tarea · qué funcionó / qué evitar\`
+
+<!-- example -->
+
+- 2026-01-15 · Composer · cambio auth/seguridad · se le escapó un caso RLS → añade un self-check de Claude para trabajo sensible a seguridad
+`;
+  await fse.writeFile(path.join(vault, "_meta", "agent-profiles.md"), profilesDoc, "utf8");
   await fse.writeFile(path.join(vault, ".gitignore"), ".obsidian-memory-rag/\n", "utf8");
   await writeVaultGitWorkspaceSettings(vault, dryRun);
 }
