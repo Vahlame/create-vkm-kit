@@ -1,5 +1,5 @@
 {
-  "name": "@vahlame/create-obsidian-memory",
+  "name": "@vkmikc/create-obsidian-memory",
   "version": "3.0.0",
   "description": "Interactive initializer for Obsidian-style agent memory (v3 kit)",
   "license": "MIT",
