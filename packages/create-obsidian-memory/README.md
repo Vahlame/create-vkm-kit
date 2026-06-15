@@ -26,7 +26,7 @@ npx @vkmikc/create-obsidian-memory@latest ./my-vault -y
 
 The wizard asks for your vault path and which IDE(s) to wire; the `-y` form skips all prompts. Either
 way it writes the MCP config and scaffolds a starter vault (`START_HERE.md`, `MEMORY.md`, `PROJECTS/`,
-`SESSION_LOG.md`).
+`SESSION_LOG.md`, `PRACTICES/`, `STACKS/`, `_meta/agent-profiles.md`).
 
 ## One-command, non-interactive (CI / fresh PC)
 
@@ -73,6 +73,19 @@ npx @vkmikc/create-obsidian-memory@latest ./my-vault -y --ide cursor,claude --ru
 ```
 
 It writes an **idempotent marked block** (`<!-- obsidian-memory:start --> … <!-- obsidian-memory:end -->`) into `~/.claude/CLAUDE.md`, `./AGENTS.md` and `.cursor/rules/obsidian-memory.mdc`, merging in place — **your own content is never touched**, and re-runs just refresh the block. Cursor's _global_ User Rules can't be auto-written (not a file), so paste that one from the install guide.
+
+## What the installed memory does
+
+Beyond wiring the MCP, the kit installs a **memory protocol** (the rules block above) and scaffolds a vault designed to get smarter over time while staying token-cheap:
+
+- **Passage-first recall** — the agent pulls the matching _section_ of a note (`vault_hybrid_search`), not the whole file, and checks the vault _before answering_ when a task continues prior work or names a known project/person/tool.
+- **Self-check** — before non-trivial answers it sanity-checks its own assumptions and edge cases (scaled to the task, internal — no padding).
+- **Coach, don't impose** — flags high-impact anti-patterns in your code as a _question_ and logs them to `PRACTICES/observations.md`; promotes to `confirmed-{good,bad}.md` only when you confirm.
+- **Evolving memory** — records new tech in `STACKS/`, firm preferences in `MEMORY.md`, hypotheses → facts.
+- **Model-aware** — reads `_meta/agent-profiles.md` to tune behavior to the active model's strengths (Claude, Cursor Composer, GPT, DeepSeek, Gemini…) and learns which model fits which task over time.
+- **Token economy** — all of the above is bounded by passage-first reads, terse bullets and dedup, so smarter ≠ pricier.
+
+Read the rules block before installing — it's printed in [`docs/en/install.md`](https://github.com/Vahlame/obsidian-memory-kit/blob/main/docs/en/install.md) (Step 4) and is what `--rules` writes (idempotently) into your agent configs.
 
 ## Requirements
 
