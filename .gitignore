@@ -1,5 +1,7 @@
 # Go daemon local build (see AGENTS.md)
 /bin/
+/obsidian-memoryd
+/obsidian-memoryd.exe
 
 # Editors (local-only; the kit no longer commits workspace settings —
 # the initializer writes <vault>/.vscode/settings.json into the user's vault instead)
