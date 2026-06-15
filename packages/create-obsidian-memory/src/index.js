@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * @vahlame/create-obsidian-memory — interactive initializer (v2 / v3).
+ * @vkmikc/create-obsidian-memory — interactive initializer (v2 / v3).
  * Spanish-first CLI; pass --lang en for English labels.
  *
  * Source-of-truth lives in this `src/` directory. There is no `dist/` build

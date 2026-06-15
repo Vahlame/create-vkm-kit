@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- **Package versions aligned to 3.0.0 and `@vahlame/create-obsidian-memory` prepared for its first npm publish.** The package was never published, so the docs' `npx` command 404'd; docs now use the bare `npx @vahlame/create-obsidian-memory` (latest) instead of `@next`. `obsidian-memory-mcp` stays `private` (run from the clone); `obsidian-memory-rag` stays `pip install -e` from source. The actual `npm publish` is a manual step (requires npm auth).
+- **Package versions aligned to 3.0.0 and `@vkmikc/create-obsidian-memory` prepared for its first npm publish.** The package was never published, so the docs' `npx` command 404'd; docs now use the bare `npx @vkmikc/create-obsidian-memory` (latest) instead of `@next`. `obsidian-memory-mcp` stays `private` (run from the clone); `obsidian-memory-rag` stays `pip install -e` from source. Published under the maintainer's **personal npm scope `@vkmikc`** (the `@vahlame` org scope is not registered on npm), so the initializer was renamed from `@vahlame/create-obsidian-memory` to `@vkmikc/create-obsidian-memory`; the install command is now `npx @vkmikc/create-obsidian-memory` / `npm create @vkmikc/obsidian-memory`. The actual `npm publish` is a manual step (requires npm auth + OTP).
 
 ## [3.0.0] - 2026-06-14
 

@@ -95,7 +95,7 @@ Yes. Invite them to the private repo. They run `create-obsidian-memory` to merge
 
 ### How do I update?
 
-`git pull` this repo for docs and tooling; bump **`@vahlame/create-obsidian-memory`** if you use the initializer; refresh the MCP pins if `CHANGELOG.md` / `SECURITY.md` say so. You can re-run `create-obsidian-memory --non-interactive --vault "<path>"` to re-merge a clean config. Your vault stays separate.
+`git pull` this repo for docs and tooling; bump **`@vkmikc/create-obsidian-memory`** if you use the initializer; refresh the MCP pins if `CHANGELOG.md` / `SECURITY.md` say so. You can re-run `create-obsidian-memory --non-interactive --vault "<path>"` to re-merge a clean config. Your vault stays separate.
 
 ### Large vault: anything beyond `basic-memory` search?
 

@@ -47,7 +47,7 @@ is the MCP server; everything else (semantic search, sync daemon) is optional.
 sin romper otras entradas, hace backup):
 
 ```bash
-npx @vahlame/create-obsidian-memory -- --non-interactive --vault "<RUTA_ABSOLUTA_AL_VAULT>"
+npx @vkmikc/create-obsidian-memory -- --non-interactive --vault "<RUTA_ABSOLUTA_AL_VAULT>"
 ```
 
 > 🤖 **Claude Code (PC nuevo · fresh PC):** registra el MCP vía `claude mcp add` y construye el

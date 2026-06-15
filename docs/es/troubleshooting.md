@@ -82,7 +82,7 @@ Para volver a fusionar una entrada `basic-memory` conocida buena, reemplazando
 `<path>` por la ruta completa a tu vault:
 
 ```powershell
-npx @vahlame/create-obsidian-memory -- --non-interactive --vault "<path>"
+npx @vkmikc/create-obsidian-memory -- --non-interactive --vault "<path>"
 ```
 
 ### `mcp.json` perdió mis entradas de Linear / Supabase
@@ -205,7 +205,7 @@ problema, para ver exactamente qué programa abre las ventanas.
 **`.vscode/settings.json`** que desactiva `git.autorefresh` / `git.autofetch` y
 excluye carpetas del **watcher** de archivos (incluido `.obsidian/`). Cursor /
 VS Code aplican esos valores cuando abres la carpeta como workspace. El
-inicializador **`@vahlame/create-obsidian-memory`** **crea o fusiona**
+inicializador **`@vkmikc/create-obsidian-memory`** **crea o fusiona**
 `<vault>/.vscode/settings.json` cuando pasas `--vault` (las claves de Git/SCM del
 kit se actualizan; cualquier otra clave tuya se conserva).
 
@@ -469,7 +469,7 @@ aquí elimina contenido del vault salvo que tú mismo borres carpetas.
    `<absolute-vault-path>` por la ruta completa de tu vault):
 
    ```powershell
-   npx @vahlame/create-obsidian-memory -- --non-interactive --vault "<absolute-vault-path>"
+   npx @vkmikc/create-obsidian-memory -- --non-interactive --vault "<absolute-vault-path>"
    ```
 
    El archivo del que hacer copia primero es `%USERPROFILE%\.cursor\mcp.json`.

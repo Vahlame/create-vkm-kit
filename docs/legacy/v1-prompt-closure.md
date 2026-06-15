@@ -23,7 +23,7 @@ El antiguo prompt v1 era un **brief operativo único** para Windows (Task Schedu
 
 1. [`docs/es/instalacion.md`](../es/instalacion.md) (flujo lineal) y [`docs/es/como-funciona.md`](../es/como-funciona.md) (idea general).
 2. `README.md` y `AGENTS.md`.
-3. Ejecutar `npx @vahlame/create-obsidian-memory` (o copiar el snippet MCP del README).
+3. Ejecutar `npx @vkmikc/create-obsidian-memory` (o copiar el snippet MCP del README).
 4. Validar con los pasos de verificación en [`../es/instalacion.md`](../es/instalacion.md) / [`../en/install.md`](../en/install.md).
 5. (Opcional) `obsidian-memory-rag index --vault <ruta>` si el vault es grande.
 
