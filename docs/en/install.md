@@ -200,14 +200,14 @@ Action: `vault_hybrid_search("<topic in natural language>")` (or `vault_fts_sear
 
 ### Which tool to use (quick reference)
 
-| Need                                         | Tool                                                                                 |
-| -------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Conceptual / natural-language recall         | `vault_hybrid_search("<topic>")` (add `graph: true` if the topic spans linked notes) |
-| Exact identifier / symbol / error string     | `vault_fts_search("<term>")`                                                         |
-| Half-remembered note name or `#tag`          | `vault_complete("<prefix>")`                                                         |
-| The whole note (rare)                        | `read_note` / `vault_read_file` (only if the section isn't enough)                   |
-| Vault health (oversized notes, broken links) | `vault_audit()`                                                                      |
-| After big imports / embedder change          | `vault_fts_index({ semantic: true })`                                                |
+| Need                                         | Tool                                                                                                                |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Conceptual / natural-language recall         | `vault_hybrid_search("<topic>")` (add `graph: true` if the topic spans linked notes; `recency: true` for freshness) |
+| Exact identifier / symbol / error string     | `vault_fts_search("<term>")`                                                                                        |
+| Half-remembered note name or `#tag`          | `vault_complete("<prefix>")`                                                                                        |
+| The whole note (rare)                        | `read_note` / `vault_read_file` (only if the section isn't enough)                                                  |
+| Vault health (oversized notes, broken links) | `vault_audit()`                                                                                                     |
+| After big imports / embedder change          | `vault_fts_index({ semantic: true })`                                                                               |
 
 ### Multi-agent (fan-out) — don't multiply the token cost
 

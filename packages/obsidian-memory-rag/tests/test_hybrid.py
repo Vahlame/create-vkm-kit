@@ -54,6 +54,46 @@ def test_reciprocal_rank_fusion_rewards_agreement() -> None:
     assert set(paths) == {"a", "b", "c"}
 
 
+def test_reciprocal_rank_fusion_weight_downweights_a_ranking() -> None:
+    # Two rankings disagree (each tops its own item). Down-weighting the second
+    # makes the first ranking's pick win — weighted RRF (Bruch et al. 2023).
+    weighted = reciprocal_rank_fusion([["a"], ["b"]], weights=[1.0, 0.1], limit=2)
+    assert weighted[0][0] == "a"
+    assert weighted[0][1] > weighted[1][1]
+    # Equal weights give equal score for a symmetric input (plain RRF, unchanged).
+    equal = reciprocal_rank_fusion([["a"], ["b"]], weights=[1.0, 1.0], limit=2)
+    assert {p for p, _ in equal} == {"a", "b"}
+    assert equal[0][1] == equal[1][1]
+
+
+def test_hybrid_recency_promotes_fresher_note(tmp_path: Path) -> None:
+    import os
+    import time
+
+    vault = tmp_path / "v"
+    vault.mkdir()
+    body = "Decision sobre la politica de reintentos del daemon.\n"
+    (vault / "old.md").write_text("# old\n\n" + body, encoding="utf-8")
+    (vault / "new.md").write_text("# new\n\n" + body, encoding="utf-8")
+    # Identical bodies → a pure-relevance tie. Make "old" a year older by mtime.
+    now = time.time()
+    year = 365 * 86400
+    os.utime(vault / "old.md", (now - year, now - year))
+    os.utime(vault / "new.md", (now, now))
+    emb = HashingEmbedder(dim=256)
+    index_vault(vault)
+    index_vectors(vault, emb)
+    q = "politica de reintentos del daemon"
+
+    # Default (pure relevance): both surface; identical content → order not biased.
+    base = hybrid_search(vault, q, emb, limit=2)
+    assert {h.path for h in base} == {"old.md", "new.md"}
+
+    # recency=True: the fresher note wins the tie via exponential time decay.
+    recent = hybrid_search(vault, q, emb, limit=2, recency=True)
+    assert recent[0].path == "new.md"
+
+
 def _make_vault(tmp_path: Path) -> Path:
     vault = tmp_path / "vault"
     (vault / "notes").mkdir(parents=True)

@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Graded, position-aware retrieval metrics — nDCG@k and MAP (`bench_recall.py`, ADR-0021).** recall@5 saturates at 1.000 on the fixture, so it could not discriminate ranking changes; nDCG@k (BEIR/MTEB exponential-gain) and MAP reward ranking the relevant note first and account for where _every_ relevant note lands. Exposed in the `bench-recall` report + JSON, gated via new `--assert-ndcg` / `--assert-map` flags, and added to the `retrieval-bench` CI job. Pinned by hand-computed unit tests.
+- **Harder, larger golden set (`evals/retrieval/queries.jsonl`, 18 → 32 queries).** Adds 14 queries with deliberate cross-note vocabulary overlap, including a new **multi-relevant** kind (two ground-truth notes). Crosses the 30-query measurement floor and de-saturates the bench — which immediately surfaced a real graph-fusion regression (see Fixed).
+- **Opt-in recency bias on hybrid search (`hybrid_search(recency=...)`, `--recency`, `recency: true` on the `vault_hybrid_search` MCP tool; ADR-0021).** Multiplies fused scores by an exponential time-decay of each note's mtime (90-day half-life) so the freshest of comparably-relevant notes wins — the evolving-memory doctrine made operational. The factor is ≤ 1 and 1.0 at age 0, so recency only demotes stale notes, never invents relevance. Off by default (pure relevance); pinned by a deterministic unit test.
+
+### Changed
+
+- **Weighted Reciprocal Rank Fusion (`query.py`, ADR-0021).** `reciprocal_rank_fusion` takes optional per-ranker `weights`. Lexical and semantic keep equal vote (the graph-off path is byte-identical), but the `[[wikilink]]` graph ranking now enters at a tuned sub-1 weight (`GRAPH_WEIGHT = 0.1`) so a linked note can surface without displacing a genuinely-relevant hit.
+- **Title-aware BM25F matching (`query.py`, ADR-0021).** The FTS matcher searched only the `body` column, but the H1 is stripped out of the body — so a query for a note's own name (`sqlite`, `go`) could miss it entirely. Terms now match across title + body and `search_vault` weights the title column above body (`bm25(…, TITLE_WEIGHT, BODY_WEIGHT)`). Measured neutral on the bench, strictly better on name-matching queries.
+
+### Fixed
+
+- **Equal-weight graph fusion could displace a strong non-neighbour hit (`query.py`, ADR-0021).** On the expanded golden set, graph-on recall@5 measured 1.000 → 0.938: because RRF scores at k=60 are densely packed, an equal-weight graph term reordered aggressively and pushed a strong BM25+cosine hit that lacked a wikilink edge out of the top-k. The weighted-RRF graph weight (0.1) restores graph-on aggregate recall to ≥ 0.98 while fully delivering the or-fallback benefit graph fusion exists for (or-fallback MRR 0.750 → 1.000).
+
 ### Documentation
 
 - **Docs synced to v3.7 across npm + GitHub.** The npm landing page (`packages/create-obsidian-memory/README.md`) gains a "measured, not just claimed" point (CI-gated recall@k/MRR/hit@1 + the AND→OR fallback). `ARCHITECTURE.md` documents the `bench-recall` CLI, the OR-fallback in `query.py`, the `scripts/version.mjs` six-marker version guard, and the new `retrieval-bench` / version-consistency CI gates (Testing table + ADR list). The bilingual **how-it-works / cómo-funciona** guides get a "Measured, not just claimed" section and the retrieval-stack Mermaid now shows the lexical AND→OR fallback; the `hero.svg` hybrid-MCP label reflects the full léxica + semántica + grafo stack. New **ADR-0020** (measured retrieval quality as a CI gate) added and indexed. Docs-only — no version bump (markers stay at 3.7.0).

@@ -42,7 +42,7 @@ Busca **antes de responder** cuando la tarea continúa trabajo previo, se nombra
 
 ### Qué herramienta usar (rápido)
 
-- Recall conceptual / lenguaje natural → \`vault_hybrid_search\` (devuelve la sección). Si el tema cruza notas enlazadas → \`graph: true\` (suma notas a 1 salto de \`[[wikilinks]]\`).
+- Recall conceptual / lenguaje natural → \`vault_hybrid_search\` (devuelve la sección). Si el tema cruza notas enlazadas → \`graph: true\` (suma notas a 1 salto de \`[[wikilinks]]\`); si importa la frescura ("lo más reciente que decidí sobre X") → \`recency: true\` (sesga a notas modificadas hace poco).
 - Identificador / símbolo / error **exacto** → \`vault_fts_search\`.
 - Nombre de nota o \`#tag\` a medias → \`vault_complete\` (Trie; resuelve **antes** de buscar/enlazar/escribir).
 - Nota **entera** (raro) → \`read_note\`/\`vault_read_file\`, solo si el pasaje no basta. **Nunca** \`SESSION_LOG\`/PROJECTS grandes enteros.
@@ -115,7 +115,7 @@ Search **before answering** when the task continues prior work, names a project/
 
 ### Which tool to use (quick)
 
-- Conceptual / natural-language recall → \`vault_hybrid_search\` (returns the section). If the topic spans linked notes → \`graph: true\` (adds notes one \`[[wikilink]]\` hop away).
+- Conceptual / natural-language recall → \`vault_hybrid_search\` (returns the section). If the topic spans linked notes → \`graph: true\` (adds notes one \`[[wikilink]]\` hop away); if freshness matters ("what I most recently decided about X") → \`recency: true\` (biases toward recently-modified notes).
 - **Exact** identifier / symbol / error string → \`vault_fts_search\`.
 - Half-remembered note name or \`#tag\` → \`vault_complete\` (Trie; resolve it **before** searching/linking/writing).
 - **Whole** note (rare) → \`read_note\`/\`vault_read_file\`, only if the section isn't enough. **Never** whole \`SESSION_LOG\`/large PROJECTS.

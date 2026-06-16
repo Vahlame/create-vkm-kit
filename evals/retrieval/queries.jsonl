@@ -16,3 +16,17 @@
 {"query": "framework de escritorio con webview nativo y sidecar Rust", "relevant": ["STACKS/tauri.md"], "kind": "conceptual"}
 {"query": "auditoria protegida con PIN y CHANGELOG por release", "relevant": ["RULES/inventory-rules.md", "PROJECTS/app-inventory.md"], "kind": "conceptual"}
 {"query": "calificacion REAC bit exacto banco de items cifrado kafka", "relevant": ["RULES/exam-rules.md", "PROJECTS/exam-generator.md"], "kind": "or-fallback"}
+{"query": "MVVM hecho a mano sin framework pesado", "relevant": ["STACKS/wpf.md", "PROJECTS/app-inventory.md"], "kind": "multi"}
+{"query": "WAL online backup api error 14 ruta o permisos", "relevant": ["STACKS/sqlite.md"], "kind": "lexical"}
+{"query": "analizadores CA1707 LibraryImport AllowUnsafeBlocks formato slnx", "relevant": ["STACKS/dotnet.md"], "kind": "lexical"}
+{"query": "clasificacion de hardware Legacy Current Modern dashboard antes despues", "relevant": ["PROJECTS/win-optimizer.md"], "kind": "conceptual"}
+{"query": "instalador Inno Setup freemium auto-commit por cada cambio logico", "relevant": ["PROJECTS/win-optimizer.md"], "kind": "lexical"}
+{"query": "probar policies como anon y usuario autenticado antes de declarar lista", "relevant": ["STACKS/postgres.md", "MEMORY.md"], "kind": "multi"}
+{"query": "runes state derived effect reemplazan los stores implicitos Vite", "relevant": ["STACKS/svelte.md"], "kind": "conceptual"}
+{"query": "webview nativo sidecar Rust arranque no bloquea esperando Stronghold", "relevant": ["STACKS/tauri.md"], "kind": "conceptual"}
+{"query": "Reciprocal Rank Fusion passage-first devolver la seccion no la nota entera", "relevant": ["STACKS/python-rag.md", "PROJECTS/memory-kit.md"], "kind": "multi"}
+{"query": "build tags cross-platform Runner inyeccion de dependencias windowsgui", "relevant": ["STACKS/go.md"], "kind": "lexical"}
+{"query": "botones de accion siempre visibles barra sticky con scroll interno", "relevant": ["PRACTICES/confirmed-good.md", "RULES/inventory-rules.md"], "kind": "multi"}
+{"query": "falta de tipado en el boundary DTOs del server sin tipos", "relevant": ["PRACTICES/confirmed-bad.md"], "kind": "conceptual"}
+{"query": "algoritmo de calificacion REAC bit exacto cero hex tokens mep", "relevant": ["RULES/exam-rules.md", "PROJECTS/exam-generator.md"], "kind": "multi"}
+{"query": "idioma espanol estilo directo zona horaria stack diario del usuario", "relevant": ["MEMORY.md"], "kind": "conceptual"}
