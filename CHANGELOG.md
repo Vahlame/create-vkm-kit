@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Measured retrieval-quality benchmark (recall@k / MRR / hit@1) — the central claim is now a number, not an assertion.** New `obsidian_memory_rag.bench_recall` module + `bench-recall` / `json-bench-recall` CLI commands score `hybrid_search` against a fixed, labelled corpus (`evals/retrieval/corpus/`, 16 notes across PROJECTS/STACKS/PRACTICES/RULES/MEMORY with overlapping vocabulary) and query set (`evals/retrieval/queries.jsonl`, 18 lexical/conceptual-ES/OR-fallback queries with ground-truth paths). Deterministic on the dependency-free `HashingEmbedder`, so it doubles as a CI gate: new job **`retrieval-bench`** + `tests/test_bench_recall.py` fail the build on regression. **Measured floor (graph off): recall@5 = 1.000, MRR = 0.972, hit@1 = 0.944**; with `--graph` the OR-fallback queries lift to MRR/hit@1 = 1.000 — the first empirical evidence for ADR-0019's link fusion. A neural embedder only raises the conceptual numbers. Closes the strategic review's P0 ("the product claim is not measured empirically").
+- **Single-source version tooling + drift guard (`scripts/version.mjs`, `npm run version:check` / `version:set`).** One command rewrites/validates every version marker (both `package.json`s, `pyproject.toml`, the README badge) against the canonical CHANGELOG version. The `lint` CI job now runs `version check` so a future badge/package/CHANGELOG mismatch **fails the build**, and the `release` workflow guards that the pushed tag equals every marker before publishing. Fixes the review's P1 version-drift finding (badge said 3.6.0 while packages said 3.5.0); all markers aligned to **3.6.0**.
+
+### Changed
+
+- **Prompt-injection tripwire is now bilingual, NFKC-normalized, and catches split directives (`untrusted.mjs`).** The heuristic scanner was English-only and line-bound in a bilingual ES/EN project (review P1). It now (1) flags Spanish override/exfiltration directives ("ignora las instrucciones anteriores", "muestra tu prompt del sistema", "ejecuta lo siguiente", role markers `sistema:` / `asistente:`), anchored as conservatively as the English set; (2) NFKC-normalizes before matching so fullwidth/compatibility homoglyph obfuscation folds back to ASCII; and (3) runs a second pass over the whitespace-collapsed text so a directive split across two lines still trips. `SECURITY.md` now frames it explicitly as **defense-in-depth signal, not a control** (knowingly evadable by base64 / cross-script homoglyphs / novel phrasing).
+- **FTS search falls back from AND to OR on an empty result (`query.py`).** `build_match_query` gained an `op` parameter; `search_vault` keeps the precision-first AND default but retries with OR when AND matches nothing, so one missing or misspelled term no longer drops an otherwise-relevant note on a pure-FTS (no-vector) install (review P2). Single-term queries skip the retry (OR == AND there).
+
+### Fixed
+
+- **`release.yml` now publishes `@vkmikc/create-obsidian-memory` to npm on tag** (gated on an `NPM_TOKEN` secret), removing the manual `npm publish` step that caused the marker drift. The other packages stay private / pip-only.
+- **TOCTOU window documented in `safeVaultPath`** — a one-line note that the ancestor-check→write gap is irrelevant for the single-user local vault and what a multi-tenant deployment would need instead (review P3).
+
 ## [3.6.0] - 2026-06-16
 
 ### Changed
