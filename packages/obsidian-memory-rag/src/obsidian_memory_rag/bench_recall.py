@@ -15,11 +15,19 @@ Metrics (averaged over the query set):
   - **recall@k**  — fraction of a query's relevant notes that appear in the top-k.
   - **MRR**       — mean reciprocal rank of the first relevant note (0 if missed).
   - **hit@1**     — fraction of queries whose top result is relevant.
+  - **nDCG@k**    — position-discounted gain vs the ideal ordering (rewards putting
+                    a relevant note at rank 1 over rank 3; stays < 1 even when
+                    recall@k is saturated, so it discriminates ranking changes).
+  - **MAP**       — mean Average Precision: precision averaged at each relevant
+                    hit, then over queries. Sensitive to where *every* relevant
+                    note lands, not just the first — the right gate for multi-
+                    relevant queries.
 """
 
 from __future__ import annotations
 
 import json
+import math
 import shutil
 import tempfile
 from collections import defaultdict
@@ -35,6 +43,42 @@ if TYPE_CHECKING:
     from .embeddings import Embedder
 
 
+def ndcg_at_k(ranked: list[str], gains: dict[str, float], k: int) -> float:
+    """Normalized Discounted Cumulative Gain over a ranked path list (BEIR/MTEB).
+
+    ``DCG@k = Σ (2^gain − 1) / log2(rank + 1)`` over the top-k, divided by the
+    same sum for the ideal (gains sorted descending). Binary relevance is the
+    special case where every relevant note has gain 1. Pure stdlib (``math.log2``).
+    Returns 0.0 when there is no attainable gain.
+    """
+    dcg = math.fsum(
+        (2 ** gains.get(d, 0.0) - 1) / math.log2(i + 1)
+        for i, d in enumerate(ranked[:k], start=1)
+    )
+    ideal = sorted(gains.values(), reverse=True)[:k]
+    idcg = math.fsum((2**g - 1) / math.log2(i + 1) for i, g in enumerate(ideal, start=1))
+    return dcg / idcg if idcg else 0.0
+
+
+def average_precision(ranked: list[str], relevant: set[str]) -> float:
+    """Average Precision: mean of precision@i taken at each relevant hit.
+
+    ``AP = (1/|R|) · Σ_i precision@i · rel(i)``. A relevant note missing from the
+    ranked list contributes 0 (it is counted in ``|R|`` but never adds precision),
+    so AP penalizes recall gaps as well as bad ordering. Returns 0.0 when the
+    query has no relevant notes.
+    """
+    if not relevant:
+        return 0.0
+    hits = 0
+    running = 0.0
+    for i, d in enumerate(ranked, start=1):
+        if d in relevant:
+            hits += 1
+            running += hits / i
+    return running / len(relevant)
+
+
 @dataclass
 class QueryResult:
     query: str
@@ -44,6 +88,8 @@ class QueryResult:
     first_rank: int | None  # 1-based rank of the first relevant hit, or None
     recall_at_k: float
     hit_at_1: bool
+    ndcg_at_k: float
+    average_precision: float
 
 
 @dataclass
@@ -55,6 +101,8 @@ class BenchReport:
     mrr: float
     recall_at_k: float
     hit_at_1: float
+    ndcg_at_k: float
+    map: float
     by_kind: dict[str, dict[str, float]]
     results: list[QueryResult] = field(default_factory=list)
 
@@ -104,6 +152,7 @@ def evaluate(
                 first_rank = i
                 break
         recall = len(relevant & set(topk)) / len(relevant) if relevant else 0.0
+        gains = {p: 1.0 for p in relevant}
         results.append(
             QueryResult(
                 query=q["query"],
@@ -113,6 +162,8 @@ def evaluate(
                 first_rank=first_rank,
                 recall_at_k=recall,
                 hit_at_1=first_rank == 1,
+                ndcg_at_k=ndcg_at_k(topk, gains, k),
+                average_precision=average_precision(topk, relevant),
             )
         )
 
@@ -120,6 +171,8 @@ def evaluate(
     mrr = sum(1.0 / r.first_rank for r in results if r.first_rank) / n
     recall_at_k = sum(r.recall_at_k for r in results) / n
     hit_at_1 = sum(1.0 for r in results if r.hit_at_1) / n
+    ndcg = sum(r.ndcg_at_k for r in results) / n
+    mean_ap = sum(r.average_precision for r in results) / n
 
     buckets: dict[str, list[QueryResult]] = defaultdict(list)
     for r in results:
@@ -130,6 +183,8 @@ def evaluate(
             "mrr": sum(1.0 / r.first_rank for r in rs if r.first_rank) / len(rs),
             "recall_at_k": sum(r.recall_at_k for r in rs) / len(rs),
             "hit_at_1": sum(1.0 for r in rs if r.hit_at_1) / len(rs),
+            "ndcg_at_k": sum(r.ndcg_at_k for r in rs) / len(rs),
+            "map": sum(r.average_precision for r in rs) / len(rs),
         }
         for kind, rs in sorted(buckets.items())
     }
@@ -142,6 +197,8 @@ def evaluate(
         mrr=mrr,
         recall_at_k=recall_at_k,
         hit_at_1=hit_at_1,
+        ndcg_at_k=ndcg,
+        map=mean_ap,
         by_kind=by_kind,
         results=results,
     )
@@ -189,13 +246,16 @@ def format_report(report: BenchReport) -> str:
         f"  recall@{report.k} = {report.recall_at_k:.3f}",
         f"  MRR        = {report.mrr:.3f}",
         f"  hit@1      = {report.hit_at_1:.3f}",
+        f"  nDCG@{report.k}   = {report.ndcg_at_k:.3f}",
+        f"  MAP        = {report.map:.3f}",
         "  by kind:",
     ]
     for kind, m in report.by_kind.items():
         lines.append(
             f"    {kind:<12} n={int(m['n'])} "
             f"recall@{report.k}={m['recall_at_k']:.3f} "
-            f"mrr={m['mrr']:.3f} hit@1={m['hit_at_1']:.3f}"
+            f"mrr={m['mrr']:.3f} hit@1={m['hit_at_1']:.3f} "
+            f"ndcg@{report.k}={m['ndcg_at_k']:.3f} map={m['map']:.3f}"
         )
     misses = [r for r in report.results if r.first_rank is None]
     if misses:

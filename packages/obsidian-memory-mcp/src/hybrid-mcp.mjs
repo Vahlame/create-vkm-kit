@@ -189,11 +189,18 @@ async function main() {
           .default(false)
           .describe(
             "Also fuse in notes one hop away in the [[wikilink]] graph (link-aware recall): a note strongly linked from a top hit can surface even if it barely matches the query text. Soft boost — cannot outrank BM25+semantic agreement. Adds a graph_rank to each hit."
+          ),
+        recency: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe(
+            "Bias ranking toward recently-modified notes (exponential time decay). Use when freshness matters — e.g. 'what did I decide most recently about X' — so a newer note outranks an equally-relevant older one. Off by default (pure relevance)."
           )
       },
       annotations: { readOnlyHint: true }
     },
-    toolHandler(async ({ query, vault, limit, graph }) => {
+    toolHandler(async ({ query, vault, limit, graph, recency }) => {
       const v = requireVault(vault || undefined);
       const args = [
         "json-hybrid-search",
@@ -205,6 +212,7 @@ async function main() {
         String(limit ?? 20)
       ];
       if (graph) args.push("--graph");
+      if (recency) args.push("--recency");
       const result = await runRagJson(args, ragSrc);
       return flagHits(result);
     })

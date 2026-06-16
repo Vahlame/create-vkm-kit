@@ -3,18 +3,19 @@
 Two distinct things live here. Keep them separate:
 
 1. **Retrieval quality (`retrieval/`)** — a **real, measured** benchmark of the
-   hybrid search: recall@k, MRR, hit@1 over a fixed labelled corpus. Deterministic
-   (dependency-free embedder), so it gates CI and regressions fail the build.
+   hybrid search: recall@k, MRR, hit@1, nDCG@k and MAP over a fixed labelled corpus.
+   Deterministic (dependency-free embedder), so it gates CI and regressions fail the
+   build.
 2. **Adherence harness (`adherence.yaml` + `run-adherence-ci.mjs`)** — a **smoke
    test of the eval pipeline**, not a model-behaviour measurement (see below).
 
 ## 1. Retrieval quality — measured, gated
 
-`retrieval/corpus/` is a 16-note fixture vault (PROJECTS / STACKS / PRACTICES /
+`retrieval/corpus/` is an 18-note fixture vault (PROJECTS / STACKS / PRACTICES /
 RULES / MEMORY) with deliberately overlapping vocabulary; `retrieval/queries.jsonl`
-labels 18 queries (lexical, conceptual-Spanish, and OR-fallback) with their
-ground-truth note paths. `obsidian_memory_rag.bench_recall` indexes the corpus
-(FTS5 + vectors) and scores `hybrid_search` against the labels.
+labels 32 queries (lexical, conceptual-Spanish, OR-fallback, and **multi-relevant**)
+with their ground-truth note paths. `obsidian_memory_rag.bench_recall` indexes the
+corpus (FTS5 + vectors) and scores `hybrid_search` against the labels.
 
 ```bash
 # human report
@@ -24,23 +25,29 @@ python -m obsidian_memory_rag bench-recall \
 python -m obsidian_memory_rag bench-recall ... --graph
 # CI gate (exits non-zero on regression)
 python -m obsidian_memory_rag bench-recall ... \
-  --assert-recall 0.95 --assert-mrr 0.90 --assert-hit1 0.90
+  --assert-recall 0.95 --assert-mrr 0.90 --assert-hit1 0.90 \
+  --assert-ndcg 0.93 --assert-map 0.93
 ```
 
 **Measured floor** (default `HashingEmbedder`, dependency-free, reproducible):
 
 | metric   | graph off | graph on |
 | -------- | --------- | -------- |
-| recall@5 | 1.000     | 1.000    |
-| MRR      | 0.972     | 1.000    |
-| hit@1    | 0.944     | 1.000    |
+| recall@5 | 1.000     | 0.984    |
+| MRR      | 0.984     | 1.000    |
+| hit@1    | 0.969     | 1.000    |
+| nDCG@5   | 0.988     | 0.985    |
+| MAP      | 0.984     | 0.979    |
 
 These are the **lexical floor**; a neural embedder (`pip install
 'obsidian-memory-rag[semantic]'`, `--embedder fastembed`) only raises the
 conceptual-query numbers. The CI job `retrieval-bench` and
 `tests/test_bench_recall.py` both gate on the graph-off floor with a margin.
-The `graph on` column is the empirical case for ADR-0019: link-fusion lifts the
-hard OR-fallback queries from MRR 0.75 → 1.00 without hurting anything.
+The `graph on` column is the empirical case for ADR-0019/0021: link-fusion lifts the
+hard OR-fallback queries from MRR 0.75 → 1.00 (and aggregate MRR/hit@1 to 1.000).
+The slight graph-on recall trade (one displaced note in one adversarial
+multi-relevant query) is why graph fusion enters **weighted** RRF at a tuned sub-1
+weight (ADR-0021) and stays opt-in.
 
 ## 2. Adherence harness (smoke only)
 

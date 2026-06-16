@@ -3,9 +3,10 @@
 These assertions are the measured floor of the kit's central claim. They run on
 the dependency-free ``HashingEmbedder`` so they are deterministic and stable in
 CI; a neural embedder only raises them. If a change to indexing, chunking, RRF or
-the OR-fallback regresses recall, these fail. Thresholds sit a margin below the
-measured numbers (recall@5=1.000, MRR=0.972, hit@1=0.944 without graph) so they
-catch real regressions without flaking on tiny corpus tweaks.
+the OR-fallback regresses retrieval, these fail. Thresholds sit a margin below the
+measured numbers on the 32-query set (graph off: recall@5=1.000, MRR=0.984,
+hit@1=0.969, nDCG@5=0.988, MAP=0.984) so they catch real regressions without
+flaking on tiny corpus tweaks.
 """
 
 from __future__ import annotations
@@ -31,30 +32,66 @@ needs_fixture = pytest.mark.skipif(
 @needs_fixture
 def test_retrieval_quality_floor_no_graph() -> None:
     report = run_benchmark(CORPUS, QUERIES, k=5, graph=False)
-    assert report.n >= 15, "fixture should be non-trivial"
+    assert report.n >= 30, "golden set should be at/above the 30-query floor"
     assert report.recall_at_k >= 0.95, f"recall@5 regressed: {report.recall_at_k:.3f}"
     assert report.mrr >= 0.90, f"MRR regressed: {report.mrr:.3f}"
     assert report.hit_at_1 >= 0.90, f"hit@1 regressed: {report.hit_at_1:.3f}"
+    assert report.ndcg_at_k >= 0.93, f"nDCG@5 regressed: {report.ndcg_at_k:.3f}"
+    assert report.map >= 0.93, f"MAP regressed: {report.map:.3f}"
     # Every query must retrieve *something* relevant in the top-k (no hard misses).
     misses = [r.query for r in report.results if r.first_rank is None]
     assert not misses, f"hard misses: {misses}"
 
 
 @needs_fixture
-def test_graph_does_not_hurt_and_helps_or_fallback() -> None:
-    # Graph fusion is a soft boost: it must never lower the aggregate metrics.
+def test_graph_helps_precision_without_material_recall_loss() -> None:
+    # Graph fusion (ADR-0019) enters weighted RRF at a tuned sub-1 weight (ADR-0021).
+    # Measured contract: it lifts the or-fallback bucket it exists for and improves
+    # aggregate MRR/hit@1, while a small, bounded recall trade is allowed (an
+    # equal-weight graph term would displace a strong non-neighbour hit — that is
+    # exactly what the down-weight prevents).
     base = run_benchmark(CORPUS, QUERIES, k=5, graph=False)
     graphed = run_benchmark(CORPUS, QUERIES, k=5, graph=True)
     assert graphed.mrr >= base.mrr
     assert graphed.hit_at_1 >= base.hit_at_1
-    assert graphed.recall_at_k >= base.recall_at_k
+    assert graphed.recall_at_k >= base.recall_at_k - 0.05
+    # The reason graph fusion exists: nudge link-adjacent notes the lexical/semantic
+    # pass under-ranks (the or-fallback queries).
+    assert (
+        graphed.by_kind["or-fallback"]["mrr"] > base.by_kind["or-fallback"]["mrr"]
+    ), "graph fusion should strictly help the or-fallback bucket"
 
 
 @needs_fixture
 def test_benchmark_is_deterministic() -> None:
     a = run_benchmark(CORPUS, QUERIES, k=5, graph=False)
     b = run_benchmark(CORPUS, QUERIES, k=5, graph=False)
-    assert (a.recall_at_k, a.mrr, a.hit_at_1) == (b.recall_at_k, b.mrr, b.hit_at_1)
+    assert (a.recall_at_k, a.mrr, a.hit_at_1, a.ndcg_at_k, a.map) == (
+        b.recall_at_k,
+        b.mrr,
+        b.hit_at_1,
+        b.ndcg_at_k,
+        b.map,
+    )
+
+
+def test_metric_formulas_match_hand_computed() -> None:
+    """Pin nDCG@k and MAP to hand-computed values (independent of the corpus)."""
+    import math
+
+    from obsidian_memory_rag.bench_recall import average_precision, ndcg_at_k
+
+    # One relevant note, retrieved at rank 2 of 3.
+    assert average_precision(["a", "b", "c"], {"b"}) == 0.5
+    expected = (1 / math.log2(3)) / (1 / math.log2(2))  # DCG@k / IDCG@k
+    assert abs(ndcg_at_k(["a", "b", "c"], {"b": 1.0}, 3) - expected) < 1e-9
+    # Both relevant, retrieved in order → perfect.
+    assert average_precision(["a", "b"], {"a", "b"}) == 1.0
+    assert ndcg_at_k(["a", "b"], {"a": 1.0, "b": 1.0}, 2) == 1.0
+    # Nothing relevant retrieved → zero (and no crash on an empty relevant set).
+    assert average_precision(["x", "y"], {"z"}) == 0.0
+    assert ndcg_at_k(["x", "y"], {"z": 1.0}, 2) == 0.0
+    assert average_precision(["a"], set()) == 0.0
 
 
 def test_evaluate_scoring_math(tmp_path: Path) -> None:
@@ -81,6 +118,8 @@ def test_evaluate_scoring_math(tmp_path: Path) -> None:
     assert report.recall_at_k == 1.0
     assert report.hit_at_1 == 1.0
     assert report.mrr == 1.0
+    assert report.ndcg_at_k == 1.0
+    assert report.map == 1.0
 
 
 def test_load_queries_rejects_malformed(tmp_path: Path) -> None:

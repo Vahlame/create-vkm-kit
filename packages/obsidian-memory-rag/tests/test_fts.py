@@ -64,12 +64,36 @@ def test_removes_deleted_files(tmp_path: Path) -> None:
 
 
 def test_build_match_query_and_or() -> None:
-    # Default is AND (precision-first); OR is the recall fallback.
-    assert build_match_query("alpha beta") == 'body: "alpha" AND body: "beta"'
-    assert build_match_query("alpha beta", op="OR") == 'body: "alpha" OR body: "beta"'
+    # Default is AND (precision-first); OR is the recall fallback. Terms are
+    # unscoped so they match across both indexed columns (title + body); search_vault
+    # then weights title higher via BM25F.
+    assert build_match_query("alpha beta") == '"alpha" AND "beta"'
+    assert build_match_query("alpha beta", op="OR") == '"alpha" OR "beta"'
     # Single term: AND and OR are identical (no joiner) — no wasted retry.
     assert build_match_query("alpha") == build_match_query("alpha", op="OR")
     assert build_match_query("   ") is None
+
+
+def test_search_matches_title_only_term(tmp_path: Path) -> None:
+    # A note's name lives only in its title (the H1 is stripped from the FTS body,
+    # see markdown_io.split_title_body), so a body-only matcher would miss a query
+    # for the note's own name. Title-aware BM25F finds it AND ranks the title-named
+    # note above one that only mentions the term in prose.
+    vault = tmp_path / "v"
+    vault.mkdir()
+    (vault / "sqlite.md").write_text(
+        "# sqlite\n\nBase de datos embebida en un solo archivo con modo WAL.\n",
+        encoding="utf-8",
+    )
+    (vault / "inventory.md").write_text(
+        "# inventory\n\nApp de inventario que usa sqlite para persistencia.\n",
+        encoding="utf-8",
+    )
+    index_vault(vault)
+    hits = search_vault(vault, "sqlite", limit=5)
+    paths = [h.path for h in hits]
+    assert "sqlite.md" in paths  # title-only match surfaces (body-only would miss it)
+    assert paths[0] == "sqlite.md"  # title weight ranks the named note first
 
 
 def test_search_falls_back_to_or_when_and_misses(tmp_path: Path) -> None:

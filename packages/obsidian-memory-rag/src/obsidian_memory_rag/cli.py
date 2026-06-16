@@ -74,6 +74,11 @@ def main() -> None:
         help="Also fuse in notes adjacent in the [[wikilink]] graph (link-aware recall)",
     )
     hs.add_argument(
+        "--recency",
+        action="store_true",
+        help="Bias ranking toward recently-modified notes (exponential time decay)",
+    )
+    hs.add_argument(
         "--no-auto-index",
         action="store_true",
         help="Skip the pre-search incremental index refresh (query the index as-is)",
@@ -104,6 +109,8 @@ def main() -> None:
         br.add_argument("--assert-recall", type=float, default=None)
         br.add_argument("--assert-mrr", type=float, default=None)
         br.add_argument("--assert-hit1", type=float, default=None)
+        br.add_argument("--assert-ndcg", type=float, default=None)
+        br.add_argument("--assert-map", type=float, default=None)
 
     js = sub.add_parser(
         "json-search",
@@ -130,6 +137,11 @@ def main() -> None:
         "--graph",
         action="store_true",
         help="Also fuse in notes adjacent in the [[wikilink]] graph (link-aware recall)",
+    )
+    jh.add_argument(
+        "--recency",
+        action="store_true",
+        help="Bias ranking toward recently-modified notes (exponential time decay)",
     )
     jh.add_argument(
         "--no-auto-index",
@@ -254,7 +266,10 @@ def main() -> None:
         embedder = get_embedder(args.embedder)
         if not args.no_auto_index:
             ensure_fresh(args.vault, embedder=embedder)
-        hits = hybrid_search(args.vault, args.query, embedder, limit=args.limit, graph=args.graph)
+        hits = hybrid_search(
+            args.vault, args.query, embedder, limit=args.limit, graph=args.graph,
+            recency=args.recency,
+        )
         if not hits:
             print("no hits (run `index --semantic` first or broaden query)")
             return
@@ -302,6 +317,10 @@ def main() -> None:
             failures.append(f"MRR {report.mrr:.3f} < {args.assert_mrr}")
         if args.assert_hit1 is not None and report.hit_at_1 < args.assert_hit1:
             failures.append(f"hit@1 {report.hit_at_1:.3f} < {args.assert_hit1}")
+        if args.assert_ndcg is not None and report.ndcg_at_k < args.assert_ndcg:
+            failures.append(f"nDCG@{report.k} {report.ndcg_at_k:.3f} < {args.assert_ndcg}")
+        if args.assert_map is not None and report.map < args.assert_map:
+            failures.append(f"MAP {report.map:.3f} < {args.assert_map}")
         if failures:
             print("RETRIEVAL GATE FAILED: " + "; ".join(failures), file=sys.stderr)
             raise SystemExit(1)
@@ -327,7 +346,10 @@ def main() -> None:
         embedder = get_embedder(args.embedder)
         if not args.no_auto_index:
             ensure_fresh(args.vault, embedder=embedder)
-        hits = hybrid_search(args.vault, args.query, embedder, limit=args.limit, graph=args.graph)
+        hits = hybrid_search(
+            args.vault, args.query, embedder, limit=args.limit, graph=args.graph,
+            recency=args.recency,
+        )
         payload = {
             "hits": [
                 {

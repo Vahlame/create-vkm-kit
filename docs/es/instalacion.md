@@ -201,14 +201,14 @@ Acción: `vault_hybrid_search("<tema en lenguaje natural>")` (o `vault_fts_searc
 
 ### Qué herramienta usar (referencia rápida)
 
-| Necesidad                                       | Herramienta                                                                            |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Recall conceptual / lenguaje natural            | `vault_hybrid_search("<tema>")` (añade `graph: true` si el tema cruza notas enlazadas) |
-| Identificador / símbolo / error exacto          | `vault_fts_search("<término>")`                                                        |
-| Nombre de nota o `#tag` a medias                | `vault_complete("<prefijo>")`                                                          |
-| La nota entera (raro)                           | `read_note` / `vault_read_file` (solo si el pasaje no basta)                           |
-| Salud del vault (notas gigantes, enlaces rotos) | `vault_audit()`                                                                        |
-| Tras imports grandes / cambio de embedder       | `vault_fts_index({ semantic: true })`                                                  |
+| Necesidad                                       | Herramienta                                                                                                           |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Recall conceptual / lenguaje natural            | `vault_hybrid_search("<tema>")` (añade `graph: true` si el tema cruza notas enlazadas; `recency: true` para frescura) |
+| Identificador / símbolo / error exacto          | `vault_fts_search("<término>")`                                                                                       |
+| Nombre de nota o `#tag` a medias                | `vault_complete("<prefijo>")`                                                                                         |
+| La nota entera (raro)                           | `read_note` / `vault_read_file` (solo si el pasaje no basta)                                                          |
+| Salud del vault (notas gigantes, enlaces rotos) | `vault_audit()`                                                                                                       |
+| Tras imports grandes / cambio de embedder       | `vault_fts_index({ semantic: true })`                                                                                 |
 
 ### Multi-agente (fan-out) — no multipliques el coste de tokens
 
