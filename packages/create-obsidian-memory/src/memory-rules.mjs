@@ -25,7 +25,7 @@ const BODY = {
 
 ### Arranque mínimo
 
-1. \`read_note("START_HERE.md")\` — **siempre** (índice corto).
+1. Abre \`START_HERE.md\` — **siempre** (índice corto). Léelo con \`read_note\` (basic-memory) o \`vault_read_file\`/\`read_text_file\` (filesystem/hybrid MCP).
 2. En tareas **no triviales**, carga también \`MEMORY.md\` (preferencias globales; es pequeño).
 3. No leas más automáticamente.
 
@@ -39,6 +39,14 @@ Busca **antes de responder** cuando la tarea continúa trabajo previo, se nombra
 - **Prefiere \`vault_hybrid_search\`** (devuelve la sección, ahorra tokens). **No leas notas grandes enteras** (\`SESSION_LOG.md\`, PROJECTS largos).
 - Si toca un proyecto, abre \`PROJECTS/<proyecto>.md\`.
 - Verifica que un archivo/ruta citado en una nota **siga existiendo** (la memoria envejece).
+
+### Qué herramienta usar (rápido)
+
+- Recall conceptual / lenguaje natural → \`vault_hybrid_search\` (devuelve la sección). Si el tema cruza notas enlazadas → \`graph: true\` (suma notas a 1 salto de \`[[wikilinks]]\`).
+- Identificador / símbolo / error **exacto** → \`vault_fts_search\`.
+- Nombre de nota o \`#tag\` a medias → \`vault_complete\` (Trie; resuelve **antes** de buscar/enlazar/escribir).
+- Nota **entera** (raro) → \`read_note\`/\`vault_read_file\`, solo si el pasaje no basta. **Nunca** \`SESSION_LOG\`/PROJECTS grandes enteros.
+- Salud del vault (notas gigantes, \`[[wikilinks]]\` rotos) → \`vault_audit\`. Tras imports grandes / cambio de embedder → \`vault_fts_index({ semantic: true })\`.
 
 ### Multi-agente (fan-out)
 
@@ -90,7 +98,7 @@ Eres uno de varios modelos posibles (Claude, Cursor Composer, GPT, DeepSeek, Gem
 
 ### Minimal startup
 
-1. \`read_note("START_HERE.md")\` — **always** (short index).
+1. Open \`START_HERE.md\` — **always** (short index). Read it with \`read_note\` (basic-memory) or \`vault_read_file\`/\`read_text_file\` (filesystem/hybrid MCP).
 2. On **non-trivial** tasks, also load \`MEMORY.md\` (global preferences; it's small).
 3. Don't read more automatically.
 
@@ -104,6 +112,14 @@ Search **before answering** when the task continues prior work, names a project/
 - **Prefer \`vault_hybrid_search\`** (returns the section, saves tokens). **Don't read large notes whole** (\`SESSION_LOG.md\`, long PROJECTS).
 - If it touches a project, open \`PROJECTS/<project>.md\`.
 - Verify a file/path quoted in a note **still exists** (memory goes stale).
+
+### Which tool to use (quick)
+
+- Conceptual / natural-language recall → \`vault_hybrid_search\` (returns the section). If the topic spans linked notes → \`graph: true\` (adds notes one \`[[wikilink]]\` hop away).
+- **Exact** identifier / symbol / error string → \`vault_fts_search\`.
+- Half-remembered note name or \`#tag\` → \`vault_complete\` (Trie; resolve it **before** searching/linking/writing).
+- **Whole** note (rare) → \`read_note\`/\`vault_read_file\`, only if the section isn't enough. **Never** whole \`SESSION_LOG\`/large PROJECTS.
+- Vault health (oversized notes, broken \`[[wikilinks]]\`) → \`vault_audit\`. After big imports / embedder change → \`vault_fts_index({ semantic: true })\`.
 
 ### Multi-agent (fan-out)
 

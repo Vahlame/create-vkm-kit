@@ -6,8 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [3.6.0] - 2026-06-16
+
 ### Changed
 
+- **Sharper, complete tool-selection guidance in the canonical rules block.** The installed memory-protocol block (`packages/create-obsidian-memory/src/memory-rules.mjs`, ES+EN) and `docs/{es,en}/install.md` Step 4 now carry a compact **"which tool to use"** quick-reference so agents pick the right retrieval tool deterministically instead of improvising, and they document the tools that were absent from the always-loaded rules: `vault_complete` (Trie prefix autocomplete), the `graph: true` option on `vault_hybrid_search` (wikilink-adjacent recall, ADR-0019), and `vault_audit` (vault health). The startup step is now **tool-agnostic** — open `START_HERE.md` with `read_note` (basic-memory) or `vault_read_file` / `read_text_file` (filesystem/hybrid MCP) — so the rules read correctly on Claude Code (filesystem MCP) as well as Cursor (basic-memory), instead of naming a `read_note` tool Claude Code doesn't expose. Reinforces the evolving-memory + per-model loop (`_meta/agent-profiles.md`, scaffolded since 3.4.0) so the vault improves answers over time. Rules-block + docs + kit version markers only.
 - **Simpler "install with an agent" (`docs/{es,en}/install-with-agent.md`).** Collapsed the paste-into-chat installer from 7 steps to **4 core + 1 optional**, and made it **self-contained for both Cursor and Claude Code** — the old "Using Claude Code? go to fresh-PC Path A" redirect is gone. Key enabler: the basic install is **clone-free for both IDEs** (`--ide claude` registers `basic-memory` via `claude mcp add`; only `--with-hybrid` needs the kit clone), so the core path is a single `npx @vkmikc/create-obsidian-memory "<VAULT>" -y [--ide claude] --rules all`. `--rules all` now installs the User Rules automatically (idempotent marked block in `~/.claude/CLAUDE.md` / `AGENTS.md` / `.cursor/rules/`), so the manual copy-paste of the rules drops to a single residual step — Cursor's _global_ User Rules — and Claude Code needs none. Source-verification block re-anchored to the npm package (`@vkmikc/create-obsidian-memory`) for the clone-free path. Filenames unchanged → all existing cross-links intact. Docs-only.
 
 ## [3.5.0] - 2026-06-15
@@ -199,7 +202,8 @@ Prior history was undocumented and is summarized only in git log. Highlights:
 - Addition of `AGENTS.md` and `manifest.json` for machine-readable discoverability.
 - Seven hardening fixes for real-world install gaps.
 
-[Unreleased]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.5.0...HEAD
+[Unreleased]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.6.0...HEAD
+[3.6.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.5.0...v3.6.0
 [3.5.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.0.0...v3.5.0
 [3.0.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v1.1.0...v3.0.0
 [1.1.0]: https://github.com/Vahlame/obsidian-memory-kit/releases/tag/v1.1.0
