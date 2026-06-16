@@ -1,0 +1,18 @@
+{"query": "Tauri 2 Svelte 5 taller de bicicletas Supabase", "relevant": ["PROJECTS/bike-shop.md"], "kind": "lexical"}
+{"query": "inventario WPF .NET SQLite permisos por constante", "relevant": ["PROJECTS/app-inventory.md"], "kind": "lexical"}
+{"query": "generador de examenes FastAPI RLS multi-tenant", "relevant": ["PROJECTS/exam-generator.md"], "kind": "lexical"}
+{"query": "motor de optimizacion Windows WPF deteccion DDR5", "relevant": ["PROJECTS/win-optimizer.md"], "kind": "lexical"}
+{"query": "daemon Go git sync reintentos windowsgui", "relevant": ["STACKS/go.md"], "kind": "lexical"}
+{"query": "Row Level Security policies anon autenticado Postgres", "relevant": ["STACKS/postgres.md"], "kind": "lexical"}
+{"query": "SQLite WAL online backup error 14", "relevant": ["STACKS/sqlite.md"], "kind": "lexical"}
+{"query": "Svelte 5 runes reactividad sin VDOM", "relevant": ["STACKS/svelte.md"], "kind": "lexical"}
+{"query": "feature hashing embeddings RRF FTS5 BM25", "relevant": ["STACKS/python-rag.md"], "kind": "lexical"}
+{"query": "UI responsiva 2D botones sticky siempre visibles", "relevant": ["PRACTICES/confirmed-good.md"], "kind": "lexical"}
+{"query": "secretos hardcodeados push force main inyeccion SQL", "relevant": ["PRACTICES/confirmed-bad.md"], "kind": "lexical"}
+{"query": "ThemeMode experimental StaticResource manifest administrador MVVM", "relevant": ["STACKS/wpf.md"], "kind": "lexical"}
+{"query": "idioma preferido y stack diario del usuario", "relevant": ["MEMORY.md"], "kind": "conceptual"}
+{"query": "el kit de memoria persistente para agentes de IA", "relevant": ["PROJECTS/memory-kit.md"], "kind": "conceptual"}
+{"query": "como sincroniza el repositorio git el daemon kubernetes", "relevant": ["STACKS/go.md"], "kind": "or-fallback"}
+{"query": "framework de escritorio con webview nativo y sidecar Rust", "relevant": ["STACKS/tauri.md"], "kind": "conceptual"}
+{"query": "auditoria protegida con PIN y CHANGELOG por release", "relevant": ["RULES/inventory-rules.md", "PROJECTS/app-inventory.md"], "kind": "conceptual"}
+{"query": "calificacion REAC bit exacto banco de items cifrado kafka", "relevant": ["RULES/exam-rules.md", "PROJECTS/exam-generator.md"], "kind": "or-fallback"}

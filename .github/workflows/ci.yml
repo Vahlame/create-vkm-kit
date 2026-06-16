@@ -23,6 +23,8 @@ jobs:
           node-version: 20
       - name: install
         run: npm ci
+      - name: version consistency (badge == packages == CHANGELOG)
+        run: node scripts/version.mjs check
       - name: markdownlint
         run: npx --yes markdownlint-cli "**/*.md" --ignore-path .markdownlintignore
       - name: prettier
@@ -74,6 +76,24 @@ jobs:
       - run: pip install pytest
       - run: pip install -e ./packages/obsidian-memory-rag
       - run: pytest packages/obsidian-memory-rag/tests
+
+  retrieval-bench:
+    # MEASURED retrieval quality (recall@k / MRR / hit@1) over a fixed labelled
+    # corpus, on the dependency-free deterministic embedder — a real gate, unlike
+    # eval-harness-smoke. Fails the build if retrieval regresses below the floor.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
+      - run: pip install -e ./packages/obsidian-memory-rag
+      - name: recall@5 / MRR / hit@1 gate (deterministic, hashing embedder)
+        run: |
+          python -m obsidian_memory_rag bench-recall \
+            --corpus evals/retrieval/corpus \
+            --queries evals/retrieval/queries.jsonl \
+            --assert-recall 0.95 --assert-mrr 0.90 --assert-hit1 0.90
 
   links:
     runs-on: ubuntu-latest

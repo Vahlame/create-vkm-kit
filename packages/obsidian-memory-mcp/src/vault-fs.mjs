@@ -48,6 +48,11 @@ export async function safeVaultPath(vaultAbs, userPath) {
         if (probeReal !== vaultReal && !probeReal.startsWith(vaultReal + sep)) {
           throw new Error(`path escapes vault: ${userPath}`);
         }
+        // TOCTOU note: there is a theoretical window between validating this
+        // existing ancestor and the caller's later write — a symlink swapped in
+        // between could redirect the target. Irrelevant for the single-user,
+        // local vault these tools serve (no adversarial concurrent writer); a
+        // multi-tenant deployment would need an O_NOFOLLOW open at write time.
         return candidate;
       } catch (e) {
         if (e.code !== "ENOENT") throw e;

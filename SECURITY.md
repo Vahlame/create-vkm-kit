@@ -57,6 +57,8 @@ Notes in the vault are treated by the agent as information to read and process, 
 
 If the vault remote is shared (team, multi-machine), assume an attacker with write access can attempt prompt injection via `MEMORY.md`, `RULES/*`, or any other file the agent reads on startup. The mitigation is the doctrine above, not a technical filter.
 
+**Defense-in-depth (a signal, not a control).** `packages/obsidian-memory-mcp/src/untrusted.mjs` wraps every vault read in an explicit `<untrusted-vault-data>` envelope and heuristically flags lines that look like embedded directives (bilingual EN/ES, NFKC-normalized so fullwidth/compatibility homoglyphs fold back to ASCII, with a second pass that catches a directive split across two lines). This is **defense-in-depth behind the prose rule, not a sanitizer**: it is deliberately conservative (prefers a missed exotic attack to flagging ordinary prose) and is **knowingly evadable** — base64/hex-encoded payloads, cross-script homoglyphs that NFKC does not fold (e.g. Cyrillic `а` for Latin `a`), and novel phrasings will not trip it. Treat a clean scan as "no obvious injection found", never as "safe to obey". The authoritative protection remains: the agent must treat note contents as data and escalate anything that reads as an instruction.
+
 ### 2. Agent-driven setup runs with your privileges
 
 `AGENTS.md` and the `create-obsidian-memory` initializer drive an agent to write `~/.cursor/mcp.json`, install background daemons, and edit git config on your behalf. **Verify the source** (clone origin + latest commit) before letting an agent follow repo instructions. Treat an unverified clone the way you would treat `curl ... | sh`.

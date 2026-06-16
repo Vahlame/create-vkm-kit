@@ -16,8 +16,14 @@ if TYPE_CHECKING:
     from .embeddings import Embedder
 
 
-def build_match_query(user_query: str) -> str | None:
-    """Build a conservative FTS5 MATCH string (AND of body: terms)."""
+def build_match_query(user_query: str, *, op: str = "AND") -> str | None:
+    """Build an FTS5 MATCH string from the query terms.
+
+    ``op="AND"`` (default) is precision-first: every term must appear. ``op="OR"``
+    is the recall fallback used by :func:`search_vault` when the AND query matches
+    nothing — without it, one stray term (a typo, an inflection the note doesn't
+    use) drops an otherwise-relevant note entirely on a pure-FTS install.
+    """
     raw = user_query.strip()
     if not raw:
         return None
@@ -31,7 +37,8 @@ def build_match_query(user_query: str) -> str | None:
         clauses.append(f'body: "{esc}"')
     if not clauses:
         return None
-    return " AND ".join(clauses)
+    joiner = " OR " if op.upper() == "OR" else " AND "
+    return joiner.join(clauses)
 
 
 @dataclass
@@ -57,20 +64,26 @@ def search_vault(
     if not match:
         return []
 
+    sql = """
+    SELECT path, mtime_ns, title,
+           snippet(vault_fts, 3, '[', ']', '…', 24) AS snip,
+           bm25(vault_fts) AS score
+    FROM vault_fts
+    WHERE vault_fts MATCH ?
+    ORDER BY score
+    LIMIT ?
+    """
     conn = connect(db_path)
     try:
         init_schema(conn)
-        sql = """
-        SELECT path, mtime_ns, title,
-               snippet(vault_fts, 3, '[', ']', '…', 24) AS snip,
-               bm25(vault_fts) AS score
-        FROM vault_fts
-        WHERE vault_fts MATCH ?
-        ORDER BY score
-        LIMIT ?
-        """
-        cur = conn.execute(sql, (match, limit))
-        rows = cur.fetchall()
+        rows = conn.execute(sql, (match, limit)).fetchall()
+        if not rows:
+            # Precision-first AND found nothing — fall back to OR so a single
+            # missing/typo'd term doesn't drop an otherwise-relevant note. Skipped
+            # for single-term queries (OR == AND there, so no second round-trip).
+            or_match = build_match_query(query, op="OR")
+            if or_match and or_match != match:
+                rows = conn.execute(sql, (or_match, limit)).fetchall()
     finally:
         conn.close()
 

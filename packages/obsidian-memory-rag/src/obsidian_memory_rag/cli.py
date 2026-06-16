@@ -10,6 +10,7 @@ import time
 from pathlib import Path
 
 from .audit import audit_vault
+from .bench_recall import format_report, run_benchmark
 from .complete import complete as complete_prefix
 from .embeddings import get_embedder
 from .indexer import ensure_fresh, index_vault, index_vectors
@@ -83,6 +84,26 @@ def main() -> None:
     b.add_argument("--query", default="memory")
     b.add_argument("--iterations", type=int, default=200)
     b.add_argument("--limit", type=int, default=10)
+
+    for name, helptext in (
+        ("bench-recall", "Measure retrieval quality (recall@k / MRR / hit@1) vs a labelled corpus"),
+        ("json-bench-recall", "Same as bench-recall but print one JSON object (for scripting)"),
+    ):
+        br = sub.add_parser(name, help=helptext)
+        br.add_argument("--corpus", type=Path, required=True, help="Folder of Markdown notes")
+        br.add_argument("--queries", type=Path, required=True, help="JSONL: {query, relevant, kind?}")
+        br.add_argument("--k", type=int, default=5)
+        br.add_argument("--embedder", default=None)
+        br.add_argument("--graph", action="store_true", help="Fuse in [[wikilink]] neighbours")
+        br.add_argument(
+            "--in-place",
+            action="store_true",
+            help="Index the corpus where it lives (default: copy to a temp dir first)",
+        )
+        # Optional CI gates: exit non-zero if a metric falls below the threshold.
+        br.add_argument("--assert-recall", type=float, default=None)
+        br.add_argument("--assert-mrr", type=float, default=None)
+        br.add_argument("--assert-hit1", type=float, default=None)
 
     js = sub.add_parser(
         "json-search",
@@ -260,6 +281,30 @@ def main() -> None:
         p95 = lat[int(0.95 * (len(lat) - 1))]
         print(f"iterations={args.iterations} query={args.query!r} limit={args.limit}")
         print(f"latency_ms p50={p50:.3f} p95={p95:.3f} min={lat[0]:.3f} max={lat[-1]:.3f}")
+    elif args.cmd in ("bench-recall", "json-bench-recall"):
+        report = run_benchmark(
+            args.corpus,
+            args.queries,
+            k=args.k,
+            embedder_name=args.embedder,
+            graph=args.graph,
+            in_place=args.in_place,
+        )
+        if args.cmd == "json-bench-recall":
+            print(json.dumps(report.to_dict(), ensure_ascii=False))
+        else:
+            print(format_report(report))
+        # Optional gates (used by CI to fail on a retrieval-quality regression).
+        failures: list[str] = []
+        if args.assert_recall is not None and report.recall_at_k < args.assert_recall:
+            failures.append(f"recall@{report.k} {report.recall_at_k:.3f} < {args.assert_recall}")
+        if args.assert_mrr is not None and report.mrr < args.assert_mrr:
+            failures.append(f"MRR {report.mrr:.3f} < {args.assert_mrr}")
+        if args.assert_hit1 is not None and report.hit_at_1 < args.assert_hit1:
+            failures.append(f"hit@1 {report.hit_at_1:.3f} < {args.assert_hit1}")
+        if failures:
+            print("RETRIEVAL GATE FAILED: " + "; ".join(failures), file=sys.stderr)
+            raise SystemExit(1)
     elif args.cmd == "json-search":
         if not args.no_auto_index:
             ensure_fresh(args.vault)

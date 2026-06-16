@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from obsidian_memory_rag import index_vault, search_vault
+from obsidian_memory_rag.query import build_match_query
 
 
 def test_index_and_search_fts(tmp_path: Path) -> None:
@@ -60,3 +61,30 @@ def test_removes_deleted_files(tmp_path: Path) -> None:
     index_vault(vault)
     assert not search_vault(vault, "removeme")
     assert search_vault(vault, "keepme")
+
+
+def test_build_match_query_and_or() -> None:
+    # Default is AND (precision-first); OR is the recall fallback.
+    assert build_match_query("alpha beta") == 'body: "alpha" AND body: "beta"'
+    assert build_match_query("alpha beta", op="OR") == 'body: "alpha" OR body: "beta"'
+    # Single term: AND and OR are identical (no joiner) — no wasted retry.
+    assert build_match_query("alpha") == build_match_query("alpha", op="OR")
+    assert build_match_query("   ") is None
+
+
+def test_search_falls_back_to_or_when_and_misses(tmp_path: Path) -> None:
+    vault = tmp_path / "v"
+    vault.mkdir()
+    (vault / "note.md").write_text(
+        "# Deploy\n\nShipping the service to production.\n", encoding="utf-8"
+    )
+    index_vault(vault)
+    # Both terms present in the note → strict AND finds it.
+    assert search_vault(vault, "shipping production")
+    # "kubernetes" is absent: strict AND would return nothing, but the OR
+    # fallback still surfaces the note on the matching term ("production").
+    hits = search_vault(vault, "production kubernetes")
+    assert len(hits) == 1
+    assert hits[0].path == "note.md"
+    # A query where NO term matches still returns nothing (OR can't invent hits).
+    assert search_vault(vault, "kubernetes terraform") == []

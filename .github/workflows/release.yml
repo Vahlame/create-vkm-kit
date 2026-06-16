@@ -13,6 +13,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - name: guard — tag matches every version marker
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          changelog="$(node scripts/version.mjs print)"
+          if [ "$tag" != "$changelog" ]; then
+            echo "tag v$tag != CHANGELOG latest $changelog" >&2
+            exit 1
+          fi
+          node scripts/version.mjs check
       - name: extract changelog section
         id: changelog
         shell: bash
@@ -33,3 +43,28 @@ jobs:
           body_path: release-notes.md
           draft: false
           prerelease: false
+
+  # Publishes the one public package (@vkmikc/create-obsidian-memory) to npm so a
+  # tagged release no longer requires a manual `npm publish` (the cause of the
+  # 3.5.0/3.6.0 marker drift). Runs only when an NPM_TOKEN secret is configured;
+  # the other packages stay private (obsidian-memory-mcp) or pip-only (rag).
+  npm-publish:
+    needs: publish
+    runs-on: ubuntu-latest
+    if: ${{ github.repository == 'Vahlame/obsidian-memory-kit' }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+      - name: publish create-obsidian-memory
+        working-directory: packages/create-obsidian-memory
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "NPM_TOKEN not set — skipping publish (configure repo secret to enable)." >&2
+            exit 0
+          fi
+          npm publish --access public
