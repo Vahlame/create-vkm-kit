@@ -140,7 +140,7 @@ La misma pregunta la responden **tres rankers a la vez** y luego se **fusionan**
 
 ```mermaid
 flowchart LR
-  Q["tu pregunta"] --> L["BM25 léxico<br/>palabras exactas"]
+  Q["tu pregunta"] --> L["BM25 léxico<br/>palabras exactas · fallback AND→OR"]
   Q --> S["vector semántico<br/>por significado"]
   Q --> G["saltos por enlaces<br/>opt-in · nuevo en 3.5"]
   L --> F["fusión RRF<br/>(por rango, no scores crudos)"]
@@ -159,6 +159,16 @@ flowchart LR
 ```
 
 (`vault_complete` es el hermano pequeño: escribes un prefijo y obtienes los títulos / nombres / `#tags` que existen de verdad — una búsqueda en Trie, sin search.)
+
+### Medido, no solo afirmado (nuevo en 3.7)
+
+"Aflora la nota correcta" ya no es solo una afirmación — es un número. Un corpus etiquetado fijo
+más un set de consultas se puntúa en cada cambio (**recall@k / MRR / hit@1**), y una regresión
+**rompe el build** en CI. Con el embedder sin dependencias el piso es **recall@5 = 1.000,
+MRR = 0.972, hit@1 = 0.944** (un embedder neuronal solo lo sube). La capa léxica además **cae de
+AND a OR** cuando una coincidencia estricta no encuentra nada, así una palabra ausente o mal
+escrita ya no tira una nota relevante. Detalle: [`evals/retrieval`](https://github.com/Vahlame/obsidian-memory-kit/tree/main/evals/retrieval) ·
+[ADR-0020](../adr/0020-measured-retrieval-quality.md).
 
 ### Por qué esto ahorra tokens (y escala a muchos agentes)
 

@@ -139,7 +139,7 @@ The same question is answered by **three rankers at once**, then **fused** — n
 
 ```mermaid
 flowchart LR
-  Q["your question"] --> L["BM25 lexical<br/>exact words"]
+  Q["your question"] --> L["BM25 lexical<br/>exact words · AND→OR fallback"]
   Q --> S["vector semantic<br/>by meaning"]
   Q --> G["graph link-hops<br/>opt-in · new in 3.5"]
   L --> F["RRF fusion<br/>(rank, not raw scores)"]
@@ -158,6 +158,16 @@ flowchart LR
 ```
 
 (`vault_complete` is the small sibling: type a prefix, get the titles / filenames / `#tags` that actually exist — a Trie lookup, no search needed.)
+
+### Measured, not just claimed (new in 3.7)
+
+"Surfaces the right note" is no longer just a claim — it's a number. A fixed, labelled corpus
+plus query set is scored on every change (**recall@k / MRR / hit@1**), and a regression **fails
+the build** in CI. On the dependency-free embedder the floor is **recall@5 = 1.000, MRR = 0.972,
+hit@1 = 0.944** (a neural embedder only raises it). The lexical layer also **falls back from AND
+to OR** when a strict match finds nothing, so one missing or mistyped word no longer drops a
+relevant note. Detail: [`evals/retrieval`](https://github.com/Vahlame/obsidian-memory-kit/tree/main/evals/retrieval) ·
+[ADR-0020](../adr/0020-measured-retrieval-quality.md).
 
 ### Why this saves tokens (and scales to many agents)
 

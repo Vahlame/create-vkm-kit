@@ -44,17 +44,17 @@ flowchart LR
 
 ## Repository layout
 
-| Path                                 | Language    | Role                                                                  |
-| ------------------------------------ | ----------- | --------------------------------------------------------------------- |
-| `cmd/obsidian-memoryd/`              | Go          | Daemon: filesystem watch → debounced git sync; `doctor` health report |
-| `packages/obsidian-memory-mcp/`      | Node (ESM)  | The "hybrid" MCP sidecar (stdio): vault-locked file + search tools    |
-| `packages/obsidian-memory-rag/`      | Python      | FTS5 indexer + BM25 search (the search engine the sidecar bridges to) |
-| `packages/create-obsidian-memory/`   | Node        | `npx` initializer: merges MCP config, scaffolds a vault               |
-| `scripts/`                           | TS / Node   | `sync-agents.ts` (rule generator), parity + MCP smoke checks          |
-| `.agents/`, `.cursor/`, `.continue/` | Markdown    | Per-IDE rule files; `.agents/rules/*` is the source, the rest derived |
-| `evals/`                             | Node / YAML | Prompt-adherence gate run in CI                                       |
-| `docs/`                              | Markdown    | ADRs (decisions), setup guides, troubleshooting (bilingual ES/EN)     |
-| `examples/`                          | Markdown    | Anonymized sample vault layout                                        |
+| Path                                 | Language       | Role                                                                       |
+| ------------------------------------ | -------------- | -------------------------------------------------------------------------- |
+| `cmd/obsidian-memoryd/`              | Go             | Daemon: filesystem watch → debounced git sync; `doctor` health report      |
+| `packages/obsidian-memory-mcp/`      | Node (ESM)     | The "hybrid" MCP sidecar (stdio): vault-locked file + search tools         |
+| `packages/obsidian-memory-rag/`      | Python         | FTS5 indexer + BM25 search (the search engine the sidecar bridges to)      |
+| `packages/create-obsidian-memory/`   | Node           | `npx` initializer: merges MCP config, scaffolds a vault                    |
+| `scripts/`                           | TS / Node      | `sync-agents.ts` (rule generator), parity + MCP smoke checks               |
+| `.agents/`, `.cursor/`, `.continue/` | Markdown       | Per-IDE rule files; `.agents/rules/*` is the source, the rest derived      |
+| `evals/`                             | Node / Py / MD | Retrieval-quality benchmark (recall@k/MRR, gated) + prompt-adherence smoke |
+| `docs/`                              | Markdown       | ADRs (decisions), setup guides, troubleshooting (bilingual ES/EN)          |
+| `examples/`                          | Markdown       | Anonymized sample vault layout                                             |
 
 It is an npm **workspaces** monorepo (`packages/*`) for the Node side, a single
 Go module (`go.mod`) for the daemon, and a `pyproject.toml` package for the RAG
@@ -75,7 +75,7 @@ Keeps the vault's git history moving without the user thinking about it.
 
 ### 2. `obsidian-memory-mcp` — hybrid MCP sidecar (Node)
 
-The agent's authoritative window into the vault. Stdio MCP server exposing nine
+The agent's authoritative window into the vault. Stdio MCP server exposing ten
 tools, split into small modules so the pure logic is unit-testable without
 spawning the transport.
 
@@ -101,12 +101,12 @@ The Node sidecar shells out to it; it can also be used directly as a CLI. Lexica
 search (FTS5 / BM25) is always available; semantic and hybrid search are an
 additive layer that preserves the zero-dependency default (ADR-0017).
 
-- **CLI:** [`cli.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/cli.py) — `index` (with `--semantic`), `search` / `hybrid-search` (auto-index incrementally before querying; `--no-auto-index` to skip; `--graph` for wikilink-aware recall), `complete` (Trie prefix autocomplete), `bench`, `audit` (note-budget + broken-`[[wikilink]]` + `SESSION_LOG` report), `rotate-log` (archive old `SESSION_LOG` sections to `SESSION_LOG/archive.md`), and machine-readable `json-search` / `json-hybrid-search` / `json-index` / `json-audit` / `json-complete` (the bridge surface).
+- **CLI:** [`cli.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/cli.py) — `index` (with `--semantic`), `search` / `hybrid-search` (auto-index incrementally before querying; `--no-auto-index` to skip; `--graph` for wikilink-aware recall), `complete` (Trie prefix autocomplete), `bench`, `bench-recall` / `json-bench-recall` (recall@k / MRR / hit@1 against a labelled corpus — the retrieval-quality gate), `audit` (note-budget + broken-`[[wikilink]]` + `SESSION_LOG` report), `rotate-log` (archive old `SESSION_LOG` sections to `SESSION_LOG/archive.md`), and machine-readable `json-search` / `json-hybrid-search` / `json-index` / `json-audit` / `json-complete` (the bridge surface).
 - **Index:** [`indexer.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/indexer.py) — incremental FTS index by `(mtime_ns, size)`; `index_vectors` builds embeddings in a separate, equally incremental pass so the FTS path is untouched.
 - **Store:** [`store.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/store.py) — SQLite **FTS5** virtual table (`unicode61 remove_diacritics 2`) tuned for read-heavy agent workloads (WAL, `mmap`, normal sync).
 - **Embeddings:** [`embeddings.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/embeddings.py) — pluggable `Embedder` protocol. The default `HashingEmbedder` is pure-stdlib and deterministic (lexical feature hashing); the optional `fastembed` neural embedder (behind the `[semantic]` extra) adds meaning-based recall. Chosen via `OBSIDIAN_MEMORY_EMBEDDER`.
 - **Chunking + vectors:** [`chunking.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/chunking.py) splits each note into heading-aware sections; [`vector_store.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/vector_store.py) embeds each chunk into a `note_chunks` table (float32 BLOBs in the same `fts.sqlite`) and ranks by brute-force cosine (sub-10 ms for a personal vault; `sqlite-vec` is the documented future acceleration).
-- **Query:** [`query.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/query.py) — `search_vault` (BM25), `semantic_search` (chunk cosine), and `hybrid_search` fusing them via Reciprocal Rank Fusion and returning the **matching passage** so a caller reads a section, not the whole note; degrades to pure FTS when no chunks exist. With `graph=True` it adds a third RRF input from `graph_neighbors`.
+- **Query:** [`query.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/query.py) — `search_vault` (BM25), `semantic_search` (chunk cosine), and `hybrid_search` fusing them via Reciprocal Rank Fusion and returning the **matching passage** so a caller reads a section, not the whole note; degrades to pure FTS when no chunks exist. With `graph=True` it adds a third RRF input from `graph_neighbors`. `search_vault` keeps a precision-first AND but **falls back to OR when AND matches nothing**, so one missing or misspelled term doesn't drop an otherwise-relevant note on a pure-FTS (no-vector) install.
 - **Graph + autocomplete:** [`graphlink.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/graphlink.py) parses the `[[wikilink]]` graph from the FTS bodies and ranks notes one hop from the strongest hits (ADR-0019); [`trie.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/trie.py) + [`complete.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/complete.py) back prefix autocompletion over titles / filenames / `#tags`.
 - **Layout:** the index lives beside the vault in `.obsidian-memory-rag/fts.sqlite` (git-ignored), so it never pollutes the synced notes (ADR-0014 / ADR-0017).
 
@@ -126,7 +126,8 @@ each IDE's format.
 
 - **Source of truth:** [`AGENTS.md`](./AGENTS.md) (hand-written sections + an autogenerated block) and `.agents/rules/*.md`.
 - **Generator:** [`scripts/sync-agents.ts`](./scripts/sync-agents.ts) builds the `AGENTS.md` `<!-- AUTOGEN -->` block from `.agents/rules/*` and projects `.cursor/rules/*.mdc` + `.continue/rules/*.md` from [`agents-manifest.yaml`](./agents-manifest.yaml). `--check` mode fails CI on drift, so generated files can never silently diverge from their source.
-- **Quality gates:** `scripts/mcp-smoke.mjs` and the `evals/` prompt-adherence suite.
+- **Version guard:** [`scripts/version.mjs`](./scripts/version.mjs) (`npm run version:check` / `version:set`) is the single source of truth for the kit version — it validates that **every** marker agrees (both `package.json`s, `pyproject.toml`, the README badge, `agent.toml`, and the Go daemon's `var version`) with the latest `CHANGELOG.md` section. CI's `lint` job runs `version check` (so badge/package/CHANGELOG drift fails the build) and the `release` workflow re-checks it before publishing.
+- **Quality gates:** `scripts/mcp-smoke.mjs`, the `evals/retrieval` recall benchmark (`bench-recall` — deterministic on the dependency-free embedder, gated in CI as `retrieval-bench`), and the `evals/` prompt-adherence smoke.
 
 ## Data flows
 
@@ -241,15 +242,17 @@ Two **local** surfaces (no hosted backend; see [`docs/observability.md`](./docs/
 
 ## Testing and CI
 
-| Surface            | Command                                     |
-| ------------------ | ------------------------------------------- |
-| Go daemon          | `go test ./...`                             |
-| Node packages      | `npm test -w <package>` (`node --test`)     |
-| Python RAG         | `pytest packages/obsidian-memory-rag/tests` |
-| Generated rules    | `npm run sync-agents:check`                 |
-| Docs (lint/format) | `markdownlint` + `prettier --check`         |
-| Links              | `npx lychee .`                              |
-| Prompt adherence   | `npm run eval:adherence`                    |
+| Surface             | Command                                                                                                                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Go daemon           | `go test ./...`                                                                                                                                                                |
+| Node packages       | `npm test -w <package>` (`node --test`)                                                                                                                                        |
+| Python RAG          | `pytest packages/obsidian-memory-rag/tests`                                                                                                                                    |
+| Retrieval quality   | `python -m obsidian_memory_rag bench-recall --corpus evals/retrieval/corpus --queries evals/retrieval/queries.jsonl --assert-recall 0.95 --assert-mrr 0.90 --assert-hit1 0.90` |
+| Version consistency | `npm run version:check`                                                                                                                                                        |
+| Generated rules     | `npm run sync-agents:check`                                                                                                                                                    |
+| Docs (lint/format)  | `markdownlint` + `prettier --check`                                                                                                                                            |
+| Links               | `npx lychee .`                                                                                                                                                                 |
+| Prompt adherence    | `npm run eval:adherence`                                                                                                                                                       |
 
 CI (`.github/workflows/ci.yml`) mirrors these across a lint/test/smoke matrix.
 
@@ -263,6 +266,8 @@ this architecture:
 - **ADR-0012** — cross-platform Go daemon replacing PowerShell + Task Scheduler.
 - **ADR-0014** — hybrid retrieval (FTS5 now, vector layer as the optional extension).
 - **ADR-0016** — default localhost port 8765 for Streamable HTTP `basic-memory`.
+- **ADR-0019** — graph-aware retrieval over the `[[wikilink]]` graph.
+- **ADR-0020** — measured retrieval quality (recall@k / MRR) as a CI gate.
 
 Do not undo an accepted ADR without superseding it with a new one
 (see [`CONTRIBUTING.md`](./CONTRIBUTING.md)).

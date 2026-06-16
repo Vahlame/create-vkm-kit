@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Documentation
+
+- **Docs synced to v3.7 across npm + GitHub.** The npm landing page (`packages/create-obsidian-memory/README.md`) gains a "measured, not just claimed" point (CI-gated recall@k/MRR/hit@1 + the AND→OR fallback). `ARCHITECTURE.md` documents the `bench-recall` CLI, the OR-fallback in `query.py`, the `scripts/version.mjs` six-marker version guard, and the new `retrieval-bench` / version-consistency CI gates (Testing table + ADR list). The bilingual **how-it-works / cómo-funciona** guides get a "Measured, not just claimed" section and the retrieval-stack Mermaid now shows the lexical AND→OR fallback; the `hero.svg` hybrid-MCP label reflects the full léxica + semántica + grafo stack. New **ADR-0020** (measured retrieval quality as a CI gate) added and indexed. Docs-only — no version bump (markers stay at 3.7.0).
+
 ## [3.7.0] - 2026-06-16
 
 ### Added

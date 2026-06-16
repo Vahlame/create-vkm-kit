@@ -23,6 +23,7 @@ Each file in this directory captures one design decision: what was chosen, what 
 | [ADR-0017](./0017-hybrid-query-embeddings.md)                  | Hybrid query: pluggable embeddings + pure-Python cosine (realizes ADR-0014)           | Accepted |
 | [ADR-0018](./0018-multi-agent-token-efficiency.md)             | Multi-agent token efficiency: passage-first reads, auto-indexed search, data envelope | Accepted |
 | [ADR-0019](./0019-graph-aware-retrieval.md)                    | Graph-aware retrieval over the `[[wikilink]]` graph (+ Trie autocomplete)             | Accepted |
+| [ADR-0020](./0020-measured-retrieval-quality.md)               | Measured retrieval quality (recall@k / MRR) as a CI gate                              | Accepted |
 
 ## Template
 
