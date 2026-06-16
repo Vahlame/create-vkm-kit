@@ -6,10 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [3.7.0] - 2026-06-16
+
 ### Added
 
 - **Measured retrieval-quality benchmark (recall@k / MRR / hit@1) — the central claim is now a number, not an assertion.** New `obsidian_memory_rag.bench_recall` module + `bench-recall` / `json-bench-recall` CLI commands score `hybrid_search` against a fixed, labelled corpus (`evals/retrieval/corpus/`, 16 notes across PROJECTS/STACKS/PRACTICES/RULES/MEMORY with overlapping vocabulary) and query set (`evals/retrieval/queries.jsonl`, 18 lexical/conceptual-ES/OR-fallback queries with ground-truth paths). Deterministic on the dependency-free `HashingEmbedder`, so it doubles as a CI gate: new job **`retrieval-bench`** + `tests/test_bench_recall.py` fail the build on regression. **Measured floor (graph off): recall@5 = 1.000, MRR = 0.972, hit@1 = 0.944**; with `--graph` the OR-fallback queries lift to MRR/hit@1 = 1.000 — the first empirical evidence for ADR-0019's link fusion. A neural embedder only raises the conceptual numbers. Closes the strategic review's P0 ("the product claim is not measured empirically").
-- **Single-source version tooling + drift guard (`scripts/version.mjs`, `npm run version:check` / `version:set`).** One command rewrites/validates every version marker (both `package.json`s, `pyproject.toml`, the README badge) against the canonical CHANGELOG version. The `lint` CI job now runs `version check` so a future badge/package/CHANGELOG mismatch **fails the build**, and the `release` workflow guards that the pushed tag equals every marker before publishing. Fixes the review's P1 version-drift finding (badge said 3.6.0 while packages said 3.5.0); all markers aligned to **3.6.0**.
+- **Single-source version tooling + drift guard (`scripts/version.mjs`, `npm run version:check` / `version:set`).** One command rewrites/validates every version marker (both `package.json`s, `pyproject.toml`, the README badge) against the canonical CHANGELOG version. The `lint` CI job now runs `version check` so a future badge/package/CHANGELOG mismatch **fails the build**, and the `release` workflow guards that the pushed tag equals every marker before publishing. Fixes the review's P1 version-drift finding (badge said 3.6.0 while packages said 3.5.0); all markers aligned to **3.7.0**.
 
 ### Changed
 
@@ -217,7 +219,8 @@ Prior history was undocumented and is summarized only in git log. Highlights:
 - Addition of `AGENTS.md` and `manifest.json` for machine-readable discoverability.
 - Seven hardening fixes for real-world install gaps.
 
-[Unreleased]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.6.0...HEAD
+[Unreleased]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.7.0...HEAD
+[3.7.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.6.0...v3.7.0
 [3.6.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.5.0...v3.6.0
 [3.5.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.0.0...v3.5.0
 [3.0.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v1.1.0...v3.0.0

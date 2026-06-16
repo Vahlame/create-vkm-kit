@@ -50,6 +50,23 @@ const MARKERS = [
     file: "README.md",
     read: (s) => (s.match(/release-v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)-orange/) || [])[1],
     write: (s, v) => s.replace(/(release-v)\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(-orange)/, `$1${v}$2`)
+  },
+  {
+    name: "agent.toml",
+    file: "agent.toml",
+    read: (s) => (s.match(/^version\s*=\s*"([^"]+)"/m) || [])[1],
+    write: (s, v) => s.replace(/^(version\s*=\s*")[^"]+(")/m, `$1${v}$2`)
+  },
+  {
+    // Go daemon kit version: the authoritative `var version` plus the example
+    // -ldflags in the build comment, kept in lockstep.
+    name: "cmd/obsidian-memoryd/main.go",
+    file: "cmd/obsidian-memoryd/main.go",
+    read: (s) => (s.match(/var version = "([^"]+)"/) || [])[1],
+    write: (s, v) =>
+      s
+        .replace(/(var version = ")[^"]+(")/, `$1${v}$2`)
+        .replace(/(main\.version=)\d+\.\d+\.\d+/, `$1${v}`)
   }
 ];
 
