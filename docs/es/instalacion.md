@@ -199,6 +199,17 @@ Acción: `vault_hybrid_search("<tema en lenguaje natural>")` (o `vault_fts_searc
 3. Si la tarea toca un proyecto, abre `PROJECTS/<proyecto>.md` (créalo con `write_note` solo si se justifica).
 4. Antes de actuar sobre un archivo, flag o ruta citados **en una nota**, **verifica que siguen existiendo** — la memoria puede estar obsoleta.
 
+### Qué herramienta usar (referencia rápida)
+
+| Necesidad                                       | Herramienta                                                                            |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Recall conceptual / lenguaje natural            | `vault_hybrid_search("<tema>")` (añade `graph: true` si el tema cruza notas enlazadas) |
+| Identificador / símbolo / error exacto          | `vault_fts_search("<término>")`                                                        |
+| Nombre de nota o `#tag` a medias                | `vault_complete("<prefijo>")`                                                          |
+| La nota entera (raro)                           | `read_note` / `vault_read_file` (solo si el pasaje no basta)                           |
+| Salud del vault (notas gigantes, enlaces rotos) | `vault_audit()`                                                                        |
+| Tras imports grandes / cambio de embedder       | `vault_fts_index({ semantic: true })`                                                  |
+
 ### Multi-agente (fan-out) — no multipliques el coste de tokens
 
 - Si lanzas **varios sub-agentes**, el **orquestador** trae y **destila** el contexto **una sola vez** y pasa el extracto relevante en el **prompt** de cada sub-agente.

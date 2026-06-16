@@ -198,6 +198,17 @@ Action: `vault_hybrid_search("<topic in natural language>")` (or `vault_fts_sear
 3. If the task touches a project, open `PROJECTS/<project>.md` (create it with `write_note` only if justified).
 4. Before acting on a file, flag or path quoted **in a note**, **verify it still exists** — memory can be stale.
 
+### Which tool to use (quick reference)
+
+| Need                                         | Tool                                                                                 |
+| -------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Conceptual / natural-language recall         | `vault_hybrid_search("<topic>")` (add `graph: true` if the topic spans linked notes) |
+| Exact identifier / symbol / error string     | `vault_fts_search("<term>")`                                                         |
+| Half-remembered note name or `#tag`          | `vault_complete("<prefix>")`                                                         |
+| The whole note (rare)                        | `read_note` / `vault_read_file` (only if the section isn't enough)                   |
+| Vault health (oversized notes, broken links) | `vault_audit()`                                                                      |
+| After big imports / embedder change          | `vault_fts_index({ semantic: true })`                                                |
+
 ### Multi-agent (fan-out) — don't multiply the token cost
 
 - If you spawn **several sub-agents**, the **orchestrator** fetches and **distills** the context **once** and passes the relevant excerpt in each sub-agent's **prompt**.
