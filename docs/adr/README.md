@@ -25,6 +25,7 @@ Each file in this directory captures one design decision: what was chosen, what 
 | [ADR-0019](./0019-graph-aware-retrieval.md)                    | Graph-aware retrieval over the `[[wikilink]]` graph (+ Trie autocomplete)             | Accepted |
 | [ADR-0020](./0020-measured-retrieval-quality.md)               | Measured retrieval quality (recall@k / MRR) as a CI gate                              | Accepted |
 | [ADR-0021](./0021-ranking-upgrades-and-graded-metrics.md)      | Graded metrics (nDCG/MAP), harder golden set, weighted RRF, BM25F, opt-in recency     | Accepted |
+| [ADR-0022](./0022-codex-first-class-and-full-preset.md)        | Codex CLI as a first-class wiring target + `--full` one-shot preset                   | Accepted |
 
 ## Template
 

@@ -15,6 +15,35 @@ commands**. Works for both IDEs — no clone needed for the basic install.
 
 ---
 
+## ⚡ Simplest: hand the agent the repo and say "install it"
+
+If you have (or let the agent clone) the repo, you don't need to paste a long prompt — there's a
+single **self-verifying entry point**. Just tell the agent:
+
+> “Clone <https://github.com/Vahlame/obsidian-memory-kit>, cd into it, and run `npm install` then `npm run setup`. I'll approve the commands.”
+
+```bash
+git clone https://github.com/Vahlame/obsidian-memory-kit
+cd obsidian-memory-kit
+npm install
+npm run setup            # options: npm run setup -- --vault "<PATH>" --ide codex,claude --lang en
+```
+
+`npm run setup` **preflights** dependencies (`node`, `uv`, `git`, `python`/`pip`), **auto-detects**
+which agent CLIs are on PATH (`codex`, `claude`; falls back to Cursor), runs the **`--full`** install
+(hybrid + semantic + index + rules, or the basic stack if Python is absent), **verifies** (vault,
+index, `codex/claude mcp list`) and prints a status table. `npm run setup:dry` previews it with zero
+writes.
+
+> **Honest limit:** registering an MCP does **not** make its tools live in the current session — no
+> agent can hot-load its own MCP. After `npm run setup`, **restart** Claude Code / Codex (or reload
+> the Cursor window); the memory tools (`vault_hybrid_search`, …) answer in the **next** session. The
+> agent can confirm wiring with `claude mcp list` / `codex mcp list`.
+
+No clone (npx-only, basic install)? Use the prompt below.
+
+---
+
 **Copy from here down into a new agent chat:**
 
 ---
