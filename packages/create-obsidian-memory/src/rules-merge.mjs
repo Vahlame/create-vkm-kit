@@ -54,7 +54,7 @@ async function installRulesFile(fp, block, { dryRun = false, newFilePrefix = "" 
 
 /**
  * Install the memory-rules block into the requested targets.
- * @param {string[]} targets - any of "claude" | "agents" | "cursor"
+ * @param {string[]} targets - any of "claude" | "agents" | "cursor" | "codex"
  * @param {"es"|"en"} lang
  * @param {{ home: string, cwd: string, dryRun?: boolean }} ctx
  * @returns {Promise<string[]>} files written
@@ -64,6 +64,13 @@ export async function installRules(targets, lang, { home, cwd, dryRun = false })
   const written = [];
   if (targets.includes("claude")) {
     const fp = path.join(home, ".claude", "CLAUDE.md");
+    await installRulesFile(fp, block, { dryRun });
+    written.push(fp);
+  }
+  if (targets.includes("codex")) {
+    // Codex CLI reads global instructions from ~/.codex/AGENTS.md (project-level
+    // ./AGENTS.md is covered by the "agents" target).
+    const fp = path.join(home, ".codex", "AGENTS.md");
     await installRulesFile(fp, block, { dryRun });
     written.push(fp);
   }

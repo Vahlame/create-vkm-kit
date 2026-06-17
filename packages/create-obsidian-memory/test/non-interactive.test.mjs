@@ -260,6 +260,63 @@ test("non-interactive --with-gitleaks installs an executable pre-commit hook", (
   }
 });
 
+test("--full --dry-run wires Codex + Claude with hybrid/semantic/index/backend (no side effects)", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-full-"));
+  const vault = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "com-full-v-")), "vault");
+  // NO_COLOR so assertions aren't split by ANSI resets (picocolors forces color on win32).
+  const env = { ...process.env, USERPROFILE: home, HOME: home, NO_COLOR: "1" };
+  const r = spawnSync(
+    process.execPath,
+    [bin, vault, "--full", "--repo-root", kitRepo, "--dry-run", "--no-git-init"],
+    { encoding: "utf8", env }
+  );
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.match(r.stdout, /full preset/, "announces the full preset");
+  // default --ide under --full is codex,claude (not cursor)
+  assert.match(r.stdout, /\[dry-run\] codex mcp add basic-memory/, "wires Codex MCP");
+  assert.match(r.stdout, /\[dry-run\] claude mcp add basic-memory/, "wires Claude Code MCP");
+  assert.match(
+    r.stdout,
+    /\[dry-run\] codex mcp add obsidian-memory-hybrid/,
+    "hybrid on under --full"
+  );
+  assert.match(r.stdout, /would install backend/, "installs the Python backend");
+  assert.match(r.stdout, /would build index/, "builds the index");
+  // dry-run must not create the vault or touch ~/.cursor
+  assert.ok(!fs.existsSync(path.join(vault, "START_HERE.md")), "dry-run scaffolds nothing");
+  assert.ok(!fs.existsSync(path.join(home, ".cursor", "mcp.json")), "no cursor write under --full");
+});
+
+test("non-interactive --rules codex writes the managed block to ~/.codex/AGENTS.md", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-codexrules-"));
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), "com-codexrules-w-"));
+  const vault = path.join(work, "vault");
+  // --ide cursor keeps this hermetic (no claude/codex CLI shell-outs); --rules codex
+  // exercises the new global Codex rules target.
+  const r = spawnSync(
+    process.execPath,
+    [bin, vault, "-y", "--ide", "cursor", "--no-git-init", "--rules", "codex"],
+    { cwd: work, encoding: "utf8", env: { ...process.env, USERPROFILE: home, HOME: home } }
+  );
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  const codexMd = fs.readFileSync(path.join(home, ".codex", "AGENTS.md"), "utf8");
+  assert.match(codexMd, /obsidian-memory:start/);
+  assert.match(codexMd, /vault_hybrid_search/, "rules body present");
+});
+
+test("non-interactive --ide codex --dry-run prints the codex mcp add command", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-codex-"));
+  const vault = fs.mkdtempSync(path.join(os.tmpdir(), "com-codex-v-"));
+  fs.mkdirSync(path.join(vault, ".obsidian"));
+  const r = spawnSync(
+    process.execPath,
+    [bin, "--non-interactive", "--vault", vault, "--ide", "codex", "--dry-run", "--no-git-init"],
+    { encoding: "utf8", env: { ...process.env, USERPROFILE: home, HOME: home, NO_COLOR: "1" } }
+  );
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.match(r.stdout, /\[dry-run\] codex mcp add basic-memory --env BASIC_MEMORY_HOME=/);
+});
+
 test("non-interactive --with-hybrid merges obsidian-memory-hybrid", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-hyb-"));
   const vault = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-hyb-v-"));

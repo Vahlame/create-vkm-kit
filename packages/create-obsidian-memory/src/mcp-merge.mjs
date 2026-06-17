@@ -86,6 +86,55 @@ export function claudeRemoveArgv(name, scope = "user") {
 }
 
 /**
+ * Build argv for `codex mcp add <name> --env K=V ... -- <command> <args...>`.
+ * Codex CLI keeps its servers in `~/.codex/config.toml` and manages the TOML
+ * merge itself, so the initializer shells out to the CLI rather than editing the
+ * file — the same rationale as the Claude Code path (don't hand-merge a config a
+ * vendor tool already merges safely). Verified flag form (developers.openai.com/
+ * codex/mcp): name is positional after `add`, `--env KEY=VALUE` is repeatable,
+ * and the launcher command follows a `--` separator.
+ * @param {string} name
+ * @param {{ command: string, args?: string[], env?: Record<string,string> }} server
+ * @returns {string[]}
+ */
+export function codexAddArgv(name, server) {
+  const argv = ["mcp", "add", name];
+  for (const [k, v] of Object.entries(server.env || {})) argv.push("--env", `${k}=${v}`);
+  argv.push("--", server.command, ...(server.args || []));
+  return argv;
+}
+
+/** Build argv for `codex mcp remove <name>` (makes `add` idempotent). */
+export function codexRemoveArgv(name) {
+  return ["mcp", "remove", name];
+}
+
+/** Escape a string for a TOML basic (double-quoted) string. */
+function tomlBasicString(s) {
+  return `"${String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
+/**
+ * Render a `[mcp_servers.<name>]` TOML block for Codex's `~/.codex/config.toml`,
+ * used as the copy-paste fallback when the `codex` CLI isn't on PATH. Windows
+ * paths (backslashes) and quotes in env values are escaped for TOML.
+ * @param {string} name
+ * @param {{ command: string, args?: string[], env?: Record<string,string> }} server
+ * @returns {string}
+ */
+export function codexTomlBlock(name, server) {
+  const lines = [`[mcp_servers.${name}]`, `command = ${tomlBasicString(server.command)}`];
+  const args = server.args || [];
+  if (args.length) lines.push(`args = [${args.map(tomlBasicString).join(", ")}]`);
+  const env = Object.entries(server.env || {});
+  if (env.length) {
+    lines.push("", `[mcp_servers.${name}.env]`);
+    for (const [k, v] of env) lines.push(`${k} = ${tomlBasicString(v)}`);
+  }
+  return lines.join("\n");
+}
+
+/**
  * Merge basic-memory MCP server entry into an existing mcp.json object.
  * @param {unknown} raw - parsed JSON root object
  * @param {string} vaultAbs - absolute vault path for BASIC_MEMORY_HOME
