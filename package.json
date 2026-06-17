@@ -5,6 +5,8 @@
     "packages/*"
   ],
   "scripts": {
+    "setup": "node scripts/agent-install.mjs",
+    "setup:dry": "node scripts/agent-install.mjs --dry-run",
     "sync-agents": "npx --yes tsx scripts/sync-agents.ts",
     "sync-agents:check": "npx --yes tsx scripts/sync-agents.ts --check",
     "linkcheck": "node scripts/linkcheck.mjs .",

@@ -5,8 +5,8 @@ AI coding agent reads and writes across sessions, wired to your IDE over **MCP**
 
 It configures the [`basic-memory`](https://github.com/basicmachines-co/basic-memory) MCP server
 (and, optionally, the `obsidian-memory-hybrid` **BM25 + semantic + graph-aware** retrieval sidecar)
-for **Cursor** and/or **Claude Code**, points it at your vault, and can build the local search
-index — in one command.
+for **Codex CLI**, **Claude Code** and/or **Cursor**, points it at your vault, and can build the
+local search index — in one command.
 
 Part of the [obsidian-memory-kit](https://github.com/Vahlame/obsidian-memory-kit)
 kit. Full docs (English + Spanish), architecture and ADRs live there.
@@ -14,7 +14,11 @@ kit. Full docs (English + Spanish), architecture and ADRs live there.
 ## Quick start
 
 ```bash
-# Interactive wizard (recommended the first time)
+# ⚡ The whole stack in one command — Codex + Claude Code, hybrid+semantic, index, rules.
+# Zero questions. Run from a clone of the kit, or add --repo-root <clone>.
+npx @vkmikc/create-obsidian-memory@latest --full
+
+# Interactive wizard (pre-selects Codex + Claude Code)
 npm create @vkmikc/obsidian-memory@latest
 
 # One-shot, no questions — vault defaults to ~/Documents/obsidian-memory-vault (created if missing)
@@ -24,6 +28,10 @@ npx @vkmikc/create-obsidian-memory@latest -y
 npx @vkmikc/create-obsidian-memory@latest ./my-vault -y
 ```
 
+`--full` (alias `--all`) is the max-power preset: it defaults `--ide` to `codex,claude` and turns on
+`--with-hybrid --semantic --build-index --install-backend` plus the rules for each agent. If no kit
+clone is found to source the hybrid bridge, it **degrades to `basic-memory` instead of aborting**.
+
 The wizard asks for your vault path and which IDE(s) to wire; the `-y` form skips all prompts. Either
 way it writes the MCP config and scaffolds a starter vault (`START_HERE.md`, `MEMORY.md`, `PROJECTS/`,
 `SESSION_LOG.md`, `PRACTICES/`, `STACKS/`, `_meta/agent-profiles.md`).
@@ -31,38 +39,47 @@ way it writes the MCP config and scaffolds a starter vault (`START_HERE.md`, `ME
 ## One-command, non-interactive (CI / fresh PC)
 
 ```bash
-# Cursor + Claude Code, hybrid search with multilingual embeddings, index built — from a kit clone
+# Codex CLI + Claude Code, hybrid search + multilingual embeddings, backend installed,
+# index built, rules written — everything, from a kit clone:
+node packages/create-obsidian-memory/src/index.js --full --vault "$HOME/my-vault" --repo-root .
+
+# …or spell it out (and add cursor) instead of --full:
 node packages/create-obsidian-memory/src/index.js --non-interactive \
-  --vault "$HOME/my-vault" --ide cursor,claude \
-  --with-hybrid --semantic --build-index --repo-root .
+  --vault "$HOME/my-vault" --ide codex,claude,cursor \
+  --with-hybrid --semantic --install-backend --build-index --rules all --repo-root .
 ```
 
-`--with-hybrid` needs a local clone of the kit (it wires the Node bridge + Python backend), so run
-it from the clone or pass `--repo-root <clone>`. The plain `basic-memory` path needs no clone.
+`--with-hybrid` (and `--full`'s hybrid step) needs a local clone of the kit — it wires the Node
+bridge + Python backend — so run it from the clone or pass `--repo-root <clone>`. The plain
+`basic-memory` path needs no clone, and `--full` falls back to it (with a warning) if no clone is
+found.
 
 ## Options
 
-| Flag                               | Purpose                                                                                                                                                                                                                                          |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `--lang en`                        | English prompts (default is Spanish-first).                                                                                                                                                                                                      |
-| `--dry-run`                        | Print the merged Cursor `mcp.json` only — no writes.                                                                                                                                                                                             |
-| `-y`, `--yes`, `--non-interactive` | Headless mode (no prompts).                                                                                                                                                                                                                      |
-| `[vault]` (positional)             | Vault path as the first argument (e.g. `… ./my-vault -y`); same as `--vault`.                                                                                                                                                                    |
-| `--vault <path>`                   | Vault root (absolute or cwd-relative). Optional — defaults to `~/Documents/obsidian-memory-vault`, created if missing.                                                                                                                           |
-| `--ide <list>`                     | IDEs to wire, comma-separated: `cursor`, `claude` (default: `cursor`).                                                                                                                                                                           |
-| `--no-cursor-mcp`                  | Skip writing `~/.cursor/mcp.json`.                                                                                                                                                                                                               |
-| `--no-git-init`                    | Skip `git init` when the vault has no `.git`.                                                                                                                                                                                                    |
-| `--with-hybrid`                    | Also wire `obsidian-memory-hybrid` (needs a kit clone; use `--repo-root` or cwd walk).                                                                                                                                                           |
-| `--repo-root <path>`               | Root of the `obsidian-memory-kit` clone (hybrid bridge + Python source).                                                                                                                                                                         |
-| `--semantic`                       | With `--with-hybrid`: neural embeddings (fastembed multilingual; needs the `[semantic]` extra).                                                                                                                                                  |
-| `--build-index`                    | After wiring, build the local FTS (+ semantic) index (needs the Python backend).                                                                                                                                                                 |
-| `--with-gitleaks`                  | Install a gitleaks pre-commit hook in `<vault>/.git/hooks/`.                                                                                                                                                                                     |
-| `--rules <list>`                   | Install the memory-rules block into `claude` (`~/.claude/CLAUDE.md`), `agents` (`./AGENTS.md`), `cursor` (`.cursor/rules`). Or `all` / `none`. Idempotent; never clobbers your content. Headless writes nothing unless passed; interactive asks. |
-| `--no-rules`                       | Don't write any rules file.                                                                                                                                                                                                                      |
-| `--help`                           | Show usage.                                                                                                                                                                                                                                      |
+| Flag                               | Purpose                                                                                                                                                                                                                                                                                                             |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--lang en`                        | English prompts (default is Spanish-first).                                                                                                                                                                                                                                                                         |
+| `--full`, `--all`                  | **One-shot max power (implies `-y`).** Defaults `--ide` to `codex,claude`; turns on `--with-hybrid --semantic --build-index --install-backend` + rules per agent. Degrades to `basic-memory` (no abort) without a kit clone. Opt out: `--no-semantic` / `--no-build-index` / `--no-install-backend` / `--no-rules`. |
+| `--dry-run`                        | Print what would be written — no writes.                                                                                                                                                                                                                                                                            |
+| `-y`, `--yes`, `--non-interactive` | Headless mode (no prompts).                                                                                                                                                                                                                                                                                         |
+| `[vault]` (positional)             | Vault path as the first argument (e.g. `… ./my-vault -y`); same as `--vault`.                                                                                                                                                                                                                                       |
+| `--vault <path>`                   | Vault root (absolute or cwd-relative). Optional — defaults to `~/Documents/obsidian-memory-vault`, created if missing.                                                                                                                                                                                              |
+| `--ide <list>`                     | IDEs to wire, comma-separated: `codex`, `claude`, `cursor` (default: `cursor`; with `--full`: `codex,claude`).                                                                                                                                                                                                      |
+| `--no-cursor-mcp`                  | Skip writing `~/.cursor/mcp.json`.                                                                                                                                                                                                                                                                                  |
+| `--no-git-init`                    | Skip `git init` when the vault has no `.git`.                                                                                                                                                                                                                                                                       |
+| `--with-hybrid`                    | Also wire `obsidian-memory-hybrid` (needs a kit clone; use `--repo-root` or cwd walk).                                                                                                                                                                                                                              |
+| `--repo-root <path>`               | Root of the `obsidian-memory-kit` clone (hybrid bridge + Python source).                                                                                                                                                                                                                                            |
+| `--semantic`                       | With `--with-hybrid`: neural embeddings (fastembed multilingual; needs the `[semantic]` extra).                                                                                                                                                                                                                     |
+| `--build-index`                    | After wiring, build the local FTS (+ semantic) index (needs the Python backend).                                                                                                                                                                                                                                    |
+| `--install-backend`                | `pip install -e` the Python RAG backend (best-effort; on by default under `--full`).                                                                                                                                                                                                                                |
+| `--with-gitleaks`                  | Install a gitleaks pre-commit hook in `<vault>/.git/hooks/`.                                                                                                                                                                                                                                                        |
+| `--rules <list>`                   | Install the memory-rules block into `claude` (`~/.claude/CLAUDE.md`), `codex` (`~/.codex/AGENTS.md`), `agents` (`./AGENTS.md`), `cursor` (`.cursor/rules`). Or `all` / `none`. Idempotent; never clobbers your content. Headless writes nothing unless passed (or `--full`); interactive asks.                      |
+| `--no-rules`                       | Don't write any rules file.                                                                                                                                                                                                                                                                                         |
+| `--help`                           | Show usage.                                                                                                                                                                                                                                                                                                         |
 
-- `cursor` writes `~/.cursor/mcp.json`.
+- `codex` registers servers via the Codex CLI (`codex mcp add` → `~/.codex/config.toml`).
 - `claude` registers servers via the Claude Code CLI (`claude mcp add -s user`).
+- `cursor` writes `~/.cursor/mcp.json`.
 
 ### Install the memory rules too
 
@@ -93,8 +110,8 @@ Read the rules block before installing — it's printed in [`docs/en/install.md`
 
 - **Node.js ≥ 20**
 - **[`uv`](https://docs.astral.sh/uv/)** (for `uvx basic-memory mcp`)
-- For `--with-hybrid` / `--build-index`: **Python ≥ 3.11** and the kit's `obsidian-memory-rag` package.
-- For `--ide claude`: the **Claude Code** CLI on `PATH`.
+- For `--with-hybrid` / `--build-index` / `--install-backend`: **Python ≥ 3.11** + `pip`, and a clone of the kit (`obsidian-memory-rag`).
+- For `--ide claude`: the **Claude Code** CLI on `PATH`. For `--ide codex`: the **Codex** CLI on `PATH` (otherwise the installer prints the `codex mcp add` command + a `config.toml` block to paste).
 
 ## License
 

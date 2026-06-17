@@ -11,6 +11,9 @@ import {
   basicMemoryServer,
   hybridServer,
   claudeAddArgv,
+  codexAddArgv,
+  codexRemoveArgv,
+  codexTomlBlock,
   resolveKitRepoRoot
 } from "../src/mcp-merge.mjs";
 
@@ -53,10 +56,7 @@ test("mergeObsidianHybridServer adds obsidian-memory-hybrid with absolute paths"
 test("mergeObsidianHybridServer with semantic wires the fastembed embedder", () => {
   const base = mergeBasicMemoryServer({}, "/vault");
   const plain = mergeObsidianHybridServer(base, "/vault", repoRoot);
-  assert.equal(
-    plain.mcpServers["obsidian-memory-hybrid"].env.OBSIDIAN_MEMORY_EMBEDDER,
-    undefined
-  );
+  assert.equal(plain.mcpServers["obsidian-memory-hybrid"].env.OBSIDIAN_MEMORY_EMBEDDER, undefined);
   const sem = mergeObsidianHybridServer(base, "/vault", repoRoot, { semantic: true });
   assert.equal(
     sem.mcpServers["obsidian-memory-hybrid"].env.OBSIDIAN_MEMORY_EMBEDDER,
@@ -86,6 +86,52 @@ test("claudeAddArgv for hybrid carries the semantic embedder env", () => {
   );
   assert.ok(argv.some((a) => a.startsWith("OBSIDIAN_MEMORY_EMBEDDER=fastembed")));
   assert.equal(argv[argv.indexOf("--") + 1], "node");
+});
+
+test("codexAddArgv builds `mcp add <name> --env … -- cmd args` (no scope flag)", () => {
+  const argv = codexAddArgv("basic-memory", basicMemoryServer("/v"));
+  assert.deepEqual(argv.slice(0, 3), ["mcp", "add", "basic-memory"]);
+  assert.ok(!argv.includes("-s"), "codex add takes no -s scope flag");
+  // env is passed via repeatable --env KEY=VALUE
+  const ei = argv.indexOf("--env");
+  assert.ok(ei > 0);
+  assert.equal(argv[ei + 1], "BASIC_MEMORY_HOME=/v");
+  const dd = argv.indexOf("--");
+  assert.ok(dd > ei, "launcher command comes after the -- separator");
+  assert.deepEqual(argv.slice(dd + 1), [
+    "uvx",
+    "--from",
+    `basic-memory==${BASIC_MEMORY_VERSION}`,
+    "basic-memory",
+    "mcp"
+  ]);
+});
+
+test("codexAddArgv for hybrid carries the semantic embedder env", () => {
+  const argv = codexAddArgv(
+    "obsidian-memory-hybrid",
+    hybridServer("/v", repoRoot, { semantic: true })
+  );
+  assert.ok(
+    argv.some(
+      (a, i) => argv[i - 1] === "--env" && a.startsWith("OBSIDIAN_MEMORY_EMBEDDER=fastembed")
+    )
+  );
+  assert.equal(argv[argv.indexOf("--") + 1], "node");
+});
+
+test("codexRemoveArgv mirrors add for idempotency", () => {
+  assert.deepEqual(codexRemoveArgv("basic-memory"), ["mcp", "remove", "basic-memory"]);
+});
+
+test("codexTomlBlock renders a valid config.toml block with escaped Windows paths", () => {
+  const block = codexTomlBlock("basic-memory", basicMemoryServer("C:\\Users\\me\\vault"));
+  assert.match(block, /^\[mcp_servers\.basic-memory\]/m);
+  assert.match(block, /command = "uvx"/);
+  assert.match(block, /args = \["--from", "basic-memory==/);
+  assert.match(block, /\[mcp_servers\.basic-memory\.env\]/);
+  // backslashes doubled for TOML basic strings
+  assert.match(block, /BASIC_MEMORY_HOME = "C:\\\\Users\\\\me\\\\vault"/);
 });
 
 test("resolveKitRepoRoot finds repo from cwd walk", async () => {

@@ -15,6 +15,35 @@ comandos**. Funciona para ambos IDEs — la instalación básica no necesita clo
 
 ---
 
+## ⚡ Lo más simple: dale el repo al agente y di "instálalo"
+
+¿Tienes (o el agente clona) el repo? Entonces no necesitas pegar ningún prompt largo — hay un
+**punto de entrada único y auto-verificante**. Dile al agente:
+
+> «Clona <https://github.com/Vahlame/obsidian-memory-kit>, entra a la carpeta y ejecuta `npm install` y luego `npm run setup`. Aprobaré los comandos.»
+
+```bash
+git clone https://github.com/Vahlame/obsidian-memory-kit
+cd obsidian-memory-kit
+npm install
+npm run setup            # opciones: npm run setup -- --vault "<RUTA>" --ide codex,claude
+```
+
+`npm run setup` hace **preflight** de dependencias (`node`, `uv`, `git`, `python`/`pip`),
+**autodetecta** qué CLIs de agente tienes en PATH (`codex`, `claude`; si no, cae a Cursor),
+ejecuta la instalación **`--full`** (híbrido + semántico + índice + reglas, o el stack básico si
+falta Python), **verifica** (vault, índice, `codex/claude mcp list`) e imprime una tabla de estado.
+`npm run setup:dry` lo previsualiza sin escribir nada.
+
+> **Límite honesto:** registrar un MCP **no** activa sus tools en la sesión actual — ningún agente
+> puede cargar sus propios MCP en caliente. Tras `npm run setup`, **reinicia** Claude Code / Codex
+> (o recarga la ventana de Cursor); las tools de memoria (`vault_hybrid_search`, …) responden en la
+> **siguiente** sesión. El agente puede confirmar el cableado con `claude mcp list` / `codex mcp list`.
+
+¿Sin clon (solo `npx`, instalación básica)? Usa el prompt de abajo.
+
+---
+
 **Copia desde aquí hacia abajo y pégalo en un chat nuevo del agente:**
 
 ---
