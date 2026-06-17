@@ -23,6 +23,9 @@ import {
   hybridServer,
   claudeAddArgv,
   claudeRemoveArgv,
+  codexAddArgv,
+  codexRemoveArgv,
+  codexTomlBlock,
   SEMANTIC_EMBEDDER
 } from "./mcp-merge.mjs";
 import { installRules } from "./rules-merge.mjs";
@@ -107,11 +110,21 @@ function dryRunFromArgs() {
   return process.argv.includes("--dry-run");
 }
 
+/**
+ * The `--full` (alias `--all`) one-shot preset: max power, zero questions. Turns
+ * on hybrid + semantic + index build + backend install + rules, and defaults the
+ * wired IDEs to Codex + Claude Code. Implies non-interactive.
+ */
+function fullPresetFromArgs() {
+  return process.argv.includes("--full") || process.argv.includes("--all");
+}
+
 function nonInteractiveFromArgs() {
   return (
     process.argv.includes("--non-interactive") ||
     process.argv.includes("--yes") ||
-    process.argv.includes("-y")
+    process.argv.includes("-y") ||
+    fullPresetFromArgs()
   );
 }
 
@@ -146,16 +159,18 @@ function defaultVaultPath(home) {
 /**
  * Which agent-config files to install the memory-rules block into. Derived from
  * --ide (wiring an IDE also drops its rules) unless overridden:
- *   --no-rules / --rules none → []   ·   --rules all → claude+agents+cursor
- *   --rules a,b → explicit    ·   default → agents (+claude if --ide claude) (+cursor if --ide cursor)
+ *   --no-rules / --rules none → []   ·   --rules all → claude+agents+cursor+codex
+ *   --rules a,b → explicit    ·   --full or interactive default → agents + the
+ *   global rules file for each wired agent (claude/codex/cursor)
  * @param {string[]} argv
  * @param {string[]} ides
+ * @param {{ defaultFromIde?: boolean, full?: boolean }} [opts]
  * @returns {string[]}
  */
-function rulesTargetsFromArgs(argv, ides, { defaultFromIde = false } = {}) {
+function rulesTargetsFromArgs(argv, ides, { defaultFromIde = false, full = false } = {}) {
   if (argv.includes("--no-rules")) return [];
   const raw = flagValue(argv, "--rules");
-  const valid = ["claude", "agents", "cursor"];
+  const valid = ["claude", "agents", "cursor", "codex"];
   if (raw) {
     const v = raw.trim().toLowerCase();
     if (v === "none") return [];
@@ -165,11 +180,20 @@ function rulesTargetsFromArgs(argv, ides, { defaultFromIde = false } = {}) {
       .map((s) => s.trim())
       .filter((s) => valid.includes(s));
   }
+  // `--full` is "everything on": install the project AGENTS.md rules plus the
+  // global rules file for each wired agent, so recall works out of the box.
+  if (full) return rulesFromIdes(ides);
   // Headless with no --rules → write nothing (don't surprise-touch global files).
   // Interactive derives a default from the selected IDEs, then asks for confirmation.
   if (!defaultFromIde) return [];
+  return rulesFromIdes(ides);
+}
+
+/** Project AGENTS.md + the global rules file for each wired agent. */
+function rulesFromIdes(ides) {
   const targets = ["agents"];
   if (ides.includes("claude")) targets.push("claude");
+  if (ides.includes("codex")) targets.push("codex");
   if (ides.includes("cursor")) targets.push("cursor");
   return targets;
 }
@@ -479,10 +503,16 @@ exec gitleaks protect --staged --no-banner --redact
   console.log(pc.green("Installed gitleaks pre-commit hook at"), hookPath);
 }
 
-/** Parse `--ide cursor,claude` → lowercased array; default ["cursor"] (back-compat). */
-function idesFromArgs(argv) {
+/**
+ * Parse `--ide codex,claude` → lowercased array. When `--ide` is omitted the
+ * default is `["cursor"]` for back-compat, except under `--full`, whose focus is
+ * Codex + Claude Code (`["codex", "claude"]`).
+ * @param {string[]} argv
+ * @param {{ full?: boolean }} [opts]
+ */
+function idesFromArgs(argv, { full = false } = {}) {
   const raw = flagValue(argv, "--ide");
-  if (!raw) return ["cursor"];
+  if (!raw) return full ? ["codex", "claude"] : ["cursor"];
   return raw
     .split(",")
     .map((s) => s.trim().toLowerCase())
@@ -525,6 +555,85 @@ async function registerClaudeCodeMcp(vaultAbs, dryRun, hybridOpts = {}) {
       console.warn(pc.yellow("`claude` CLI not found; run manually:"));
       console.log("  claude " + addArgv.join(" "));
     }
+  }
+}
+
+/**
+ * Register the MCP servers in Codex CLI via `codex mcp add` — Codex stores them
+ * in `~/.codex/config.toml` and merges the TOML itself, so we shell out instead
+ * of editing the file (same approach as Claude Code). Idempotent: removes any
+ * same-name entry first. Falls back to printing the command AND a ready-to-paste
+ * `config.toml` block if `codex` isn't on PATH.
+ * @param {string} vaultAbs
+ * @param {boolean} dryRun
+ * @param {{ withHybrid?: boolean, repoRoot?: string|null, semantic?: boolean }} [hybridOpts]
+ */
+async function registerCodexMcp(vaultAbs, dryRun, hybridOpts = {}) {
+  const { withHybrid = false, repoRoot = null, semantic = false } = hybridOpts;
+  /** @type {Array<[string, object]>} */
+  const servers = [["basic-memory", basicMemoryServer(vaultAbs)]];
+  if (withHybrid && repoRoot) {
+    servers.push([
+      "obsidian-memory-hybrid",
+      hybridServer(vaultAbs, path.resolve(repoRoot), { semantic })
+    ]);
+  }
+  for (const [name, server] of servers) {
+    const addArgv = codexAddArgv(name, server);
+    if (dryRun) {
+      console.log(pc.cyan("[dry-run] codex"), addArgv.join(" "));
+      continue;
+    }
+    try {
+      await execa("codex", codexRemoveArgv(name), { reject: false }); // ignore "not found"
+      const r = await execa("codex", addArgv, { reject: false });
+      if (r.exitCode === 0) console.log(pc.green("Codex CLI MCP added:"), name);
+      else {
+        console.warn(pc.yellow(`codex mcp add ${name} exited ${r.exitCode}; add it manually:`));
+        console.log("  codex " + addArgv.join(" "));
+        console.log(
+          pc.dim("  …or paste into ~/.codex/config.toml:\n" + codexTomlBlock(name, server))
+        );
+      }
+    } catch {
+      console.warn(pc.yellow("`codex` CLI not found; add it manually:"));
+      console.log("  codex " + addArgv.join(" "));
+      console.log(
+        pc.dim("  …or paste into ~/.codex/config.toml:\n" + codexTomlBlock(name, server))
+      );
+    }
+  }
+}
+
+/**
+ * Install the Python RAG backend editable (`pip install -e <rag>[semantic]`) so
+ * the hybrid MCP + index build work without a separate manual step. Best-effort:
+ * prints the command if pip/python is missing or the install fails.
+ * @param {string|null} repoRoot
+ * @param {boolean} semantic
+ * @param {boolean} dryRun
+ */
+async function maybeInstallBackend(repoRoot, semantic, dryRun) {
+  if (!repoRoot) return;
+  const ragPkg = path.join(repoRoot, "packages", "obsidian-memory-rag");
+  const spec = ragPkg + (semantic ? "[semantic]" : "");
+  const py = process.platform === "win32" ? "python" : "python3";
+  const args = ["-m", "pip", "install", "-e", spec];
+  if (dryRun) {
+    console.log(pc.cyan("[dry-run] would install backend:"), py, args.join(" "));
+    return;
+  }
+  try {
+    const r = await execa(py, args, { reject: false });
+    if (r.exitCode === 0) {
+      console.log(pc.green("Python backend installed"), semantic ? "(with [semantic])" : "");
+    } else {
+      console.warn(pc.yellow("Backend install skipped/failed — run it manually:"));
+      console.log('  pip install -e "' + spec + '"');
+    }
+  } catch {
+    console.warn(pc.yellow("python not found; install the backend later:"));
+    console.log('  pip install -e "' + spec + '"');
   }
 }
 
@@ -587,37 +696,60 @@ async function runNonInteractive(argv) {
       createdVault = true;
     }
   }
+  const full = fullPresetFromArgs();
   const noCursorMcp = argv.includes("--no-cursor-mcp");
   const noGitInit = argv.includes("--no-git-init");
-  const wantHybrid = argv.includes("--with-hybrid");
-  const wantSemantic = argv.includes("--semantic");
+  // `--full` turns the whole stack on; individual flags still work standalone.
+  // `--no-*` opt-outs let you keep --full but drop one heavy piece.
+  let wantHybrid = argv.includes("--with-hybrid") || full;
+  let wantSemantic = (argv.includes("--semantic") || full) && !argv.includes("--no-semantic");
+  let wantBuildIndex =
+    (argv.includes("--build-index") || full) && !argv.includes("--no-build-index");
+  let wantInstallBackend =
+    (argv.includes("--install-backend") || full) && !argv.includes("--no-install-backend");
   const wantGitleaks = argv.includes("--with-gitleaks");
-  const wantBuildIndex = argv.includes("--build-index");
-  const ides = idesFromArgs(argv);
+  const ides = idesFromArgs(argv, { full });
   let kitRoot = null;
 
   if (wantHybrid) {
     kitRoot = await resolveKitRepoRoot({ cwd, argv, pathExists: (p) => fse.pathExists(p) });
-    if (!kitRoot) {
-      console.error(
-        pc.red(
-          "--with-hybrid: pass --repo-root <path-to-obsidian-memory-kit-clone> or run from that clone (cwd walk)."
-        )
-      );
-      process.exit(2);
-    }
-    const { hybridJs, pythonSrc } = hybridMcpPathsFromKitRoot(kitRoot);
-    if (!(await fse.pathExists(hybridJs))) {
-      console.error(pc.red("--with-hybrid: missing"), hybridJs);
-      process.exit(2);
-    }
-    if (!(await fse.pathExists(pythonSrc))) {
-      console.error(pc.red("--with-hybrid: missing"), pythonSrc);
-      process.exit(2);
+    const { hybridJs, pythonSrc } = kitRoot
+      ? hybridMcpPathsFromKitRoot(kitRoot)
+      : { hybridJs: null, pythonSrc: null };
+    const ok = kitRoot && (await fse.pathExists(hybridJs)) && (await fse.pathExists(pythonSrc));
+    if (!ok) {
+      // Explicit --with-hybrid is a hard requirement (fail loud). But --full is
+      // "best effort, max power": when there's no kit clone to source the bridge
+      // from (e.g. run via bare `npx` outside a clone), degrade to basic-memory
+      // instead of aborting the whole install.
+      if (full && !argv.includes("--with-hybrid")) {
+        console.warn(
+          pc.yellow(
+            "--full: no kit clone found, so hybrid/semantic/index are skipped — wiring basic-memory only."
+          )
+        );
+        console.log(
+          pc.dim(
+            "  For full hybrid power, run from a clone of the kit or pass --repo-root <clone>."
+          )
+        );
+        wantHybrid = false;
+        wantSemantic = false;
+        wantBuildIndex = false;
+        wantInstallBackend = false;
+        kitRoot = null;
+      } else {
+        console.error(
+          pc.red(
+            "--with-hybrid: pass --repo-root <path-to-obsidian-memory-kit-clone> or run from that clone (cwd walk), and ensure the bridge + Python src exist."
+          )
+        );
+        process.exit(2);
+      }
     }
   }
 
-  console.log(pc.cyan(t.title), pc.dim("non-interactive"));
+  console.log(pc.cyan(t.title), pc.dim(full ? "full preset" : "non-interactive"));
 
   const mcpSnippet = {
     command: "uvx",
@@ -634,16 +766,26 @@ async function runNonInteractive(argv) {
   if (ides.includes("claude")) {
     await registerClaudeCodeMcp(vault, dryRun, hybridOpts);
   }
+  if (ides.includes("codex")) {
+    await registerCodexMcp(vault, dryRun, hybridOpts);
+  }
+  // Install the Python backend before building the index so the build can succeed
+  // on a fresh machine in the same run.
+  if (wantInstallBackend && kitRoot) {
+    await maybeInstallBackend(kitRoot, wantSemantic, dryRun);
+  }
   if (wantBuildIndex) {
     await maybeBuildIndex(vault, dryRun, { repoRoot: kitRoot, semantic: wantSemantic });
   }
 
-  const ruleTargets = rulesTargetsFromArgs(argv, ides);
+  const ruleTargets = rulesTargetsFromArgs(argv, ides, { full });
   if (ruleTargets.length) {
     await installRules(ruleTargets, lang, { home, cwd, dryRun });
   }
 
-  if (!noGitInit && !(await fse.pathExists(path.join(vault, ".git")))) {
+  if (!noGitInit && dryRun) {
+    console.log(pc.cyan("[dry-run] would run"), "git init", pc.dim(`(cwd ${vault})`));
+  } else if (!noGitInit && !(await fse.pathExists(path.join(vault, ".git")))) {
     await execa("git", ["init"], { cwd: vault, stdio: "inherit" });
   }
 
@@ -673,6 +815,11 @@ async function runNonInteractive(argv) {
       "- Claude Code: MCP registered via `claude mcp add -s user` (verify: `claude mcp list`)"
     );
   }
+  if (ides.includes("codex")) {
+    console.log(
+      "- Codex CLI: MCP registered via `codex mcp add` → ~/.codex/config.toml (verify: `codex mcp list`)"
+    );
+  }
   if (wantGitleaks) {
     console.log("- gitleaks pre-commit hook: installed (vault/.git/hooks/pre-commit)");
   }
@@ -695,19 +842,33 @@ async function main() {
     console.log(`Usage: create-obsidian-memory [vault] [options]
 
 Examples:
-  create-obsidian-memory                 # interactive wizard
+  create-obsidian-memory                 # interactive wizard (pre-selects Codex + Claude Code)
+  create-obsidian-memory --full          # ONE-SHOT, max power: Codex + Claude, hybrid+semantic+index+rules
   create-obsidian-memory ./my-vault -y   # headless, into ./my-vault
   create-obsidian-memory -y              # headless, default ~/Documents/obsidian-memory-vault
 
+The simplest full-power install (run from a clone of the kit, or pass --repo-root):
+  create-obsidian-memory --full
+
 Interactive (default):
   --lang en       English prompts
-  --dry-run       Show merged Cursor mcp.json only (no write)
+  --dry-run       Show what would be written (no writes)
+
+One-shot preset:
+  --full, --all   Everything on, zero questions (implies -y). Defaults --ide to
+                  codex,claude and turns on --with-hybrid --semantic --build-index
+                  --install-backend and the rules for each wired agent. Degrades
+                  to basic-memory (no abort) if no kit clone is found for hybrid.
+                  Opt out of a single piece with --no-semantic / --no-build-index /
+                  --no-install-backend / --no-rules.
 
 Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
   [vault]         Vault path as the first argument (or --vault <path>); defaults to
                   ~/Documents/obsidian-memory-vault and is created if it doesn't exist.
-  --ide <list>    IDEs to wire, comma-separated: cursor, claude (default: cursor).
-                  cursor writes ~/.cursor/mcp.json; claude uses the Claude Code CLI (claude mcp add -s user)
+  --ide <list>    IDEs to wire, comma-separated: codex, claude, cursor (default: cursor;
+                  with --full: codex,claude). codex uses the Codex CLI (codex mcp add →
+                  ~/.codex/config.toml); claude uses the Claude Code CLI (claude mcp add
+                  -s user); cursor writes ~/.cursor/mcp.json.
   --no-cursor-mcp Skip writing ~/.cursor/mcp.json
   --no-git-init   Skip git init when .git is missing
                   (Merges kit Git/SCM keys into <vault>/.vscode/settings.json — creates or updates.)
@@ -715,13 +876,15 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
   --repo-root <path>  Root of obsidian-memory-kit clone (hybrid bridge + Python src)
   --semantic      With --with-hybrid: neural embeddings (fastembed multilingual; needs the [semantic] extra)
   --build-index   After wiring, build the local FTS (+semantic) index (needs the Python backend)
+  --install-backend  pip install -e the Python RAG backend (best-effort; on by default under --full)
   --with-gitleaks Install gitleaks pre-commit hook in <vault>/.git/hooks/
   --rules <list>  Install the memory-rules block into agent configs: claude
-                  (~/.claude/CLAUDE.md, global), agents (./AGENTS.md), cursor
-                  (.cursor/rules/obsidian-memory.mdc). Or 'all' / 'none'.
-                  Headless writes NOTHING unless you pass --rules (use 'all' for
-                  full coverage); interactive asks (deriving from --ide). Idempotent
-                  marked block (obsidian-memory:start/end) — never clobbers content.
+                  (~/.claude/CLAUDE.md, global), codex (~/.codex/AGENTS.md, global),
+                  agents (./AGENTS.md), cursor (.cursor/rules/obsidian-memory.mdc).
+                  Or 'all' / 'none'. Headless writes NOTHING unless you pass --rules
+                  (use 'all' for full coverage) or --full; interactive asks (deriving
+                  from --ide). Idempotent marked block (obsidian-memory:start/end) —
+                  never clobbers content.
   --no-rules      Don't write any rules file.
 
   --help          This message`);
@@ -781,8 +944,9 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
     name: "ides",
     message: t.ides,
     choices: [
-      { title: "Cursor", value: "cursor", selected: true },
-      { title: "Claude Code", value: "claude", selected: false },
+      { title: "Codex CLI", value: "codex", selected: true },
+      { title: "Claude Code", value: "claude", selected: true },
+      { title: "Cursor", value: "cursor", selected: false },
       { title: "VS Code / Cline", value: "cline", selected: false },
       { title: "Windsurf", value: "windsurf", selected: false },
       { title: "Zed", value: "zed", selected: false }
@@ -811,7 +975,7 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
   });
 
   let hybridOpts = { withHybrid: false, repoRoot: null };
-  if (ides?.includes("cursor") || ides?.includes("claude")) {
+  if (ides?.includes("cursor") || ides?.includes("claude") || ides?.includes("codex")) {
     const kitRoot = await resolveKitRepoRoot({
       cwd,
       argv: process.argv,
@@ -853,6 +1017,9 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
   if (ides?.includes("claude")) {
     await registerClaudeCodeMcp(vault, dryRun, hybridOpts);
   }
+  if (ides?.includes("codex")) {
+    await registerCodexMcp(vault, dryRun, hybridOpts);
+  }
 
   let ruleTargets = rulesTargetsFromArgs(process.argv, ides || [], { defaultFromIde: true });
   if (ruleTargets.length && !process.argv.includes("--no-rules")) {
@@ -868,13 +1035,15 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
     await installRules(ruleTargets, lang, { home, cwd, dryRun });
   }
 
-  const others = (ides || []).filter((x) => x !== "cursor" && x !== "claude");
+  const others = (ides || []).filter((x) => x !== "cursor" && x !== "claude" && x !== "codex");
   if (others.length) {
     console.log(pc.yellow(t.otherIdes), others.join(", "));
     console.log(JSON.stringify({ mcpServers: { "basic-memory": mcpSnippet } }, null, 2));
   }
 
-  if (!(await fse.pathExists(path.join(vault, ".git")))) {
+  if (dryRun) {
+    console.log(pc.cyan("[dry-run] would run"), "git init", pc.dim(`(cwd ${vault})`));
+  } else if (!(await fse.pathExists(path.join(vault, ".git")))) {
     await execa("git", ["init"], { cwd: vault, stdio: "inherit" });
   }
 
@@ -893,6 +1062,16 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
     if (hybridOpts.semantic) {
       console.log(pc.dim("  embedder: fastembed; build once with vault_fts_index semantic:true"));
     }
+  }
+  if (ides?.includes("claude")) {
+    console.log(
+      "- Claude Code: MCP registered via `claude mcp add -s user` (verify: `claude mcp list`)"
+    );
+  }
+  if (ides?.includes("codex")) {
+    console.log(
+      "- Codex CLI: MCP registered via `codex mcp add` → ~/.codex/config.toml (verify: `codex mcp list`)"
+    );
   }
   console.log("-", t.ftsHint);
   if (gitleaks)
