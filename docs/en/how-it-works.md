@@ -169,37 +169,102 @@ to OR** when a strict match finds nothing, so one missing or mistyped word no lo
 relevant note. Detail: [`evals/retrieval`](https://github.com/Vahlame/obsidian-memory-kit/tree/main/evals/retrieval) ·
 [ADR-0020](../adr/0020-measured-retrieval-quality.md).
 
-### Asking the graph questions (new in 3.8)
+### Asking the graph questions — typed relations + observations (new in 3.8)
 
-Search finds notes. The **knowledge graph** lets you ask the notes' _structure_ a question. Two
-plain-Markdown conventions (the same ones [Basic Memory](faq.md) uses, so vaults interoperate) turn
-prose into something queryable:
+**The analogy.** A plain search finds a book by its title. The **knowledge graph** is the library's
+**card catalog** on top of the books: cross-reference cards that say _how_ two books relate ("this
+one _implements_ that one", "this edition _supersedes_ that one") and subject cards that file each
+fact under a heading ("this is a _decision_", "this is a _gotcha_"). The books — your Markdown notes
+— never move; the catalog just makes them **answerable** in ways shelf order can't.
 
-- A **typed relation** is a list item like `- implements [[adr-0014]]` or `- supersedes [[adr-0019]]`.
-  Any plain `[[link]]` is an untyped `relates_to`.
-- An **observation** is a list item like `- [decision] weighted RRF weight 0.1 #ranking` or
-  `- [gotcha] scores compress at k=60`.
+**What changed.** Before, every link between notes was the same anonymous arrow — "A links to B", no
+reason attached. Now a link can carry a **verb** (a _typed relation_) and a fact can carry a
+**category** (an _observation_). Two plain-Markdown conventions, the same ones
+[Basic Memory](faq.md) uses (so vaults interoperate):
 
-The indexer reads these straight out of your notes — no new file, no extra step — so the agent can
-now answer "what supersedes ADR-0019?", "what links to `python`?" (`vault_relations`, both
-directions), or "show every `[decision]` tagged `#ranking`" (`vault_observations`) — questions plain
-search cannot express. `vault_kg_suggest` reads a note and **proposes** relations/observations to add
-(it never writes — you confirm and edit). Detail: [ADR-0023](../adr/0023-structured-knowledge-graph.md).
+- A **typed relation** — a list item `- <verb> [[target]]`, e.g. `- implements [[adr-0014]]` or
+  `- supersedes [[adr-0019]]`. A bare `[[link]]` is still kept, as an untyped `relates_to`.
+- An **observation** — a list item `- [category] fact #tags`, e.g.
+  `- [decision] weighted RRF weight 0.1 #ranking`.
 
-### Keeping memory healthy (and scaling) (new in 3.8)
+The same three links, before vs. after — the arrows go from anonymous to labelled:
 
-Memory that only grows eventually rots. `vault_memory_report` is a **read-only digest** you (or the
-agent) run periodically — at the close of a session, say. It builds automatic indices (observations
-by category, the graph's most-connected "hub" notes, top `#tags`) and flags what to tidy: oversized
-notes, broken links, a bloated `SESSION_LOG`, **stale** notes (untouched for months), **orphan** notes
-(linked to nothing), and — optionally — **near-duplicate** notes to review for redundancy or
-contradiction. It only _suggests_; condensing a note is something the agent does with your
-confirmation, never an automatic rewrite. Detail: [ADR-0024](../adr/0024-memory-reports-and-compaction.md).
+```mermaid
+flowchart LR
+  subgraph after["after 3.8 — typed, you can ask why"]
+    A["ADR-0023"] -- implements --> B["ADR-0014"]
+    A -- supersedes --> C["ADR-0019"]
+    A -- relates_to --> D["python"]
+  end
+  subgraph before["before — untyped, just linked"]
+    A2["ADR-0023"] --- B2["ADR-0014"]
+    A2 --- C2["ADR-0019"]
+    A2 --- D2["python"]
+  end
+```
 
-For very large vaults, semantic search has an opt-in accelerator: install the `[vec]` extra and set
-`OBSIDIAN_MEMORY_SQLITE_VEC=1` to run the cosine scan inside SQLite via **sqlite-vec** — same index
-file, **identical ranking** (it's an acceleration, not an approximation), with automatic fallback to
-the pure-Python path. It's the embedded, in-file answer (no Chroma/LanceDB server needed). Detail:
+The indexer reads these straight out of your notes — **no new file, no extra step** — into two
+queryable tables, in the very same pass that builds the search index:
+
+```mermaid
+flowchart LR
+  N["a note's bullets:<br/>- decision: weighted RRF 0.1<br/>- supersedes adr-0019"] --> I["indexer<br/>(same pass, no extra read)"]
+  I --> R["relations table"] --> Q1["vault_relations<br/>'what supersedes X? what links here?'"]
+  I --> O["observations table"] --> Q2["vault_observations<br/>'every decision tagged ranking'"]
+```
+
+So the agent can now answer questions plain search _cannot phrase_: "what supersedes ADR-0019? what
+links to `python`?" (`vault_relations`, both directions); "show every `[decision]` tagged `#ranking`"
+(`vault_observations`). And `vault_kg_suggest` reads a note and **proposes** relations/observations
+from its prose — but **never writes**; you confirm and edit. Detail:
+[ADR-0023](../adr/0023-structured-knowledge-graph.md).
+
+### Keeping memory healthy — the memory report (new in 3.8)
+
+**The analogy.** A yearly **health check-up**, or the dashboard warning lights in a car. As a vault
+grows it can quietly get unhealthy — a bloated log, notes that grew too big, links pointing nowhere,
+notes connected to nothing. `vault_memory_report` is the check-up: it **reads** everything and hands
+you a chart. It performs no surgery — it never rewrites a note — it just tells you what to look at.
+
+It composes three signals the kit already has into one **read-only** digest:
+
+```mermaid
+flowchart LR
+  A["audit<br/>sizes · broken links · log"] --> R["vault_memory_report<br/>(read-only)"]
+  K["knowledge graph<br/>relations · observations"] --> R
+  V["vectors<br/>near-duplicates (opt-in)"] --> R
+  R --> O["automatic indices (by category, hub notes, tags)<br/>hygiene (oversized · stale · orphan · broken)<br/>suggested_actions — you act, it never rewrites"]
+```
+
+On the maintainer's real 55-note vault it instantly surfaced: `SESSION_LOG` over budget, 6 oversized
+notes, 13 broken links, 8 orphan notes, and the true graph hubs. Two honest scopes: **"detect
+contradictions"** surfaces _near-duplicate pairs to review_, not a verdict (true contradiction
+detection is semantic reasoning the deterministic engine doesn't claim); **"condense old notes"**
+means the report _flags_ candidates and the agent condenses with your confirmation. Detail:
+[ADR-0024](../adr/0024-memory-reports-and-compaction.md).
+
+### Scaling semantic search — optional sqlite-vec (new in 3.8)
+
+**The analogy.** _Same recipe, faster oven._ The math — **cosine similarity** between your query and
+each note chunk — does not change at all. We just move it from being computed chunk-by-chunk in
+Python to being computed by a built-in C appliance _inside SQLite_ (the **sqlite-vec** extension),
+which only matters once a vault has thousands of notes. If that appliance isn't plugged in, you fall
+back to doing it by hand — **same result, search never breaks**:
+
+```mermaid
+flowchart TB
+  Q["semantic query"] --> D{"sqlite-vec<br/>installed + enabled?"}
+  D -- yes --> C["cosine inside SQLite (C speed)<br/>ORDER BY vec_distance_cosine"]
+  D -- no --> P["cosine in Python (brute force)"]
+  C --> S["identical top-k ranking"]
+  P --> S
+```
+
+Because the vectors are L2-normalized, ascending cosine _distance_ is exactly descending _similarity_
+— so the ranking is **provably identical** (the retrieval bench is byte-for-byte the same with it on
+or off). It stays inside the **same** `fts.sqlite` — no second store, no server — which is why it's
+the in-file answer, and why **Chroma / LanceDB were declined**: heavyweight stores that would break
+the zero-dependency, single-file design to solve a non-problem at personal scale. Detail:
 [ADR-0025](../adr/0025-optional-sqlite-vec-acceleration.md).
 
 ### Why this saves tokens (and scales to many agents)

@@ -170,38 +170,105 @@ AND a OR** cuando una coincidencia estricta no encuentra nada, así una palabra 
 escrita ya no tira una nota relevante. Detalle: [`evals/retrieval`](https://github.com/Vahlame/obsidian-memory-kit/tree/main/evals/retrieval) ·
 [ADR-0020](../adr/0020-measured-retrieval-quality.md).
 
-### Preguntarle al grafo (nuevo en 3.8)
+### Preguntarle al grafo — relaciones tipadas + observaciones (nuevo en 3.8)
 
-La búsqueda encuentra notas. El **grafo de conocimiento** te deja preguntarle a la _estructura_ de
-las notas. Dos convenciones en Markdown plano (las mismas que usa [Basic Memory](faq.md), así los
-vaults interoperan) vuelven consultable la prosa:
+**La analogía.** Una búsqueda normal encuentra un libro por su título. El **grafo de conocimiento** es
+el **fichero/catálogo** de la biblioteca encima de los libros: fichas de referencia cruzada que dicen
+_cómo_ se relacionan dos libros ("este _implementa_ aquel", "esta edición _reemplaza_ a aquella") y
+fichas temáticas que archivan cada hecho bajo un encabezado ("esto es una _decisión_", "esto es un
+_gotcha_"). Los libros — tus notas Markdown — no se mueven; el catálogo solo las vuelve
+**respondibles** de formas que el orden del estante no permite.
 
-- Una **relación tipada** es un ítem de lista como `- implements [[adr-0014]]` o
-  `- supersedes [[adr-0019]]`. Un `[[link]]` suelto es un `relates_to` sin tipo.
-- Una **observación** es un ítem como `- [decision] peso del grafo en RRF 0.1 #ranking` o
-  `- [gotcha] los scores se comprimen en k=60`.
+**Qué cambió.** Antes, cada enlace entre notas era la misma flecha anónima — "A enlaza a B", sin
+motivo. Ahora un enlace puede llevar un **verbo** (una _relación tipada_) y un hecho puede llevar una
+**categoría** (una _observación_). Dos convenciones en Markdown plano, las mismas que usa
+[Basic Memory](faq.md) (así los vaults interoperan):
 
-El indexador las lee directo de tus notas — sin archivo nuevo, sin paso extra — así el agente ya
-puede responder "¿qué supersede a ADR-0019?", "¿qué enlaza a `python`?" (`vault_relations`, ambos
-sentidos) o "muéstrame cada `[decision]` con `#ranking`" (`vault_observations`) — preguntas que la
-búsqueda plana no expresa. `vault_kg_suggest` lee una nota y **propone** relaciones/observaciones
-(nunca escribe — tú confirmas y editas). Detalle: [ADR-0023](../adr/0023-structured-knowledge-graph.md).
+- Una **relación tipada** — un ítem `- <verbo> [[destino]]`, p. ej. `- implements [[adr-0014]]` o
+  `- supersedes [[adr-0019]]`. Un `[[link]]` suelto se conserva, como `relates_to` sin tipo.
+- Una **observación** — un ítem `- [categoría] hecho #tags`, p. ej.
+  `- [decision] peso del grafo en RRF 0.1 #ranking`.
 
-### Mantener la memoria sana (y escalar) (nuevo en 3.8)
+Los mismos tres enlaces, antes vs. después — las flechas pasan de anónimas a etiquetadas:
 
-Una memoria que solo crece termina pudriéndose. `vault_memory_report` es un **digest read-only** que
-tú (o el agente) corres de vez en cuando — al cerrar una sesión, por ejemplo. Construye índices
-automáticos (observaciones por categoría, las notas "hub" más conectadas del grafo, top `#tags`) y
-marca qué ordenar: notas gigantes, enlaces rotos, un `SESSION_LOG` inflado, notas **obsoletas** (sin
-tocar en meses), notas **huérfanas** (sin enlaces) y — opcional — notas **casi-duplicadas** para
-revisar por redundancia o contradicción. Solo _sugiere_; condensar una nota lo hace el agente con tu
-confirmación, nunca una reescritura automática. Detalle: [ADR-0024](../adr/0024-memory-reports-and-compaction.md).
+```mermaid
+flowchart LR
+  subgraph despues["después de 3.8 — tipado, puedes preguntar por qué"]
+    A["ADR-0023"] -- implements --> B["ADR-0014"]
+    A -- supersedes --> C["ADR-0019"]
+    A -- relates_to --> D["python"]
+  end
+  subgraph antes["antes — sin tipo, solo enlazado"]
+    A2["ADR-0023"] --- B2["ADR-0014"]
+    A2 --- C2["ADR-0019"]
+    A2 --- D2["python"]
+  end
+```
 
-Para vaults muy grandes, la búsqueda semántica tiene un acelerador opt-in: instala el extra `[vec]` y
-pon `OBSIDIAN_MEMORY_SQLITE_VEC=1` para correr el escaneo coseno dentro de SQLite vía **sqlite-vec** —
-mismo archivo de índice, **ranking idéntico** (es aceleración, no aproximación), con fallback
-automático al camino Python puro. Es la respuesta embebida y en-archivo (sin servidor Chroma/LanceDB).
-Detalle: [ADR-0025](../adr/0025-optional-sqlite-vec-acceleration.md).
+El indexador las lee directo de tus notas — **sin archivo nuevo, sin paso extra** — a dos tablas
+consultables, en la misma pasada que construye el índice de búsqueda:
+
+```mermaid
+flowchart LR
+  N["los bullets de una nota:<br/>- decision: peso RRF 0.1<br/>- supersedes adr-0019"] --> I["indexador<br/>(misma pasada, sin lectura extra)"]
+  I --> R["tabla relations"] --> Q1["vault_relations<br/>'¿qué supersede a X? ¿qué enlaza aquí?'"]
+  I --> O["tabla observations"] --> Q2["vault_observations<br/>'cada decision con tag ranking'"]
+```
+
+Así el agente puede responder preguntas que la búsqueda plana _no sabe formular_: "¿qué supersede a
+ADR-0019? ¿qué enlaza a `python`?" (`vault_relations`, ambos sentidos); "muéstrame cada `[decision]`
+con `#ranking`" (`vault_observations`). Y `vault_kg_suggest` lee una nota y **propone**
+relaciones/observaciones de su prosa — pero **nunca escribe**; tú confirmas y editas. Detalle:
+[ADR-0023](../adr/0023-structured-knowledge-graph.md).
+
+### Mantener la memoria sana — el memory report (nuevo en 3.8)
+
+**La analogía.** Un **chequeo médico** anual, o las luces del tablero de un auto. A medida que un vault
+crece puede enfermarse en silencio — un log inflado, notas demasiado grandes, enlaces que no apuntan a
+nada, notas sin conexiones. `vault_memory_report` es el chequeo: **lee** todo y te entrega un informe.
+No opera — nunca reescribe una nota — solo te dice qué mirar.
+
+Compone tres señales que el kit ya tiene en un único digest **read-only**:
+
+```mermaid
+flowchart LR
+  A["audit<br/>tamaños · enlaces rotos · log"] --> R["vault_memory_report<br/>(read-only)"]
+  K["grafo de conocimiento<br/>relaciones · observaciones"] --> R
+  V["vectores<br/>casi-duplicados (opt-in)"] --> R
+  R --> O["índices automáticos (por categoría, hubs, tags)<br/>higiene (gigantes · obsoletas · huérfanas · rotos)<br/>suggested_actions — tú actúas, nunca reescribe"]
+```
+
+En el vault real de 55 notas afloró al instante: `SESSION_LOG` sobre presupuesto, 6 notas gigantes, 13
+enlaces rotos, 8 notas huérfanas y los hubs reales del grafo. Dos alcances honestos: **"detectar
+contradicciones"** aflora _pares casi-duplicados para revisar_, no un veredicto (la detección real de
+contradicciones es razonamiento semántico que el motor determinista no afirma); **"condensar notas
+viejas"** = el report _marca_ candidatos y el agente condensa con tu confirmación. Detalle:
+[ADR-0024](../adr/0024-memory-reports-and-compaction.md).
+
+### Escalar la búsqueda semántica — sqlite-vec opcional (nuevo en 3.8)
+
+**La analogía.** _Misma receta, horno más rápido._ La matemática — la **similitud coseno** entre tu
+consulta y cada fragmento de nota — no cambia en absoluto. Solo la movemos de calcularse
+fragmento-por-fragmento en Python a calcularse por un electrodoméstico en C _dentro de SQLite_ (la
+extensión **sqlite-vec**), lo cual solo importa cuando un vault tiene miles de notas. Y si ese
+electrodoméstico no está enchufado, vuelves a hacerlo a mano — **mismo resultado, la búsqueda nunca se
+rompe**:
+
+```mermaid
+flowchart TB
+  Q["consulta semántica"] --> D{"sqlite-vec<br/>¿instalado + activado?"}
+  D -- sí --> C["coseno dentro de SQLite (velocidad C)<br/>ORDER BY vec_distance_cosine"]
+  D -- no --> P["coseno en Python (fuerza bruta)"]
+  C --> S["ranking top-k idéntico"]
+  P --> S
+```
+
+Como los vectores están L2-normalizados, la _distancia_ coseno ascendente es exactamente la
+_similitud_ descendente — así el ranking es **demostrablemente idéntico** (el bench de retrieval da
+byte-por-byte lo mismo con el flag on u off). Vive dentro del **mismo** `fts.sqlite` — sin segundo
+store, sin servidor — por eso es la respuesta en-archivo, y por eso **Chroma / LanceDB se
+descartaron**: stores pesados que romperían el diseño zero-dependency y mono-archivo para resolver un
+no-problema a escala personal. Detalle: [ADR-0025](../adr/0025-optional-sqlite-vec-acceleration.md).
 
 ### Por qué esto ahorra tokens (y escala a muchos agentes)
 
