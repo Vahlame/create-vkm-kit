@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [3.8.1] - 2026-06-19
+
+### Changed
+
+- **The installation is the FULL stack by default (`create-obsidian-memory`).** A bare non-interactive install (`npx @vkmikc/create-obsidian-memory <vault> -y`) now turns on the whole stack — hybrid + semantic + sqlite-vec + index build + backend install + rules — exactly as `--full` did, instead of wiring `basic-memory` only. It still **degrades gracefully** (no kit clone found → `basic-memory` + a warning, never an abort), so a plain `npx` run outside a clone is unchanged in effect, while running from a clone (or with `--repo-root`) gets everything. New **`--minimal`** flag opts back down to plain `basic-memory`; the granular `--no-<piece>` flags and explicit `--with-hybrid` / `--semantic` / `--vec` / `--build-index` / `--install-backend` / `--rules` still work (an explicit opt-in overrides `--minimal`). `--full` / `--all` remain as aliases that additionally flip the default `--ide` to `codex,claude`. The interactive wizard already pre-selected every feature. Memory rules now install by default too (for each wired agent); `--no-rules` / `--minimal` opt out. Docs (npm README, install guides ES/EN, `--help`) and the installer tests updated; new tests lock the default-full behavior and the `--minimal` opt-out.
+
+### Documentation
+
+- **Plain-language visuals for the v3.8 features.** The bilingual how-it-works guides now explain the knowledge graph, memory report, and sqlite-vec with an analogy + an example + a Mermaid diagram each (card-catalog, health-check-up, "same recipe faster oven"), keeping the technical terms — so the docs land for a newcomer and an agent alike.
+
 ## [3.8.0] - 2026-06-18
 
 ### Added

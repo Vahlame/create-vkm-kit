@@ -67,6 +67,12 @@ anterior y crea el vault si falta.
 npx @vkmikc/create-obsidian-memory "<VAULT>" -y
 ```
 
+> **Stack completo por defecto (v3.8.1).** Ese comando instala **todo** — hybrid + semántica +
+> sqlite-vec + índice + reglas — cuando se corre desde un clon del kit (o con `--repo-root <clon>`).
+> Desde cualquier otro lugar **degrada a solo `basic-memory`** (con un aviso), así que siempre es
+> seguro. ¿Solo `basic-memory`? añade `--minimal`. ¿Stack completo _y_ Codex+Claude cableados? usa
+> `--full`. El resto de esta guía describe la base `basic-memory` que siempre está presente.
+
 **Qué hace, exactamente:**
 
 - Crea el vault (si no existe) con su estructura base.

@@ -67,6 +67,12 @@ previous file and creates the vault if it's missing.
 npx @vkmikc/create-obsidian-memory "<VAULT>" -y
 ```
 
+> **Full stack by default (v3.8.1).** That command installs **everything** — hybrid + semantic +
+> sqlite-vec + index + rules — when run from a clone of the kit (or with `--repo-root <clone>`). Run
+> from anywhere else it **degrades to `basic-memory` only** (with a warning), so it's always safe.
+> Want just `basic-memory`? add `--minimal`. Want the full stack _and_ Codex+Claude wired? use
+> `--full`. The rest of this guide describes the `basic-memory` baseline that's always present.
+
 **What it does, exactly:**
 
 - Creates the vault (if it doesn't exist) with its base structure.

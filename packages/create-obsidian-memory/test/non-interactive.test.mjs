@@ -24,7 +24,7 @@ test("non-interactive defaults the vault to ~/Documents/obsidian-memory-vault an
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-def-"));
   const r = spawnSync(
     process.execPath,
-    [bin, "--non-interactive", "--no-cursor-mcp", "--no-git-init"],
+    [bin, "--non-interactive", "--no-cursor-mcp", "--no-git-init", "--minimal"],
     { encoding: "utf8", env: { ...process.env, USERPROFILE: home, HOME: home } }
   );
   assert.equal(r.status, 0, r.stderr + r.stdout);
@@ -45,10 +45,11 @@ test("non-interactive defaults the vault to ~/Documents/obsidian-memory-vault an
 test("non-interactive accepts the vault as a positional arg and creates it if missing", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-pos-"));
   const vault = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-pos-v-")), "vault");
-  const r = spawnSync(process.execPath, [bin, vault, "-y", "--no-cursor-mcp", "--no-git-init"], {
-    encoding: "utf8",
-    env: { ...process.env, USERPROFILE: home, HOME: home }
-  });
+  const r = spawnSync(
+    process.execPath,
+    [bin, vault, "-y", "--no-cursor-mcp", "--no-git-init", "--minimal"],
+    { encoding: "utf8", env: { ...process.env, USERPROFILE: home, HOME: home } }
+  );
   assert.equal(r.status, 0, r.stderr + r.stdout);
   assert.ok(fs.existsSync(path.join(vault, ".obsidian")), "positional vault created");
   assert.ok(fs.existsSync(path.join(vault, "MEMORY.md")), "starter notes scaffolded");
@@ -95,29 +96,80 @@ test("non-interactive merges the block without clobbering existing CLAUDE.md con
   assert.match(merged, /obsidian-memory:start/, "block added");
 });
 
-test("non-interactive writes no rules files by default and with --no-rules", () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-norules-"));
-  const work = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-norules-w-"));
+test("non-interactive writes rules by default (full stack); --minimal and --no-rules opt out", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-defrules-"));
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-defrules-w-"));
   const vault = path.join(work, "vault");
   const env = { ...process.env, USERPROFILE: home, HOME: home };
+  // Default (no --minimal): the full stack ships rules for the wired IDE (cursor → agents).
   const r = spawnSync(process.execPath, [bin, vault, "-y", "--no-cursor-mcp", "--no-git-init"], {
     cwd: work,
     encoding: "utf8",
     env
   });
   assert.equal(r.status, 0, r.stderr + r.stdout);
-  assert.ok(!fs.existsSync(path.join(work, "AGENTS.md")), "no AGENTS.md by default (headless)");
-  assert.ok(
-    !fs.existsSync(path.join(home, ".claude", "CLAUDE.md")),
-    "no global CLAUDE.md by default"
-  );
+  assert.ok(fs.existsSync(path.join(work, "AGENTS.md")), "rules ON by default (full stack)");
+
+  // --minimal opts out of the whole stack, including rules.
+  const work2 = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-defrules-w2-"));
   const r2 = spawnSync(
     process.execPath,
-    [bin, vault, "-y", "--no-cursor-mcp", "--no-git-init", "--rules", "all", "--no-rules"],
-    { cwd: work, encoding: "utf8", env }
+    [bin, path.join(work2, "vault"), "-y", "--no-cursor-mcp", "--no-git-init", "--minimal"],
+    { cwd: work2, encoding: "utf8", env }
   );
   assert.equal(r2.status, 0, r2.stderr + r2.stdout);
-  assert.ok(!fs.existsSync(path.join(work, "AGENTS.md")), "--no-rules wins over --rules all");
+  assert.ok(!fs.existsSync(path.join(work2, "AGENTS.md")), "--minimal writes no rules");
+
+  // --no-rules wins over an explicit --rules all.
+  const work3 = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-defrules-w3-"));
+  const r3 = spawnSync(
+    process.execPath,
+    [
+      bin,
+      path.join(work3, "vault"),
+      "-y",
+      "--no-cursor-mcp",
+      "--no-git-init",
+      "--minimal",
+      "--rules",
+      "all",
+      "--no-rules"
+    ],
+    { cwd: work3, encoding: "utf8", env }
+  );
+  assert.equal(r3.status, 0, r3.stderr + r3.stdout);
+  assert.ok(!fs.existsSync(path.join(work3, "AGENTS.md")), "--no-rules wins over --rules all");
+});
+
+test("default (no --full) wires the FULL stack by default — hybrid + backend + index", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-deffull-"));
+  const vault = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "com-deffull-v-")), "vault");
+  const env = { ...process.env, USERPROFILE: home, HOME: home, NO_COLOR: "1" };
+  // A bare install (no --full, no --minimal) pointed at a kit clone must turn on the
+  // whole stack — that is the v3.8.1 "everything by default" contract.
+  const r = spawnSync(
+    process.execPath,
+    [bin, vault, "-y", "--repo-root", kitRepo, "--dry-run", "--no-git-init"],
+    { encoding: "utf8", env }
+  );
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.match(r.stdout, /full stack \(default\)/, "announces the default full stack");
+  assert.match(r.stdout, /would install backend/, "installs backend by default");
+  assert.match(r.stdout, /would build index/, "builds index by default");
+});
+
+test("--minimal opts out of the full stack — basic-memory only, no backend/index", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-min-"));
+  const vault = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "com-min-v-")), "vault");
+  const env = { ...process.env, USERPROFILE: home, HOME: home, NO_COLOR: "1" };
+  const r = spawnSync(
+    process.execPath,
+    [bin, vault, "-y", "--repo-root", kitRepo, "--minimal", "--dry-run", "--no-git-init"],
+    { encoding: "utf8", env }
+  );
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.doesNotMatch(r.stdout, /would install backend/, "no backend under --minimal");
+  assert.doesNotMatch(r.stdout, /would build index/, "no index under --minimal");
 });
 
 test("non-interactive merges into UTF-8 BOM mcp.json without dropping existing servers", () => {
@@ -133,10 +185,11 @@ test("non-interactive merges into UTF-8 BOM mcp.json without dropping existing s
   };
   const bom = "\uFEFF";
   fs.writeFileSync(path.join(cursorDir, "mcp.json"), `${bom}${JSON.stringify(prior)}`, "utf8");
-  const r = spawnSync(process.execPath, [bin, "--non-interactive", "--vault", vault], {
-    encoding: "utf8",
-    env: { ...process.env, USERPROFILE: home, HOME: home }
-  });
+  const r = spawnSync(
+    process.execPath,
+    [bin, "--non-interactive", "--vault", vault, "--minimal"],
+    { encoding: "utf8", env: { ...process.env, USERPROFILE: home, HOME: home } }
+  );
   assert.equal(r.status, 0, r.stderr + r.stdout);
   const merged = JSON.parse(fs.readFileSync(path.join(cursorDir, "mcp.json"), "utf8"));
   assert.ok(merged.mcpServers["other-server"]);
@@ -150,7 +203,7 @@ test("non-interactive creates vault .vscode/settings.json when missing (Git tuni
   fs.mkdirSync(path.join(vault, ".obsidian"));
   const r = spawnSync(
     process.execPath,
-    [bin, "--non-interactive", "--vault", vault, "--no-cursor-mcp", "--no-git-init"],
+    [bin, "--non-interactive", "--vault", vault, "--no-cursor-mcp", "--no-git-init", "--minimal"],
     { encoding: "utf8", env: { ...process.env, USERPROFILE: home, HOME: home } }
   );
   assert.equal(r.status, 0, r.stderr + r.stdout);
@@ -184,7 +237,7 @@ test("non-interactive merges kit keys into existing vault .vscode/settings.json"
   );
   const r = spawnSync(
     process.execPath,
-    [bin, "--non-interactive", "--vault", vault, "--no-cursor-mcp", "--no-git-init"],
+    [bin, "--non-interactive", "--vault", vault, "--no-cursor-mcp", "--no-git-init", "--minimal"],
     { encoding: "utf8", env: { ...process.env, USERPROFILE: home, HOME: home } }
   );
   assert.equal(r.status, 0, r.stderr + r.stdout);
@@ -212,7 +265,7 @@ test("non-interactive backs up existing mcp.json and writes atomically (no .tmp 
   fs.writeFileSync(mcpFp, original, "utf8");
   const r = spawnSync(
     process.execPath,
-    [bin, "--non-interactive", "--vault", vault, "--no-git-init"],
+    [bin, "--non-interactive", "--vault", vault, "--no-git-init", "--minimal"],
     { encoding: "utf8", env: { ...process.env, USERPROFILE: home, HOME: home } }
   );
   assert.equal(r.status, 0, r.stderr + r.stdout);
@@ -245,7 +298,8 @@ test("non-interactive --with-gitleaks installs an executable pre-commit hook", (
       vault,
       "--with-gitleaks",
       "--no-cursor-mcp",
-      "--no-git-init"
+      "--no-git-init",
+      "--minimal"
     ],
     { encoding: "utf8", env: { ...process.env, USERPROFILE: home, HOME: home } }
   );
@@ -330,6 +384,7 @@ test("non-interactive --with-hybrid merges obsidian-memory-hybrid", () => {
       "--non-interactive",
       "--vault",
       vault,
+      "--minimal",
       "--with-hybrid",
       "--repo-root",
       kitRepo,

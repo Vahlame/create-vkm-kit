@@ -16,25 +16,28 @@ kit. Full docs (English + Spanish), architecture and ADRs live there.
 ## Quick start
 
 ```bash
-# ⚡ The whole stack in one command — Codex + Claude Code, hybrid+semantic, index, rules.
-# Zero questions. Run from a clone of the kit, or add --repo-root <clone>.
-npx @vkmikc/create-obsidian-memory@latest --full
-
-# Interactive wizard (pre-selects Codex + Claude Code)
+# Interactive wizard (pre-selects everything)
 npm create @vkmikc/obsidian-memory@latest
 
-# One-shot, no questions — vault defaults to ~/Documents/obsidian-memory-vault (created if missing)
+# ⚡ The whole stack, zero questions — vault defaults to ~/Documents/obsidian-memory-vault.
+# FULL by default (hybrid + semantic + sqlite-vec + index + rules). Run from a clone of
+# the kit (or add --repo-root <clone>) for the hybrid pieces; degrades to basic-memory otherwise.
 npx @vkmikc/create-obsidian-memory@latest -y
 
 # …or point it at any folder (created if it doesn't exist)
 npx @vkmikc/create-obsidian-memory@latest ./my-vault -y
+
+# Just plain basic-memory, nothing else:
+npx @vkmikc/create-obsidian-memory@latest ./my-vault -y --minimal
 ```
 
-`--full` (alias `--all`) is the max-power preset — **every feature on by default**: it defaults
-`--ide` to `codex,claude` and turns on `--with-hybrid --semantic --vec --build-index
---install-backend` plus the rules for each agent. That wires the knowledge graph + memory reports
-(automatic once hybrid is on), neural embeddings, and the sqlite-vec acceleration. If no kit clone is
-found to source the hybrid bridge, it **degrades to `basic-memory` instead of aborting**.
+**The install is the full stack BY DEFAULT (v3.8.1)** — hybrid + semantic + sqlite-vec + index +
+rules, the same set `--full` ships. That wires the knowledge graph + memory reports (automatic once
+hybrid is on), neural embeddings, and the sqlite-vec acceleration. Run it from a clone of the kit (or
+pass `--repo-root <clone>`) to get the hybrid pieces; with no clone it **degrades to `basic-memory`
+instead of aborting**, so a bare `npx` is always safe. `--full` (alias `--all`) is the same full stack
+but also flips `--ide` to `codex,claude`. Use **`--minimal`** for plain `basic-memory`, or
+`--no-<piece>` (e.g. `--no-semantic`, `--no-vec`) to drop one part.
 
 The wizard asks for your vault path and which IDE(s) to wire; the `-y` form skips all prompts. Either
 way it writes the MCP config and scaffolds a starter vault (`START_HERE.md`, `MEMORY.md`, `PROJECTS/`,

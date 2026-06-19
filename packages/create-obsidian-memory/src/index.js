@@ -704,18 +704,21 @@ async function runNonInteractive(argv) {
   const full = fullPresetFromArgs();
   const noCursorMcp = argv.includes("--no-cursor-mcp");
   const noGitInit = argv.includes("--no-git-init");
-  // `--full` turns the whole stack on; individual flags still work standalone.
-  // `--no-*` opt-outs let you keep --full but drop one heavy piece.
-  let wantHybrid = argv.includes("--with-hybrid") || full;
-  let wantSemantic = (argv.includes("--semantic") || full) && !argv.includes("--no-semantic");
-  let wantBuildIndex =
-    (argv.includes("--build-index") || full) && !argv.includes("--no-build-index");
-  let wantInstallBackend =
-    (argv.includes("--install-backend") || full) && !argv.includes("--no-install-backend");
-  // sqlite-vec acceleration (ADR-0025): on under --full (and --vec) so the default
-  // "everything" install ships it. Ranking-identical with a safe fallback, so on by
-  // default costs nothing where the extension can't load.
-  let wantVec = (argv.includes("--vec") || full) && !argv.includes("--no-vec");
+  // The full stack is the DEFAULT (v3.8.1): a bare non-interactive install ships
+  // every feature (hybrid + semantic + index + backend + sqlite-vec + rules), exactly
+  // as `--full` did. `--minimal` opts back down to plain basic-memory; a granular
+  // `--no-<piece>` drops one part; an explicit `--with-hybrid`/`--semantic`/… forces a
+  // piece on even under `--minimal`. (`--full`/`--all` stay as aliases — they also flip
+  // the IDE default to codex,claude — but no longer gate the feature set.)
+  const minimal = argv.includes("--minimal");
+  const on = (optIn, optOut) => (argv.includes(optIn) || !minimal) && !argv.includes(optOut);
+  let wantHybrid = on("--with-hybrid", "--no-hybrid");
+  let wantSemantic = on("--semantic", "--no-semantic");
+  let wantBuildIndex = on("--build-index", "--no-build-index");
+  let wantInstallBackend = on("--install-backend", "--no-install-backend");
+  // sqlite-vec acceleration (ADR-0025): ranking-identical with a safe fallback, so
+  // shipping it by default costs nothing where the extension can't load.
+  let wantVec = on("--vec", "--no-vec");
   const wantGitleaks = argv.includes("--with-gitleaks");
   const ides = idesFromArgs(argv, { full });
   let kitRoot = null;
@@ -727,14 +730,14 @@ async function runNonInteractive(argv) {
       : { hybridJs: null, pythonSrc: null };
     const ok = kitRoot && (await fse.pathExists(hybridJs)) && (await fse.pathExists(pythonSrc));
     if (!ok) {
-      // Explicit --with-hybrid is a hard requirement (fail loud). But --full is
-      // "best effort, max power": when there's no kit clone to source the bridge
-      // from (e.g. run via bare `npx` outside a clone), degrade to basic-memory
-      // instead of aborting the whole install.
-      if (full && !argv.includes("--with-hybrid")) {
+      // Explicit --with-hybrid is a hard requirement (fail loud). But the default
+      // full stack is "best effort, max power": when there's no kit clone to source
+      // the bridge from (e.g. run via bare `npx` outside a clone), degrade to
+      // basic-memory instead of aborting the whole install.
+      if (!argv.includes("--with-hybrid")) {
         console.warn(
           pc.yellow(
-            "--full: no kit clone found, so hybrid/semantic/index are skipped — wiring basic-memory only."
+            "No kit clone found, so hybrid/semantic/index/vec are skipped — wiring basic-memory only."
           )
         );
         console.log(
@@ -759,7 +762,10 @@ async function runNonInteractive(argv) {
     }
   }
 
-  console.log(pc.cyan(t.title), pc.dim(full ? "full preset" : "non-interactive"));
+  console.log(
+    pc.cyan(t.title),
+    pc.dim(full ? "full preset" : minimal ? "minimal" : "full stack (default)")
+  );
 
   const mcpSnippet = {
     command: "uvx",
@@ -788,7 +794,8 @@ async function runNonInteractive(argv) {
     await maybeBuildIndex(vault, dryRun, { repoRoot: kitRoot, semantic: wantSemantic });
   }
 
-  const ruleTargets = rulesTargetsFromArgs(argv, ides, { full });
+  // Rules ship by default too (part of "everything"); --no-rules / --minimal opt out.
+  const ruleTargets = rulesTargetsFromArgs(argv, ides, { full: !minimal });
   if (ruleTargets.length) {
     await installRules(ruleTargets, lang, { home, cwd, dryRun });
   }
@@ -859,25 +866,28 @@ async function main() {
     console.log(`Usage: create-obsidian-memory [vault] [options]
 
 Examples:
-  create-obsidian-memory                 # interactive wizard (pre-selects Codex + Claude Code)
-  create-obsidian-memory --full          # ONE-SHOT, max power: Codex + Claude, hybrid+semantic+index+rules
-  create-obsidian-memory ./my-vault -y   # headless, into ./my-vault
-  create-obsidian-memory -y              # headless, default ~/Documents/obsidian-memory-vault
+  create-obsidian-memory                 # interactive wizard (pre-selects everything)
+  create-obsidian-memory ./my-vault -y   # headless, FULL stack by default, into ./my-vault
+  create-obsidian-memory -y              # headless, FULL stack, default vault path
+  create-obsidian-memory -y --minimal    # headless, plain basic-memory only
 
-The simplest full-power install (run from a clone of the kit, or pass --repo-root):
-  create-obsidian-memory --full
+The install is the FULL stack BY DEFAULT (hybrid + semantic + index + sqlite-vec +
+rules); run it from a clone of the kit (or pass --repo-root) for the hybrid pieces —
+it degrades to basic-memory (no abort) when no clone is found. Use --minimal for plain
+basic-memory, or --no-<piece> to drop one part.
 
 Interactive (default):
   --lang en       English prompts
   --dry-run       Show what would be written (no writes)
 
-One-shot preset:
-  --full, --all   Everything on, zero questions (implies -y). Defaults --ide to
-                  codex,claude and turns on --with-hybrid --semantic --vec
-                  --build-index --install-backend and the rules for each wired
-                  agent. Degrades to basic-memory (no abort) if no kit clone is
-                  found for hybrid. Opt out of a single piece with --no-semantic /
+Feature set:
+  --full, --all   Alias for the default full stack PLUS --ide codex,claude (implies -y).
+                  Since the full stack is now the default, --full mainly flips the IDE
+                  default to codex,claude. Opt out of a piece with --no-semantic /
                   --no-vec / --no-build-index / --no-install-backend / --no-rules.
+  --minimal       Opposite of the default: install plain basic-memory only (no hybrid,
+                  semantic, index, vec, or rules). Re-add one piece with --with-hybrid /
+                  --semantic / --vec / --build-index / --install-backend / --rules.
 
 Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
   [vault]         Vault path as the first argument (or --vault <path>); defaults to
@@ -900,10 +910,10 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
   --rules <list>  Install the memory-rules block into agent configs: claude
                   (~/.claude/CLAUDE.md, global), codex (~/.codex/AGENTS.md, global),
                   agents (./AGENTS.md), cursor (.cursor/rules/obsidian-memory.mdc).
-                  Or 'all' / 'none'. Headless writes NOTHING unless you pass --rules
-                  (use 'all' for full coverage) or --full; interactive asks (deriving
-                  from --ide). Idempotent marked block (obsidian-memory:start/end) —
-                  never clobbers content.
+                  Or 'all' / 'none'. Headless installs rules by DEFAULT (for each wired
+                  agent); pass --no-rules or --minimal to skip, or --rules <list> to
+                  choose. Interactive asks (deriving from --ide). Idempotent marked block
+                  (obsidian-memory:start/end) — never clobbers content.
   --no-rules      Don't write any rules file.
 
   --help          This message`);
