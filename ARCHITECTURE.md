@@ -75,15 +75,16 @@ Keeps the vault's git history moving without the user thinking about it.
 
 ### 2. `obsidian-memory-mcp` — hybrid MCP sidecar (Node)
 
-The agent's authoritative window into the vault. Stdio MCP server exposing ten
-tools, split into small modules so the pure logic is unit-testable without
-spawning the transport.
+The agent's authoritative window into the vault. Stdio MCP server exposing
+thirteen tools, split into small modules so the pure logic is unit-testable
+without spawning the transport.
 
 - **Entry point / wiring:** [`src/hybrid-mcp.mjs`](./packages/obsidian-memory-mcp/src/hybrid-mcp.mjs) — registers tools and connects `StdioServerTransport`. A `main()` entry-point guard prevents the server from spawning on `import` (so tests can import siblings safely).
 - **Tools (ten):**
   - `vault_fts_search` / `vault_fts_index` — bridge to the Python RAG engine via `execa` (BM25 lexical search + incremental index).
   - `vault_hybrid_search` — BM25 + per-section vector cosine fused via weighted RRF; returns the **matching section**, not the whole note (the passage-first default — ADR-0017/0018). Optional `graph: true` fuses in a third ranking of `[[wikilink]]`-adjacent notes (ADR-0019/0021); optional `recency: true` biases toward recently-modified notes (ADR-0021).
   - `vault_complete` — prefix autocomplete over note titles, filename stems and inline `#tags` (Trie over the FTS index; ADR-0019).
+  - `vault_relations` / `vault_observations` / `vault_kg_suggest` — the **structured knowledge graph** (ADR-0023): an entity's typed `[[wikilink]]` relations both directions, categorized observations filtered by category/`#tag`/note, and a read-only structuring assistant that proposes (never writes) typed relations + observations from a note's prose.
   - `vault_read_file` / `vault_write_file` / `vault_edit_file` / `vault_list_directory` — **vault-locked** filesystem access (reads are wrapped in an untrusted-data envelope, ADR-0018 D6).
   - `vault_audit` — vault health: notes over a token budget, broken `[[wikilinks]]`, `SESSION_LOG` size (bridges the Python `json-audit`).
   - `memory_extract_candidates` — pre-close ritual: turn a free-text recap into dedup-checked memory bullets (read-only; never writes).
@@ -108,6 +109,7 @@ additive layer that preserves the zero-dependency default (ADR-0017).
 - **Chunking + vectors:** [`chunking.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/chunking.py) splits each note into heading-aware sections; [`vector_store.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/vector_store.py) embeds each chunk into a `note_chunks` table (float32 BLOBs in the same `fts.sqlite`) and ranks by brute-force cosine (sub-10 ms for a personal vault; `sqlite-vec` is the documented future acceleration).
 - **Query:** [`query.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/query.py) — `search_vault` (BM25, **title-aware via BM25F column weights** — a query for a note's own name matches even though the H1 is stripped from the body), `semantic_search` (chunk cosine), and `hybrid_search` fusing them via **weighted** Reciprocal Rank Fusion and returning the **matching passage** so a caller reads a section, not the whole note; degrades to pure FTS when no chunks exist. With `graph=True` it adds a third RRF input from `graph_neighbors` at a tuned sub-1 weight (`GRAPH_WEIGHT`, ADR-0021) so a linked note nudges but never displaces a real hit; with `recency=True` it applies an exponential mtime decay so the freshest of comparably-relevant notes wins (opt-in). `search_vault` keeps a precision-first AND but **falls back to OR when AND matches nothing**, so one missing or misspelled term doesn't drop an otherwise-relevant note on a pure-FTS (no-vector) install.
 - **Graph + autocomplete:** [`graphlink.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/graphlink.py) parses the `[[wikilink]]` graph from the FTS bodies and ranks notes one hop from the strongest hits (ADR-0019); [`trie.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/trie.py) + [`complete.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/complete.py) back prefix autocompletion over titles / filenames / `#tags`.
+- **Structured knowledge graph (ADR-0023):** [`knowledge_graph.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/knowledge_graph.py) parses Basic-Memory-compatible **typed relations** (`- <verb> [[target]]`) and **categorized observations** (`- [category] content #tags`) from each note; the indexer persists them into `relations` / `observations` tables in the **same per-note pass** (no extra read), and a `schema_meta` version forces a one-time rebuild on upgrade (the backfill fix ADR-0019 deferred). [`kg_query.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/kg_query.py) answers `relations_for` (both directions, targets resolved at query time), `observations_query` (by category/tag/note) and the read-only `suggest_structure`. Purely additive — the lexical+semantic+graph **ranking** path is untouched.
 - **Layout:** the index lives beside the vault in `.obsidian-memory-rag/fts.sqlite` (git-ignored), so it never pollutes the synced notes (ADR-0014 / ADR-0017).
 
 ### 4. `create-obsidian-memory` — initializer (Node)
@@ -269,6 +271,7 @@ this architecture:
 - **ADR-0019** — graph-aware retrieval over the `[[wikilink]]` graph.
 - **ADR-0020** — measured retrieval quality (recall@k / MRR) as a CI gate.
 - **ADR-0021** — graded metrics (nDCG/MAP), harder golden set, weighted RRF, title-aware BM25F, opt-in recency.
+- **ADR-0023** — structured knowledge graph (typed relations + categorized observations) persisted alongside the FTS index; realizes ADR-0019's deferred edge table.
 
 Do not undo an accepted ADR without superseding it with a new one
 (see [`CONTRIBUTING.md`](./CONTRIBUTING.md)).

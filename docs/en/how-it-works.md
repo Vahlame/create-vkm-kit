@@ -169,6 +169,23 @@ to OR** when a strict match finds nothing, so one missing or mistyped word no lo
 relevant note. Detail: [`evals/retrieval`](https://github.com/Vahlame/obsidian-memory-kit/tree/main/evals/retrieval) ·
 [ADR-0020](../adr/0020-measured-retrieval-quality.md).
 
+### Asking the graph questions (new in 3.8)
+
+Search finds notes. The **knowledge graph** lets you ask the notes' _structure_ a question. Two
+plain-Markdown conventions (the same ones [Basic Memory](faq.md) uses, so vaults interoperate) turn
+prose into something queryable:
+
+- A **typed relation** is a list item like `- implements [[adr-0014]]` or `- supersedes [[adr-0019]]`.
+  Any plain `[[link]]` is an untyped `relates_to`.
+- An **observation** is a list item like `- [decision] weighted RRF weight 0.1 #ranking` or
+  `- [gotcha] scores compress at k=60`.
+
+The indexer reads these straight out of your notes — no new file, no extra step — so the agent can
+now answer "what supersedes ADR-0019?", "what links to `python`?" (`vault_relations`, both
+directions), or "show every `[decision]` tagged `#ranking`" (`vault_observations`) — questions plain
+search cannot express. `vault_kg_suggest` reads a note and **proposes** relations/observations to add
+(it never writes — you confirm and edit). Detail: [ADR-0023](../adr/0023-structured-knowledge-graph.md).
+
 ### Why this saves tokens (and scales to many agents)
 
 A whole-note read pours the **entire** note into the model's context. Passage-first retrieval

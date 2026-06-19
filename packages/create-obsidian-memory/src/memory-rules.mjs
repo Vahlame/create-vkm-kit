@@ -45,6 +45,7 @@ Busca **antes de responder** cuando la tarea continúa trabajo previo, se nombra
 - Recall conceptual / lenguaje natural → \`vault_hybrid_search\` (devuelve la sección). Si el tema cruza notas enlazadas → \`graph: true\` (suma notas a 1 salto de \`[[wikilinks]]\`); si importa la frescura ("lo más reciente que decidí sobre X") → \`recency: true\` (sesga a notas modificadas hace poco).
 - Identificador / símbolo / error **exacto** → \`vault_fts_search\`.
 - Nombre de nota o \`#tag\` a medias → \`vault_complete\` (Trie; resuelve **antes** de buscar/enlazar/escribir).
+- Estructura **tipada** del grafo → \`vault_relations\` (aristas de una nota, ambos sentidos: "¿qué implementa / qué la supersede / qué enlaza aquí?"), \`vault_observations\` (hechos por \`category\`/\`#tag\`: todos los \`[decision]\`, todo lo \`#ranking\`), \`vault_kg_suggest\` (propone estructura de una nota; **read-only**).
 - Nota **entera** (raro) → \`read_note\`/\`vault_read_file\`, solo si el pasaje no basta. **Nunca** \`SESSION_LOG\`/PROJECTS grandes enteros.
 - Salud del vault (notas gigantes, \`[[wikilinks]]\` rotos) → \`vault_audit\`. Tras imports grandes / cambio de embedder → \`vault_fts_index({ semantic: true })\`.
 
@@ -62,6 +63,8 @@ Busca **antes de responder** cuando la tarea continúa trabajo previo, se nombra
 ### Qué guardar (alto valor)
 
 Solo lo **reutilizable más allá de la sesión** (arquitectura cerrada, decisiones costosas, preferencias firmes, lecciones). **Nunca** TODOs del día, salida de comandos, ni lo que el código ya documenta. Una idea por nota; **deduplica antes**. Separa **hechos** e **hipótesis**. Wikilinks \`[[...]]\`.
+
+**Dale estructura consultable** (compatible con Basic Memory): relaciones tipadas como ítem de lista \`- <verbo> [[destino]]\` (\`implements\`, \`supersedes\`, \`part_of\`; un \`[[link]]\` suelto es \`relates_to\`) y observaciones \`- [categoría] hecho #tag\` (\`[decision]\`, \`[gotcha]\`, \`[fact]\`). El indexador las vuelve consultables vía \`vault_relations\`/\`vault_observations\` — escribir una decisión así la hace recuperable por categoría/tag, no solo por texto.
 
 ### Auto-cuestiónate antes de responder (escala a la tarea)
 
@@ -118,6 +121,7 @@ Search **before answering** when the task continues prior work, names a project/
 - Conceptual / natural-language recall → \`vault_hybrid_search\` (returns the section). If the topic spans linked notes → \`graph: true\` (adds notes one \`[[wikilink]]\` hop away); if freshness matters ("what I most recently decided about X") → \`recency: true\` (biases toward recently-modified notes).
 - **Exact** identifier / symbol / error string → \`vault_fts_search\`.
 - Half-remembered note name or \`#tag\` → \`vault_complete\` (Trie; resolve it **before** searching/linking/writing).
+- **Typed** graph structure → \`vault_relations\` (a note's edges, both directions: "what does it implement / supersede / what links here?"), \`vault_observations\` (facts by \`category\`/\`#tag\`: every \`[decision]\`, everything \`#ranking\`), \`vault_kg_suggest\` (proposes structure for a note; **read-only**).
 - **Whole** note (rare) → \`read_note\`/\`vault_read_file\`, only if the section isn't enough. **Never** whole \`SESSION_LOG\`/large PROJECTS.
 - Vault health (oversized notes, broken \`[[wikilinks]]\`) → \`vault_audit\`. After big imports / embedder change → \`vault_fts_index({ semantic: true })\`.
 
@@ -135,6 +139,8 @@ Search **before answering** when the task continues prior work, names a project/
 ### What to save (high-signal)
 
 Only what's **reusable beyond the session** (closed architecture, hard-won decisions, firm preferences, lessons). **Never** per-day TODOs, command output, or what the code already documents. One idea per note; **dedup first**. Separate **facts** and **hypotheses**. Wikilinks \`[[...]]\`.
+
+**Give it queryable structure** (Basic-Memory-compatible): typed relations as list items \`- <verb> [[target]]\` (\`implements\`, \`supersedes\`, \`part_of\`; a bare \`[[link]]\` is \`relates_to\`) and observations \`- [category] fact #tag\` (\`[decision]\`, \`[gotcha]\`, \`[fact]\`). The indexer makes these queryable via \`vault_relations\`/\`vault_observations\` — writing a decision this way makes it recallable by category/tag, not just by text.
 
 ### Self-check before answering (scale to the task)
 

@@ -18,6 +18,19 @@ from .indexer import (
     index_vault,
     index_vectors,
 )
+from .kg_query import (
+    ObservationHit,
+    RelationHit,
+    observations_query,
+    relations_for,
+    suggest_structure,
+)
+from .knowledge_graph import (
+    Observation,
+    Relation,
+    parse_observations,
+    parse_relations,
+)
 from .query import (
     HybridHit,
     SearchHit,
@@ -38,7 +51,11 @@ __all__ = [
     "HashingEmbedder",
     "HybridHit",
     "IndexStats",
+    "Observation",
+    "ObservationHit",
     "QueryResult",
+    "Relation",
+    "RelationHit",
     "RotateResult",
     "SearchHit",
     "Trie",
@@ -54,8 +71,13 @@ __all__ = [
     "index_vault",
     "index_vectors",
     "load_queries",
+    "observations_query",
+    "parse_observations",
+    "parse_relations",
+    "relations_for",
     "rotate_session_log",
     "run_benchmark",
     "search_vault",
     "semantic_search",
+    "suggest_structure",
 ]

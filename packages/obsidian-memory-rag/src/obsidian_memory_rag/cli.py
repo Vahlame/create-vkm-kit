@@ -14,6 +14,7 @@ from .bench_recall import format_report, run_benchmark
 from .complete import complete as complete_prefix
 from .embeddings import get_embedder
 from .indexer import ensure_fresh, index_vault, index_vectors
+from .kg_query import observations_query, relations_for, suggest_structure
 from .query import hybrid_search, search_vault
 from .rotate import rotate_session_log
 
@@ -228,6 +229,44 @@ def main() -> None:
         help="Skip the pre-search incremental index refresh (query the index as-is)",
     )
 
+    # --- Knowledge graph (ADR-0023): typed relations + structured observations ---
+    for name, helptext in (
+        ("relations", "Typed [[wikilink]] relations touching a note (in/out/both)"),
+        ("json-relations", "Same as relations but print one JSON object (for MCP)"),
+    ):
+        rp = sub.add_parser(name, help=helptext)
+        rp.add_argument("--vault", type=Path, required=True)
+        rp.add_argument("note", help="Note path or bare name (resolved Obsidian-style)")
+        rp.add_argument(
+            "--direction",
+            choices=("out", "in", "both"),
+            default="both",
+            help="out = this note's edges; in = notes linking here; both (default)",
+        )
+        rp.add_argument("--limit", type=int, default=200)
+        rp.add_argument("--no-auto-index", action="store_true")
+
+    for name, helptext in (
+        ("observations", "Structured observations filtered by category / tag / note"),
+        ("json-observations", "Same as observations but print one JSON object (for MCP)"),
+    ):
+        op = sub.add_parser(name, help=helptext)
+        op.add_argument("--vault", type=Path, required=True)
+        op.add_argument("--category", default=None, help="Exact category, e.g. decision")
+        op.add_argument("--tag", default=None, help="Whole #tag (without the #)")
+        op.add_argument("--note", default=None, help="Restrict to one source note")
+        op.add_argument("--limit", type=int, default=200)
+        op.add_argument("--no-auto-index", action="store_true")
+
+    for name, helptext in (
+        ("kg-suggest", "Read-only: a note's structure + relation/observation candidates"),
+        ("json-kg-suggest", "Same as kg-suggest but print one JSON object (for MCP)"),
+    ):
+        sp = sub.add_parser(name, help=helptext)
+        sp.add_argument("--vault", type=Path, required=True)
+        sp.add_argument("note", help="Note path or bare name to inspect")
+        sp.add_argument("--no-auto-index", action="store_true")
+
     args = p.parse_args()
     if args.cmd == "index":
         stats = index_vault(args.vault, max_file_bytes=args.max_file_bytes)
@@ -239,6 +278,8 @@ def main() -> None:
             f"skipped={stats.skipped_unchanged}",
             f"removed={stats.removed}",
             f"truncated={stats.truncated}",
+            f"relations={stats.relations}",
+            f"observations={stats.observations}",
         )
         if args.semantic:
             vstats = index_vectors(
@@ -375,6 +416,8 @@ def main() -> None:
             "skipped_unchanged": stats.skipped_unchanged,
             "removed": stats.removed,
             "truncated": stats.truncated,
+            "relations": stats.relations,
+            "observations": stats.observations,
         }
         if args.semantic:
             vstats = index_vectors(
@@ -438,6 +481,103 @@ def main() -> None:
                 ensure_ascii=False,
             )
         )
+    elif args.cmd in ("relations", "json-relations"):
+        if not args.no_auto_index:
+            ensure_fresh(args.vault)
+        hits = relations_for(
+            args.vault, args.note, direction=args.direction, limit=args.limit
+        )
+        if args.cmd == "json-relations":
+            print(
+                json.dumps(
+                    {
+                        "note": args.note,
+                        "direction": args.direction,
+                        "relations": [
+                            {
+                                "source_path": h.source_path,
+                                "relation_type": h.relation_type,
+                                "target": h.target,
+                                "target_path": h.target_path,
+                                "context": h.context,
+                                "direction": h.direction,
+                            }
+                            for h in hits
+                        ],
+                        "count": len(hits),
+                    },
+                    ensure_ascii=False,
+                )
+            )
+        elif not hits:
+            print("no relations (unknown note, or it has no [[wikilinks]])")
+        else:
+            for h in hits:
+                arrow = "->" if h.direction == "out" else "<-"
+                dst = h.target_path or f"{h.target} (unresolved)"
+                ctx = f"  ({h.context})" if h.context else ""
+                if h.direction == "out":
+                    print(f"{h.source_path} {arrow} [{h.relation_type}] {dst}{ctx}")
+                else:
+                    print(f"{h.source_path} {arrow} [{h.relation_type}] (this note){ctx}")
+    elif args.cmd in ("observations", "json-observations"):
+        if not args.no_auto_index:
+            ensure_fresh(args.vault)
+        hits = observations_query(
+            args.vault,
+            category=args.category,
+            tag=args.tag,
+            note=args.note,
+            limit=args.limit,
+        )
+        if args.cmd == "json-observations":
+            print(
+                json.dumps(
+                    {
+                        "filters": {
+                            "category": args.category,
+                            "tag": args.tag,
+                            "note": args.note,
+                        },
+                        "observations": [
+                            {
+                                "source_path": h.source_path,
+                                "category": h.category,
+                                "content": h.content,
+                                "tags": h.tags,
+                            }
+                            for h in hits
+                        ],
+                        "count": len(hits),
+                    },
+                    ensure_ascii=False,
+                )
+            )
+        elif not hits:
+            print("no observations match (try a different category/tag, or index first)")
+        else:
+            for h in hits:
+                print(f"{h.source_path}\t[{h.category}] {h.content}")
+    elif args.cmd in ("kg-suggest", "json-kg-suggest"):
+        if not args.no_auto_index:
+            ensure_fresh(args.vault)
+        result = suggest_structure(args.vault, args.note)
+        if args.cmd == "json-kg-suggest":
+            print(json.dumps(result, ensure_ascii=False))
+        else:
+            print(f"note: {result['note']}")
+            print(
+                f"  relations: {len(result['relations'])}  "
+                f"observations: {len(result['observations'])}"
+            )
+            if result.get("untyped_links"):
+                print("  untyped links you could type (- <verb> [[target]]):")
+                for t in result["untyped_links"]:
+                    print(f"    [[{t}]]")
+            if result.get("observation_candidates"):
+                print("  prose bullets you could turn into - [category] observations:")
+                for c in result["observation_candidates"]:
+                    print(f"    {c}")
 
 
 if __name__ == "__main__":
