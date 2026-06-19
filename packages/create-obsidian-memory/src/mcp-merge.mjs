@@ -49,7 +49,10 @@ export function basicMemoryServer(vaultAbs) {
  * neural embedder. Shared by the Cursor merge and the Claude Code CLI path.
  * @param {string} vaultAbs
  * @param {string} kitRepoAbs
- * @param {{ semantic?: boolean }} [opts]
+ * @param {{ semantic?: boolean, vec?: boolean }} [opts] - `vec` enables the
+ *   sqlite-vec acceleration (ADR-0025) by setting OBSIDIAN_MEMORY_SQLITE_VEC=1;
+ *   it is ranking-identical and falls back to brute force if the extension can't
+ *   load, so it is safe to wire on by default (the `--full` preset does).
  */
 export function hybridServer(vaultAbs, kitRepoAbs, opts = {}) {
   const { hybridJs, pythonSrc } = hybridMcpPathsFromKitRoot(kitRepoAbs);
@@ -61,6 +64,7 @@ export function hybridServer(vaultAbs, kitRepoAbs, opts = {}) {
     PYTHONIOENCODING: "utf-8"
   };
   if (opts && opts.semantic) env.OBSIDIAN_MEMORY_EMBEDDER = SEMANTIC_EMBEDDER;
+  if (opts && opts.vec) env.OBSIDIAN_MEMORY_SQLITE_VEC = "1";
   return { command: "node", args: [hybridJs], env };
 }
 
@@ -159,8 +163,10 @@ export function mergeBasicMemoryServer(raw, vaultAbs) {
  * @param {Record<string, unknown>} merged - output of mergeBasicMemoryServer (or compatible)
  * @param {string} vaultAbs - absolute vault root
  * @param {string} kitRepoAbs - absolute path to obsidian-memory-kit clone (contains packages/)
- * @param {{ semantic?: boolean }} [opts] - semantic:true wires OBSIDIAN_MEMORY_EMBEDDER=fastembed
- *   so vault_hybrid_search ranks by meaning (needs the Python `[semantic]` extra installed).
+ * @param {{ semantic?: boolean, vec?: boolean }} [opts] - semantic:true wires
+ *   OBSIDIAN_MEMORY_EMBEDDER=fastembed so vault_hybrid_search ranks by meaning
+ *   (needs the Python `[semantic]` extra); vec:true wires OBSIDIAN_MEMORY_SQLITE_VEC=1
+ *   for the in-file sqlite-vec acceleration (needs the `[vec]` extra; ADR-0025).
  */
 export function mergeObsidianHybridServer(merged, vaultAbs, kitRepoAbs, opts = {}) {
   const base = /** @type {Record<string, unknown>} */ (JSON.parse(JSON.stringify(merged)));

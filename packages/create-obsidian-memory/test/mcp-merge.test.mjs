@@ -64,6 +64,17 @@ test("mergeObsidianHybridServer with semantic wires the fastembed embedder", () 
   );
 });
 
+test("mergeObsidianHybridServer with vec wires the sqlite-vec flag (ADR-0025)", () => {
+  const base = mergeBasicMemoryServer({}, "/vault");
+  const plain = mergeObsidianHybridServer(base, "/vault", repoRoot);
+  assert.equal(plain.mcpServers["obsidian-memory-hybrid"].env.OBSIDIAN_MEMORY_SQLITE_VEC, undefined);
+  const withVec = mergeObsidianHybridServer(base, "/vault", repoRoot, { semantic: true, vec: true });
+  const env = withVec.mcpServers["obsidian-memory-hybrid"].env;
+  assert.equal(env.OBSIDIAN_MEMORY_SQLITE_VEC, "1");
+  // vec is independent of semantic, but the `--full` install ships both.
+  assert.equal(env.OBSIDIAN_MEMORY_EMBEDDER, SEMANTIC_EMBEDDER);
+});
+
 test("claudeAddArgv builds `claude mcp add -s user -e … -- cmd args`", () => {
   const argv = claudeAddArgv("basic-memory", basicMemoryServer("/v"));
   assert.deepEqual(argv.slice(0, 5), ["mcp", "add", "basic-memory", "-s", "user"]);

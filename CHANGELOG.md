@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - **Rule block + docs teach the conventions.** The installed memory-protocol block (`memory-rules.mjs`, ES+EN) and `docs/{es,en}/install.md` Step 4 gain the knowledge-graph + memory-report tools in the tool-selection guide plus a "give it queryable structure" note, so an agent handed the repo and told "install it" actually authors and uses typed relations + observations and runs periodic hygiene reports. `ARCHITECTURE.md`, the generated agent rules (`.agents/rules/00-stack.md` → ten → fourteen tools), and the bilingual how-it-works guides document the new layers. New **ADR-0023 / 0024 / 0025** added and indexed.
+- **`--full` install now ships every feature on by default (`create-obsidian-memory`).** The preset adds `--vec`, so the one-command "everything" install wires the knowledge graph + memory reports (automatic with the hybrid sidecar), neural embeddings, **and** the sqlite-vec acceleration — it installs the Python `[semantic,vec]` extras and sets `OBSIDIAN_MEMORY_SQLITE_VEC=1` in the hybrid MCP env. New `--vec` / `--no-vec` flags; the interactive wizard now defaults hybrid + semantic + vec on. Safe by construction: sqlite-vec is ranking-identical and falls back to brute force if the extension can't load, so on-by-default can only speed search, never break it.
 
 ### Notes
 

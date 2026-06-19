@@ -33,12 +33,17 @@ Add **sqlite-vec** as an **opt-in acceleration**, and decline Chroma / LanceDB.
   are byte-identical with the flag on vs off (recall@5 1.000, MRR 0.984, hit@1 0.969,
   nDCG 0.988, MAP 0.984), and a parity unit test asserts the two paths return the
   same top-k. It is an acceleration, never a recall trade.
-- **Opt-in, default-off, fail-safe.** Active only when the `[vec]` extra is installed
-  **and** `OBSIDIAN_MEMORY_SQLITE_VEC` is truthy, so the default path stays the exact
-  dependency-free brute force the bench measures. If the package is missing or the
-  Python build lacks `enable_load_extension`, or the extension errors at query time,
-  the code falls back transparently to brute force — enabling the flag can only speed
-  search, never break it.
+- **Opt-in at the engine, on by default in the full install.** The _library_ stays
+  default-off: active only when the `[vec]` extra is installed **and**
+  `OBSIDIAN_MEMORY_SQLITE_VEC` is truthy, so the bench and the dependency-free path
+  are unchanged. The _installer_ opts in on the user's behalf — `create-obsidian-memory
+--full` (and the interactive wizard when hybrid is enabled) installs the `[vec]`
+  extra and sets the env var, so the "everything" install ships the accelerator. This
+  is safe precisely because of the fail-safe below.
+- **Fail-safe.** If the package is missing or the Python build lacks
+  `enable_load_extension`, or the extension errors at query time, the code falls back
+  transparently to brute force — enabling the flag can only speed search, never break
+  it. That is what makes wiring it on by default in `--full` a no-risk default.
 
 ## Alternatives considered
 

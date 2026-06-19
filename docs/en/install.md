@@ -302,13 +302,14 @@ If your vault has hundreds of notes and you want fast search by word **and** by 
 ```bash
 # 1) Install the kit's Python backend (one time only). For real meaning-based
 #    recall (synonyms), add the [semantic] extra:
-pip install -e "<KIT_ROOT>/packages/obsidian-memory-rag[semantic]"
+pip install -e "<KIT_ROOT>/packages/obsidian-memory-rag[semantic,vec]"
 
 # 2) Add obsidian-memory-hybrid to mcp.json (alongside basic-memory).
-#    --semantic wires the neural embedder (fastembed); drop it for the zero-dep lexical mode.
+#    --semantic wires the neural embedder (fastembed); --vec the sqlite-vec acceleration.
+#    Drop either for the zero-dep lexical mode. Or just use --full (everything on).
 node "<KIT_ROOT>/packages/create-obsidian-memory/src/index.js" \
   --non-interactive --vault "<VAULT>" \
-  --with-hybrid --semantic --build-index --repo-root "<KIT_ROOT>"
+  --with-hybrid --semantic --vec --build-index --repo-root "<KIT_ROOT>"
 ```
 
 `<KIT_ROOT>` is the absolute path to your clone of `obsidian-memory-kit`. Restart Cursor;
