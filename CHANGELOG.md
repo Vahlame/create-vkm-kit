@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Documentation
+
+- **Canonical English landing page (`README.en.md`).** English speakers no longer land on a Spanish-first README: a self-contained English mirror of the landing page (hero, quick install incl. `--full`, what's inside, more) links straight into the already-complete `docs/en/` guides. The Spanish `README.md` stays primary with a top-of-page `🇪🇸 · 🇬🇧` toggle, and the `docs/README.md` "Map of docs/" table is now bilingual. Repo-level docs only — the npm package contents (`files: ["src"]` + README/LICENSE) are unchanged.
+
 ## [3.8.1] - 2026-06-19
 
 ### Changed
