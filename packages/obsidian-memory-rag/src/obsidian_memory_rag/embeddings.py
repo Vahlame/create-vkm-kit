@@ -20,6 +20,8 @@ import math
 import os
 import re
 from array import array
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
+from pathlib import Path
 from typing import Protocol, Sequence
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+", re.ASCII)
@@ -94,6 +96,43 @@ class HashingEmbedder:
         return out
 
 
+def _fastembed_cache_dir() -> str:
+    """Stable on-disk cache for fastembed's ONNX model files.
+
+    fastembed's own default is ``$TMPDIR/fastembed_cache`` (``%LOCALAPPDATA%\\Temp``
+    on Windows) — a volatile location that OS temp-cleaners purge, forcing a
+    multi-hundred-MB re-download (and a hard failure when offline) on the next
+    index. We default to a durable per-user directory instead, overridable with
+    ``OBSIDIAN_MEMORY_FASTEMBED_CACHE`` for users who keep models elsewhere.
+    """
+    override = os.environ.get("OBSIDIAN_MEMORY_FASTEMBED_CACHE", "").strip()
+    base = Path(override) if override else Path.home() / ".cache" / "obsidian-memory-rag" / "fastembed"
+    base.mkdir(parents=True, exist_ok=True)
+    return str(base)
+
+
+def _fastembed_identity(model: str) -> str:
+    """Embedder identity that folds fastembed's MAJOR.MINOR version into the name.
+
+    The vector store keys every chunk by this name and only ever compares a query
+    against chunks built by the *same* name (``vector_store.search_chunks``). That
+    already isolates different *models*, but not a fastembed upgrade that changes a
+    model's pooling/normalization while keeping the model name — e.g. the multilingual
+    MiniLM moved from CLS pooling (fastembed 0.5.x) to mean pooling (0.8.x), which
+    silently makes vectors built by one version incomparable to queries embedded by
+    another. Folding the MAJOR.MINOR version into the identity turns such an upgrade
+    into a *new* embedder name, so stored vectors are never cross-compared and
+    ``index_vectors`` re-embeds under the new identity automatically on the next run.
+    Patch upgrades keep the same MAJOR.MINOR, so they never trigger a needless rebuild.
+    """
+    try:
+        ver = _pkg_version("fastembed")
+        tag = ".".join(ver.split(".")[:2]) or ver
+    except PackageNotFoundError:  # pragma: no cover - fastembed present if we got here
+        tag = "unknown"
+    return f"fastembed:{model}@fe{tag}"
+
+
 class FastEmbedEmbedder:
     """Neural embedder via the optional ``fastembed`` dependency (ONNX, no torch)."""
 
@@ -105,8 +144,8 @@ class FastEmbedEmbedder:
                 "fastembed is not installed. Install the semantic extra:\n"
                 "  pip install 'obsidian-memory-rag[semantic]'"
             ) from exc
-        self._model = TextEmbedding(model_name=model)
-        self.name = f"fastembed:{model}"
+        self._model = TextEmbedding(model_name=model, cache_dir=_fastembed_cache_dir())
+        self.name = _fastembed_identity(model)
         probe = next(iter(self._model.embed(["dimension probe"])))
         self.dim = len(probe)
 

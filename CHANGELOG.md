@@ -6,9 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [3.8.2] - 2026-06-19
+
 ### Documentation
 
 - **Canonical English landing page (`README.en.md`).** English speakers no longer land on a Spanish-first README: a self-contained English mirror of the landing page (hero, quick install incl. `--full`, what's inside, more) links straight into the already-complete `docs/en/` guides. The Spanish `README.md` stays primary with a top-of-page `🇪🇸 · 🇬🇧` toggle, and the `docs/README.md` "Map of docs/" table is now bilingual. Repo-level docs only — the npm package contents (`files: ["src"]` + README/LICENSE) are unchanged.
+
+### Fixed
+
+- **fastembed model cache moved out of the volatile OS temp dir.** `FastEmbedEmbedder` previously let fastembed default its ONNX model cache to `$TMPDIR/fastembed_cache` (`%LOCALAPPDATA%\Temp` on Windows) — a location OS temp-cleaners purge, forcing a multi-hundred-MB re-download (and a hard failure when offline) on the next index. It now resolves a durable per-user cache (`~/.cache/obsidian-memory-rag/fastembed`), overridable with the new `OBSIDIAN_MEMORY_FASTEMBED_CACHE` env var and created on demand. No config change or reindex is required — the embedder reads the new path on its next load. New `test_embeddings.py`.
+- **CSS hex colors are no longer mis-parsed as `#tags`.** An inline color palette in an observation (e.g. `- [FACT] Paleta: #FFF #000 #E63946 #8D99AE`) flooded the tag index and `vault_memory_report`'s `top_tags` with meaningless entries. A shared `is_css_hex_color` guard now drops hex-color-shaped tokens — lengths 3/6/8 of pure hex digits, and length-4 RGBA only when it contains a hex letter — from both the observation tag extractor (`knowledge_graph.py`) and the autocomplete Trie (`complete.py`), while preserving numeric tags like `#2024`. Affected notes shed the junk tags on their next reindex. New tests in `test_knowledge_graph.py`.
+- **Semantic vectors are versioned by fastembed's MAJOR.MINOR, so a behavior-changing upgrade can't silently corrupt recall.** fastembed alters a model's pooling/normalization across minor releases (the multilingual MiniLM moved from CLS pooling in 0.5.x to mean pooling in 0.8.x) while keeping the model name — which made vectors built by one version incomparable to queries embedded by another, with no signal. `FastEmbedEmbedder`'s identity now folds the fastembed MAJOR.MINOR version into its name (`fastembed:<model>@fe<major.minor>`), the same key the chunk store already uses to isolate vector spaces. An upgrade that can change embeddings therefore yields a *new* identity: stored vectors are never cross-compared and `index_vectors` re-embeds under the new identity on the next `vault_fts_index semantic:true` — automatically, no manual rebuild. Patch upgrades keep the identity (no needless re-embed), and embedders still coexist in the store, so a downgrade reuses the older vectors. New test in `test_embeddings.py`.
 
 ## [3.8.1] - 2026-06-19
 

@@ -323,6 +323,8 @@ node "<KIT_ROOT>/packages/create-obsidian-memory/src/index.js" \
 luego construye el índice con `vault_fts_index` (con `semantic: true` para los vectores) y busca
 con `vault_hybrid_search`. Comprobaciones detalladas: [verificación avanzada](#verificación-avanzada-opcional).
 
+> El modelo neuronal (~120 MB) se descarga una sola vez a un caché durable en `~/.cache/obsidian-memory-rag/fastembed` (override con `OBSIDIAN_MEMORY_FASTEMBED_CACHE`), así que **no** se vuelve a descargar al actualizar ni al limpiar el directorio temporal del sistema.
+
 ---
 
 ## Actualizar (tras `git pull` del kit)

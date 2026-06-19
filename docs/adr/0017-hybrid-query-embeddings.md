@@ -74,7 +74,14 @@ exposed via the CLI (`hybrid-search` / `json-hybrid-search`, and `index
   `[semantic]` extra is installed. Enabling semantics costs a second index pass
   (FTS walk + vector walk).
 - **Neutral:** vectors are tagged with their embedder `name` + `dim`; switching
-  embedders re-embeds rather than mixing incompatible vector spaces.
+  embedders re-embeds rather than mixing incompatible vector spaces. The `name`
+  folds fastembed's MAJOR.MINOR version (`fastembed:<model>@fe<major.minor>`, added
+  in 3.8.2) so a pooling-changing fastembed upgrade — e.g. the multilingual MiniLM
+  moved from CLS pooling (0.5.x) to mean pooling (0.8.x) under the same model name —
+  yields a new identity that re-embeds automatically instead of silently comparing
+  incompatible vectors. fastembed model files cache to a durable per-user directory
+  (`~/.cache/obsidian-memory-rag/fastembed`, override `OBSIDIAN_MEMORY_FASTEMBED_CACHE`)
+  rather than the volatile OS temp dir.
 
 ## References
 

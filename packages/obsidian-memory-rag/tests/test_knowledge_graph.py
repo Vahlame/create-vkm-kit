@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from obsidian_memory_rag.knowledge_graph import (
     RELATES_TO,
+    is_css_hex_color,
     normalize_relation_type,
     parse_observations,
     parse_relations,
@@ -55,6 +56,25 @@ def test_parse_observations_extracts_category_and_tags() -> None:
     assert (obs[0].category, obs[0].tags) == ("decision", ("ranking", "rrf"))
     assert obs[0].content == "weighted RRF weight 0.1 #ranking #rrf"
     assert obs[1].category == "gotcha"
+
+
+def test_css_hex_colors_do_not_pollute_tags() -> None:
+    # A color palette inside an observation (PROJECTS/ap-sport.md had
+    # "#FFF #000 #E63946 #8D99AE") must not flood the tag index with junk entries.
+    text = "- [fact] Paleta: #FFF #000 #E63946 #8D99AE #target-matching #2024\n"
+    obs = parse_observations(text)
+    assert obs[0].tags == ("target-matching", "2024")
+
+
+def test_is_css_hex_color_classification() -> None:
+    assert is_css_hex_color("fff")  # 3-digit shorthand
+    assert is_css_hex_color("e63946") and is_css_hex_color("8d99ae")  # 6-digit
+    assert is_css_hex_color("000")  # pure digits, but a color length
+    assert is_css_hex_color("1a2b3c4d")  # 8-digit RGBA
+    assert not is_css_hex_color("2024")  # 4 digits, no hex letter -> year tag kept
+    assert not is_css_hex_color("16")  # not a CSS color length
+    assert not is_css_hex_color("laser")
+    assert not is_css_hex_color("target-matching")
 
 
 def test_task_checkboxes_are_not_observations() -> None:
