@@ -8,9 +8,16 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from .chunking import split_into_chunks
+from .knowledge_graph import parse_observations, parse_relations
 from .markdown_io import read_note
 from .paths import index_db_path
-from .store import connect, init_schema
+from .store import (
+    SCHEMA_VERSION,
+    connect,
+    init_schema,
+    schema_version,
+    set_schema_version,
+)
 from .vector_store import (
     current_chunk_keys,
     delete_chunks_for_path,
@@ -46,6 +53,8 @@ class IndexStats:
     skipped_unchanged: int = 0
     removed: int = 0
     truncated: int = 0
+    relations: int = 0  # typed + untyped edges written this run
+    observations: int = 0  # structured observations written this run
 
 
 def _should_skip_dir(path: Path) -> bool:
@@ -79,6 +88,34 @@ def _stat_key(path: Path) -> tuple[int, int] | None:
     return int(st.st_mtime_ns), int(st.st_size)
 
 
+def _index_note_kg(conn, rel: str, title: str, body: str) -> int:
+    """Rebuild ``relations`` rows for one note; return how many were written."""
+    conn.execute("DELETE FROM relations WHERE source_path = ?", (rel,))
+    written = 0
+    for r in parse_relations(f"{title}\n{body}"):
+        conn.execute(
+            "INSERT OR IGNORE INTO relations(source_path, relation_type, target, context) "
+            "VALUES (?, ?, ?, ?)",
+            (rel, r.relation_type, r.target, r.context),
+        )
+        written += 1
+    return written
+
+
+def _index_note_observations(conn, rel: str, body: str) -> int:
+    """Rebuild ``observations`` rows for one note; return how many were written."""
+    conn.execute("DELETE FROM observations WHERE source_path = ?", (rel,))
+    written = 0
+    for i, o in enumerate(parse_observations(body)):
+        conn.execute(
+            "INSERT OR IGNORE INTO observations(source_path, ordinal, category, content, tags) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (rel, i, o.category, o.content, " ".join(o.tags)),
+        )
+        written += 1
+    return written
+
+
 def index_vault(
     vault: Path,
     *,
@@ -93,6 +130,14 @@ def index_vault(
     try:
         init_schema(conn)
         conn.execute("BEGIN IMMEDIATE;")
+        # On a derived-schema upgrade (e.g. the relations/observations tables added
+        # at v2), clear the incremental bookkeeping so every note is reprocessed and
+        # the new tables are backfilled in this same pass — no note can stay stale.
+        if schema_version(conn) != SCHEMA_VERSION:
+            conn.execute("DELETE FROM indexed_files;")
+            conn.execute("DELETE FROM relations;")
+            conn.execute("DELETE FROM observations;")
+            set_schema_version(conn)
         files = _iter_markdown_files(vault)
         disk_paths: set[str] = set()
         meta: dict[str, tuple[int, int]] = {}
@@ -113,6 +158,8 @@ def index_vault(
         for path_str in set(db_indexed) - disk_paths:
             conn.execute("DELETE FROM vault_fts WHERE path = ?", (path_str,))
             conn.execute("DELETE FROM indexed_files WHERE path = ?", (path_str,))
+            conn.execute("DELETE FROM relations WHERE source_path = ?", (path_str,))
+            conn.execute("DELETE FROM observations WHERE source_path = ?", (path_str,))
             stats.removed += 1
 
         cur = conn.execute("SELECT path, mtime_ns, size_bytes FROM indexed_files")
@@ -144,6 +191,14 @@ def index_vault(
                    ON CONFLICT(path) DO UPDATE SET mtime_ns=excluded.mtime_ns, size_bytes=excluded.size_bytes""",
                 (rel, mtime_ns, size_b),
             )
+
+            # Knowledge graph: parse this note's typed/untyped relations and
+            # structured observations from the text already in hand (no extra read)
+            # and rebuild its rows. Relations scan title+body so the edge set matches
+            # graphlink exactly; observations are list items, so the body suffices.
+            stats.relations += _index_note_kg(conn, rel, title, body)
+            stats.observations += _index_note_observations(conn, rel, body)
+
             if prev is None:
                 stats.inserted += 1
             else:

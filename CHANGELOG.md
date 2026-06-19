@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [3.8.0] - 2026-06-18
+
+### Added
+
+- **Structured knowledge graph — typed relations + categorized observations (ADR-0023).** The vault was already a `[[wikilink]]` graph, but every edge was the same untyped "A links to B" and the graph was only ever a ranking nudge — you could not _ask it a question_. This adds the typed, queryable model that Basic Memory / MemPalace expose, while keeping Markdown as the source of truth. Two plain-Markdown conventions (byte-compatible with Basic Memory, so vaults interoperate) are parsed by the new `knowledge_graph.py`: **typed relations** (`- implements [[adr-0014]]`, `- supersedes [[adr-0019]]`; any bare `[[link]]` stays an untyped `relates_to`) and **categorized observations** (`- [decision] … #tag`, `- [gotcha] …`). Relation verbs are a single anchored token so a prose bullet never mints a garbage type, and GFM task checkboxes (`- [ ]` / `- [x]`) are never mistaken for observations. Scanning the maintainer's real 55-note vault surfaced **205 observations + 145 relations that already existed** — latent structure the kit previously could neither see nor query.
+- **Three new MCP/CLI surfaces (the hybrid server now exposes thirteen tools).** `vault_relations(note, direction)` returns an entity's typed edges **both directions** ("what does this implement / supersede?" / "what links here?"); `vault_observations(category, tag, note)` pulls categorized facts across the whole vault by any combination of filters; `vault_kg_suggest(note)` is a **read-only** assistant that proposes relations/observations from a note's prose but **never writes** (same contract as `memory_extract_candidates` — the agent confirms, then edits). Backing CLI commands: `relations` / `observations` / `kg-suggest` (+ `json-` variants for the bridge).
+- **Persisted, always-consistent graph tables.** `relations` and `observations` are populated in the **same per-note pass** of `index_vault` from the body already in hand (no extra file read); relation targets are stored raw and resolved to paths at query time, so a row is a pure function of its own note (a sibling note appearing later never leaves a stale resolution). A new `schema_meta` version forces one full reindex on upgrade — which **realizes the persisted adjacency table ADR-0019 deferred**, since the version bump is exactly the backfill mechanism that decision was missing. The `index` / `json-index` output now reports `relations` and `observations` counts.
+
+### Changed
+
+- **Rule block + docs teach the conventions.** The installed memory-protocol block (`memory-rules.mjs`, ES+EN) and `docs/{es,en}/install.md` Step 4 gain the knowledge-graph tools in the tool-selection guide plus a "give it queryable structure" note, so an agent handed the repo and told "install it" actually authors and uses typed relations + observations. `ARCHITECTURE.md`, the generated agent rules (`.agents/rules/00-stack.md` → ten → thirteen tools), and the bilingual how-it-works guides document the new layer. New **ADR-0023** added and indexed.
+
+### Notes
+
+- **Purely additive — the retrieval ranking path is byte-for-byte unchanged.** The lexical + semantic + `[[wikilink]]`-graph fusion of ADR-0017/0019/0021 is untouched; the `retrieval-bench` gate is identical (graph off: recall@5 = 1.000, MRR = 0.984, hit@1 = 0.969, nDCG@5 = 0.988, MAP = 0.984). Type-weighted graph retrieval (boosting `supersedes`/`implements` over `relates_to`) is deferred behind the bench, per ADR-0020. New tests: `test_knowledge_graph.py` (8), `test_kg_query.py` (7), `kg-bridge.test.mjs` (3).
+
 ## [3.7.1] - 2026-06-16
 
 ### Added

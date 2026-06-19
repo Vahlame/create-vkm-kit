@@ -170,6 +170,23 @@ AND a OR** cuando una coincidencia estricta no encuentra nada, así una palabra 
 escrita ya no tira una nota relevante. Detalle: [`evals/retrieval`](https://github.com/Vahlame/obsidian-memory-kit/tree/main/evals/retrieval) ·
 [ADR-0020](../adr/0020-measured-retrieval-quality.md).
 
+### Preguntarle al grafo (nuevo en 3.8)
+
+La búsqueda encuentra notas. El **grafo de conocimiento** te deja preguntarle a la _estructura_ de
+las notas. Dos convenciones en Markdown plano (las mismas que usa [Basic Memory](faq.md), así los
+vaults interoperan) vuelven consultable la prosa:
+
+- Una **relación tipada** es un ítem de lista como `- implements [[adr-0014]]` o
+  `- supersedes [[adr-0019]]`. Un `[[link]]` suelto es un `relates_to` sin tipo.
+- Una **observación** es un ítem como `- [decision] peso del grafo en RRF 0.1 #ranking` o
+  `- [gotcha] los scores se comprimen en k=60`.
+
+El indexador las lee directo de tus notas — sin archivo nuevo, sin paso extra — así el agente ya
+puede responder "¿qué supersede a ADR-0019?", "¿qué enlaza a `python`?" (`vault_relations`, ambos
+sentidos) o "muéstrame cada `[decision]` con `#ranking`" (`vault_observations`) — preguntas que la
+búsqueda plana no expresa. `vault_kg_suggest` lee una nota y **propone** relaciones/observaciones
+(nunca escribe — tú confirmas y editas). Detalle: [ADR-0023](../adr/0023-structured-knowledge-graph.md).
+
 ### Por qué esto ahorra tokens (y escala a muchos agentes)
 
 Leer una nota entera vuelca **toda** la nota al contexto del modelo. La búsqueda passage-first
