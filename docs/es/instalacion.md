@@ -201,14 +201,16 @@ Acción: `vault_hybrid_search("<tema en lenguaje natural>")` (o `vault_fts_searc
 
 ### Qué herramienta usar (referencia rápida)
 
-| Necesidad                                       | Herramienta                                                                                                           |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Recall conceptual / lenguaje natural            | `vault_hybrid_search("<tema>")` (añade `graph: true` si el tema cruza notas enlazadas; `recency: true` para frescura) |
-| Identificador / símbolo / error exacto          | `vault_fts_search("<término>")`                                                                                       |
-| Nombre de nota o `#tag` a medias                | `vault_complete("<prefijo>")`                                                                                         |
-| La nota entera (raro)                           | `read_note` / `vault_read_file` (solo si el pasaje no basta)                                                          |
-| Salud del vault (notas gigantes, enlaces rotos) | `vault_audit()`                                                                                                       |
-| Tras imports grandes / cambio de embedder       | `vault_fts_index({ semantic: true })`                                                                                 |
+| Necesidad                                                                                         | Herramienta                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Recall conceptual / lenguaje natural                                                              | `vault_hybrid_search("<tema>")` (añade `graph: true` si el tema cruza notas enlazadas; `recency: true` para frescura)                       |
+| Identificador / símbolo / error exacto                                                            | `vault_fts_search("<término>")`                                                                                                             |
+| Nombre de nota o `#tag` a medias                                                                  | `vault_complete("<prefijo>")`                                                                                                               |
+| Estructura tipada del grafo (relaciones / hechos)                                                 | `vault_relations` (aristas de una nota, ambos sentidos), `vault_observations` (hechos por categoría/`#tag`), `vault_kg_suggest` (read-only) |
+| La nota entera (raro)                                                                             | `read_note` / `vault_read_file` (solo si el pasaje no basta)                                                                                |
+| Salud del vault (notas gigantes, enlaces rotos)                                                   | `vault_audit()`                                                                                                                             |
+| Mantenimiento periódico (índices, notas obsoletas/huérfanas, candidatos a condensar + duplicados) | `vault_memory_report()` (digest read-only)                                                                                                  |
+| Tras imports grandes / cambio de embedder                                                         | `vault_fts_index({ semantic: true })`                                                                                                       |
 
 ### Multi-agente (fan-out) — no multipliques el coste de tokens
 
@@ -301,13 +303,14 @@ Si tu vault tiene cientos de notas y quieres búsqueda rápida por palabra **y**
 ```bash
 # 1) Instala el backend Python del kit (una sola vez). Para recall por SIGNIFICADO
 #    real (sinónimos), añade el extra [semantic]:
-pip install -e "<KIT_ROOT>/packages/obsidian-memory-rag[semantic]"
+pip install -e "<KIT_ROOT>/packages/obsidian-memory-rag[semantic,vec]"
 
 # 2) Añade obsidian-memory-hybrid a mcp.json (junto a basic-memory).
-#    --semantic cablea el embedder neuronal (fastembed); quítalo para el modo léxico cero-deps.
+#    --semantic cablea el embedder neuronal (fastembed); --vec la aceleración sqlite-vec.
+#    Quita cualquiera para el modo léxico cero-deps. O usa --full (todo activado).
 node "<KIT_ROOT>/packages/create-obsidian-memory/src/index.js" \
   --non-interactive --vault "<VAULT>" \
-  --with-hybrid --semantic --build-index --repo-root "<KIT_ROOT>"
+  --with-hybrid --semantic --vec --build-index --repo-root "<KIT_ROOT>"
 ```
 
 `<KIT_ROOT>` es la ruta absoluta a tu clon de `obsidian-memory-kit`. Reinicia Cursor;

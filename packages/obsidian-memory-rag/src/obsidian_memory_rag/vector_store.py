@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import heapq
 import math
+import os
 import sqlite3
 from array import array
 from dataclasses import dataclass
@@ -119,16 +120,86 @@ def current_chunk_keys(conn: sqlite3.Connection, embedder: str) -> dict[str, int
     return {str(r["path"]): int(r["mtime_ns"]) for r in cur.fetchall()}
 
 
+# Opt-in embedded-vector acceleration via sqlite-vec (ADR-0025). Off unless the
+# user installs the [vec] extra AND sets OBSIDIAN_MEMORY_SQLITE_VEC to a truthy
+# value, so the default retrieval path is byte-for-byte the pure-Python brute force
+# (deterministic, dependency-free, what the bench measures). When on, the cosine
+# scan runs inside SQLite — same exact ranking (vectors are L2-normalized, so
+# ascending cosine *distance* == descending similarity), just in C, which is what
+# pays off on a large vault. It is an acceleration, not an approximation.
+def _sqlite_vec_enabled() -> bool:
+    return os.environ.get("OBSIDIAN_MEMORY_SQLITE_VEC", "").strip().lower() in (
+        "1",
+        "true",
+        "on",
+        "yes",
+    )
+
+
+def _load_sqlite_vec(conn: sqlite3.Connection) -> bool:
+    """Load the sqlite-vec extension on ``conn``; return True on success.
+
+    Tolerant by design: a missing package or a Python built without
+    ``enable_load_extension`` simply yields False and the caller falls back to the
+    pure-Python path — so enabling the flag can never break search, only speed it.
+    """
+    try:
+        import sqlite_vec  # type: ignore
+
+        conn.enable_load_extension(True)
+        sqlite_vec.load(conn)
+        conn.enable_load_extension(False)
+        return True
+    except Exception:
+        return False
+
+
+def _search_chunks_sqlite_vec(
+    conn: sqlite3.Connection, query_vec: array, embedder: str, limit: int
+) -> list[ChunkHit]:
+    """Top-``limit`` chunks by cosine, computed by sqlite-vec inside SQLite.
+
+    The ``length(vec) = ?`` guard keeps ``vec_distance_cosine`` from ever seeing a
+    dimension-mismatched row (which would abort the query), mirroring the
+    brute-force path's ``len(vec) != len(query_vec)`` skip.
+    """
+    qblob = query_vec.tobytes()
+    rows = conn.execute(
+        "SELECT path, ordinal, heading, text, "
+        "vec_distance_cosine(vec, ?) AS dist FROM note_chunks "
+        "WHERE embedder = ? AND length(vec) = ? "
+        "ORDER BY dist ASC LIMIT ?",
+        (qblob, embedder, len(query_vec) * 4, limit),
+    ).fetchall()
+    return [
+        ChunkHit(
+            str(r["path"]),
+            int(r["ordinal"]),
+            str(r["heading"] or ""),
+            str(r["text"] or ""),
+            1.0 - float(r["dist"]),  # cosine similarity from distance (normalized vecs)
+        )
+        for r in rows
+    ]
+
+
 def search_chunks(
     conn: sqlite3.Connection, query_vec: array, embedder: str, limit: int
 ) -> list[ChunkHit]:
-    """Brute-force cosine over all chunks built by ``embedder``, best first.
+    """Cosine search over all chunks built by ``embedder``, best first.
 
-    Only the top ``limit`` are kept, via a bounded heap (``heapq.nlargest`` is
-    O(n·log k) — it never fully sorts the n candidates), so growing the vault
-    costs scoring time but not an n·log n sort of the whole candidate set.
+    Default path is pure-Python brute force: only the top ``limit`` are kept via a
+    bounded heap (``heapq.nlargest`` is O(n·log k) — it never fully sorts the n
+    candidates). With ``OBSIDIAN_MEMORY_SQLITE_VEC`` enabled and the sqlite-vec
+    extension loadable, the identical cosine ranking is computed inside SQLite
+    instead (faster at scale); any failure falls back transparently to brute force.
     """
     init_chunks(conn)
+    if _sqlite_vec_enabled() and _load_sqlite_vec(conn):
+        try:
+            return _search_chunks_sqlite_vec(conn, query_vec, embedder, limit)
+        except sqlite3.Error:
+            pass  # extension misbehaved — fall back to the always-correct brute force
     cur = conn.execute(
         "SELECT path, ordinal, heading, text, vec FROM note_chunks WHERE embedder = ?",
         (embedder,),

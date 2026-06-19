@@ -103,8 +103,8 @@ necesita el kit **clonado** y Python ≥ 3.11. Pídeme una ruta de clon `<KIT>` 
 
 ```bash
 git clone https://github.com/Vahlame/obsidian-memory-kit "<KIT>"
-pip install -e "<KIT>/packages/obsidian-memory-rag[semantic]"
-node "<KIT>/packages/create-obsidian-memory/src/index.js" -y --vault "<VAULT>" --with-hybrid --semantic --build-index --repo-root "<KIT>"
+pip install -e "<KIT>/packages/obsidian-memory-rag[semantic,vec]"
+node "<KIT>/packages/create-obsidian-memory/src/index.js" -y --vault "<VAULT>" --with-hybrid --semantic --vec --build-index --repo-root "<KIT>"
 ```
 
 En Claude Code añade `--ide claude` a la última línea. Reinicia el IDE; entonces responden las

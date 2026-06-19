@@ -103,8 +103,8 @@ installed ✓ · read test ✓. If it fails, see [`troubleshooting.md`](troubles
 
 ```bash
 git clone https://github.com/Vahlame/obsidian-memory-kit "<KIT>"
-pip install -e "<KIT>/packages/obsidian-memory-rag[semantic]"
-node "<KIT>/packages/create-obsidian-memory/src/index.js" -y --vault "<VAULT>" --with-hybrid --semantic --build-index --repo-root "<KIT>"
+pip install -e "<KIT>/packages/obsidian-memory-rag[semantic,vec]"
+node "<KIT>/packages/create-obsidian-memory/src/index.js" -y --vault "<VAULT>" --with-hybrid --semantic --vec --build-index --repo-root "<KIT>"
 ```
 
 On Claude Code add `--ide claude` to the last line. Restart the IDE; the `obsidian-memory-hybrid`

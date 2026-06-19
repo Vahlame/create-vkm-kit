@@ -428,9 +428,9 @@ async function writeCursorMcp(home, vaultAbs, dryRun, hybridOpts = {}) {
     }
   }
   let merged = mergeBasicMemoryServer(parsed, vaultAbs);
-  const { withHybrid = false, repoRoot = null, semantic = false } = hybridOpts;
+  const { withHybrid = false, repoRoot = null, semantic = false, vec = false } = hybridOpts;
   if (withHybrid && repoRoot) {
-    merged = mergeObsidianHybridServer(merged, vaultAbs, path.resolve(repoRoot), { semantic });
+    merged = mergeObsidianHybridServer(merged, vaultAbs, path.resolve(repoRoot), { semantic, vec });
   }
   if (dryRun) {
     console.log(pc.cyan("[dry-run] would write"), fp);
@@ -525,16 +525,16 @@ function idesFromArgs(argv, { full = false } = {}) {
  * entry first. Falls back to printing the command if `claude` isn't on PATH.
  * @param {string} vaultAbs
  * @param {boolean} dryRun
- * @param {{ withHybrid?: boolean, repoRoot?: string|null, semantic?: boolean }} [hybridOpts]
+ * @param {{ withHybrid?: boolean, repoRoot?: string|null, semantic?: boolean, vec?: boolean }} [hybridOpts]
  */
 async function registerClaudeCodeMcp(vaultAbs, dryRun, hybridOpts = {}) {
-  const { withHybrid = false, repoRoot = null, semantic = false } = hybridOpts;
+  const { withHybrid = false, repoRoot = null, semantic = false, vec = false } = hybridOpts;
   /** @type {Array<[string, object]>} */
   const servers = [["basic-memory", basicMemoryServer(vaultAbs)]];
   if (withHybrid && repoRoot) {
     servers.push([
       "obsidian-memory-hybrid",
-      hybridServer(vaultAbs, path.resolve(repoRoot), { semantic })
+      hybridServer(vaultAbs, path.resolve(repoRoot), { semantic, vec })
     ]);
   }
   for (const [name, server] of servers) {
@@ -566,16 +566,16 @@ async function registerClaudeCodeMcp(vaultAbs, dryRun, hybridOpts = {}) {
  * `config.toml` block if `codex` isn't on PATH.
  * @param {string} vaultAbs
  * @param {boolean} dryRun
- * @param {{ withHybrid?: boolean, repoRoot?: string|null, semantic?: boolean }} [hybridOpts]
+ * @param {{ withHybrid?: boolean, repoRoot?: string|null, semantic?: boolean, vec?: boolean }} [hybridOpts]
  */
 async function registerCodexMcp(vaultAbs, dryRun, hybridOpts = {}) {
-  const { withHybrid = false, repoRoot = null, semantic = false } = hybridOpts;
+  const { withHybrid = false, repoRoot = null, semantic = false, vec = false } = hybridOpts;
   /** @type {Array<[string, object]>} */
   const servers = [["basic-memory", basicMemoryServer(vaultAbs)]];
   if (withHybrid && repoRoot) {
     servers.push([
       "obsidian-memory-hybrid",
-      hybridServer(vaultAbs, path.resolve(repoRoot), { semantic })
+      hybridServer(vaultAbs, path.resolve(repoRoot), { semantic, vec })
     ]);
   }
   for (const [name, server] of servers) {
@@ -612,11 +612,13 @@ async function registerCodexMcp(vaultAbs, dryRun, hybridOpts = {}) {
  * @param {string|null} repoRoot
  * @param {boolean} semantic
  * @param {boolean} dryRun
+ * @param {boolean} [vec] - also install the `[vec]` extra (sqlite-vec; ADR-0025)
  */
-async function maybeInstallBackend(repoRoot, semantic, dryRun) {
+async function maybeInstallBackend(repoRoot, semantic, dryRun, vec = false) {
   if (!repoRoot) return;
   const ragPkg = path.join(repoRoot, "packages", "obsidian-memory-rag");
-  const spec = ragPkg + (semantic ? "[semantic]" : "");
+  const extras = [semantic ? "semantic" : null, vec ? "vec" : null].filter(Boolean);
+  const spec = ragPkg + (extras.length ? `[${extras.join(",")}]` : "");
   const py = process.platform === "win32" ? "python" : "python3";
   const args = ["-m", "pip", "install", "-e", spec];
   if (dryRun) {
@@ -626,7 +628,10 @@ async function maybeInstallBackend(repoRoot, semantic, dryRun) {
   try {
     const r = await execa(py, args, { reject: false });
     if (r.exitCode === 0) {
-      console.log(pc.green("Python backend installed"), semantic ? "(with [semantic])" : "");
+      console.log(
+        pc.green("Python backend installed"),
+        extras.length ? `(with [${extras.join(",")}])` : ""
+      );
     } else {
       console.warn(pc.yellow("Backend install skipped/failed — run it manually:"));
       console.log('  pip install -e "' + spec + '"');
@@ -707,6 +712,10 @@ async function runNonInteractive(argv) {
     (argv.includes("--build-index") || full) && !argv.includes("--no-build-index");
   let wantInstallBackend =
     (argv.includes("--install-backend") || full) && !argv.includes("--no-install-backend");
+  // sqlite-vec acceleration (ADR-0025): on under --full (and --vec) so the default
+  // "everything" install ships it. Ranking-identical with a safe fallback, so on by
+  // default costs nothing where the extension can't load.
+  let wantVec = (argv.includes("--vec") || full) && !argv.includes("--no-vec");
   const wantGitleaks = argv.includes("--with-gitleaks");
   const ides = idesFromArgs(argv, { full });
   let kitRoot = null;
@@ -737,6 +746,7 @@ async function runNonInteractive(argv) {
         wantSemantic = false;
         wantBuildIndex = false;
         wantInstallBackend = false;
+        wantVec = false;
         kitRoot = null;
       } else {
         console.error(
@@ -757,7 +767,7 @@ async function runNonInteractive(argv) {
     env: { BASIC_MEMORY_HOME: vault }
   };
 
-  const hybridOpts = { withHybrid: wantHybrid, repoRoot: kitRoot, semantic: wantSemantic };
+  const hybridOpts = { withHybrid: wantHybrid, repoRoot: kitRoot, semantic: wantSemantic, vec: wantVec };
   if (ides.includes("cursor") && !noCursorMcp) {
     await writeCursorMcp(home, vault, dryRun, hybridOpts);
   } else if (ides.includes("cursor") && noCursorMcp) {
@@ -772,7 +782,7 @@ async function runNonInteractive(argv) {
   // Install the Python backend before building the index so the build can succeed
   // on a fresh machine in the same run.
   if (wantInstallBackend && kitRoot) {
-    await maybeInstallBackend(kitRoot, wantSemantic, dryRun);
+    await maybeInstallBackend(kitRoot, wantSemantic, dryRun, wantVec);
   }
   if (wantBuildIndex) {
     await maybeBuildIndex(vault, dryRun, { repoRoot: kitRoot, semantic: wantSemantic });
@@ -801,12 +811,19 @@ async function runNonInteractive(argv) {
   if (wantHybrid && kitRoot) {
     console.log("- obsidian-memory-hybrid: merged (kit root", kitRoot + ")");
     const ragPkg = path.join(kitRoot, "packages", "obsidian-memory-rag");
-    console.log(pc.dim('  pip install -e "' + ragPkg + (wantSemantic ? '[semantic]"' : '"')));
+    const extras = [wantSemantic ? "semantic" : null, wantVec ? "vec" : null].filter(Boolean);
+    const extraSpec = extras.length ? `[${extras.join(",")}]` : "";
+    console.log(pc.dim('  pip install -e "' + ragPkg + extraSpec + '"'));
     if (wantSemantic) {
       console.log(
         pc.dim(
           "  embedder: fastembed (OBSIDIAN_MEMORY_EMBEDDER); build once with vault_fts_index semantic:true"
         )
+      );
+    }
+    if (wantVec) {
+      console.log(
+        pc.dim("  sqlite-vec acceleration: OBSIDIAN_MEMORY_SQLITE_VEC=1 (ranking-identical; ADR-0025)")
       );
     }
   }
@@ -856,11 +873,11 @@ Interactive (default):
 
 One-shot preset:
   --full, --all   Everything on, zero questions (implies -y). Defaults --ide to
-                  codex,claude and turns on --with-hybrid --semantic --build-index
-                  --install-backend and the rules for each wired agent. Degrades
-                  to basic-memory (no abort) if no kit clone is found for hybrid.
-                  Opt out of a single piece with --no-semantic / --no-build-index /
-                  --no-install-backend / --no-rules.
+                  codex,claude and turns on --with-hybrid --semantic --vec
+                  --build-index --install-backend and the rules for each wired
+                  agent. Degrades to basic-memory (no abort) if no kit clone is
+                  found for hybrid. Opt out of a single piece with --no-semantic /
+                  --no-vec / --no-build-index / --no-install-backend / --no-rules.
 
 Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
   [vault]         Vault path as the first argument (or --vault <path>); defaults to
@@ -875,6 +892,8 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
   --with-hybrid   Also wire obsidian-memory-hybrid (needs kit clone; use --repo-root or cwd walk)
   --repo-root <path>  Root of obsidian-memory-kit clone (hybrid bridge + Python src)
   --semantic      With --with-hybrid: neural embeddings (fastembed multilingual; needs the [semantic] extra)
+  --vec           With --with-hybrid: sqlite-vec acceleration (needs the [vec] extra; sets
+                  OBSIDIAN_MEMORY_SQLITE_VEC=1). Ranking-identical, safe fallback. On under --full.
   --build-index   After wiring, build the local FTS (+semantic) index (needs the Python backend)
   --install-backend  pip install -e the Python RAG backend (best-effort; on by default under --full)
   --with-gitleaks Install gitleaks pre-commit hook in <vault>/.git/hooks/
@@ -986,7 +1005,7 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
         type: "confirm",
         name: "hybrid",
         message: t.hybridQ,
-        initial: false
+        initial: true
       });
       if (hybrid) {
         const { hybridJs, pythonSrc } = hybridMcpPathsFromKitRoot(kitRoot);
@@ -995,9 +1014,16 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
             type: "confirm",
             name: "semantic",
             message: t.semanticQ,
-            initial: false
+            initial: true
           });
-          hybridOpts = { withHybrid: true, repoRoot: kitRoot, semantic: Boolean(semantic) };
+          // vec (sqlite-vec acceleration) rides along with hybrid: ranking-identical
+          // and falls back safely, so the default install ships it (ADR-0025).
+          hybridOpts = {
+            withHybrid: true,
+            repoRoot: kitRoot,
+            semantic: Boolean(semantic),
+            vec: true
+          };
         } else {
           console.warn(pc.yellow("Hybrid paths not found; skipping obsidian-memory-hybrid."));
         }
@@ -1056,11 +1082,17 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
   if (hybridOpts.withHybrid && hybridOpts.repoRoot) {
     console.log("- obsidian-memory-hybrid: enabled (kit", hybridOpts.repoRoot + ")");
     const ragPkg = path.join(hybridOpts.repoRoot, "packages", "obsidian-memory-rag");
+    const extras = [hybridOpts.semantic ? "semantic" : null, hybridOpts.vec ? "vec" : null].filter(
+      Boolean
+    );
     console.log(
-      pc.dim('  pip install -e "' + ragPkg + (hybridOpts.semantic ? '[semantic]"' : '"'))
+      pc.dim('  pip install -e "' + ragPkg + (extras.length ? `[${extras.join(",")}]` : "") + '"')
     );
     if (hybridOpts.semantic) {
       console.log(pc.dim("  embedder: fastembed; build once with vault_fts_index semantic:true"));
+    }
+    if (hybridOpts.vec) {
+      console.log(pc.dim("  sqlite-vec acceleration: OBSIDIAN_MEMORY_SQLITE_VEC=1 (ADR-0025)"));
     }
   }
   if (ides?.includes("claude")) {
