@@ -14,6 +14,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from .knowledge_graph import is_css_hex_color
 from .paths import index_db_path
 from .store import connect, init_schema
 from .trie import Trie
@@ -29,7 +30,7 @@ def extract_tags(text: str) -> list[str]:
     seen: dict[str, None] = {}
     for match in _TAG_RE.finditer(text):
         tag = match.group(1)
-        if tag and tag not in seen:
+        if tag and tag not in seen and not is_css_hex_color(tag):
             seen[tag] = None
     return list(seen)
 

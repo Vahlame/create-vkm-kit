@@ -322,6 +322,8 @@ node "<KIT_ROOT>/packages/create-obsidian-memory/src/index.js" \
 then build the index with `vault_fts_index` (with `semantic: true` for the vectors) and search
 with `vault_hybrid_search`. Detailed checks: [advanced verification](#advanced-verification-optional).
 
+> The neural model (~120 MB) downloads once to a durable cache at `~/.cache/obsidian-memory-rag/fastembed` (override with `OBSIDIAN_MEMORY_FASTEMBED_CACHE`), so it is **not** re-downloaded on updates or OS temp-dir cleanups.
+
 ---
 
 ## Updating (after a `git pull` of the kit)

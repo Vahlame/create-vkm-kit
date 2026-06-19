@@ -72,6 +72,28 @@ _TAG_RE = re.compile(r"(?<![\w#])#(?P<tag>[A-Za-z0-9_/-]+)")
 # Bracket contents that are GFM task markers, not observation categories.
 _CHECKBOX_MARKERS = frozenset({"", "x"})
 
+_HEX_DIGITS = frozenset("0123456789abcdef")
+_HEX_LETTERS = frozenset("abcdef")
+
+
+def is_css_hex_color(tag: str) -> bool:
+    """True if a ``#tag`` token is really a CSS hex color (``fff``, ``e63946``).
+
+    A color palette written inline (``#e63946 #f1faee #fff #000``) otherwise floods
+    the tag index with meaningless entries. Lengths 3/6/8 of pure hex digits are
+    unambiguous CSS colors; length 4 (RGBA) is only treated as a color when it
+    contains a hex *letter*, so a 4-digit numeric tag like ``#2024`` (a year —
+    Obsidian permits numeric tags) is preserved.
+    """
+    t = tag.lower()
+    if not t or any(c not in _HEX_DIGITS for c in t):
+        return False
+    if len(t) in (3, 6, 8):
+        return True
+    if len(t) == 4:
+        return any(c in _HEX_LETTERS for c in t)
+    return False
+
 
 def normalize_relation_type(raw: str) -> str:
     """Normalize a relation verb to a snake_case key (``See Also`` -> ``see_also``).
@@ -181,7 +203,7 @@ def parse_observations(text: str) -> list[Observation]:
         tags: list[str] = []
         for tm in _TAG_RE.finditer(content):
             tag = tm.group("tag").lower()
-            if tag not in tags:
+            if tag not in tags and not is_css_hex_color(tag):
                 tags.append(tag)
         observations.append(Observation(category, content, tuple(tags)))
     return observations
