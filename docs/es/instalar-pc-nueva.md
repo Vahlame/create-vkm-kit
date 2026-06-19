@@ -42,13 +42,13 @@ software. Variables: `<KIT>` = ruta donde clonarás el kit; `<VAULT>` = ruta del
    macOS: `brew install node uv python git`). Avísame y **reabre la terminal** tras instalar.
 2. **Clona el kit:** `git clone https://github.com/Vahlame/obsidian-memory-kit "<KIT>"`.
 3. **Clona el vault:** `git clone "<VAULT_GIT_URL>" "<VAULT>"` (pídeme la URL privada).
-4. **Backend Python + semántico:** `pip install -e "<KIT>/packages/obsidian-memory-rag[semantic]"`.
+4. **Backend Python + semántico + vec:** `pip install -e "<KIT>/packages/obsidian-memory-rag[semantic,vec]"`.
 5. **Registra el MCP + construye el índice — UN comando.** El inicializador hace por ti los dos
    `claude mcp add … -s user` (basic-memory + híbrido) y el build del índice semántico:
 
    ```bash
    node "<KIT>/packages/create-obsidian-memory/src/index.js" --non-interactive \
-     --vault "<VAULT>" --ide claude --with-hybrid --semantic --repo-root "<KIT>" --build-index
+     --vault "<VAULT>" --ide claude --with-hybrid --semantic --vec --repo-root "<KIT>" --build-index
    ```
 
    Es **idempotente** (si un servidor ya existía, lo reemplaza). Si `claude` no está en el PATH,
@@ -78,7 +78,7 @@ winget install OpenJS.NodeJS.LTS astral-sh.uv Python.Python.3.12 Git.Git
 # 1-3) Clonar kit + vault, instalar backend semántico
 git clone https://github.com/Vahlame/obsidian-memory-kit "<KIT>"
 git clone "<VAULT_GIT_URL>" "<VAULT>"
-pip install -e "<KIT>/packages/obsidian-memory-rag[semantic]"
+pip install -e "<KIT>/packages/obsidian-memory-rag[semantic,vec]"
 
 # 4) UN comando: registra el MCP en Claude Code (scope user) + construye el índice semántico
 node "<KIT>/packages/create-obsidian-memory/src/index.js" --non-interactive \

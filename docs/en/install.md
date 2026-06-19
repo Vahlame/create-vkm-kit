@@ -200,14 +200,16 @@ Action: `vault_hybrid_search("<topic in natural language>")` (or `vault_fts_sear
 
 ### Which tool to use (quick reference)
 
-| Need                                         | Tool                                                                                                                |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Conceptual / natural-language recall         | `vault_hybrid_search("<topic>")` (add `graph: true` if the topic spans linked notes; `recency: true` for freshness) |
-| Exact identifier / symbol / error string     | `vault_fts_search("<term>")`                                                                                        |
-| Half-remembered note name or `#tag`          | `vault_complete("<prefix>")`                                                                                        |
-| The whole note (rare)                        | `read_note` / `vault_read_file` (only if the section isn't enough)                                                  |
-| Vault health (oversized notes, broken links) | `vault_audit()`                                                                                                     |
-| After big imports / embedder change          | `vault_fts_index({ semantic: true })`                                                                               |
+| Need                                                                             | Tool                                                                                                                           |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Conceptual / natural-language recall                                             | `vault_hybrid_search("<topic>")` (add `graph: true` if the topic spans linked notes; `recency: true` for freshness)            |
+| Exact identifier / symbol / error string                                         | `vault_fts_search("<term>")`                                                                                                   |
+| Half-remembered note name or `#tag`                                              | `vault_complete("<prefix>")`                                                                                                   |
+| Typed graph structure (relations / facts)                                        | `vault_relations` (a note's edges, both ways), `vault_observations` (facts by category/`#tag`), `vault_kg_suggest` (read-only) |
+| The whole note (rare)                                                            | `read_note` / `vault_read_file` (only if the section isn't enough)                                                             |
+| Vault health (oversized notes, broken links)                                     | `vault_audit()`                                                                                                                |
+| Periodic upkeep (indices, stale/orphan notes, compaction + duplicate candidates) | `vault_memory_report()` (read-only digest)                                                                                     |
+| After big imports / embedder change                                              | `vault_fts_index({ semantic: true })`                                                                                          |
 
 ### Multi-agent (fan-out) — don't multiply the token cost
 
@@ -300,13 +302,14 @@ If your vault has hundreds of notes and you want fast search by word **and** by 
 ```bash
 # 1) Install the kit's Python backend (one time only). For real meaning-based
 #    recall (synonyms), add the [semantic] extra:
-pip install -e "<KIT_ROOT>/packages/obsidian-memory-rag[semantic]"
+pip install -e "<KIT_ROOT>/packages/obsidian-memory-rag[semantic,vec]"
 
 # 2) Add obsidian-memory-hybrid to mcp.json (alongside basic-memory).
-#    --semantic wires the neural embedder (fastembed); drop it for the zero-dep lexical mode.
+#    --semantic wires the neural embedder (fastembed); --vec the sqlite-vec acceleration.
+#    Drop either for the zero-dep lexical mode. Or just use --full (everything on).
 node "<KIT_ROOT>/packages/create-obsidian-memory/src/index.js" \
   --non-interactive --vault "<VAULT>" \
-  --with-hybrid --semantic --build-index --repo-root "<KIT_ROOT>"
+  --with-hybrid --semantic --vec --build-index --repo-root "<KIT_ROOT>"
 ```
 
 `<KIT_ROOT>` is the absolute path to your clone of `obsidian-memory-kit`. Restart Cursor;

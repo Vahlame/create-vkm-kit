@@ -18,6 +18,19 @@ from .indexer import (
     index_vault,
     index_vectors,
 )
+from .kg_query import (
+    ObservationHit,
+    RelationHit,
+    observations_query,
+    relations_for,
+    suggest_structure,
+)
+from .knowledge_graph import (
+    Observation,
+    Relation,
+    parse_observations,
+    parse_relations,
+)
 from .query import (
     HybridHit,
     SearchHit,
@@ -26,6 +39,7 @@ from .query import (
     search_vault,
     semantic_search,
 )
+from .report import build_report
 from .rotate import RotateResult, rotate_session_log
 from .trie import Trie
 from .vector_store import ChunkHit
@@ -38,13 +52,18 @@ __all__ = [
     "HashingEmbedder",
     "HybridHit",
     "IndexStats",
+    "Observation",
+    "ObservationHit",
     "QueryResult",
+    "Relation",
+    "RelationHit",
     "RotateResult",
     "SearchHit",
     "Trie",
     "VectorStats",
     "audit_vault",
     "build_completion_trie",
+    "build_report",
     "complete",
     "ensure_fresh",
     "evaluate",
@@ -54,8 +73,13 @@ __all__ = [
     "index_vault",
     "index_vectors",
     "load_queries",
+    "observations_query",
+    "parse_observations",
+    "parse_relations",
+    "relations_for",
     "rotate_session_log",
     "run_benchmark",
     "search_vault",
     "semantic_search",
+    "suggest_structure",
 ]

@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="./LICENSE"><img src="https://img.shields.io/badge/licencia-MIT-blue.svg" alt="MIT"></a>
-  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v3.7.1-orange.svg" alt="Release"></a>
+  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v3.8.0-orange.svg" alt="Release"></a>
   <a href="https://github.com/Vahlame/obsidian-memory-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/obsidian-memory-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
 
@@ -53,12 +53,15 @@ npx @vkmikc/create-obsidian-memory "<RUTA>" -y     # sin preguntas, en la ruta q
 ```
 
 > ⚡ **Todo su potencial, en un solo comando · the whole stack in one command — `--full`.**
-> Enfocado **primero en Codex y Claude Code**: registra el MCP en ambos, activa búsqueda híbrida
-> (BM25 + semántica), instala el backend Python, construye el índice e instala las reglas — sin
-> preguntas. Córrelo desde un clon del kit (o pásale `--repo-root <clon>`):
+> Enfocado **primero en Codex y Claude Code**, con **todas las funciones activas por defecto ·
+> every feature on by default**: registra el MCP en ambos, activa la búsqueda híbrida (BM25,
+> semántica y grafo), el **grafo de conocimiento** (relaciones tipadas y observaciones), los
+> **memory reports** y la **aceleración sqlite-vec**, instala el backend Python, construye el
+> índice e instala las reglas — sin preguntas. Córrelo desde un clon del kit (o pásale
+> `--repo-root <clon>`):
 >
 > ```bash
-> npx @vkmikc/create-obsidian-memory --full          # = --ide codex,claude --with-hybrid --semantic --build-index --install-backend --rules
+> npx @vkmikc/create-obsidian-memory --full          # = --ide codex,claude --with-hybrid --semantic --vec --build-index --install-backend --rules
 > ```
 >
 > Si no hay clon a mano, `--full` **no aborta**: cae a `basic-memory` (sin híbrido) y avisa.
