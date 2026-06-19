@@ -17,7 +17,11 @@
 </p>
 
 <p align="center">
-  <b>📖 Documentación completa:</b>&nbsp;
+  <b>📖 Léelo en · Read this in:</b>&nbsp;
+  <a href="README.md">🇪🇸 Español</a>&nbsp;·&nbsp;
+  <a href="README.en.md">🇬🇧 English</a>
+  &nbsp;|&nbsp;
+  <b>Docs:</b>&nbsp;
   <a href="docs/es/README.md">🇪🇸 Español</a>&nbsp;·&nbsp;
   <a href="docs/en/README.md">🇬🇧 English</a>
 </p>
