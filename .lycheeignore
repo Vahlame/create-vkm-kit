@@ -6,5 +6,10 @@ http://localhost:3001/.*
 https://github\.com/Vahlame/obsidian-memory-kit/releases/tag/v.*
 https://github\.com/Vahlame/obsidian-memory-kit/compare/.*
 
+# Self-repo ADR deep-links from the npm README (absolute URLs are required there —
+# npmjs.com can't resolve relative paths). They 404 only until this PR merges to
+# main, then resolve permanently — same case as the pre-release links above.
+https://github\.com/Vahlame/obsidian-memory-kit/blob/main/docs/adr/.*
+
 # Placeholder used by the prompt.
 .*<REPO_URL_PRIVADO>.*
