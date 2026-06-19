@@ -26,9 +26,9 @@ jobs:
       - name: version consistency (badge == packages == CHANGELOG)
         run: node scripts/version.mjs check
       - name: markdownlint
-        run: npx --yes markdownlint-cli "**/*.md" --ignore-path .markdownlintignore
+        run: npx --yes markdownlint-cli@0.49.0 "**/*.md" --ignore-path .markdownlintignore
       - name: prettier
-        run: npx --yes prettier --check "**/*.{json,yml,yaml,md}"
+        run: npx --yes prettier@3.8.4 --check "**/*.{json,yml,yaml,md}"
       - name: sync agents
         run: npm run sync-agents:check
       - name: validate agent.toml (tomllib)
