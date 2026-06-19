@@ -39,6 +39,7 @@ from .query import (
     search_vault,
     semantic_search,
 )
+from .report import build_report
 from .rotate import RotateResult, rotate_session_log
 from .trie import Trie
 from .vector_store import ChunkHit
@@ -62,6 +63,7 @@ __all__ = [
     "VectorStats",
     "audit_vault",
     "build_completion_trie",
+    "build_report",
     "complete",
     "ensure_fresh",
     "evaluate",

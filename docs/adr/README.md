@@ -27,6 +27,8 @@ Each file in this directory captures one design decision: what was chosen, what 
 | [ADR-0021](./0021-ranking-upgrades-and-graded-metrics.md)      | Graded metrics (nDCG/MAP), harder golden set, weighted RRF, BM25F, opt-in recency     | Accepted |
 | [ADR-0022](./0022-codex-first-class-and-full-preset.md)        | Codex CLI as a first-class wiring target + `--full` one-shot preset                   | Accepted |
 | [ADR-0023](./0023-structured-knowledge-graph.md)               | Structured knowledge graph: typed relations + categorized observations                | Accepted |
+| [ADR-0024](./0024-memory-reports-and-compaction.md)            | Memory reports: automatic indices, hygiene, and compaction candidates                 | Accepted |
+| [ADR-0025](./0025-optional-sqlite-vec-acceleration.md)         | Optional sqlite-vec acceleration for semantic search (decline Chroma/LanceDB)         | Accepted |
 
 ## Template
 

@@ -16,6 +16,7 @@ from .embeddings import get_embedder
 from .indexer import ensure_fresh, index_vault, index_vectors
 from .kg_query import observations_query, relations_for, suggest_structure
 from .query import hybrid_search, search_vault
+from .report import build_report
 from .rotate import rotate_session_log
 
 
@@ -266,6 +267,32 @@ def main() -> None:
         sp.add_argument("--vault", type=Path, required=True)
         sp.add_argument("note", help="Note path or bare name to inspect")
         sp.add_argument("--no-auto-index", action="store_true")
+
+    for name, helptext in (
+        ("memory-report", "Read-only digest: indices, hygiene + compaction candidates"),
+        ("json-memory-report", "Same as memory-report but print one JSON object (for MCP)"),
+    ):
+        mr = sub.add_parser(name, help=helptext)
+        mr.add_argument("--vault", type=Path, required=True)
+        mr.add_argument("--budget", type=int, default=8000, help="Per-note token budget")
+        mr.add_argument(
+            "--stale-days",
+            type=float,
+            default=180.0,
+            help="Notes untouched this many days are flagged stale (default 180)",
+        )
+        mr.add_argument(
+            "--duplicates",
+            action="store_true",
+            help="Also surface near-duplicate note pairs (needs embeddings)",
+        )
+        mr.add_argument(
+            "--similarity",
+            type=float,
+            default=0.92,
+            help="Cosine threshold for near-duplicate pairs (default 0.92)",
+        )
+        mr.add_argument("--no-auto-index", action="store_true")
 
     args = p.parse_args()
     if args.cmd == "index":
@@ -578,6 +605,36 @@ def main() -> None:
                 print("  prose bullets you could turn into - [category] observations:")
                 for c in result["observation_candidates"]:
                     print(f"    {c}")
+    elif args.cmd in ("memory-report", "json-memory-report"):
+        if not args.no_auto_index:
+            ensure_fresh(args.vault, semantic=args.duplicates)
+        report = build_report(
+            args.vault,
+            budget_tokens=args.budget,
+            stale_days=args.stale_days,
+            similarity=args.similarity,
+            duplicates=args.duplicates,
+        )
+        if args.cmd == "json-memory-report":
+            print(json.dumps(report, ensure_ascii=False))
+        else:
+            t = report["totals"]
+            print(
+                f"memory report: notes={t['notes']} tokens~={t['tokens']} "
+                f"relations={t['relations']} observations={t['observations']}"
+            )
+            cats = report["indices"]["observations_by_category"]
+            if cats:
+                top = ", ".join(f"{c['category']}={c['count']}" for c in cats[:6])
+                print(f"  observations by category: {top}")
+            hubs = report["indices"]["hub_notes"]
+            if hubs:
+                print("  hub notes (most connected):")
+                for h in hubs[:5]:
+                    print(f"    {h['path']}\tdegree={h['degree']} (out {h['out']}, in {h['in']})")
+            print("  suggested actions:")
+            for s in report["suggested_actions"]:
+                print(f"    - {s}")
 
 
 if __name__ == "__main__":

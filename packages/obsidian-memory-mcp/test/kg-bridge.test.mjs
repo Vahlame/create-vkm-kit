@@ -67,3 +67,17 @@ test("json-kg-suggest is read-only and reports existing structure", () => {
   assert.ok(data.observations.some((o) => o.category === "decision"));
   assert.ok(typeof data.notice === "string");
 });
+
+test("json-memory-report bridges indices + hygiene + suggestions", () => {
+  const vault = kgVault();
+  rag(vault, ["json-index", "--vault", vault]);
+  const rep = JSON.parse(
+    rag(vault, ["json-memory-report", "--vault", vault, "--no-auto-index"])
+  );
+  assert.equal(rep.totals.notes, 2);
+  assert.ok(rep.totals.observations >= 1);
+  assert.ok(Array.isArray(rep.indices.observations_by_category));
+  assert.ok(rep.indices.observations_by_category.some((c) => c.category === "decision"));
+  assert.ok(Array.isArray(rep.suggested_actions) && rep.suggested_actions.length >= 1);
+  assert.ok(typeof rep.notice === "string");
+});

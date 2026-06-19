@@ -201,15 +201,16 @@ Acción: `vault_hybrid_search("<tema en lenguaje natural>")` (o `vault_fts_searc
 
 ### Qué herramienta usar (referencia rápida)
 
-| Necesidad                                         | Herramienta                                                                                                                                 |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Recall conceptual / lenguaje natural              | `vault_hybrid_search("<tema>")` (añade `graph: true` si el tema cruza notas enlazadas; `recency: true` para frescura)                       |
-| Identificador / símbolo / error exacto            | `vault_fts_search("<término>")`                                                                                                             |
-| Nombre de nota o `#tag` a medias                  | `vault_complete("<prefijo>")`                                                                                                               |
-| Estructura tipada del grafo (relaciones / hechos) | `vault_relations` (aristas de una nota, ambos sentidos), `vault_observations` (hechos por categoría/`#tag`), `vault_kg_suggest` (read-only) |
-| La nota entera (raro)                             | `read_note` / `vault_read_file` (solo si el pasaje no basta)                                                                                |
-| Salud del vault (notas gigantes, enlaces rotos)   | `vault_audit()`                                                                                                                             |
-| Tras imports grandes / cambio de embedder         | `vault_fts_index({ semantic: true })`                                                                                                       |
+| Necesidad                                                                                         | Herramienta                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Recall conceptual / lenguaje natural                                                              | `vault_hybrid_search("<tema>")` (añade `graph: true` si el tema cruza notas enlazadas; `recency: true` para frescura)                       |
+| Identificador / símbolo / error exacto                                                            | `vault_fts_search("<término>")`                                                                                                             |
+| Nombre de nota o `#tag` a medias                                                                  | `vault_complete("<prefijo>")`                                                                                                               |
+| Estructura tipada del grafo (relaciones / hechos)                                                 | `vault_relations` (aristas de una nota, ambos sentidos), `vault_observations` (hechos por categoría/`#tag`), `vault_kg_suggest` (read-only) |
+| La nota entera (raro)                                                                             | `read_note` / `vault_read_file` (solo si el pasaje no basta)                                                                                |
+| Salud del vault (notas gigantes, enlaces rotos)                                                   | `vault_audit()`                                                                                                                             |
+| Mantenimiento periódico (índices, notas obsoletas/huérfanas, candidatos a condensar + duplicados) | `vault_memory_report()` (digest read-only)                                                                                                  |
+| Tras imports grandes / cambio de embedder                                                         | `vault_fts_index({ semantic: true })`                                                                                                       |
 
 ### Multi-agente (fan-out) — no multipliques el coste de tokens
 

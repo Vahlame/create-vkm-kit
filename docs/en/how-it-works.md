@@ -186,6 +186,22 @@ directions), or "show every `[decision]` tagged `#ranking`" (`vault_observations
 search cannot express. `vault_kg_suggest` reads a note and **proposes** relations/observations to add
 (it never writes — you confirm and edit). Detail: [ADR-0023](../adr/0023-structured-knowledge-graph.md).
 
+### Keeping memory healthy (and scaling) (new in 3.8)
+
+Memory that only grows eventually rots. `vault_memory_report` is a **read-only digest** you (or the
+agent) run periodically — at the close of a session, say. It builds automatic indices (observations
+by category, the graph's most-connected "hub" notes, top `#tags`) and flags what to tidy: oversized
+notes, broken links, a bloated `SESSION_LOG`, **stale** notes (untouched for months), **orphan** notes
+(linked to nothing), and — optionally — **near-duplicate** notes to review for redundancy or
+contradiction. It only _suggests_; condensing a note is something the agent does with your
+confirmation, never an automatic rewrite. Detail: [ADR-0024](../adr/0024-memory-reports-and-compaction.md).
+
+For very large vaults, semantic search has an opt-in accelerator: install the `[vec]` extra and set
+`OBSIDIAN_MEMORY_SQLITE_VEC=1` to run the cosine scan inside SQLite via **sqlite-vec** — same index
+file, **identical ranking** (it's an acceleration, not an approximation), with automatic fallback to
+the pure-Python path. It's the embedded, in-file answer (no Chroma/LanceDB server needed). Detail:
+[ADR-0025](../adr/0025-optional-sqlite-vec-acceleration.md).
+
 ### Why this saves tokens (and scales to many agents)
 
 A whole-note read pours the **entire** note into the model's context. Passage-first retrieval

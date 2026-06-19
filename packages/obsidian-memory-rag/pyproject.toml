@@ -10,6 +10,12 @@ dependencies = []
 # Neural embeddings for true semantic recall (vault_hybrid_search). The default
 # embedder is dependency-free; install this extra to upgrade to fastembed/MiniLM.
 semantic = ["fastembed>=0.3"]
+# Optional embedded-vector acceleration (ADR-0025): pushes the cosine scan into
+# SQLite via the sqlite-vec extension. Ranking is identical to the pure-Python
+# brute force; it only matters at large-vault scale. Opt in by installing this
+# extra AND setting OBSIDIAN_MEMORY_SQLITE_VEC=1. Stays in the same fts.sqlite —
+# no server, no separate store (the in-file answer vs. Chroma/LanceDB).
+vec = ["sqlite-vec>=0.1.6"]
 
 [project.scripts]
 obsidian-memory-rag = "obsidian_memory_rag.cli:main"

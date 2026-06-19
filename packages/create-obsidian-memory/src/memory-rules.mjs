@@ -48,6 +48,7 @@ Busca **antes de responder** cuando la tarea continúa trabajo previo, se nombra
 - Estructura **tipada** del grafo → \`vault_relations\` (aristas de una nota, ambos sentidos: "¿qué implementa / qué la supersede / qué enlaza aquí?"), \`vault_observations\` (hechos por \`category\`/\`#tag\`: todos los \`[decision]\`, todo lo \`#ranking\`), \`vault_kg_suggest\` (propone estructura de una nota; **read-only**).
 - Nota **entera** (raro) → \`read_note\`/\`vault_read_file\`, solo si el pasaje no basta. **Nunca** \`SESSION_LOG\`/PROJECTS grandes enteros.
 - Salud del vault (notas gigantes, \`[[wikilinks]]\` rotos) → \`vault_audit\`. Tras imports grandes / cambio de embedder → \`vault_fts_index({ semantic: true })\`.
+- Higiene / mantenimiento periódico del vault (índices automáticos, notas obsoletas/huérfanas, candidatos a condensar, casi-duplicados a revisar) → \`vault_memory_report\` (read-only; corre al cierre o de vez en cuando y actúa sobre sus sugerencias con confirmación — no reescribe notas solo).
 
 ### Multi-agente (fan-out)
 
@@ -124,6 +125,7 @@ Search **before answering** when the task continues prior work, names a project/
 - **Typed** graph structure → \`vault_relations\` (a note's edges, both directions: "what does it implement / supersede / what links here?"), \`vault_observations\` (facts by \`category\`/\`#tag\`: every \`[decision]\`, everything \`#ranking\`), \`vault_kg_suggest\` (proposes structure for a note; **read-only**).
 - **Whole** note (rare) → \`read_note\`/\`vault_read_file\`, only if the section isn't enough. **Never** whole \`SESSION_LOG\`/large PROJECTS.
 - Vault health (oversized notes, broken \`[[wikilinks]]\`) → \`vault_audit\`. After big imports / embedder change → \`vault_fts_index({ semantic: true })\`.
+- Vault hygiene / periodic upkeep (automatic indices, stale/orphan notes, compaction candidates, near-duplicates to review) → \`vault_memory_report\` (read-only; run it at the close ritual or occasionally and act on its suggestions with confirmation — it never rewrites notes on its own).
 
 ### Multi-agent (fan-out)
 

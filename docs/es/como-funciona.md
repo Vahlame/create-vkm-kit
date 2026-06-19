@@ -187,6 +187,22 @@ sentidos) o "muéstrame cada `[decision]` con `#ranking`" (`vault_observations`)
 búsqueda plana no expresa. `vault_kg_suggest` lee una nota y **propone** relaciones/observaciones
 (nunca escribe — tú confirmas y editas). Detalle: [ADR-0023](../adr/0023-structured-knowledge-graph.md).
 
+### Mantener la memoria sana (y escalar) (nuevo en 3.8)
+
+Una memoria que solo crece termina pudriéndose. `vault_memory_report` es un **digest read-only** que
+tú (o el agente) corres de vez en cuando — al cerrar una sesión, por ejemplo. Construye índices
+automáticos (observaciones por categoría, las notas "hub" más conectadas del grafo, top `#tags`) y
+marca qué ordenar: notas gigantes, enlaces rotos, un `SESSION_LOG` inflado, notas **obsoletas** (sin
+tocar en meses), notas **huérfanas** (sin enlaces) y — opcional — notas **casi-duplicadas** para
+revisar por redundancia o contradicción. Solo _sugiere_; condensar una nota lo hace el agente con tu
+confirmación, nunca una reescritura automática. Detalle: [ADR-0024](../adr/0024-memory-reports-and-compaction.md).
+
+Para vaults muy grandes, la búsqueda semántica tiene un acelerador opt-in: instala el extra `[vec]` y
+pon `OBSIDIAN_MEMORY_SQLITE_VEC=1` para correr el escaneo coseno dentro de SQLite vía **sqlite-vec** —
+mismo archivo de índice, **ranking idéntico** (es aceleración, no aproximación), con fallback
+automático al camino Python puro. Es la respuesta embebida y en-archivo (sin servidor Chroma/LanceDB).
+Detalle: [ADR-0025](../adr/0025-optional-sqlite-vec-acceleration.md).
+
 ### Por qué esto ahorra tokens (y escala a muchos agentes)
 
 Leer una nota entera vuelca **toda** la nota al contexto del modelo. La búsqueda passage-first
