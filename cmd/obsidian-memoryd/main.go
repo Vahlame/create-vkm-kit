@@ -26,10 +26,10 @@ import (
 
 // version is the daemon version. Override at build time with:
 //
-//	go build -ldflags="-X main.version=3.8.3" ./cmd/obsidian-memoryd
+//	go build -ldflags="-X main.version=3.9.0" ./cmd/obsidian-memoryd
 //
 // Keep in sync with agent.toml.
-var version = "3.8.3"
+var version = "3.9.0"
 
 const usage = `obsidian-memoryd — vault git sync helper
 
@@ -381,6 +381,19 @@ func doctor(out io.Writer, vault string, now time.Time) error {
 }
 
 func runWatch(ctx context.Context, l *slog.Logger, root string) error {
+	return runWatchWith(ctx, l, root, watchDebounce(), func(c context.Context) {
+		if err := gitSync(c, l, root); err != nil && !errors.Is(err, ErrSyncBusy) {
+			l.Error("debounced sync", "err", err)
+		}
+	})
+}
+
+// runWatchWith is the testable core of runWatch: it watches `root` recursively
+// and, after `dur` of quiet following the last filesystem event, invokes
+// `onSync`. The sync callback is injected so tests can exercise the debounce and
+// the new-directory watching without shelling out to real git (production passes
+// a closure over gitSync).
+func runWatchWith(ctx context.Context, l *slog.Logger, root string, dur time.Duration, onSync func(context.Context)) error {
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
 		return err
@@ -397,7 +410,14 @@ func runWatch(ctx context.Context, l *slog.Logger, root string) error {
 		return err
 	}
 	var debounce *time.Timer
-	dur := watchDebounce()
+	// Stop any pending debounce when the loop exits (ctx cancel / channel close)
+	// so a late timer cannot fire onSync against a cancelled context after we
+	// have already returned.
+	defer func() {
+		if debounce != nil {
+			debounce.Stop()
+		}
+	}()
 	for {
 		select {
 		case ev, ok := <-w.Events:
@@ -407,17 +427,25 @@ func runWatch(ctx context.Context, l *slog.Logger, root string) error {
 			if ev.Op&(fsnotify.Write|fsnotify.Create|fsnotify.Remove|fsnotify.Rename) == 0 {
 				continue
 			}
+			// fsnotify is non-recursive: a directory created (or moved in) after
+			// startup carries no watch, so edits inside it would be missed until
+			// some other event triggered a sync. Add it (recursively) as soon as
+			// it appears. Add on an already-watched path is a no-op; a vanished
+			// Rename target fails Stat and is skipped.
+			if ev.Op&(fsnotify.Create|fsnotify.Rename) != 0 {
+				if fi, statErr := os.Stat(ev.Name); statErr == nil && fi.IsDir() && !skipDir(ev.Name) {
+					if addErr := addRecursive(w, ev.Name); addErr != nil {
+						l.Warn("watch new directory failed", "dir", ev.Name, "err", addErr)
+					}
+				}
+			}
 			if strings.Contains(filepath.Base(ev.Name), ".sync-conflict-") {
 				l.Warn("syncthing conflict file detected", "file", ev.Name)
 			}
 			if debounce != nil {
 				debounce.Stop()
 			}
-			debounce = time.AfterFunc(dur, func() {
-				if err := gitSync(ctx, l, root); err != nil && !errors.Is(err, ErrSyncBusy) {
-					l.Error("debounced sync", "err", err)
-				}
-			})
+			debounce = time.AfterFunc(dur, func() { onSync(ctx) })
 		case err, ok := <-w.Errors:
 			if !ok {
 				return nil
@@ -455,18 +483,34 @@ func skipDir(path string) bool {
 }
 
 type daemonSvc struct {
-	log *slog.Logger
+	log    *slog.Logger
+	cancel context.CancelFunc
+	// watch is the long-running watch loop, injectable so tests can verify the
+	// Start/Stop lifecycle without spawning a real fsnotify watcher on the
+	// default vault. nil → the production runWatch over the default vault.
+	watch func(ctx context.Context)
 }
 
 func (d *daemonSvc) Start(s service.Service) error {
-	go func() {
-		v := defaultVault()
-		_ = runWatch(context.Background(), d.log, vaultPath(v))
-	}()
+	ctx, cancel := context.WithCancel(context.Background())
+	d.cancel = cancel
+	run := d.watch
+	if run == nil {
+		run = func(c context.Context) {
+			_ = runWatch(c, d.log, vaultPath(defaultVault()))
+		}
+	}
+	go run(ctx)
 	return nil
 }
 
+// Stop cancels the watch context so the goroutine (and its fsnotify watcher +
+// heartbeat ticker) shuts down cleanly. Previously a no-op, which leaked a
+// goroutine and watcher on every service stop/restart.
 func (d *daemonSvc) Stop(s service.Service) error {
+	if d.cancel != nil {
+		d.cancel()
+	}
 	return nil
 }
 

@@ -185,11 +185,10 @@ test("non-interactive merges into UTF-8 BOM mcp.json without dropping existing s
   };
   const bom = "\uFEFF";
   fs.writeFileSync(path.join(cursorDir, "mcp.json"), `${bom}${JSON.stringify(prior)}`, "utf8");
-  const r = spawnSync(
-    process.execPath,
-    [bin, "--non-interactive", "--vault", vault, "--minimal"],
-    { encoding: "utf8", env: { ...process.env, USERPROFILE: home, HOME: home } }
-  );
+  const r = spawnSync(process.execPath, [bin, "--non-interactive", "--vault", vault, "--minimal"], {
+    encoding: "utf8",
+    env: { ...process.env, USERPROFILE: home, HOME: home }
+  });
   assert.equal(r.status, 0, r.stderr + r.stdout);
   const merged = JSON.parse(fs.readFileSync(path.join(cursorDir, "mcp.json"), "utf8"));
   assert.ok(merged.mcpServers["other-server"]);

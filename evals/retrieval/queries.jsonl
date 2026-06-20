@@ -30,3 +30,6 @@
 {"query": "falta de tipado en el boundary DTOs del server sin tipos", "relevant": ["PRACTICES/confirmed-bad.md"], "kind": "conceptual"}
 {"query": "algoritmo de calificacion REAC bit exacto cero hex tokens mep", "relevant": ["RULES/exam-rules.md", "PROJECTS/exam-generator.md"], "kind": "multi"}
 {"query": "idioma espanol estilo directo zona horaria stack diario del usuario", "relevant": ["MEMORY.md"], "kind": "conceptual"}
+{"query": "recetas de cocina italiana pasta carbonara con queso parmesano", "relevant": [], "kind": "negative"}
+{"query": "horario de trenes de alta velocidad entre ciudades europeas", "relevant": [], "kind": "negative"}
+{"query": "rutina de ejercicios de gimnasio para principiantes sin equipo", "relevant": [], "kind": "negative"}

@@ -25,13 +25,14 @@ npm run sync-agents:check
 npx markdownlint-cli "**/*.md" --ignore-path .markdownlintignore
 
 # Formatting
-npx prettier --check "**/*.{json,yml,yaml,md}"
+npx prettier --check "**/*.{json,yml,yaml,md,mjs,js,cjs,ts}"
 
 # Link check
 npx lychee --no-progress .
 
 # Go tests (requires Go 1.22+)
 go test ./...
+go test ./... -race   # CI also runs the race detector on Linux
 
 # Python RAG tests
 pip install -e ./packages/obsidian-memory-rag

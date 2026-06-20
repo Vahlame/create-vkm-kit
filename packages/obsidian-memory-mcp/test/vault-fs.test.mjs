@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, writeFile, symlink, readFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, symlink, readFile, rm, realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -24,7 +24,9 @@ test("safeVaultPath: relative path resolves under vault", async () => {
   try {
     const p = await safeVaultPath(vault, "MEMORY.md");
     assert.ok(p.endsWith("MEMORY.md"));
-    assert.ok(p.startsWith(vault));
+    // Compare against the realpath: safeVaultPath resolves symlinks, and on macOS
+    // os.tmpdir() ("/var/folders/…") is itself a symlink to "/private/var/…".
+    assert.ok(p.startsWith(await realpath(vault)));
   } finally {
     await rm(vault, { recursive: true });
   }

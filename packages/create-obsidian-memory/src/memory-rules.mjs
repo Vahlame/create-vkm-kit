@@ -42,7 +42,7 @@ Busca **antes de responder** cuando la tarea continúa trabajo previo, se nombra
 
 ### Qué herramienta usar (rápido)
 
-- Recall conceptual / lenguaje natural → \`vault_hybrid_search\` (devuelve la sección). Si el tema cruza notas enlazadas → \`graph: true\` (suma notas a 1 salto de \`[[wikilinks]]\`); si importa la frescura ("lo más reciente que decidí sobre X") → \`recency: true\` (sesga a notas modificadas hace poco).
+- Recall conceptual / lenguaje natural → \`vault_hybrid_search\` (devuelve la sección). Si el tema cruza notas enlazadas → \`graph: true\` (suma notas a 1 salto de \`[[wikilinks]]\`); si importa la frescura ("lo más reciente que decidí sobre X") → \`recency: true\` (sesga a notas modificadas hace poco); en consultas difíciles donde la nota correcta debe quedar primera → \`rerank: true\` (cross-encoder; requiere el extra \`[rerank]\`); para encuestas amplias → \`mmr: true\` (diversifica). Todos opt-in, off por defecto.
 - Identificador / símbolo / error **exacto** → \`vault_fts_search\`.
 - Nombre de nota o \`#tag\` a medias → \`vault_complete\` (Trie; resuelve **antes** de buscar/enlazar/escribir).
 - Estructura **tipada** del grafo → \`vault_relations\` (aristas de una nota, ambos sentidos: "¿qué implementa / qué la supersede / qué enlaza aquí?"), \`vault_observations\` (hechos por \`category\`/\`#tag\`: todos los \`[decision]\`, todo lo \`#ranking\`), \`vault_kg_suggest\` (propone estructura de una nota; **read-only**).
@@ -119,7 +119,7 @@ Search **before answering** when the task continues prior work, names a project/
 
 ### Which tool to use (quick)
 
-- Conceptual / natural-language recall → \`vault_hybrid_search\` (returns the section). If the topic spans linked notes → \`graph: true\` (adds notes one \`[[wikilink]]\` hop away); if freshness matters ("what I most recently decided about X") → \`recency: true\` (biases toward recently-modified notes).
+- Conceptual / natural-language recall → \`vault_hybrid_search\` (returns the section). If the topic spans linked notes → \`graph: true\` (adds notes one \`[[wikilink]]\` hop away); if freshness matters ("what I most recently decided about X") → \`recency: true\` (biases toward recently-modified notes); for hard queries where the right note must rank first → \`rerank: true\` (cross-encoder; needs the \`[rerank]\` extra); for broad surveys → \`mmr: true\` (diversify). All opt-in, off by default.
 - **Exact** identifier / symbol / error string → \`vault_fts_search\`.
 - Half-remembered note name or \`#tag\` → \`vault_complete\` (Trie; resolve it **before** searching/linking/writing).
 - **Typed** graph structure → \`vault_relations\` (a note's edges, both directions: "what does it implement / supersede / what links here?"), \`vault_observations\` (facts by \`category\`/\`#tag\`: every \`[decision]\`, everything \`#ranking\`), \`vault_kg_suggest\` (proposes structure for a note; **read-only**).
