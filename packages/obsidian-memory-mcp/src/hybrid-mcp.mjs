@@ -298,7 +298,7 @@ async function main() {
           .optional()
           .default(false)
           .describe(
-            "Cross-encoder rerank of the top candidates for a precision boost (re-scores query+passage jointly). Needs the optional [rerank] extra + OBSIDIAN_MEMORY_RERANK env; if unavailable it silently keeps the fused order. Best for hard/ambiguous queries where the right note must rank first."
+            "Cross-encoder rerank of the top candidates for a precision boost (re-scores query+passage jointly, then reorders — never drops results). Needs the optional [rerank] extra + OBSIDIAN_MEMORY_RERANK env and a strong, content-language-matched model (the default is multilingual); if unavailable it silently keeps the fused order. Best for hard/ambiguous queries where the right note must rank first."
           )
       },
       annotations: { readOnlyHint: true }
