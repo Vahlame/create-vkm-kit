@@ -135,18 +135,22 @@ not the core. Technical detail: [ADR-0017](../adr/0017-hybrid-query-embeddings.m
 
 ### The retrieval stack at a glance (old + new)
 
-The same question is answered by **three rankers at once**, then **fused** — none wins outright, which is what keeps results balanced. Lexical and semantic are the original layers; the **graph** ranker is new in 3.5 and is opt-in:
+The same question is answered by **three rankers at once**, then **fused** — none wins outright, which is what keeps results balanced. Lexical and semantic are the original layers; the **graph** ranker is opt-in (new in 3.5). Newer **opt-in, off-by-default** stages (3.9) can then sharpen the order: a light reorder (recency · importance · MMR diversification) and an optional **cross-encoder reranker** that re-reads each candidate _with_ the query. Everything after RRF is off unless you ask for it, so the default path is unchanged:
 
 ```mermaid
 flowchart LR
   Q["your question"] --> L["BM25 lexical<br/>exact words · AND→OR fallback"]
   Q --> S["vector semantic<br/>by meaning"]
-  Q --> G["graph link-hops<br/>opt-in · new in 3.5"]
+  Q --> G["graph link-hops<br/>opt-in · typed-weighted (3.9)"]
   L --> F["RRF fusion<br/>(rank, not raw scores)"]
   S --> F
   G --> F
-  F --> P["matching section<br/>(passage-first)"]
+  F --> B["opt-in reorder (3.9)<br/>recency · importance · MMR"]
+  B --> R["opt-in cross-encoder<br/>rerank · off by default (3.9)"]
+  R --> P["matching section<br/>(passage-first · ± window)"]
 ```
+
+The reranker is the precision lever: RRF orders by _rank position_, but a cross-encoder reads the query and a candidate passage **together** and can promote the genuinely-right note to the top. It is off by default and only helps with a strong, content-language-matched model (the multilingual default) — so it ships behind the `[rerank]` extra, never in the measured default path.
 
 **What the graph step adds.** A note that barely matches the words can still be the most relevant one when a strong hit links to it. The graph follows those `[[wikilinks]]` so the companion note surfaces anyway:
 

@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Documentation
+
+- **how-it-works ES/EN: the retrieval-stack diagram now shows the 3.9 stages.** The
+  Mermaid pipeline adds the opt-in, off-by-default post-fusion stages — a light reorder
+  (recency · importance · MMR) and the optional cross-encoder reranker — after RRF, with
+  a short note that the reranker is the precision lever (reads query + passage together)
+  and only helps with a strong, language-matched model. Docs-only; no version change.
+
 ## [3.9.1] - 2026-06-20
 
 Completes and hardens the 3.9.0 cross-encoder reranker delivery.
