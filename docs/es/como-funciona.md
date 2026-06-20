@@ -136,18 +136,22 @@ no el núcleo. Detalle técnico: [ADR-0017](../adr/0017-hybrid-query-embeddings.
 
 ### El stack de recuperación de un vistazo (viejo + nuevo)
 
-La misma pregunta la responden **tres rankers a la vez** y luego se **fusionan** — ninguno gana por sí solo, y eso mantiene los resultados equilibrados. Léxico y semántico son las capas originales; el ranker de **grafo** es nuevo en 3.5 y es opt-in:
+La misma pregunta la responden **tres rankers a la vez** y luego se **fusionan** — ninguno gana por sí solo, y eso mantiene los resultados equilibrados. Léxico y semántico son las capas originales; el ranker de **grafo** es opt-in (nuevo en 3.5). Etapas más nuevas **opt-in, off por defecto** (3.9) pueden afinar el orden después: un reordenamiento ligero (recencia · importancia · diversificación MMR) y un **reranker cross-encoder** opcional que vuelve a leer cada candidato _junto con_ la consulta. Todo lo posterior a RRF está apagado salvo que lo pidas, así el camino por defecto no cambia:
 
 ```mermaid
 flowchart LR
   Q["tu pregunta"] --> L["BM25 léxico<br/>palabras exactas · fallback AND→OR"]
   Q --> S["vector semántico<br/>por significado"]
-  Q --> G["saltos por enlaces<br/>opt-in · nuevo en 3.5"]
+  Q --> G["saltos por enlaces<br/>opt-in · grafo tipado (3.9)"]
   L --> F["fusión RRF<br/>(por rango, no scores crudos)"]
   S --> F
   G --> F
-  F --> P["sección que coincide<br/>(passage-first)"]
+  F --> B["reorden opt-in (3.9)<br/>recencia · importancia · MMR"]
+  B --> R["cross-encoder opt-in<br/>rerank · off por defecto (3.9)"]
+  R --> P["sección que coincide<br/>(passage-first · ± ventana)"]
 ```
+
+El reranker es la palanca de precisión: RRF ordena por _posición de rango_, pero un cross-encoder lee la consulta y el pasaje candidato **juntos** y puede subir al top la nota realmente correcta. Está apagado por defecto y solo ayuda con un modelo fuerte y en el idioma del contenido (el multilingüe por defecto) — por eso vive tras el extra `[rerank]`, nunca en el camino por defecto que se mide.
 
 **Qué añade el paso de grafo.** Una nota que apenas coincide en palabras puede ser la más relevante si un hit fuerte la enlaza. El grafo sigue esos `[[wikilinks]]` y la nota-compañera aflora igual:
 
