@@ -81,6 +81,15 @@ test("mergeObsidianHybridServer with vec wires the sqlite-vec flag (ADR-0025)", 
   assert.equal(env.OBSIDIAN_MEMORY_EMBEDDER, SEMANTIC_EMBEDDER);
 });
 
+test("mergeObsidianHybridServer with rerank wires OBSIDIAN_MEMORY_RERANK (ADR-0026)", () => {
+  const base = mergeBasicMemoryServer({}, "/vault");
+  // Off by default (rerank is opt-in, never part of the default/full stack).
+  const plain = mergeObsidianHybridServer(base, "/vault", repoRoot);
+  assert.equal(plain.mcpServers["obsidian-memory-hybrid"].env.OBSIDIAN_MEMORY_RERANK, undefined);
+  const withRerank = mergeObsidianHybridServer(base, "/vault", repoRoot, { rerank: true });
+  assert.equal(withRerank.mcpServers["obsidian-memory-hybrid"].env.OBSIDIAN_MEMORY_RERANK, "1");
+});
+
 test("claudeAddArgv builds `claude mcp add -s user -e … -- cmd args`", () => {
   const argv = claudeAddArgv("basic-memory", basicMemoryServer("/v"));
   assert.deepEqual(argv.slice(0, 5), ["mcp", "add", "basic-memory", "-s", "user"]);

@@ -186,12 +186,15 @@ _NS_PER_DAY = 86_400 * 1_000_000_000
 IMPORTANCE_WEIGHT = 0.15
 
 # Optional cross-encoder reranking (ADR-0026). When a reranker is supplied,
-# hybrid_search widens the fused pool to this many candidates, re-scores their
-# passages jointly with the query, reorders by the (relative) cross-encoder logit,
-# and keeps those within `RERANK_MARGIN` of the top logit. Off by default (needs the
-# optional [rerank] extra); the deterministic bench path is unaffected.
+# hybrid_search widens the fused pool to this many candidates and re-scores their
+# passages jointly with the query, reordering by the (relative) cross-encoder logit.
 RERANK_POOL = 60
-RERANK_MARGIN = 2.0
+# Abstention cutoff: drop reranked passages whose logit is more than this far below
+# the top. Default OFF (reorder-only) — a margin cut with a weak or wrong-language
+# reranker can drop correct answers (measured: a small English model on a Spanish/
+# synonym corpus cut true hits), so cutting is an opt-in choice for a *validated*
+# model that wants no-answer abstention, not the default. None = pure reorder.
+RERANK_MARGIN = None
 
 
 def recency_factor(now_ns: int, mtime_ns: int | None, half_life_days: float) -> float:

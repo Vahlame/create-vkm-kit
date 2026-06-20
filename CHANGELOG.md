@@ -6,6 +6,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [3.9.1] - 2026-06-20
+
+Completes and hardens the 3.9.0 cross-encoder reranker delivery.
+
+### Added
+
+- **`create-obsidian-memory --rerank`** — wire the cross-encoder reranker in one
+  command: installs the `[rerank]` extra and sets `OBSIDIAN_MEMORY_RERANK=1` in the
+  hybrid MCP server config (Cursor / Claude / Codex). **Strictly opt-in** — it is NOT
+  part of the default/`--full` stack (it downloads a model on first use and only helps
+  with a strong, content-language-matched model). New `--rerank-margin` CLI flag exposes
+  the abstention cutoff for power users. Docs (npm README, `--help`, how-it-works ES/EN)
+  updated; new installer test.
+
+### Changed
+
+- **Reranker default is now reorder-only (safer).** `rerank_margin` defaults to `None`
+  (pure reorder) instead of cutting the tail. Development measurement showed a margin
+  cut with a weak or wrong-language reranker can **drop correct answers**; the cutoff is
+  now an explicit opt-in (`--rerank-margin`) for a validated model that wants no-answer
+  abstention. The reorder-only default can reorder for precision but never silently
+  drops a hit. ADR-0026 updated with the honest finding; new test locks the no-drop
+  default.
+
+### Notes
+
+- No retrieval-ranking change to the default path (reranking stays off by default; the
+  deterministic `retrieval-bench` gate is unchanged). The honest takeaway recorded in
+  ADR-0026: a reranker's gain needs a strong, language-matched model (the multilingual
+  default; the sibling legal vault's `jina-reranker-v2`) and a candidate pool that
+  already contains the answer — a small English model on a Spanish/synonym corpus does
+  not help and, with the old margin cut, hurt.
+
 ## [3.9.0] - 2026-06-20
 
 ### Added

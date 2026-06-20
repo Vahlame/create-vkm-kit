@@ -68,12 +68,23 @@ def test_reranker_reorders_to_keyword(tmp_path: Path) -> None:
     assert hits[0].rerank_score == 5.0
 
 
+def test_reranker_default_is_reorder_only_no_drop(tmp_path: Path) -> None:
+    # The safe default (no rerank_margin) must reorder WITHOUT dropping candidates:
+    # the matching passage goes first, but the others are still present. A margin cut
+    # with a weak model would otherwise silently drop correct answers.
+    v, emb = _vault(tmp_path)
+    base = {h.path for h in hybrid_search(v, "go python sqlite", emb, limit=5)}
+    hits = hybrid_search(v, "go python sqlite", emb, limit=5, reranker=_KeywordReranker("backup"))
+    assert hits[0].path == "STACKS/sqlite.md"
+    assert {h.path for h in hits} == base  # same set, just reordered
+
+
 def test_reranker_margin_cuts_tail(tmp_path: Path) -> None:
     v, emb = _vault(tmp_path)
     hits = hybrid_search(
         v, "go python sqlite", emb, limit=5, reranker=_KeywordReranker("backup"), rerank_margin=2.0
     )
-    # cutoff = top(5.0) - 2.0 = 3.0 → only the matching passage survives.
+    # Opt-in cutoff = top(5.0) - 2.0 = 3.0 → only the matching passage survives.
     assert [h.path for h in hits] == ["STACKS/sqlite.md"]
 
 

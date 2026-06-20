@@ -49,10 +49,12 @@ export function basicMemoryServer(vaultAbs) {
  * neural embedder. Shared by the Cursor merge and the Claude Code CLI path.
  * @param {string} vaultAbs
  * @param {string} kitRepoAbs
- * @param {{ semantic?: boolean, vec?: boolean }} [opts] - `vec` enables the
- *   sqlite-vec acceleration (ADR-0025) by setting OBSIDIAN_MEMORY_SQLITE_VEC=1;
- *   it is ranking-identical and falls back to brute force if the extension can't
- *   load, so it is safe to wire on by default (the `--full` preset does).
+ * @param {{ semantic?: boolean, vec?: boolean, rerank?: boolean }} [opts] - `vec`
+ *   enables the sqlite-vec acceleration (ADR-0025) via OBSIDIAN_MEMORY_SQLITE_VEC=1
+ *   (ranking-identical, safe fallback, on under `--full`). `rerank` turns on the
+ *   cross-encoder reranker (ADR-0026) via OBSIDIAN_MEMORY_RERANK=1 — opt-in only
+ *   (needs the `[rerank]` extra and downloads a model on first use; uses the
+ *   multilingual default model), so it is NOT enabled by `--full`.
  */
 export function hybridServer(vaultAbs, kitRepoAbs, opts = {}) {
   const { hybridJs, pythonSrc } = hybridMcpPathsFromKitRoot(kitRepoAbs);
@@ -65,6 +67,7 @@ export function hybridServer(vaultAbs, kitRepoAbs, opts = {}) {
   };
   if (opts && opts.semantic) env.OBSIDIAN_MEMORY_EMBEDDER = SEMANTIC_EMBEDDER;
   if (opts && opts.vec) env.OBSIDIAN_MEMORY_SQLITE_VEC = "1";
+  if (opts && opts.rerank) env.OBSIDIAN_MEMORY_RERANK = "1";
   return { command: "node", args: [hybridJs], env };
 }
 

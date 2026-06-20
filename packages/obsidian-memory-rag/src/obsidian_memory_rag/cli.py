@@ -74,6 +74,13 @@ def _add_hybrid_flags(parser) -> None:
         help="Cross-encoder model id (overrides OBSIDIAN_MEMORY_RERANK_MODEL / default)",
     )
     parser.add_argument(
+        "--rerank-margin",
+        type=float,
+        default=None,
+        help="Abstention cutoff: drop reranked hits >this far below the top logit "
+        "(default off = reorder-only; only set it with a validated model)",
+    )
+    parser.add_argument(
         "--no-auto-index",
         action="store_true",
         help="Skip the pre-search incremental index refresh (query the index as-is)",
@@ -92,6 +99,7 @@ def _hybrid_kwargs(args) -> dict:
         "mmr_lambda": args.mmr_lambda,
         "passage_window": args.passage_window,
         "reranker": get_reranker(args.rerank_model or ("1" if args.rerank else None)),
+        "rerank_margin": args.rerank_margin,
     }
 
 

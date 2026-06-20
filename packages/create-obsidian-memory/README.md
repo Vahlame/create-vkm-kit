@@ -5,9 +5,11 @@ AI coding agent reads and writes across sessions, wired to your IDE over **MCP**
 
 It configures the [`basic-memory`](https://github.com/basicmachines-co/basic-memory) MCP server
 (and, optionally, the `obsidian-memory-hybrid` retrieval sidecar — **BM25 + semantic + graph-aware**
-search, a **structured knowledge graph** (typed relations + categorized observations), **memory
-reports** for hygiene, and an optional **sqlite-vec** acceleration) for **Codex CLI**, **Claude
-Code** and/or **Cursor**, points it at your vault, and can build the local search index — in one
+search with opt-in precision levers (**cross-encoder reranker**, type-weighted graph, importance,
+MMR diversification, passage-window), a **structured knowledge graph** (typed relations + categorized
+observations), **memory reports** for hygiene, and an optional **sqlite-vec** acceleration) for
+**Codex CLI**, **Claude Code** and/or **Cursor**, points it at your vault, and can build the local
+search index — in one
 command. `--full` turns **all** of it on by default.
 
 Part of the [obsidian-memory-kit](https://github.com/Vahlame/obsidian-memory-kit)
@@ -78,6 +80,7 @@ found.
 | `--repo-root <path>`               | Root of the `obsidian-memory-kit` clone (hybrid bridge + Python source).                                                                                                                                                                                                                                                                                 |
 | `--semantic`                       | With `--with-hybrid`: neural embeddings (fastembed multilingual; needs the `[semantic]` extra).                                                                                                                                                                                                                                                          |
 | `--vec`                            | With `--with-hybrid`: sqlite-vec acceleration (needs the `[vec]` extra; sets `OBSIDIAN_MEMORY_SQLITE_VEC=1`). Ranking-identical with a safe fallback. On under `--full`; opt out with `--no-vec`.                                                                                                                                                        |
+| `--rerank`                         | With `--with-hybrid`: cross-encoder reranker for a top-k precision boost (installs the `[rerank]` extra; sets `OBSIDIAN_MEMORY_RERANK=1`). **Opt-in only** — downloads a model on first use and needs a content-language-matched model (the multilingual default); **not** enabled by `--full`.                                                          |
 | `--build-index`                    | After wiring, build the local FTS (+ semantic) index (needs the Python backend).                                                                                                                                                                                                                                                                         |
 | `--install-backend`                | `pip install -e` the Python RAG backend (best-effort; on by default under `--full`).                                                                                                                                                                                                                                                                     |
 | `--with-gitleaks`                  | Install a gitleaks pre-commit hook in `<vault>/.git/hooks/`.                                                                                                                                                                                                                                                                                             |

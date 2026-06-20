@@ -32,9 +32,14 @@ behind a new `[rerank]` extra; never in the default path.
 - **Insertion point:** `hybrid_search` takes a `reranker=None` param. When set, it
   widens the fused pool to `rerank_pool` (default 60), re-scores each candidate's
   **already-won passage** (chunk text → BM25 snippet → card body, so no extra read),
-  reorders by the relative cross-encoder logit, keeps those within `rerank_margin`
-  (default 2.0) of the top logit, and trims to `limit`. The fused RRF score is kept
-  as `HybridHit.score`; the logit is exposed as `rerank_score`.
+  reorders by the relative cross-encoder logit, and trims to `limit`. The fused RRF
+  score is kept as `HybridHit.score`; the logit is exposed as `rerank_score`.
+- **Reorder-only by default; the margin cut is opt-in.** `rerank_margin` defaults to
+  `None` (pure reorder). An optional abstention cutoff drops passages whose logit is
+  more than `rerank_margin` below the top — useful for "return nothing on a no-answer
+  query", but **only safe with a validated model**: measured, a margin cut with a weak
+  or wrong-language reranker drops correct answers (see Consequences). It is therefore
+  a power-user opt-in (`--rerank-margin`), not the default.
 - **Default model** is `jinaai/jina-reranker-v2-base-multilingual` — the kit's vaults
   are frequently Spanish/bilingual. Overridable via `OBSIDIAN_MEMORY_RERANK_MODEL`
   (e.g. a ~90 MB English `Xenova/ms-marco-MiniLM-L-6-v2` for an English-only, lighter
@@ -62,12 +67,17 @@ behind a new `[rerank]` extra; never in the default path.
 
 - **Positive:** a real top-k precision lever for hard/ambiguous queries, in-philosophy
   (optional, lazy, fails safe), reusing the passages retrieval already produced.
-- **Negative:** the model must match the content language. Honest measurement: on the
-  **Spanish** bench fixture, an **English** ms-marco cross-encoder _lowered_ recall
-  (1.000 → 0.891) — a wrong-language reranker hurts. The multilingual default avoids
-  this; the docs say so plainly. The bench fixture is also already saturated
-  (recall 1.000), so it is not where a reranker's benefit shows — that evidence is the
-  cross-encoder literature and the sibling legal-vault result.
+- **Negative:** the reranker is only as good as its model, and it can only reorder
+  what retrieval already surfaced. Honest measurement during development, both with a
+  small English `ms-marco-MiniLM-L-6-v2`: (1) on the **Spanish** fixture a wrong-language
+  reranker _lowered_ recall (1.000 → 0.891) — language must match; (2) on a synonym-trap
+  English bucket the small model was itself fooled by literal keyword overlap and the
+  **margin cut dropped the true answer** — which is exactly why the default is now
+  reorder-only and the cut is opt-in. The real benefit needs a strong, language-matched
+  model (the multilingual default; the sibling legal vault's `jina-reranker-v2` lifted
+  buried articles to rank 1) — and a candidate pool that already contains the answer (a
+  neural embedder helps here). The deterministic bench is saturated (recall 1.000), so
+  it is not where the gain shows; the evidence is the literature + the legal-vault result.
 - **Neutral:** a first download (~90 MB–1.1 GB depending on model); cached durably
   thereafter. Unit tests use a deterministic fake reranker, so the reorder + margin +
   fallback logic is covered with no model in CI.
