@@ -773,7 +773,12 @@ async function runNonInteractive(argv) {
     env: { BASIC_MEMORY_HOME: vault }
   };
 
-  const hybridOpts = { withHybrid: wantHybrid, repoRoot: kitRoot, semantic: wantSemantic, vec: wantVec };
+  const hybridOpts = {
+    withHybrid: wantHybrid,
+    repoRoot: kitRoot,
+    semantic: wantSemantic,
+    vec: wantVec
+  };
   if (ides.includes("cursor") && !noCursorMcp) {
     await writeCursorMcp(home, vault, dryRun, hybridOpts);
   } else if (ides.includes("cursor") && noCursorMcp) {
@@ -830,7 +835,9 @@ async function runNonInteractive(argv) {
     }
     if (wantVec) {
       console.log(
-        pc.dim("  sqlite-vec acceleration: OBSIDIAN_MEMORY_SQLITE_VEC=1 (ranking-identical; ADR-0025)")
+        pc.dim(
+          "  sqlite-vec acceleration: OBSIDIAN_MEMORY_SQLITE_VEC=1 (ranking-identical; ADR-0025)"
+        )
       );
     }
   }

@@ -38,9 +38,22 @@ def test_retrieval_quality_floor_no_graph() -> None:
     assert report.hit_at_1 >= 0.90, f"hit@1 regressed: {report.hit_at_1:.3f}"
     assert report.ndcg_at_k >= 0.93, f"nDCG@5 regressed: {report.ndcg_at_k:.3f}"
     assert report.map >= 0.93, f"MAP regressed: {report.map:.3f}"
-    # Every query must retrieve *something* relevant in the top-k (no hard misses).
-    misses = [r.query for r in report.results if r.first_rank is None]
+    # Every *positive* query must retrieve something relevant in the top-k (no hard
+    # misses). Negative queries have no relevant note, so they are exempt.
+    misses = [r.query for r in report.results if r.relevant and r.first_rank is None]
     assert not misses, f"hard misses: {misses}"
+
+
+@needs_fixture
+def test_negative_queries_excluded_from_aggregates() -> None:
+    # Negative queries (no relevant note) must not drag the positive-query metrics:
+    # they are summarized separately, not folded into recall/MRR/etc.
+    report = run_benchmark(CORPUS, QUERIES, k=5, graph=False)
+    assert report.negatives["n"] >= 1, "golden set should include negative queries"
+    assert report.recall_at_k >= 0.95, "negatives must not lower the positive recall floor"
+    # The negative summary reports the engine's confidence on no-answer queries.
+    assert 0.0 <= report.negatives["abstain_rate"] <= 1.0
+    assert "negative" not in report.by_kind, "negatives are not a positive bucket"
 
 
 @needs_fixture

@@ -183,6 +183,48 @@ def _search_chunks_sqlite_vec(
     ]
 
 
+def fetch_chunk_vecs(
+    conn: sqlite3.Connection, items: list[tuple[str, int]], embedder: str
+) -> dict[str, array]:
+    """Return ``{path: vec}`` for the given ``(path, ordinal)`` chunk keys.
+
+    Used by MMR diversification (query.py) to measure candidate-to-candidate
+    similarity over the *same* L2-normalized vectors retrieval already ranked on
+    (cosine == dot). A missing chunk is simply omitted; the caller treats a note
+    without a vector as maximally novel.
+    """
+    init_chunks(conn)
+    out: dict[str, array] = {}
+    for path, ordinal in items:
+        row = conn.execute(
+            "SELECT vec FROM note_chunks WHERE path = ? AND ordinal = ? AND embedder = ?",
+            (path, ordinal, embedder),
+        ).fetchone()
+        if row is not None:
+            out[path] = _from_blob(row["vec"])
+    return out
+
+
+def fetch_adjacent_chunks(
+    conn: sqlite3.Connection, path: str, ordinal: int, window: int, embedder: str
+) -> list[tuple[int, str, str]]:
+    """Return ``(ordinal, heading, text)`` for chunks of ``path`` within ``window``.
+
+    Pulls ordinals ``[ordinal-window, ordinal+window]`` that exist, in order, so the
+    caller can present a richer contiguous passage (the agent answers from a complete
+    section, not a clipped slice) without a full-note read. Ranking is unaffected —
+    this only widens the returned snippet. ``window <= 0`` returns just the chunk.
+    """
+    init_chunks(conn)
+    lo, hi = ordinal - max(0, window), ordinal + max(0, window)
+    rows = conn.execute(
+        "SELECT ordinal, heading, text FROM note_chunks "
+        "WHERE path = ? AND embedder = ? AND ordinal BETWEEN ? AND ? ORDER BY ordinal",
+        (path, embedder, lo, hi),
+    ).fetchall()
+    return [(int(r["ordinal"]), str(r["heading"] or ""), str(r["text"] or "")) for r in rows]
+
+
 def search_chunks(
     conn: sqlite3.Connection, query_vec: array, embedder: str, limit: int
 ) -> list[ChunkHit]:
