@@ -9,13 +9,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from .graphlink import neighbor_paths
+from .graphlink import _build_resolver, neighbor_paths, typed_neighbor_paths
 from .paths import index_db_path
 from .store import connect, init_schema
-from .vector_store import ChunkHit, search_chunks
+from .vector_store import ChunkHit, fetch_adjacent_chunks, fetch_chunk_vecs, search_chunks
 
 if TYPE_CHECKING:
+    from array import array as _Array
+
     from .embeddings import Embedder
+    from .rerank import Reranker
 
 
 # BM25F column weights for `search_vault` (FTS5 `bm25()` takes one weight per
@@ -128,6 +131,7 @@ class HybridHit:
     bm25_rank: int | None  # 1-based rank in the BM25 list, or None if absent
     vector_rank: int | None  # 1-based rank in the vector list, or None if absent
     graph_rank: int | None = None  # 1-based rank among [[wikilink]] neighbours, or None
+    rerank_score: float | None = None  # cross-encoder logit (relative), or None if not reranked
 
 
 def semantic_search(
@@ -171,6 +175,23 @@ GRAPH_WEIGHT = 0.1
 # pending real-vault evaluation (ADR-0021).
 RECENCY_HALF_LIFE_DAYS = 90.0
 _NS_PER_DAY = 86_400 * 1_000_000_000
+
+# Optional importance bias (ADR-0027), completing the Generative-Agents triad
+# (retrieval ≈ relevance × recency × importance). A note's importance is its
+# in-degree in the typed relations graph — a hub that many notes point at
+# (`MEMORY.md`, a load-bearing `STACKS/*`) is structurally more central. The factor
+# is a bounded *boost* (1 + weight × normalized-in-degree, capped at `1 + weight`)
+# so a hub can win among comparably-relevant notes but the boost can never invent
+# relevance for an off-topic hub. Off by default (it changes ranking).
+IMPORTANCE_WEIGHT = 0.15
+
+# Optional cross-encoder reranking (ADR-0026). When a reranker is supplied,
+# hybrid_search widens the fused pool to this many candidates, re-scores their
+# passages jointly with the query, reorders by the (relative) cross-encoder logit,
+# and keeps those within `RERANK_MARGIN` of the top logit. Off by default (needs the
+# optional [rerank] extra); the deterministic bench path is unaffected.
+RERANK_POOL = 60
+RERANK_MARGIN = 2.0
 
 
 def recency_factor(now_ns: int, mtime_ns: int | None, half_life_days: float) -> float:
@@ -228,6 +249,53 @@ def graph_neighbors(vault: Path, seeds: list[str], *, limit: int = 50) -> list[s
         conn.close()
 
 
+def typed_graph_neighbors(vault: Path, seeds: list[str], *, limit: int = 50) -> list[str]:
+    """Type-weighted variant of :func:`graph_neighbors` (ADR-0027).
+
+    Ranks one-hop neighbours from the persisted typed ``relations`` table, weighting
+    each edge by its verb. Returns ``[]`` when no index/relations exist.
+    """
+    vault = vault.resolve()
+    db_path = index_db_path(vault)
+    if not db_path.is_file():
+        return []
+    conn = connect(db_path)
+    try:
+        init_schema(conn)
+        return typed_neighbor_paths(conn, seeds, limit=limit)
+    finally:
+        conn.close()
+
+
+def _chunk_vecs(vault: Path, embedder_name: str, items: list[tuple[str, int]]) -> dict[str, "_Array"]:
+    """Open the index and return ``{path: vec}`` for the given chunk keys (MMR)."""
+    if not items:
+        return {}
+    db_path = index_db_path(vault.resolve())
+    if not db_path.is_file():
+        return {}
+    conn = connect(db_path)
+    try:
+        return fetch_chunk_vecs(conn, items, embedder_name)
+    finally:
+        conn.close()
+
+
+def _expanded_passage(
+    vault: Path, embedder_name: str, path: str, ordinal: int, window: int
+) -> str:
+    """Concatenated text of a chunk and its ``window`` neighbours (passage expansion)."""
+    db_path = index_db_path(vault.resolve())
+    if not db_path.is_file():
+        return ""
+    conn = connect(db_path)
+    try:
+        chunks = fetch_adjacent_chunks(conn, path, ordinal, window, embedder_name)
+    finally:
+        conn.close()
+    return "\n\n".join(t for _, _, t in chunks if t)
+
+
 def _note_cards(vault: Path, paths: list[str]) -> dict[str, tuple[str, str]]:
     """``path -> (title, short snippet)`` for notes lacking a chunk/BM25 hit.
 
@@ -277,6 +345,94 @@ def _note_mtimes(vault: Path, paths: list[str]) -> dict[str, int]:
     return out
 
 
+def _note_indegree(vault: Path, paths: list[str]) -> dict[str, int]:
+    """``path -> in-degree`` over the typed relations graph (importance bias).
+
+    In-degree = how many notes point at this one (resolved targets), a cheap,
+    deterministic centrality proxy. Returns zeros when the relations table is
+    absent so importance biasing degrades to a no-op.
+    """
+    out = {p: 0 for p in paths}
+    if not paths:
+        return out
+    db_path = index_db_path(vault.resolve())
+    if not db_path.is_file():
+        return out
+    conn = connect(db_path)
+    try:
+        init_schema(conn)
+        try:
+            rows = conn.execute("SELECT target FROM relations").fetchall()
+        except Exception:
+            return out
+        if not rows:
+            return out
+        all_paths = [str(r["path"]) for r in conn.execute("SELECT path FROM vault_fts").fetchall()]
+        resolve = _build_resolver(all_paths)
+        wanted = set(paths)
+        counts: dict[str, int] = {}
+        for r in rows:
+            dst = resolve(str(r["target"]))
+            if dst is not None and dst in wanted:
+                counts[dst] = counts.get(dst, 0) + 1
+    finally:
+        conn.close()
+    for p in paths:
+        out[p] = counts.get(p, 0)
+    return out
+
+
+def _cosine(a: "_Array | None", b: "_Array | None") -> float:
+    """Dot product of two L2-normalized vectors (== cosine), 0.0 if either missing."""
+    if a is None or b is None or len(a) != len(b):
+        return 0.0
+    return math.fsum(x * y for x, y in zip(a, b))
+
+
+def _mmr_order(
+    fused: list[tuple[str, float]],
+    chunk_vecs: dict[str, "_Array"],
+    lambda_: float,
+    limit: int,
+) -> list[tuple[str, float]]:
+    """Greedy Maximal Marginal Relevance reorder (Carbonell & Goldstein 1998).
+
+    Repeatedly picks the candidate maximizing
+    ``λ·rel(p) − (1−λ)·max_{s∈selected} cos(p, s)`` so each pick trades relevance
+    against redundancy with what is already chosen. Relevance is the fused RRF score,
+    min-max normalized to [0, 1] so λ mixes the two terms on the same scale. A note
+    with no stored vector contributes 0 similarity (treated as maximally novel), so
+    it is never unfairly demoted. Returns at most ``limit`` ``(path, fused_score)``.
+    """
+    if not fused:
+        return []
+    rel = dict(fused)
+    vals = list(rel.values())
+    rmin, rmax = min(vals), max(vals)
+    span = (rmax - rmin) or 1.0
+
+    def reln(p: str) -> float:
+        return (rel[p] - rmin) / span
+
+    remaining = [p for p, _ in fused]
+    selected: list[str] = []
+    while remaining and len(selected) < limit:
+        best_p = None
+        best_val = None
+        for p in remaining:
+            if selected:
+                vp = chunk_vecs.get(p)
+                div = max((_cosine(vp, chunk_vecs.get(s)) for s in selected), default=0.0)
+            else:
+                div = 0.0
+            val = lambda_ * reln(p) - (1.0 - lambda_) * div
+            if best_val is None or val > best_val:
+                best_val, best_p = val, p
+        selected.append(best_p)  # type: ignore[arg-type]
+        remaining.remove(best_p)  # type: ignore[arg-type]
+    return [(p, rel[p]) for p in selected]
+
+
 def hybrid_search(
     vault: Path,
     query: str,
@@ -287,8 +443,17 @@ def hybrid_search(
     graph: bool = False,
     graph_seeds: int = 10,
     graph_weight: float = GRAPH_WEIGHT,
+    graph_typed: bool = False,
     recency: bool = False,
     recency_half_life_days: float = RECENCY_HALF_LIFE_DAYS,
+    importance: bool = False,
+    importance_weight: float = IMPORTANCE_WEIGHT,
+    mmr: bool = False,
+    mmr_lambda: float = 0.5,
+    passage_window: int = 0,
+    reranker: "Reranker | None" = None,
+    rerank_pool: int = RERANK_POOL,
+    rerank_margin: float | None = RERANK_MARGIN,
 ) -> list[HybridHit]:
     """Combine BM25 (lexical) and vector cosine (semantic) via RRF.
 
@@ -296,16 +461,26 @@ def hybrid_search(
     the result is just the BM25 ranking; with no lexical match a note can still
     surface on semantic similarity alone.
 
-    With ``graph=True`` a third ranking is fused in: notes one hop from the
-    strongest ``graph_seeds`` hits in the ``[[wikilink]]`` graph (ADR-0019). It
-    enters weighted RRF at ``graph_weight`` (< 1) so a strongly-linked note can
-    surface, but the link signal cannot outvote — or displace a relevant hit
-    found by — the agreement between BM25 and cosine.
+    All optional stages below are **off by default**, so the default call is
+    byte-identical to plain weighted RRF (the deterministic bench path):
 
-    With ``recency=True`` the fused scores are multiplied by an exponential decay
-    of each note's modified time (:func:`recency_factor`, half-life
-    ``recency_half_life_days``), so the freshest of comparably-relevant notes wins.
-    Off by default — it changes ranking and is not part of the deterministic bench.
+    - ``graph=True`` fuses a third ranking — notes one hop from the strongest
+      ``graph_seeds`` hits in the ``[[wikilink]]`` graph (ADR-0019), entering RRF at
+      the small ``graph_weight`` so it nudges but never outvotes BM25+cosine. With
+      ``graph_typed=True`` that ranking comes from the *typed* relations table,
+      verb-weighted (ADR-0027), so ``supersedes``/``implements`` neighbours outrank
+      bare links.
+    - ``recency=True`` multiplies fused scores by an exponential mtime decay so the
+      freshest of comparably-relevant notes wins.
+    - ``importance=True`` multiplies by a bounded in-degree boost (Generative-Agents
+      relevance×recency×importance, ADR-0027) so a hub note wins among ties.
+    - ``mmr=True`` reorders the fused pool for diversity (Maximal Marginal Relevance)
+      using the stored chunk vectors; ``mmr_lambda`` trades relevance vs. novelty.
+    - ``reranker`` (an optional cross-encoder, ADR-0026) re-scores the fused pool's
+      passages jointly with the query and keeps those within ``rerank_margin`` of the
+      top logit. It is the precision authority and takes precedence over ``mmr``.
+    - ``passage_window > 0`` widens each chunk hit's returned snippet to its adjacent
+      chunks (richer context for the agent); ranking is unaffected.
     """
     bm = search_vault(vault, query, limit=candidate_pool)
     # Pull extra chunks so several notes are represented even when one note owns
@@ -325,28 +500,39 @@ def hybrid_search(
     graph_paths: list[str] = []
     if graph:
         seeds = list(dict.fromkeys(bm_paths[:graph_seeds] + sem_paths[:graph_seeds]))
-        graph_paths = graph_neighbors(vault, seeds, limit=candidate_pool)
+        if graph_typed:
+            graph_paths = typed_graph_neighbors(vault, seeds, limit=candidate_pool)
+        else:
+            graph_paths = graph_neighbors(vault, seeds, limit=candidate_pool)
         if graph_paths:
             rankings.append(graph_paths)
             weights.append(graph_weight)
 
-    # When recency-biasing, fuse a wider pool first so the decay can pull a fresh
-    # note up from just outside the top-``limit``, then trim. Otherwise the result
-    # is byte-identical to plain weighted RRF.
+    # Any post-fusion stage (recency/importance multiply, MMR, rerank) needs a wider
+    # candidate pool so an item from just outside the top-``limit`` can be promoted;
+    # with every stage off the result is byte-identical to plain weighted RRF.
+    widen = recency or importance or mmr or reranker is not None
     fused = reciprocal_rank_fusion(
-        rankings, weights=weights, limit=max(limit, candidate_pool) if recency else limit
+        rankings, weights=weights, limit=max(limit, candidate_pool) if widen else limit
     )
+
     if recency:
         mtimes = _note_mtimes(vault, [p for p, _ in fused])
         now_ns = time.time_ns()
-        fused = sorted(
-            (
-                (p, s * recency_factor(now_ns, mtimes.get(p), recency_half_life_days))
+        fused = [
+            (p, s * recency_factor(now_ns, mtimes.get(p), recency_half_life_days))
+            for p, s in fused
+        ]
+    if importance:
+        indeg = _note_indegree(vault, [p for p, _ in fused])
+        max_deg = max(indeg.values(), default=0)
+        if max_deg > 0:
+            fused = [
+                (p, s * (1.0 + importance_weight * (indeg.get(p, 0) / max_deg)))
                 for p, s in fused
-            ),
-            key=lambda kv: kv[1],
-            reverse=True,
-        )[:limit]
+            ]
+    if recency or importance:
+        fused.sort(key=lambda kv: kv[1], reverse=True)
 
     bm_rank = {p: i + 1 for i, p in enumerate(bm_paths)}
     sem_rank = {p: i + 1 for i, p in enumerate(sem_paths)}
@@ -354,15 +540,52 @@ def hybrid_search(
     bm_by_path = {h.path: h for h in bm}
 
     # Graph-only neighbours have neither a chunk nor a BM25 row — fetch a card so
-    # they still display a heading + passage.
+    # they still display (and can be reranked on) a heading + passage.
     need_card = [p for p, _ in fused if p not in best_chunk and p not in bm_by_path]
     cards = _note_cards(vault, need_card)
+
+    def passage_for(path: str) -> str:
+        ch = best_chunk.get(path)
+        if ch is not None:
+            return ch.text
+        h = bm_by_path.get(path)
+        if h is not None:
+            return h.snippet
+        return cards.get(path, ("", ""))[1]
+
+    rerank_scores: dict[str, float] = {}
+    if reranker is not None and fused:
+        pool = fused[: max(rerank_pool, limit)]
+        passages = [passage_for(p) for p, _ in pool]
+        try:
+            logits = reranker.rerank(query, passages)
+            order = sorted(range(len(pool)), key=lambda i: logits[i], reverse=True)
+            ranked = [(pool[i][0], pool[i][1], float(logits[i])) for i in order]
+            if rerank_margin is not None and ranked:
+                cutoff = ranked[0][2] - rerank_margin
+                ranked = [t for t in ranked if t[2] >= cutoff]
+            rerank_scores = {p: lg for p, _, lg in ranked}
+            fused = [(p, s) for p, s, _ in ranked][:limit]
+        except Exception:
+            # Reranker unavailable (model download/runtime failure) — search must
+            # never break, only un-rerank: keep the fused order.
+            fused = fused[:limit]
+    elif mmr and fused:
+        items = [(p, best_chunk[p].ordinal) for p, _ in fused if p in best_chunk]
+        chunk_vecs = _chunk_vecs(vault, embedder.name, items)
+        fused = _mmr_order(fused, chunk_vecs, mmr_lambda, limit)
+    else:
+        fused = fused[:limit]
 
     out: list[HybridHit] = []
     for path, score in fused:
         ch = best_chunk.get(path)
         if ch is not None:
             heading, snippet = ch.heading, ch.text
+            if passage_window > 0:
+                expanded = _expanded_passage(vault, embedder.name, path, ch.ordinal, passage_window)
+                if expanded:
+                    snippet = expanded
         else:
             h = bm_by_path.get(path)
             if h is not None:
@@ -378,6 +601,7 @@ def hybrid_search(
                 bm_rank.get(path),
                 sem_rank.get(path),
                 graph_rank.get(path),
+                rerank_scores.get(path),
             )
         )
     return out

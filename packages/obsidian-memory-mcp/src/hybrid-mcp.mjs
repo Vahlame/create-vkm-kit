@@ -9,6 +9,7 @@
  * - OBSIDIAN_MEMORY_PYTHON — python executable (default: python3 non-Windows, python on Windows)
  */
 import { execa } from "execa";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -26,6 +27,16 @@ import { maybeStartOtel } from "./telemetry.mjs";
 export { extractBullets, pickQueryTerms };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Advertise the package's real version so the MCP handshake never drifts from
+// the kit version (this package.json is one of the version.mjs markers).
+const pkgVersion = (() => {
+  try {
+    return JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
+  } catch {
+    return "0.0.0";
+  }
+})();
 
 function defaultPython() {
   if (process.env.OBSIDIAN_MEMORY_PYTHON) return process.env.OBSIDIAN_MEMORY_PYTHON;
@@ -60,15 +71,41 @@ async function runRagJson(args, ragSrc) {
   const env = { ...process.env };
   const parts = [ragSrc, env.PYTHONPATH].filter(Boolean);
   env.PYTHONPATH = parts.join(path.delimiter);
-  const r = await execa(py, ["-m", "obsidian_memory_rag", ...args], {
-    env,
-    reject: false,
-    stripFinalNewline: true
-  });
-  if (r.exitCode !== 0) {
-    throw new Error(r.stderr || r.stdout || `python exited ${r.exitCode}`);
+  let r;
+  try {
+    r = await execa(py, ["-m", "obsidian_memory_rag", ...args], {
+      env,
+      reject: false,
+      stripFinalNewline: true
+    });
+  } catch (e) {
+    // reject:false normally turns failures into a result, but a spawn error
+    // (e.g. the Python binary is missing) can still throw.
+    if (e && e.code === "ENOENT") throw pythonNotFoundError(py);
+    throw e;
   }
-  return JSON.parse(r.stdout);
+  if (r.exitCode !== 0) {
+    if (r.code === "ENOENT" || /\bENOENT\b/.test(r.shortMessage || "")) {
+      throw pythonNotFoundError(py);
+    }
+    const detail = r.stderr || r.shortMessage || r.stdout || "(no output)";
+    throw new Error(`obsidian-memory-rag exited ${r.exitCode ?? "?"}: ${detail}`);
+  }
+  try {
+    return JSON.parse(r.stdout);
+  } catch (e) {
+    const head = (r.stdout || "").slice(0, 400);
+    throw new Error(
+      `obsidian-memory-rag returned non-JSON output (${e.message}). First 400 chars: ${head}`
+    );
+  }
+}
+
+function pythonNotFoundError(py) {
+  return new Error(
+    `Python executable "${py}" not found on PATH. Install Python 3.11+ (with the ` +
+      `obsidian-memory-rag package importable) or set OBSIDIAN_MEMORY_PYTHON to its full path.`
+  );
 }
 
 /**
@@ -127,7 +164,7 @@ async function main() {
   const ragSrc = defaultRagSrc();
 
   const server = new McpServer(
-    { name: "obsidian-memory-hybrid", version: "3.8.0" },
+    { name: "obsidian-memory-hybrid", version: pkgVersion },
     {
       capabilities: { tools: {} },
       instructions:
@@ -142,7 +179,11 @@ async function main() {
       description:
         "BM25 search over the local SQLite FTS5 index built by obsidian-memory-rag. Run vault_fts_index first if results are empty.",
       inputSchema: {
-        query: z.string().describe("Space-separated terms (AND on note body)"),
+        query: z
+          .string()
+          .describe(
+            "Space-separated terms matched across note title + body (BM25F, title weighted higher), combined with AND, falling back to OR when AND matches nothing. Plain terms — not a boolean/wildcard query language. For meaning-based recall prefer vault_hybrid_search."
+          ),
         vault: z
           .string()
           .optional()
@@ -220,26 +261,82 @@ async function main() {
           .default(false)
           .describe(
             "Bias ranking toward recently-modified notes (exponential time decay). Use when freshness matters — e.g. 'what did I decide most recently about X' — so a newer note outranks an equally-relevant older one. Off by default (pure relevance)."
+          ),
+        graphTyped: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe(
+            "Type-weighted graph recall (implies graph): weights typed relations so 'supersedes'/'implements' neighbours outrank bare links. Use when the answer is the note a strong hit explicitly supersedes/implements."
+          ),
+        importance: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe(
+            "Bias toward hub notes by [[wikilink]] in-degree (centrality). Among comparably-relevant notes, the more-linked one wins. Off by default."
+          ),
+        mmr: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe(
+            "Diversify results (Maximal Marginal Relevance): demote near-duplicate hits so the top-k covers more distinct notes. Use for broad surveys; off by default (relevance order)."
+          ),
+        passageWindow: z
+          .number()
+          .int()
+          .min(0)
+          .max(5)
+          .optional()
+          .default(0)
+          .describe(
+            "Widen each hit's returned passage to N adjacent chunks of the same note, so you answer from a complete section without a full-note read. Does not change ranking. 0 = single chunk (default)."
+          ),
+        rerank: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe(
+            "Cross-encoder rerank of the top candidates for a precision boost (re-scores query+passage jointly). Needs the optional [rerank] extra + OBSIDIAN_MEMORY_RERANK env; if unavailable it silently keeps the fused order. Best for hard/ambiguous queries where the right note must rank first."
           )
       },
       annotations: { readOnlyHint: true }
     },
-    toolHandler(async ({ query, vault, limit, graph, recency }) => {
-      const v = requireVault(vault || undefined);
-      const args = [
-        "json-hybrid-search",
-        "--vault",
-        v,
-        "--query",
+    toolHandler(
+      async ({
         query,
-        "--limit",
-        String(limit ?? 20)
-      ];
-      if (graph) args.push("--graph");
-      if (recency) args.push("--recency");
-      const result = await runRagJson(args, ragSrc);
-      return flagHits(result);
-    })
+        vault,
+        limit,
+        graph,
+        recency,
+        graphTyped,
+        importance,
+        mmr,
+        passageWindow,
+        rerank
+      }) => {
+        const v = requireVault(vault || undefined);
+        const args = [
+          "json-hybrid-search",
+          "--vault",
+          v,
+          "--query",
+          query,
+          "--limit",
+          String(limit ?? 20)
+        ];
+        if (graph || graphTyped) args.push("--graph");
+        if (graphTyped) args.push("--graph-typed");
+        if (recency) args.push("--recency");
+        if (importance) args.push("--importance");
+        if (mmr) args.push("--mmr");
+        if (passageWindow) args.push("--passage-window", String(passageWindow));
+        if (rerank) args.push("--rerank");
+        const result = await runRagJson(args, ragSrc);
+        return flagHits(result);
+      }
+    )
   );
 
   server.registerTool(
@@ -276,7 +373,9 @@ async function main() {
       inputSchema: {
         note: z
           .string()
-          .describe("Note path or bare name (resolved Obsidian-style), e.g. 'docs/adr-0023.md' or 'python'"),
+          .describe(
+            "Note path or bare name (resolved Obsidian-style), e.g. 'docs/adr-0023.md' or 'python'"
+          ),
         vault: z
           .string()
           .optional()
@@ -323,7 +422,9 @@ async function main() {
         category: z
           .string()
           .optional()
-          .describe("Exact observation category (case-insensitive), e.g. 'decision', 'gotcha', 'fact'"),
+          .describe(
+            "Exact observation category (case-insensitive), e.g. 'decision', 'gotcha', 'fact'"
+          ),
         tag: z.string().optional().describe("A whole inline #tag, with or without the leading '#'"),
         note: z.string().optional().describe("Restrict to one source note (path or bare name)"),
         limit: z.number().int().min(1).max(1000).optional().default(200)

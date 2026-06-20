@@ -15,16 +15,25 @@ test("python json-search returns JSON (monorepo PYTHONPATH)", () => {
   fs.mkdirSync(path.join(vault, ".obsidian"));
   fs.writeFileSync(path.join(vault, "n.md"), "# T\nhello uniquehybridtoken xyz\n", "utf8");
   const env = { ...process.env, PYTHONPATH: ragSrc };
-  const r1 = spawnSync(
-    py,
-    ["-m", "obsidian_memory_rag", "json-index", "--vault", vault],
-    { encoding: "utf8", env },
-  );
+  const r1 = spawnSync(py, ["-m", "obsidian_memory_rag", "json-index", "--vault", vault], {
+    encoding: "utf8",
+    env
+  });
   assert.equal(r1.status, 0, r1.stderr);
   const r2 = spawnSync(
     py,
-    ["-m", "obsidian_memory_rag", "json-search", "--vault", vault, "--query", "uniquehybridtoken", "--limit", "5"],
-    { encoding: "utf8", env },
+    [
+      "-m",
+      "obsidian_memory_rag",
+      "json-search",
+      "--vault",
+      vault,
+      "--query",
+      "uniquehybridtoken",
+      "--limit",
+      "5"
+    ],
+    { encoding: "utf8", env }
   );
   assert.equal(r2.status, 0, r2.stderr);
   const data = JSON.parse(r2.stdout);

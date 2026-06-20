@@ -5,7 +5,7 @@
 import pino from "pino";
 
 const log = pino({
-  name: "obsidian-memory-mcp",
+  name: "obsidian-memory-mcp"
 });
 
 /** @typedef {{ traceparent?: string }} TraceMeta */

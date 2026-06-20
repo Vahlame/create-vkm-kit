@@ -17,7 +17,82 @@ from .indexer import ensure_fresh, index_vault, index_vectors
 from .kg_query import observations_query, relations_for, suggest_structure
 from .query import hybrid_search, search_vault
 from .report import build_report
+from .rerank import get_reranker
 from .rotate import rotate_session_log
+
+
+def _add_hybrid_flags(parser) -> None:
+    """Shared optional retrieval flags for hybrid-search / json-hybrid-search.
+
+    Every flag is off by default so the plain call is the deterministic RRF path.
+    """
+    parser.add_argument(
+        "--graph",
+        action="store_true",
+        help="Also fuse in notes adjacent in the [[wikilink]] graph (link-aware recall)",
+    )
+    parser.add_argument(
+        "--graph-typed",
+        action="store_true",
+        help="Type-weighted graph recall via the typed relations table (implies --graph)",
+    )
+    parser.add_argument(
+        "--recency",
+        action="store_true",
+        help="Bias ranking toward recently-modified notes (exponential time decay)",
+    )
+    parser.add_argument(
+        "--importance",
+        action="store_true",
+        help="Bias toward hub notes by [[wikilink]] in-degree (centrality)",
+    )
+    parser.add_argument(
+        "--mmr",
+        action="store_true",
+        help="Diversify results with Maximal Marginal Relevance",
+    )
+    parser.add_argument(
+        "--mmr-lambda",
+        type=float,
+        default=0.5,
+        help="MMR relevance/novelty trade-off in [0,1] (default 0.5)",
+    )
+    parser.add_argument(
+        "--passage-window",
+        type=int,
+        default=0,
+        help="Widen each chunk hit's snippet to N adjacent chunks (default 0)",
+    )
+    parser.add_argument(
+        "--rerank",
+        action="store_true",
+        help="Cross-encoder rerank of top candidates (needs the [rerank] extra)",
+    )
+    parser.add_argument(
+        "--rerank-model",
+        default=None,
+        help="Cross-encoder model id (overrides OBSIDIAN_MEMORY_RERANK_MODEL / default)",
+    )
+    parser.add_argument(
+        "--no-auto-index",
+        action="store_true",
+        help="Skip the pre-search incremental index refresh (query the index as-is)",
+    )
+
+
+def _hybrid_kwargs(args) -> dict:
+    """Build hybrid_search keyword args from parsed hybrid flags."""
+    return {
+        "limit": args.limit,
+        "graph": args.graph or args.graph_typed,
+        "graph_typed": args.graph_typed,
+        "recency": args.recency,
+        "importance": args.importance,
+        "mmr": args.mmr,
+        "mmr_lambda": args.mmr_lambda,
+        "passage_window": args.passage_window,
+        "reranker": get_reranker(args.rerank_model or ("1" if args.rerank else None)),
+    }
 
 
 def main() -> None:
@@ -70,21 +145,7 @@ def main() -> None:
     hs.add_argument("query", help="Natural-language query (ranked by relevance, not just keywords)")
     hs.add_argument("--limit", type=int, default=20)
     hs.add_argument("--embedder", default=None)
-    hs.add_argument(
-        "--graph",
-        action="store_true",
-        help="Also fuse in notes adjacent in the [[wikilink]] graph (link-aware recall)",
-    )
-    hs.add_argument(
-        "--recency",
-        action="store_true",
-        help="Bias ranking toward recently-modified notes (exponential time decay)",
-    )
-    hs.add_argument(
-        "--no-auto-index",
-        action="store_true",
-        help="Skip the pre-search incremental index refresh (query the index as-is)",
-    )
+    _add_hybrid_flags(hs)
 
     b = sub.add_parser("bench", help="Micro-benchmark repeated search (local perf smoke)")
     b.add_argument("--vault", type=Path, required=True)
@@ -102,6 +163,22 @@ def main() -> None:
         br.add_argument("--k", type=int, default=5)
         br.add_argument("--embedder", default=None)
         br.add_argument("--graph", action="store_true", help="Fuse in [[wikilink]] neighbours")
+        br.add_argument(
+            "--graph-typed",
+            action="store_true",
+            help="Type-weighted graph recall via typed relations (implies --graph)",
+        )
+        br.add_argument(
+            "--importance", action="store_true", help="Bias toward hub notes (in-degree)"
+        )
+        br.add_argument("--mmr", action="store_true", help="Diversify with MMR")
+        br.add_argument(
+            "--rerank",
+            nargs="?",
+            const="1",
+            default=None,
+            help="Cross-encoder rerank (optional model id; needs the [rerank] extra)",
+        )
         br.add_argument(
             "--in-place",
             action="store_true",
@@ -135,21 +212,7 @@ def main() -> None:
     jh.add_argument("--query", required=True)
     jh.add_argument("--limit", type=int, default=20)
     jh.add_argument("--embedder", default=None)
-    jh.add_argument(
-        "--graph",
-        action="store_true",
-        help="Also fuse in notes adjacent in the [[wikilink]] graph (link-aware recall)",
-    )
-    jh.add_argument(
-        "--recency",
-        action="store_true",
-        help="Bias ranking toward recently-modified notes (exponential time decay)",
-    )
-    jh.add_argument(
-        "--no-auto-index",
-        action="store_true",
-        help="Skip the pre-search incremental index refresh (query the index as-is)",
-    )
+    _add_hybrid_flags(jh)
 
     ji = sub.add_parser(
         "json-index",
@@ -334,18 +397,16 @@ def main() -> None:
         embedder = get_embedder(args.embedder)
         if not args.no_auto_index:
             ensure_fresh(args.vault, embedder=embedder)
-        hits = hybrid_search(
-            args.vault, args.query, embedder, limit=args.limit, graph=args.graph,
-            recency=args.recency,
-        )
+        hits = hybrid_search(args.vault, args.query, embedder, **_hybrid_kwargs(args))
         if not hits:
             print("no hits (run `index --semantic` first or broaden query)")
             return
         for h in hits:
             label = f"[{h.heading}]" if h.heading else ""
+            rer = f" rerank={h.rerank_score:.3f}" if h.rerank_score is not None else ""
             print(
                 f"{h.path}\trrf={h.score:.5f}\t"
-                f"bm25={h.bm25_rank} vec={h.vector_rank} graph={h.graph_rank}\t{label}"
+                f"bm25={h.bm25_rank} vec={h.vector_rank} graph={h.graph_rank}{rer}\t{label}"
             )
             if h.snippet:
                 print(f"  {h.snippet}")
@@ -370,7 +431,11 @@ def main() -> None:
             args.queries,
             k=args.k,
             embedder_name=args.embedder,
-            graph=args.graph,
+            graph=args.graph or args.graph_typed,
+            graph_typed=args.graph_typed,
+            importance=args.importance,
+            mmr=args.mmr,
+            reranker_name=args.rerank,
             in_place=args.in_place,
         )
         if args.cmd == "json-bench-recall":
@@ -414,10 +479,7 @@ def main() -> None:
         embedder = get_embedder(args.embedder)
         if not args.no_auto_index:
             ensure_fresh(args.vault, embedder=embedder)
-        hits = hybrid_search(
-            args.vault, args.query, embedder, limit=args.limit, graph=args.graph,
-            recency=args.recency,
-        )
+        hits = hybrid_search(args.vault, args.query, embedder, **_hybrid_kwargs(args))
         payload = {
             "hits": [
                 {
@@ -428,6 +490,7 @@ def main() -> None:
                     "bm25_rank": h.bm25_rank,
                     "vector_rank": h.vector_rank,
                     "graph_rank": h.graph_rank,
+                    "rerank_score": h.rerank_score,
                 }
                 for h in hits
             ],

@@ -41,6 +41,7 @@ from .query import hybrid_search
 
 if TYPE_CHECKING:
     from .embeddings import Embedder
+    from .rerank import Reranker
 
 
 def ndcg_at_k(ranked: list[str], gains: dict[str, float], k: int) -> float:
@@ -90,6 +91,7 @@ class QueryResult:
     hit_at_1: bool
     ndcg_at_k: float
     average_precision: float
+    top_score: float | None = None  # fused score of the top hit (for negatives)
 
 
 @dataclass
@@ -104,6 +106,12 @@ class BenchReport:
     ndcg_at_k: float
     map: float
     by_kind: dict[str, dict[str, float]]
+    # Headline metrics above are over POSITIVE queries only (those with a non-empty
+    # `relevant`). Negative queries (no relevant note) have no attainable recall/MRR,
+    # so they are summarized separately here: how strongly the engine still scores its
+    # best guess, and how often it abstains (returns nothing — e.g. a reranker margin
+    # cut-off drops every candidate).
+    negatives: dict = field(default_factory=dict)
     results: list[QueryResult] = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -134,16 +142,33 @@ def evaluate(
     *,
     k: int = 5,
     graph: bool = False,
+    graph_typed: bool = False,
+    importance: bool = False,
+    mmr: bool = False,
+    reranker: "Reranker | None" = None,
 ) -> BenchReport:
     """Score ``hybrid_search`` for each query against its ground-truth labels.
 
     Assumes ``vault`` is already indexed (FTS + vectors). Pure measurement — does
-    not mutate the corpus.
+    not mutate the corpus. The optional retrieval levers (``graph_typed``,
+    ``importance``, ``mmr``, ``reranker``) are passed straight through so a lever can
+    be measured against its golden bucket. Headline aggregates are over **positive**
+    queries (non-empty ``relevant``); negatives are summarized separately.
     """
     results: list[QueryResult] = []
     for q in queries:
         relevant = set(q["relevant"])
-        hits = hybrid_search(vault, q["query"], embedder, limit=k, graph=graph)
+        hits = hybrid_search(
+            vault,
+            q["query"],
+            embedder,
+            limit=k,
+            graph=graph,
+            graph_typed=graph_typed,
+            importance=importance,
+            mmr=mmr,
+            reranker=reranker,
+        )
         retrieved = [h.path for h in hits]
         topk = retrieved[:k]
         first_rank: int | None = None
@@ -164,18 +189,25 @@ def evaluate(
                 hit_at_1=first_rank == 1,
                 ndcg_at_k=ndcg_at_k(topk, gains, k),
                 average_precision=average_precision(topk, relevant),
+                top_score=(hits[0].score if hits else None),
             )
         )
 
-    n = len(results)
-    mrr = sum(1.0 / r.first_rank for r in results if r.first_rank) / n
-    recall_at_k = sum(r.recall_at_k for r in results) / n
-    hit_at_1 = sum(1.0 for r in results if r.hit_at_1) / n
-    ndcg = sum(r.ndcg_at_k for r in results) / n
-    mean_ap = sum(r.average_precision for r in results) / n
+    positives = [r for r in results if r.relevant]
+    negatives = [r for r in results if not r.relevant]
+    has_pos = bool(positives)
+
+    def agg(fn) -> float:
+        return (sum(fn(r) for r in positives) / len(positives)) if has_pos else 0.0
+
+    mrr = agg(lambda r: (1.0 / r.first_rank) if r.first_rank else 0.0)
+    recall_at_k = agg(lambda r: r.recall_at_k)
+    hit_at_1 = agg(lambda r: 1.0 if r.hit_at_1 else 0.0)
+    ndcg = agg(lambda r: r.ndcg_at_k)
+    mean_ap = agg(lambda r: r.average_precision)
 
     buckets: dict[str, list[QueryResult]] = defaultdict(list)
-    for r in results:
+    for r in positives:
         buckets[r.kind].append(r)
     by_kind = {
         kind: {
@@ -189,9 +221,23 @@ def evaluate(
         for kind, rs in sorted(buckets.items())
     }
 
+    neg_summary = {
+        "n": len(negatives),
+        "mean_top_score": (
+            sum((r.top_score or 0.0) for r in negatives) / len(negatives)
+        )
+        if negatives
+        else 0.0,
+        "abstain_rate": (
+            sum(1.0 for r in negatives if not r.retrieved) / len(negatives)
+        )
+        if negatives
+        else 0.0,
+    }
+
     return BenchReport(
         k=k,
-        n=n,
+        n=len(results),
         embedder=embedder.name,
         graph=graph,
         mrr=mrr,
@@ -200,6 +246,7 @@ def evaluate(
         ndcg_at_k=ndcg,
         map=mean_ap,
         by_kind=by_kind,
+        negatives=neg_summary,
         results=results,
     )
 
@@ -211,21 +258,43 @@ def run_benchmark(
     k: int = 5,
     embedder_name: str | None = None,
     graph: bool = False,
+    graph_typed: bool = False,
+    importance: bool = False,
+    mmr: bool = False,
+    reranker_name: str | None = None,
     in_place: bool = False,
 ) -> BenchReport:
     """Index ``corpus`` and score it against ``queries_path``.
 
     By default the corpus is copied to a temp dir before indexing so the checked-in
     fixture stays pristine (no ``.obsidian-memory-rag/`` sidecar committed). Pass
-    ``in_place=True`` to index the corpus where it lives.
+    ``in_place=True`` to index the corpus where it lives. The retrieval-lever flags
+    are forwarded to :func:`evaluate`; ``reranker_name`` resolves an optional
+    cross-encoder via :func:`obsidian_memory_rag.rerank.get_reranker` (``None`` →
+    no reranking).
     """
     embedder = get_embedder(embedder_name)
     queries = load_queries(queries_path)
+    reranker = None
+    if reranker_name is not None:
+        from .rerank import get_reranker
+
+        reranker = get_reranker(reranker_name)
 
     def _index_and_eval(vault: Path) -> BenchReport:
         index_vault(vault)
         index_vectors(vault, embedder)
-        return evaluate(vault, queries, embedder, k=k, graph=graph)
+        return evaluate(
+            vault,
+            queries,
+            embedder,
+            k=k,
+            graph=graph,
+            graph_typed=graph_typed,
+            importance=importance,
+            mmr=mmr,
+            reranker=reranker,
+        )
 
     if in_place:
         return _index_and_eval(Path(corpus))
@@ -257,7 +326,15 @@ def format_report(report: BenchReport) -> str:
             f"mrr={m['mrr']:.3f} hit@1={m['hit_at_1']:.3f} "
             f"ndcg@{report.k}={m['ndcg_at_k']:.3f} map={m['map']:.3f}"
         )
-    misses = [r for r in report.results if r.first_rank is None]
+    neg = report.negatives or {}
+    if neg.get("n"):
+        lines.append(
+            f"  negatives:   n={int(neg['n'])} "
+            f"mean_top_score={neg['mean_top_score']:.4f} "
+            f"abstain_rate={neg['abstain_rate']:.3f}"
+        )
+    # Only positive queries can "miss" — a negative query has no relevant note.
+    misses = [r for r in report.results if r.relevant and r.first_rank is None]
     if misses:
         lines.append(f"  misses ({len(misses)}):")
         for r in misses:

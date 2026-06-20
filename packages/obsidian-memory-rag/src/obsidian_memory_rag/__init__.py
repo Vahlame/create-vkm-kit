@@ -38,8 +38,10 @@ from .query import (
     hybrid_search,
     search_vault,
     semantic_search,
+    typed_graph_neighbors,
 )
 from .report import build_report
+from .rerank import FastEmbedReranker, Reranker, get_reranker
 from .rotate import RotateResult, rotate_session_log
 from .trie import Trie
 from .vector_store import ChunkHit
@@ -48,6 +50,7 @@ __all__ = [
     "BenchReport",
     "ChunkHit",
     "Embedder",
+    "FastEmbedReranker",
     "FreshStats",
     "HashingEmbedder",
     "HybridHit",
@@ -57,6 +60,7 @@ __all__ = [
     "QueryResult",
     "Relation",
     "RelationHit",
+    "Reranker",
     "RotateResult",
     "SearchHit",
     "Trie",
@@ -68,6 +72,7 @@ __all__ = [
     "ensure_fresh",
     "evaluate",
     "get_embedder",
+    "get_reranker",
     "graph_neighbors",
     "hybrid_search",
     "index_vault",
@@ -82,4 +87,5 @@ __all__ = [
     "search_vault",
     "semantic_search",
     "suggest_structure",
+    "typed_graph_neighbors",
 ]

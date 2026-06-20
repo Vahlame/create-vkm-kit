@@ -84,6 +84,82 @@ def _build_resolver(paths: list[str]):
     return resolve
 
 
+# Verb weights for type-weighted graph recall (ADR-0027). A strong structural
+# relation (a note that *supersedes* or *implements* a seed) is a far better
+# recall signal than a bare mention, so it scores higher than the default
+# untyped `relates_to` edge. These modulate the score *within* the graph ranking;
+# the whole graph ranking still enters the hybrid RRF at the small `GRAPH_WEIGHT`
+# (query.py), so type weighting sharpens which neighbours surface without letting
+# the link signal outvote BM25 + cosine. Tuned on the typed-multi golden bucket.
+TYPED_RELATION_WEIGHTS: dict[str, float] = {
+    "supersedes": 1.0,
+    "superseded_by": 1.0,
+    "implements": 0.8,
+    "implemented_by": 0.8,
+    "extends": 0.7,
+    "part_of": 0.7,
+    "depends_on": 0.6,
+    "uses": 0.5,
+    "see_also": 0.4,
+    "relates_to": 0.3,
+}
+DEFAULT_RELATION_WEIGHT = 0.3
+
+
+def _fts_paths(conn: sqlite3.Connection) -> list[str]:
+    return [str(r["path"]) for r in conn.execute("SELECT path FROM vault_fts").fetchall()]
+
+
+def typed_neighbor_paths(
+    conn: sqlite3.Connection,
+    seeds: list[str],
+    *,
+    limit: int = 50,
+    weights: dict[str, float] | None = None,
+) -> list[str]:
+    """Rank notes one hop from ``seeds`` using the *typed* relations table (ADR-0027).
+
+    Same both-directions, one-hop expansion as :func:`neighbor_paths`, but each edge
+    contributes its verb weight (``supersedes`` > ``implements`` > … > ``relates_to``)
+    instead of a flat +1, so a structurally-significant neighbour outranks a note that
+    merely mentions a seed. Reads the persisted ``relations`` table (populated by the
+    indexer from ``- <verb> [[target]]`` list items); targets are resolved to real
+    paths at query time. Returns ``[]`` when there is no index or no relation rows, so
+    it degrades exactly like the untyped path.
+    """
+    weight_for = weights or TYPED_RELATION_WEIGHTS
+    seeds = list(dict.fromkeys(seeds))
+    if not seeds:
+        return []
+    seed_set = set(seeds)
+    try:
+        rows = conn.execute(
+            "SELECT source_path, relation_type, target FROM relations"
+        ).fetchall()
+    except sqlite3.OperationalError:  # relations table absent (pre-v2 index)
+        return []
+    if not rows:
+        return []
+    resolve = _build_resolver(_fts_paths(conn))
+
+    score: dict[str, float] = defaultdict(float)
+    for r in rows:
+        src = str(r["source_path"])
+        rtype = str(r["relation_type"])
+        w = weight_for.get(rtype, DEFAULT_RELATION_WEIGHT)
+        dst = resolve(str(r["target"]))
+        if dst is None:
+            continue
+        if src in seed_set:
+            if dst != src:
+                score[dst] += w  # out-edge from a seed
+        elif dst in seed_set:
+            score[src] += w  # back-edge into the seed set
+
+    ranked = sorted(score.items(), key=lambda kv: (-kv[1], kv[0]))
+    return [path for path, _ in ranked[:limit]]
+
+
 def neighbor_paths(
     conn: sqlite3.Connection, seeds: list[str], *, limit: int = 50
 ) -> list[str]:

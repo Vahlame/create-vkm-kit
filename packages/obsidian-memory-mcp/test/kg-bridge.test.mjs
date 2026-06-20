@@ -19,7 +19,11 @@ function kgVault() {
     "# ADR-0023\n\n- implements [[adr-0014]]\n- [decision] typed KG layer #graph\n",
     "utf8"
   );
-  fs.writeFileSync(path.join(vault, "docs", "adr-0014.md"), "# ADR-0014\nhybrid retrieval\n", "utf8");
+  fs.writeFileSync(
+    path.join(vault, "docs", "adr-0014.md"),
+    "# ADR-0014\nhybrid retrieval\n",
+    "utf8"
+  );
   return vault;
 }
 
@@ -34,7 +38,15 @@ test("json-relations bridges typed edges with resolved target paths", () => {
   const vault = kgVault();
   rag(vault, ["json-index", "--vault", vault]);
   const data = JSON.parse(
-    rag(vault, ["json-relations", "--vault", vault, "adr-0023", "--direction", "out", "--no-auto-index"])
+    rag(vault, [
+      "json-relations",
+      "--vault",
+      vault,
+      "adr-0023",
+      "--direction",
+      "out",
+      "--no-auto-index"
+    ])
   );
   const impl = data.relations.find((r) => r.relation_type === "implements");
   assert.ok(impl, "expected an implements relation");
@@ -71,9 +83,7 @@ test("json-kg-suggest is read-only and reports existing structure", () => {
 test("json-memory-report bridges indices + hygiene + suggestions", () => {
   const vault = kgVault();
   rag(vault, ["json-index", "--vault", vault]);
-  const rep = JSON.parse(
-    rag(vault, ["json-memory-report", "--vault", vault, "--no-auto-index"])
-  );
+  const rep = JSON.parse(rag(vault, ["json-memory-report", "--vault", vault, "--no-auto-index"]));
   assert.equal(rep.totals.notes, 2);
   assert.ok(rep.totals.observations >= 1);
   assert.ok(Array.isArray(rep.indices.observations_by_category));

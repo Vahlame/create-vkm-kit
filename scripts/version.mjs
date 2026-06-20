@@ -144,7 +144,9 @@ function cmdSet(version) {
     writeFileSync(path.join(ROOT, mk.file), after);
     console.log(`  set ${mk.name} -> ${version}`);
   }
-  console.log(`\n✓ all markers set to ${version}. Remember to update CHANGELOG.md and tag v${version}.`);
+  console.log(
+    `\n✓ all markers set to ${version}. Remember to update CHANGELOG.md and tag v${version}.`
+  );
 }
 
 const [, , cmd, arg] = process.argv;

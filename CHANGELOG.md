@@ -6,6 +6,83 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [3.9.0] - 2026-06-20
+
+### Added
+
+- **Cross-encoder reranker — an optional final precision pass (ADR-0026).** New
+  `[rerank]` extra + `rerank.py` (`Reranker` protocol + `FastEmbedReranker`, lazy ONNX
+  via fastembed's `TextCrossEncoder`, durable shared cache, version-folded identity).
+  `vault_hybrid_search` (and the CLI / `bench-recall`) gain an opt-in `rerank` that
+  re-scores the fused candidates' passages **jointly** with the query, reorders by the
+  cross-encoder logit, and keeps those within a margin of the top. **Off by default**
+  (the deterministic gate is unchanged); enable with the extra + `OBSIDIAN_MEMORY_RERANK=1`
+  (or `rerank: true`). Default model is the multilingual `jinaai/jina-reranker-v2-base-multilingual`
+  (override via `OBSIDIAN_MEMORY_RERANK_MODEL`); a missing extra or a runtime failure
+  falls back to the fused order, so reranking can only reorder, never break, search.
+  Honest caveat documented: the model must match the content language (an English
+  ms-marco reranker _lowers_ recall on the Spanish fixture).
+- **Type-weighted graph recall (ADR-0027).** `vault_hybrid_search(graphTyped: true)`
+  ranks one-hop neighbours from the persisted typed `relations` table, weighting edges
+  by verb (`supersedes`/`implements` outrank a bare `relates_to`) instead of a flat +1.
+  Still enters weighted RRF at the small graph weight, so it sharpens which neighbour
+  surfaces without out-voting BM25 + cosine. The untyped `graph: true` path is
+  byte-identical to before.
+- **Importance / in-degree bias (ADR-0027).** `importance: true` multiplies fused
+  scores by a bounded in-degree boost (≤ 1.15×), so a hub note wins among
+  comparably-relevant ties — completing the Generative-Agents relevance × recency ×
+  importance triad. Deterministic; off by default.
+- **MMR diversification + passage-window expansion (ADR-0028).** `mmr: true` reorders
+  the fused pool for diversity (greedy Maximal Marginal Relevance over the stored chunk
+  vectors; stdlib, works on the dependency-free embedder). `passageWindow: N` widens a
+  hit's returned snippet to its N adjacent chunks so the agent answers from a complete
+  section — **ranking-neutral by construction**. Both opt-in, off by default.
+- **Harder retrieval golden set + negative-query measurement.** `queries.jsonl` gains
+  `negative` queries (no relevant note); `bench_recall.py` now scores positive and
+  negative queries **separately** — negatives are excluded from recall/MRR/nDCG/MAP and
+  summarized as `{n, mean_top_score, abstain_rate}` (so they measure the reranker's
+  margin cut-off / abstention without corrupting the positive aggregates). The
+  positive-aggregate CI floor is unchanged (recall@5 1.000, MRR 0.984, hit@1 0.969,
+  nDCG@5 0.988, MAP 0.984).
+- New **ADR-0026 / 0027 / 0028** added and indexed; `ARCHITECTURE.md`, the agent rules,
+  and the installed memory-rules block document the new opt-in knobs.
+
+### Fixed
+
+- **Daemon service lifecycle leak (Go).** `obsidian-memoryd service` started the watch
+  loop on `context.Background()` with a no-op `Stop`, leaking the goroutine + fsnotify
+  watcher on every service stop/restart. `Stop` now cancels a stored context; new
+  Start/Stop lifecycle test.
+- **Newly-created subdirectories are now watched.** fsnotify is non-recursive, so a
+  directory created after startup carried no watch and edits inside it could be missed;
+  the watch loop now adds new directories on `Create`/`Rename`. Also stops the pending
+  debounce timer on exit so a late timer can't fire against a cancelled context. New
+  `runWatch` integration test.
+- **Robust Python bridge (Node MCP).** `runRagJson` no longer throws an opaque
+  `SyntaxError` when the Python backend emits non-JSON (clear "returned non-JSON"
+  error), surfaces the exit code, and prints an actionable hint when the Python
+  executable is missing. The MCP server now advertises the package's real version (was
+  a hardcoded `3.8.0` outside the version guard). `vault_fts_search`'s description now
+  matches the engine (title + body BM25F with AND→OR fallback).
+
+### Changed
+
+- **CI hardening.** Prettier now also checks `.mjs/.js/.cjs/.ts` (the JS/TS sources
+  were previously unformatted-unchecked; formatted once); `test-node` runs on
+  Linux + Windows + macOS (was Linux-only); the Go job adds `go test -race` on Linux.
+  `SECURITY.md` / `CONTRIBUTING.md` notes synced.
+
+### Notes
+
+- **Default retrieval path is byte-for-byte unchanged.** Every new lever is a new
+  keyword arg defaulting to off, so the deterministic `retrieval-bench` gate is
+  identical. The new levers are honestly **situational**: type-weighting and MMR are
+  ~neutral or slightly negative on the generic single-relevant fixture and help
+  specific vault shapes (richly typed graphs, topically-redundant or hub-and-spoke
+  vaults) — which is exactly why they ship opt-in. **Convex/normalized score fusion was
+  evaluated and deferred** (ADR-0028): the saturated fixture can't honestly fit its α,
+  and parameter-free weighted RRF is robust.
+
 ## [3.8.3] - 2026-06-19
 
 ### Documentation

@@ -1,6 +1,6 @@
 [project]
 name = "obsidian-memory-rag"
-version = "3.8.3"
+version = "3.9.0"
 description = "Optional hybrid FTS5 + vector (semantic) indexer for Markdown vaults"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -16,6 +16,12 @@ semantic = ["fastembed>=0.3"]
 # extra AND setting OBSIDIAN_MEMORY_SQLITE_VEC=1. Stays in the same fts.sqlite —
 # no server, no separate store (the in-file answer vs. Chroma/LanceDB).
 vec = ["sqlite-vec>=0.1.6"]
+# Optional cross-encoder reranking (ADR-0026): a final precision pass that re-scores
+# the fused candidate passages jointly with the query. Reuses fastembed's ONNX
+# TextCrossEncoder (no torch). Opt in by installing this extra AND setting
+# OBSIDIAN_MEMORY_RERANK=1 (or passing a reranker). Off by default — the deterministic
+# retrieval path is unchanged.
+rerank = ["fastembed>=0.3"]
 
 [project.scripts]
 obsidian-memory-rag = "obsidian_memory_rag.cli:main"

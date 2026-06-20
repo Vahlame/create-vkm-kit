@@ -60,7 +60,10 @@ const PHRASE_PATTERNS = [
   /<\/?system\b[^>]*>/i,
   // ── Spanish ─────────────────────────────────────────────────────────────────
   // ignora/descarta/olvida [filler...] (anteriores|previas|de arriba) — override
-  new RegExp(`\\b(?:ignora\\w*|descarta\\w*|olvida\\w*)\\s+(?:${ES_FILLER}\\s+){0,4}${ES_TARGET}\\b`, "i"),
+  new RegExp(
+    `\\b(?:ignora\\w*|descarta\\w*|olvida\\w*)\\s+(?:${ES_FILLER}\\s+){0,4}${ES_TARGET}\\b`,
+    "i"
+  ),
   // haz caso omiso de [filler...] (target)
   new RegExp(`\\bhaz\\s+caso\\s+omiso\\s+de\\s+(?:${ES_FILLER}\\s+){0,4}${ES_TARGET}\\b`, "i"),
   // nuevas instrucciones/reglas/directrices/órdenes

@@ -95,9 +95,7 @@ function yamlStringList(values: string[]): string {
 function buildCursorMdc(rule: CursorRule): string {
   const body = readText(join(ROOT, rule.source)).trimEnd();
   const globs =
-    rule.globs && rule.globs.length
-      ? `\nglobs:\n${yamlStringList(rule.globs)}\n`
-      : "\n";
+    rule.globs && rule.globs.length ? `\nglobs:\n${yamlStringList(rule.globs)}\n` : "\n";
   const always = `alwaysApply: ${rule.alwaysApply === true ? "true" : "false"}\n`;
   const fm = `---\ndescription: ${JSON.stringify(rule.description)}${globs}${always}---\n\n`;
   return `${fm}${body}\n`;
