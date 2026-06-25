@@ -1,7 +1,7 @@
 schemaVersion = 1
 name = "obsidian-memory-kit"
 title = "Obsidian-style agent memory (cross-platform)"
-version = "3.9.1"
+version = "3.10.0"
 primaryAgentFile = "AGENTS.md"
 platforms = ["windows", "linux", "darwin"]
 defaultMcp = "basic-memory"

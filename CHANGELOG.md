@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [3.10.0] - 2026-06-24
+
 ### Added
 
 - **Installer makes the vault Claude Code's ONLY memory, out of the box (ADR-0029).** A
@@ -28,6 +30,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   the top) installed into `~/.claude/CLAUDE.md` / `AGENTS.md` / `.cursor/rules`: vault >
   native auto-memory, eager-load deferred `vault_*` tools with `ToolSearch`, and the
   close + single-line-anchor convention.
+
+### Changed
+
+- **Dependency maintenance (internal — the published `create-obsidian-memory` package's
+  runtime deps are unchanged).** Bumped the private hybrid MCP server and dev tooling:
+  `zod` 3 → 4 (the MCP SDK 1.29 declares `^3.25 || ^4.0`; the server still registers all
+  14 `vault_*` tools), `pino` 9 → 10, the optional OpenTelemetry tracing deps
+  (`@opentelemetry/sdk-node` + `exporter-trace-otlp-http`) 0.57 → 0.219, `typescript`
+  5 → 6, and `@types/node` 22 → 26. The OpenTelemetry bump **clears all 28 `npm audit`
+  advisories (→ 0 vulnerabilities)**. Also fixed prettier + markdownlint (MD049) drift
+  from the ADR-0029 commit and synced the workspace versions in `package-lock.json`.
 
 ### Documentation
 
@@ -425,7 +438,8 @@ Prior history was undocumented and is summarized only in git log. Highlights:
 - Addition of `AGENTS.md` and `manifest.json` for machine-readable discoverability.
 - Seven hardening fixes for real-world install gaps.
 
-[Unreleased]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.7.0...HEAD
+[Unreleased]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.10.0...HEAD
+[3.10.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.9.1...v3.10.0
 [3.7.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.6.0...v3.7.0
 [3.6.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.5.0...v3.6.0
 [3.5.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.0.0...v3.5.0
