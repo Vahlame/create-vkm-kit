@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT"></a>
-  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v3.8.1-orange.svg" alt="Release"></a>
+  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v3.9.1-orange.svg" alt="Release"></a>
   <a href="https://github.com/Vahlame/obsidian-memory-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/obsidian-memory-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
 
@@ -70,8 +70,10 @@ Prefer an **agent to install it**? Clone it and tell it _"install it"_: have it 
 then `npm run setup` — dependency preflight → `--full` install → verification → restart notice.
 
 > 🤖 **Claude Code / Codex (fresh PC):** `--full` already registers the MCP via `claude mcp add` /
-> `codex mcp add` and builds the index in the same command. Just the basics? Use
-> `--ide codex,claude`. Full guide: [fresh-PC install](docs/en/install-fresh-pc.md).
+> `codex mcp add` and builds the index in the same command. For Claude Code it also makes the vault
+> the **only** memory: it turns off Claude Code's native auto-memory (`autoMemoryEnabled:false`) and
+> installs a `SessionStart` vault hook (ADR-0029). Just the basics? Use `--ide codex,claude`. Full
+> guide: [fresh-PC install](docs/en/install-fresh-pc.md).
 
 Then paste the **User Rules** and verify. The complete steps (and verification) are in the guide:
 

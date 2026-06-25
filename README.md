@@ -75,8 +75,10 @@ npx @vkmikc/create-obsidian-memory "<RUTA>" -y     # sin preguntas, en la ruta q
 reinicio. · _Prefer an agent to do it?_ Clone it and have it run `npm install` then `npm run setup`.
 
 > 🤖 **Claude Code / Codex (PC nuevo · fresh PC):** `--full` ya registra el MCP vía
-> `claude mcp add` / `codex mcp add` y construye el índice en el mismo comando. ¿Solo lo básico?
-> usa `--ide codex,claude`. Guía completa: [🇪🇸 instalar en PC nueva](docs/es/instalar-pc-nueva.md) ·
+> `claude mcp add` / `codex mcp add` y construye el índice en el mismo comando. Para Claude Code
+> además deja el vault como **única** memoria: apaga la auto-memoria nativa (`autoMemoryEnabled:false`)
+> e instala un hook `SessionStart` del vault (ADR-0029). ¿Solo lo básico? usa `--ide codex,claude`.
+> Guía completa: [🇪🇸 instalar en PC nueva](docs/es/instalar-pc-nueva.md) ·
 > [🇬🇧 fresh-PC install](docs/en/install-fresh-pc.md).
 
 Luego pega las **User Rules** y verifica. Los pasos completos (y la verificación) están en la guía:

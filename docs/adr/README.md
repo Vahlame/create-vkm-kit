@@ -32,6 +32,7 @@ Each file in this directory captures one design decision: what was chosen, what 
 | [ADR-0026](./0026-cross-encoder-reranker.md)                   | Optional cross-encoder reranker (final precision pass, `[rerank]` extra, off by default) | Accepted |
 | [ADR-0027](./0027-type-weighted-graph-and-importance.md)       | Type-weighted graph recall + importance (in-degree) bias                                 | Accepted |
 | [ADR-0028](./0028-mmr-and-passage-window.md)                   | MMR diversification + passage-window expansion (decline convex fusion for now)           | Accepted |
+| [ADR-0029](./0029-disable-claude-native-auto-memory.md)        | Disable Claude Code's native auto-memory + install a SessionStart vault hook             | Accepted |
 
 ## Template
 

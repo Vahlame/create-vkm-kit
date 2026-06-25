@@ -52,7 +52,11 @@ private notes repo URL (ask me if you don't have it).
    ```
 
    It's **idempotent** (replaces a server if it already existed). If `claude` isn't on PATH, it
-   prints the `claude mcp add …` commands for you to run manually.
+   prints the `claude mcp add …` commands for you to run manually. For Claude Code it also makes the
+   vault the **only** memory: it writes `"autoMemoryEnabled": false` into `~/.claude/settings.json`
+   and installs a `SessionStart` vault hook (`~/.claude/hooks/session-start-vault-context.mjs`) — so
+   Claude's native auto-memory no longer competes with the vault (ADR-0029). Opt out with
+   `--no-native-memory-override`.
 
 6. **Global rules (passage-first + savings).** Open `<KIT>/docs/en/install.md`, copy the **User
    Rules block from Step 4**, and paste/append it into `~/.claude/CLAUDE.md` (Claude Code loads it

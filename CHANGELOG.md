@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Installer makes the vault Claude Code's ONLY memory, out of the box (ADR-0029).** A
+  Claude Code install (`--ide claude`, on by default in the full stack) now also:
+  1. **Disables Claude Code's native auto-memory** — writes `"autoMemoryEnabled": false`
+     into `~/.claude/settings.json` (idempotent merge; never clobbers other keys/hooks,
+     backs up + skips on invalid JSON).
+  2. **Installs a `SessionStart` hook** (`~/.claude/hooks/session-start-vault-context.mjs`,
+     a cross-platform Node script — no PowerShell/bash fork) that injects the vault map +
+     reinforced "vault is the only source of truth" reminders (precedence, first-step
+     `ToolSearch` of deferred `vault_*` tools, recall/close convention, single-line edit
+     anchoring). Registered idempotently; recognizes and replaces a legacy `.ps1` variant.
+  - **Why:** Claude Code's native per-project auto-memory (`~/.claude/projects/*/memory/`)
+    is auto-loaded and the base prompt tells the model to `Write` to it, so it competes
+    with — and by default beats — the Obsidian vault (especially while the `vault_*` MCP
+    tools are deferred). This closes that gap on a fresh machine.
+  - Idempotent; re-runs don't duplicate the hook or break existing settings. Opt out with
+    `--minimal` or `--no-native-memory-override`; force on with `--native-memory-override`.
+- **Memory-rules block gains a `## Precedencia de memoria (OVERRIDE)` section** (ES/EN, at
+  the top) installed into `~/.claude/CLAUDE.md` / `AGENTS.md` / `.cursor/rules`: vault >
+  native auto-memory, eager-load deferred `vault_*` tools with `ToolSearch`, and the
+  close + single-line-anchor convention.
+
 ### Documentation
 
 - **how-it-works ES/EN: the retrieval-stack diagram now shows the 3.9 stages.** The

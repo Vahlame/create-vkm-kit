@@ -67,7 +67,7 @@ anterior y crea el vault si falta.
 npx @vkmikc/create-obsidian-memory "<VAULT>" -y
 ```
 
-> **Stack completo por defecto (v3.8.1).** Ese comando instala **todo** — hybrid + semántica +
+> **Stack completo por defecto (desde la v3.8.1).** Ese comando instala **todo** — hybrid + semántica +
 > sqlite-vec + índice + reglas — cuando se corre desde un clon del kit (o con `--repo-root <clon>`).
 > Desde cualquier otro lugar **degrada a solo `basic-memory`** (con un aviso), así que siempre es
 > seguro. ¿Solo `basic-memory`? añade `--minimal`. ¿Stack completo _y_ Codex+Claude cableados? usa
@@ -299,8 +299,32 @@ Si el agente devuelve el contenido del archivo, **funciona**. Confirmado:
 | Quiero…                                                         | Ve a                                                             |
 | --------------------------------------------------------------- | ---------------------------------------------------------------- |
 | **Búsqueda léxica + semántica** en vaults grandes (MCP híbrido) | [Abajo: híbrido FTS](#opcional--búsqueda-híbrida-fts--semántica) |
+| **Que el vault sea la única memoria de Claude Code**            | [Abajo: Claude Code](#claude-code--el-vault-como-única-memoria)  |
 | **Sincronizar el vault con git** (daemon, manual o mismo repo)  | [`sincronizacion.md`](sincronizacion.md)                         |
 | **Entender el sistema** antes/después                           | [`como-funciona.md`](como-funciona.md)                           |
+
+### Claude Code — el vault como única memoria
+
+Si conectas **Claude Code** (`--ide claude`), el instalador hace esto **por defecto** para que
+el vault gane sobre la memoria integrada de Claude Code (ADR-0029):
+
+- Escribe `"autoMemoryEnabled": false` en `~/.claude/settings.json` — apaga la **auto-memoria
+  nativa por proyecto** de Claude Code (`~/.claude/projects/<ruta>/memory/`), que el harness
+  auto-carga y el system prompt base le indica al modelo escribir con `Write`. Encendida,
+  compite con el vault y gana por defecto.
+- Instala un hook `SessionStart` (`~/.claude/hooks/session-start-vault-context.mjs`, un script
+  Node multiplataforma) que inyecta el mapa del vault + recordatorios: el vault es la única
+  fuente de verdad, el primer paso es cargar con `ToolSearch` las tools `vault_*` deferred,
+  recall = `vault_hybrid_search`, cierre = `SESSION_LOG.md` + `PROJECTS/<proyecto>.md` (cada
+  edición anclada en UNA línea CRLF).
+
+Es un merge idempotente: re-correr preserva tus otras claves/hooks de `settings.json` y nunca
+duplica el hook. Desactívalo con `--minimal` o `--no-native-memory-override`. Verifica con:
+
+```powershell
+type "$env:USERPROFILE\.claude\settings.json"   # Windows
+cat ~/.claude/settings.json                       # macOS/Linux
+```
 
 ### Opcional — Búsqueda híbrida (FTS + semántica)
 

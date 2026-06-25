@@ -33,7 +33,7 @@ npx @vkmikc/create-obsidian-memory@latest ./my-vault -y
 npx @vkmikc/create-obsidian-memory@latest ./my-vault -y --minimal
 ```
 
-**The install is the full stack BY DEFAULT (v3.8.1)** — hybrid + semantic + sqlite-vec + index +
+**The install is the full stack BY DEFAULT (default since v3.8.1)** — hybrid + semantic + sqlite-vec + index +
 rules, the same set `--full` ships. That wires the knowledge graph + memory reports (automatic once
 hybrid is on), neural embeddings, and the sqlite-vec acceleration. Run it from a clone of the kit (or
 pass `--repo-root <clone>`) to get the hybrid pieces; with no clone it **degrades to `basic-memory`
@@ -86,6 +86,8 @@ found.
 | `--with-gitleaks`                  | Install a gitleaks pre-commit hook in `<vault>/.git/hooks/`.                                                                                                                                                                                                                                                                                             |
 | `--rules <list>`                   | Install the memory-rules block into `claude` (`~/.claude/CLAUDE.md`), `codex` (`~/.codex/AGENTS.md`), `agents` (`./AGENTS.md`), `cursor` (`.cursor/rules`). Or `all` / `none`. Idempotent; never clobbers your content. Headless writes nothing unless passed (or `--full`); interactive asks.                                                           |
 | `--no-rules`                       | Don't write any rules file.                                                                                                                                                                                                                                                                                                                              |
+| `--native-memory-override`         | (Claude Code) Force the native-memory override on, even under `--minimal`.                                                                                                                                                                                                                                                                                |
+| `--no-native-memory-override`      | (Claude Code) Leave Claude's native auto-memory untouched (don't write `autoMemoryEnabled:false` / the SessionStart hook).                                                                                                                                                                                                                                |
 | `--help`                           | Show usage.                                                                                                                                                                                                                                                                                                                                              |
 
 - `codex` registers servers via the Codex CLI (`codex mcp add` → `~/.codex/config.toml`).
@@ -102,6 +104,15 @@ npx @vkmikc/create-obsidian-memory@latest ./my-vault -y --ide cursor,claude --ru
 
 It writes an **idempotent marked block** (`<!-- obsidian-memory:start --> … <!-- obsidian-memory:end -->`) into `~/.claude/CLAUDE.md`, `./AGENTS.md` and `.cursor/rules/obsidian-memory.mdc`, merging in place — **your own content is never touched**, and re-runs just refresh the block. Cursor's _global_ User Rules can't be auto-written (not a file), so paste that one from the install guide.
 
+### Make the vault Claude Code's *only* memory (`--ide claude`)
+
+Claude Code ships a **native auto-memory** (`~/.claude/projects/<path>/memory/MEMORY.md`) that the harness auto-loads and the base prompt tells the model to `Write` to. Left on, it competes with — and by default beats — the vault, especially while the `vault_*` MCP tools are deferred. So a Claude Code install also, **by default** (ADR-0029):
+
+1. Writes `"autoMemoryEnabled": false` into `~/.claude/settings.json` (idempotent merge — other keys/hooks are preserved; invalid JSON is backed up and skipped).
+2. Installs a cross-platform Node **`SessionStart` hook** (`~/.claude/hooks/session-start-vault-context.mjs`) that injects the vault map + reinforced reminders: vault is the only source of truth, first step is to `ToolSearch`-load deferred `vault_*` tools, recall = `vault_hybrid_search`, and the close ritual (`SESSION_LOG.md` + `PROJECTS/<project>.md`, each edit anchored on one CRLF line).
+
+Re-runs don't duplicate the hook (a legacy `.ps1` variant is recognized and replaced). Opt out with `--minimal` or `--no-native-memory-override`; force on with `--native-memory-override`.
+
 ## What the installed memory does
 
 Beyond wiring the MCP, the kit installs a **memory protocol** (the rules block above) and scaffolds a vault designed to get smarter over time while staying token-cheap:
@@ -112,6 +123,7 @@ Beyond wiring the MCP, the kit installs a **memory protocol** (the rules block a
 - **Structured knowledge graph (v3.8)** — typed relations (`- implements [[adr-0014]]`) and categorized observations (`- [decision] … #tag`) authored in plain Markdown (Basic-Memory-compatible) become queryable: `vault_relations` answers "what supersedes this / what links here?" both directions, `vault_observations` pulls every `[decision]` or `#tag` across the vault, and `vault_kg_suggest` proposes structure for a note (read-only — you confirm and edit). See [ADR-0023](https://github.com/Vahlame/obsidian-memory-kit/blob/main/docs/adr/0023-structured-knowledge-graph.md).
 - **Memory reports (v3.8)** — `vault_memory_report` is a read-only digest for periodic upkeep: automatic indices (observations by category, graph hub notes, top `#tags`), hygiene (oversized / stale / orphan notes, broken links, `SESSION_LOG` bloat) with concrete next steps, and opt-in near-duplicate pairs to review. It flags what to condense; it never rewrites a note. See [ADR-0024](https://github.com/Vahlame/obsidian-memory-kit/blob/main/docs/adr/0024-memory-reports-and-compaction.md).
 - **sqlite-vec acceleration (v3.8, opt-in, on under `--full`)** — for large vaults, the cosine scan runs inside SQLite over the same index file via the sqlite-vec extension; ranking is **identical** to the pure-Python path (verified by the bench + a parity test) with a transparent fallback. The in-file embedded answer — no Chroma/LanceDB server. See [ADR-0025](https://github.com/Vahlame/obsidian-memory-kit/blob/main/docs/adr/0025-optional-sqlite-vec-acceleration.md).
+- **Opt-in precision levers (v3.9)** — `vault_hybrid_search` gains default-off knobs that only ever reorder the fused candidates, never break search: a **cross-encoder reranker** (`rerank: true`, behind the `[rerank]` extra / `--rerank`; re-scores query + passage _together_ — the precision lever, and only helps with a strong, content-language-matched model), **type-weighted graph recall** (`graphTyped: true`, verb-weighted typed relations), **importance** (`importance: true`, in-degree/hub bias), **MMR** diversification (`mmr: true`), and **passage-window** expansion (`passageWindow: N`). The measured default path stays byte-identical. See [ADR-0026](https://github.com/Vahlame/obsidian-memory-kit/blob/main/docs/adr/0026-cross-encoder-reranker.md) / [ADR-0027](https://github.com/Vahlame/obsidian-memory-kit/blob/main/docs/adr/0027-type-weighted-graph-and-importance.md) / [ADR-0028](https://github.com/Vahlame/obsidian-memory-kit/blob/main/docs/adr/0028-mmr-and-passage-window.md).
 - **Self-check** — before non-trivial answers it sanity-checks its own assumptions and edge cases (scaled to the task, internal — no padding).
 - **Coach, don't impose** — flags high-impact anti-patterns in your code as a _question_ and logs them to `PRACTICES/observations.md`; promotes to `confirmed-{good,bad}.md` only when you confirm.
 - **Evolving memory** — records new tech in `STACKS/`, firm preferences in `MEMORY.md`, hypotheses → facts.

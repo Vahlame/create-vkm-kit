@@ -52,7 +52,11 @@ software. Variables: `<KIT>` = ruta donde clonarás el kit; `<VAULT>` = ruta del
    ```
 
    Es **idempotente** (si un servidor ya existía, lo reemplaza). Si `claude` no está en el PATH,
-   imprime los comandos `claude mcp add …` para que los corras a mano.
+   imprime los comandos `claude mcp add …` para que los corras a mano. Para Claude Code además deja
+   el vault como **única** memoria: escribe `"autoMemoryEnabled": false` en
+   `~/.claude/settings.json` e instala un hook `SessionStart` del vault
+   (`~/.claude/hooks/session-start-vault-context.mjs`) — así la auto-memoria nativa de Claude ya no
+   compite con el vault (ADR-0029). Desactívalo con `--no-native-memory-override`.
 
 6. **Reglas globales (passage-first + ahorro).** Abre `<KIT>/docs/es/instalacion.md`, copia el
    **bloque de User Rules del Paso 4**, y pégalo/anéxalo en `~/.claude/CLAUDE.md` (Claude Code lo

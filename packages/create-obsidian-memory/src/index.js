@@ -29,6 +29,7 @@ import {
   SEMANTIC_EMBEDDER
 } from "./mcp-merge.mjs";
 import { installRules } from "./rules-merge.mjs";
+import { configureClaudeNativeMemory } from "./claude-native-memory.mjs";
 
 /** Cursor/VS Code workspace defaults: fewer `git` + `conhost` spikes on Windows (SCM polling). */
 const VAULT_VSCODE_GIT_SETTINGS = {
@@ -753,6 +754,12 @@ async function runNonInteractive(argv) {
   let wantRerank = wantHybrid && argv.includes("--rerank");
   const wantGitleaks = argv.includes("--with-gitleaks");
   const ides = idesFromArgs(argv, { full });
+  // Claude Code only: disable the native per-project auto-memory + install the SessionStart
+  // hook so the vault is the single source of truth (ADR-0029). On by default when Claude Code
+  // is wired; --minimal opts out (re-add with --native-memory-override), --no-native-memory-override
+  // forces it off.
+  const wantNativeOverride =
+    ides.includes("claude") && on("--native-memory-override", "--no-native-memory-override");
   let kitRoot = null;
 
   if (wantHybrid) {
@@ -820,6 +827,9 @@ async function runNonInteractive(argv) {
   }
   if (ides.includes("claude")) {
     await registerClaudeCodeMcp(vault, dryRun, hybridOpts);
+  }
+  if (wantNativeOverride) {
+    await configureClaudeNativeMemory(home, vault, dryRun, { lang });
   }
   if (ides.includes("codex")) {
     await registerCodexMcp(vault, dryRun, hybridOpts);
@@ -889,6 +899,11 @@ async function runNonInteractive(argv) {
   if (ides.includes("claude")) {
     console.log(
       "- Claude Code: MCP registered via `claude mcp add -s user` (verify: `claude mcp list`)"
+    );
+  }
+  if (wantNativeOverride) {
+    console.log(
+      "- Claude Code native memory: DISABLED (autoMemoryEnabled:false) + SessionStart vault hook → ~/.claude/settings.json"
     );
   }
   if (ides.includes("codex")) {
@@ -970,6 +985,16 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
                   choose. Interactive asks (deriving from --ide). Idempotent marked block
                   (obsidian-memory:start/end) — never clobbers content.
   --no-rules      Don't write any rules file.
+
+Claude Code native-memory override (when --ide includes claude):
+  By default a Claude Code install also DISABLES Claude's native per-project
+  auto-memory (writes "autoMemoryEnabled": false into ~/.claude/settings.json) and
+  installs a SessionStart hook (~/.claude/hooks/session-start-vault-context.mjs)
+  that injects the vault map + "vault is the only source of truth" reminders. This
+  makes the Obsidian vault win over the native memory out of the box (ADR-0029).
+  Idempotent (merges settings.json; never duplicates the hook). --minimal opts out.
+  --native-memory-override     Force it on (even under --minimal).
+  --no-native-memory-override  Leave Claude's native auto-memory untouched.
 
   --help          This message`);
     return;
@@ -1108,6 +1133,13 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
   if (ides?.includes("claude")) {
     await registerClaudeCodeMcp(vault, dryRun, hybridOpts);
   }
+  // Claude Code only: vault > native auto-memory (ADR-0029). On by default when Claude Code
+  // is selected; opt out with --no-native-memory-override.
+  const wantNativeOverride =
+    Boolean(ides?.includes("claude")) && !process.argv.includes("--no-native-memory-override");
+  if (wantNativeOverride) {
+    await configureClaudeNativeMemory(home, vault, dryRun, { lang });
+  }
   if (ides?.includes("codex")) {
     await registerCodexMcp(vault, dryRun, hybridOpts);
   }
@@ -1163,6 +1195,11 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
   if (ides?.includes("claude")) {
     console.log(
       "- Claude Code: MCP registered via `claude mcp add -s user` (verify: `claude mcp list`)"
+    );
+  }
+  if (wantNativeOverride) {
+    console.log(
+      "- Claude Code native memory: DISABLED (autoMemoryEnabled:false) + SessionStart vault hook → ~/.claude/settings.json"
     );
   }
   if (ides?.includes("codex")) {

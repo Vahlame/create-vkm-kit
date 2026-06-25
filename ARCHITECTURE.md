@@ -80,7 +80,7 @@ fourteen tools, split into small modules so the pure logic is unit-testable
 without spawning the transport.
 
 - **Entry point / wiring:** [`src/hybrid-mcp.mjs`](./packages/obsidian-memory-mcp/src/hybrid-mcp.mjs) — registers tools and connects `StdioServerTransport`. A `main()` entry-point guard prevents the server from spawning on `import` (so tests can import siblings safely).
-- **Tools (ten):**
+- **Tools (fourteen):**
   - `vault_fts_search` / `vault_fts_index` — bridge to the Python RAG engine via `execa` (BM25 lexical search + incremental index).
   - `vault_hybrid_search` — BM25 + per-section vector cosine fused via weighted RRF; returns the **matching section**, not the whole note (the passage-first default — ADR-0017/0018). Optional `graph: true` fuses in a third ranking of `[[wikilink]]`-adjacent notes (ADR-0019/0021); optional `recency: true` biases toward recently-modified notes (ADR-0021).
   - `vault_complete` — prefix autocomplete over note titles, filename stems and inline `#tags` (Trie over the FTS index; ADR-0019).
@@ -121,6 +121,7 @@ One `npx` command to wire an IDE to a vault, idempotently and safely.
 - **Entry point:** [`src/index.js`](./packages/create-obsidian-memory/src/index.js) — interactive by default; `--non-interactive`/`--yes` for CI.
 - **Config merge:** [`src/mcp-merge.mjs`](./packages/create-obsidian-memory/src/mcp-merge.mjs) — pure functions that splice `basic-memory` (and optionally `obsidian-memory-hybrid`) into an existing `~/.cursor/mcp.json` **without dropping other servers**. The `basic-memory` version is pinned in one constant (`BASIC_MEMORY_VERSION`) to close a supply-chain RCE vector (see [Security](#trust-and-security-model)).
 - **Safety:** BOM-stripping before JSON parse, **atomic writes** (tmp + fsync + rename, `0o600` on POSIX), and a timestamped backup of any prior `mcp.json` before overwriting.
+- **Claude-native-memory override:** [`src/claude-native-memory.mjs`](./packages/create-obsidian-memory/src/claude-native-memory.mjs) — when wiring Claude Code, idempotently merges `"autoMemoryEnabled": false` into `~/.claude/settings.json` and installs a cross-platform Node `SessionStart` hook ([`src/hooks/session-start-vault-context.mjs`](./packages/create-obsidian-memory/src/hooks/session-start-vault-context.mjs)) that injects the vault map + precedence reminders, so the vault — not Claude Code's native auto-memory — is the single source of truth (ADR-0029).
 - **Extras:** optional vault scaffold, `vault/.vscode/settings.json` Git-quieting on Windows, and a gitleaks pre-commit hook.
 
 ### 5. Agent-rule surface + maintainer tooling

@@ -2,8 +2,9 @@
 /**
  * Single source of truth for the kit version across every marker.
  *
- * The kit's version lives in five places that historically drifted (README
- * badge said 3.6.0 while the packages said 3.5.0 and no git tag existed). This
+ * The kit's version lives in several places that historically drifted (README
+ * badge said 3.6.0 while the packages said 3.5.0 and no git tag existed; later
+ * README.en.md fell behind to 3.8.1 while everything else was 3.9.1). This
  * script makes drift impossible to ship:
  *
  *   - `node scripts/version.mjs check`        assert all markers agree with the
@@ -48,6 +49,12 @@ const MARKERS = [
   {
     name: "README.md (release badge)",
     file: "README.md",
+    read: (s) => (s.match(/release-v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)-orange/) || [])[1],
+    write: (s, v) => s.replace(/(release-v)\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(-orange)/, `$1${v}$2`)
+  },
+  {
+    name: "README.en.md (release badge)",
+    file: "README.en.md",
     read: (s) => (s.match(/release-v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)-orange/) || [])[1],
     write: (s, v) => s.replace(/(release-v)\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(-orange)/, `$1${v}$2`)
   },
