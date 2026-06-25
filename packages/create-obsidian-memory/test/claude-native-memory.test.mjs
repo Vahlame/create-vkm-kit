@@ -35,9 +35,7 @@ test("mergeClaudeSettings preserves unrelated keys, hook events and SessionStart
     permissions: { allow: ["x"] },
     hooks: {
       Stop: [{ matcher: "*", hooks: [{ type: "command", command: "echo stop" }] }],
-      SessionStart: [
-        { matcher: "*", hooks: [{ type: "command", command: "echo unrelated" }] }
-      ]
+      SessionStart: [{ matcher: "*", hooks: [{ type: "command", command: "echo unrelated" }] }]
     }
   };
   const cmd = hookCommand("/h/session-start-vault-context.mjs", "/v");
@@ -197,7 +195,11 @@ test("CLI: --ide claude wires the native-memory override by default (dry-run)", 
     { encoding: "utf8", env }
   );
   assert.equal(r.status, 0, r.stderr + r.stdout);
-  assert.match(r.stdout, /would set.*autoMemoryEnabled:false/s, "announces disabling native memory");
+  assert.match(
+    r.stdout,
+    /would set.*autoMemoryEnabled:false/s,
+    "announces disabling native memory"
+  );
   assert.match(r.stdout, /would install SessionStart hook/, "announces the hook install");
 });
 

@@ -295,12 +295,12 @@ Fails? → [`troubleshooting.md`](troubleshooting.md), section **MCP / Cursor**.
 
 ## Optional — Extra layers
 
-| I want…                                                    | Go to                                                       |
-| ---------------------------------------------------------- | ----------------------------------------------------------- |
-| **Lexical + semantic search** in large vaults (hybrid MCP) | [Below: hybrid FTS](#optional--hybrid-search-fts--semantic) |
+| I want…                                                    | Go to                                                              |
+| ---------------------------------------------------------- | ------------------------------------------------------------------ |
+| **Lexical + semantic search** in large vaults (hybrid MCP) | [Below: hybrid FTS](#optional--hybrid-search-fts--semantic)        |
 | **Make the vault Claude Code's only memory**               | [Below: Claude Code](#claude-code--make-the-vault-the-only-memory) |
-| **Sync the vault with git** (daemon, manual or same repo)  | [`sync.md`](sync.md)                                        |
-| **Understand the system** before/after                     | [`how-it-works.md`](how-it-works.md)                        |
+| **Sync the vault with git** (daemon, manual or same repo)  | [`sync.md`](sync.md)                                               |
+| **Understand the system** before/after                     | [`how-it-works.md`](how-it-works.md)                               |
 
 ### Claude Code — make the vault the only memory
 

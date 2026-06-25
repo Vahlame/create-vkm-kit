@@ -58,9 +58,7 @@ export function mergeClaudeSettings(existing, command) {
   // don't pile up duplicates or leave a stale vault path behind.
   const kept = prior.filter((entry) => {
     const inner = entry && Array.isArray(entry.hooks) ? entry.hooks : [];
-    return !inner.some(
-      (h) => h && typeof h.command === "string" && h.command.includes(HOOK_STEM)
-    );
+    return !inner.some((h) => h && typeof h.command === "string" && h.command.includes(HOOK_STEM));
   });
   kept.push({ matcher: "*", hooks: [{ type: "command", command }] });
   hooks.SessionStart = kept;
@@ -85,7 +83,11 @@ export async function configureClaudeNativeMemory(home, vaultAbs, dryRun, { lang
   const command = hookCommand(hookDest, vaultAbs, lang);
 
   if (dryRun) {
-    console.log(pc.cyan("[dry-run] would set"), "autoMemoryEnabled:false", pc.dim(`in ${settingsFp}`));
+    console.log(
+      pc.cyan("[dry-run] would set"),
+      "autoMemoryEnabled:false",
+      pc.dim(`in ${settingsFp}`)
+    );
     console.log(pc.cyan("[dry-run] would install SessionStart hook"), pc.dim(hookDest));
     return;
   }
@@ -107,10 +109,7 @@ export async function configureClaudeNativeMemory(home, vaultAbs, dryRun, { lang
         } catch {
           const bak = `${settingsFp}.bak.${Date.now()}`;
           await fse.writeFile(bak, priorBytes);
-          console.warn(
-            pc.yellow("Invalid JSON in ~/.claude/settings.json; backed up to"),
-            bak
-          );
+          console.warn(pc.yellow("Invalid JSON in ~/.claude/settings.json; backed up to"), bak);
           existing = {};
           priorBytes = null; // already preserved via the .bak above
         }
@@ -134,10 +133,7 @@ export async function configureClaudeNativeMemory(home, vaultAbs, dryRun, { lang
     await fse.rename(tmp, settingsFp);
 
     console.log(pc.green("Claude Code native-memory override:"), settingsFp);
-    console.log(
-      pc.dim("  autoMemoryEnabled:false + SessionStart hook ->"),
-      pc.dim(hookDest)
-    );
+    console.log(pc.dim("  autoMemoryEnabled:false + SessionStart hook ->"), pc.dim(hookDest));
   } catch (e) {
     console.warn(
       pc.yellow("Could not configure the Claude Code native-memory override (skipped):"),

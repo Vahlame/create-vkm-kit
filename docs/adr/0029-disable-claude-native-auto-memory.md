@@ -56,7 +56,7 @@ never duplicated. Opt out with `--minimal` or `--no-native-memory-override`.
   mechanism — an env var isn't durably set across shells/sessions the way a settings key
   is. The documented `autoMemoryEnabled` key in `settings.json` is the reliable switch
   (the env var remains a valid manual escape hatch).
-- **Rules block only (no settings change):** rejected — relying on the model to *honor* a
+- **Rules block only (no settings change):** rejected — relying on the model to _honor_ a
   rule against a `Write` tool that's always present in the base prompt is exactly what
   failed in practice. Disabling the competing system at the config level is what makes the
   precedence real instead of aspirational.
