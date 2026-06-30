@@ -44,18 +44,18 @@ flowchart LR
 
 ## Repository layout
 
-| Path                                 | Language       | Role                                                                                |
-| ------------------------------------ | -------------- | ----------------------------------------------------------------------------------- |
-| `cmd/obsidian-memoryd/`              | Go             | Daemon: filesystem watch → debounced git sync; `doctor` health report               |
-| `packages/obsidian-memory-mcp/`      | Node (ESM)     | The "hybrid" MCP sidecar (stdio): vault-locked file + search tools                  |
-| `packages/obsidian-memory-rag/`      | Python         | FTS5 indexer + BM25 search (the search engine the sidecar bridges to)               |
-| `packages/create-obsidian-memory/`   | Node           | `npx` initializer: merges MCP config, scaffolds a vault                             |
+| Path                                 | Language       | Role                                                                                        |
+| ------------------------------------ | -------------- | ------------------------------------------------------------------------------------------- |
+| `cmd/obsidian-memoryd/`              | Go             | Daemon: filesystem watch → debounced git sync; `doctor` health report                       |
+| `packages/obsidian-memory-mcp/`      | Node (ESM)     | The "hybrid" MCP sidecar (stdio): vault-locked file + search tools                          |
+| `packages/obsidian-memory-rag/`      | Python         | FTS5 indexer + BM25 search (the search engine the sidecar bridges to)                       |
+| `packages/create-obsidian-memory/`   | Node           | `npx` initializer: merges MCP config, scaffolds a vault                                     |
 | `packages/obsidian-prompt-compiler/` | Node (ESM)     | `obsidian-prompt` CLI + optional GUI: vault context → `<orchestration_package>` XML, no LLM |
-| `scripts/`                           | TS / Node      | `sync-agents.ts` (rule generator), parity + MCP smoke checks                        |
-| `.agents/`, `.cursor/`, `.continue/` | Markdown       | Per-IDE rule files; `.agents/rules/*` is the source, the rest derived               |
-| `evals/`                             | Node / Py / MD | Retrieval-quality benchmark (recall@k/MRR/nDCG/MAP, gated) + prompt-adherence smoke |
-| `docs/`                              | Markdown       | ADRs (decisions), setup guides, troubleshooting (bilingual ES/EN)                   |
-| `examples/`                          | Markdown       | Anonymized sample vault layout                                                      |
+| `scripts/`                           | TS / Node      | `sync-agents.ts` (rule generator), parity + MCP smoke checks                                |
+| `.agents/`, `.cursor/`, `.continue/` | Markdown       | Per-IDE rule files; `.agents/rules/*` is the source, the rest derived                       |
+| `evals/`                             | Node / Py / MD | Retrieval-quality benchmark (recall@k/MRR/nDCG/MAP, gated) + prompt-adherence smoke         |
+| `docs/`                              | Markdown       | ADRs (decisions), setup guides, troubleshooting (bilingual ES/EN)                           |
+| `examples/`                          | Markdown       | Anonymized sample vault layout                                                              |
 
 It is an npm **workspaces** monorepo (`packages/*`) for the Node side, a single
 Go module (`go.mod`) for the daemon, and a `pyproject.toml` package for the RAG

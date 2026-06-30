@@ -15,9 +15,16 @@ function indexedVault() {
   const vault = fs.mkdtempSync(path.join(os.tmpdir(), "prompt-compiler-cli-"));
   fs.mkdirSync(path.join(vault, ".obsidian"));
   fs.mkdirSync(path.join(vault, "PROJECTS"));
-  fs.writeFileSync(path.join(vault, "PROJECTS", "demo.md"), "# demo\n- [decision] usar SQLite #db\n", "utf8");
+  fs.writeFileSync(
+    path.join(vault, "PROJECTS", "demo.md"),
+    "# demo\n- [decision] usar SQLite #db\n",
+    "utf8"
+  );
   const env = { ...process.env, PYTHONPATH: ragSrc };
-  const r = spawnSync(py, ["-m", "obsidian_memory_rag", "json-index", "--vault", vault], { encoding: "utf8", env });
+  const r = spawnSync(py, ["-m", "obsidian_memory_rag", "json-index", "--vault", vault], {
+    encoding: "utf8",
+    env
+  });
   return r.status === 0 ? vault : null;
 }
 
@@ -34,10 +41,14 @@ test("missing idea argument exits non-zero with a clear error", () => {
 });
 
 test("--vault pointing nowhere with no env fallback fails clearly", () => {
-  const r = spawnSync(process.execPath, [cliBin, "una idea cualquiera", "--yes", "--no-clipboard"], {
-    encoding: "utf8",
-    env: { ...process.env, BASIC_MEMORY_HOME: "", OBSIDIAN_MEMORY_VAULT: "" }
-  });
+  const r = spawnSync(
+    process.execPath,
+    [cliBin, "una idea cualquiera", "--yes", "--no-clipboard"],
+    {
+      encoding: "utf8",
+      env: { ...process.env, BASIC_MEMORY_HOME: "", OBSIDIAN_MEMORY_VAULT: "" }
+    }
+  );
   assert.notEqual(r.status, 0);
   assert.match(r.stderr, /Missing vault/);
 });
@@ -50,7 +61,15 @@ test("end-to-end: --yes --no-clipboard --no-editor prints a complete, valid orch
   }
   const r = spawnSync(
     process.execPath,
-    [cliBin, "agregar autenticación JWT", "--project", "demo", "--yes", "--no-clipboard", "--no-editor"],
+    [
+      cliBin,
+      "agregar autenticación JWT",
+      "--project",
+      "demo",
+      "--yes",
+      "--no-clipboard",
+      "--no-editor"
+    ],
     { encoding: "utf8", env: { ...process.env, PYTHONPATH: ragSrc, BASIC_MEMORY_HOME: vault } }
   );
   assert.equal(r.status, 0, r.stderr);
@@ -69,7 +88,17 @@ test("end-to-end: --lang en switches the compiled prompt's language", (t) => {
   }
   const r = spawnSync(
     process.execPath,
-    [cliBin, "add JWT auth", "--project", "demo", "--lang", "en", "--yes", "--no-clipboard", "--no-editor"],
+    [
+      cliBin,
+      "add JWT auth",
+      "--project",
+      "demo",
+      "--lang",
+      "en",
+      "--yes",
+      "--no-clipboard",
+      "--no-editor"
+    ],
     { encoding: "utf8", env: { ...process.env, PYTHONPATH: ragSrc, BASIC_MEMORY_HOME: vault } }
   );
   assert.equal(r.status, 0, r.stderr);

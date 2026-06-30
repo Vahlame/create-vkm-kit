@@ -92,7 +92,11 @@ function scanTranscript(transcriptPath) {
       if (Array.isArray(content)) {
         for (const block of content) {
           if (!block) continue;
-          if (block.type === "text" && typeof block.text === "string" && MARKER_RE.test(block.text)) {
+          if (
+            block.type === "text" &&
+            typeof block.text === "string" &&
+            MARKER_RE.test(block.text)
+          ) {
             pending = true;
           } else if (block.type === "tool_use" && SUBSTANTIVE_TOOLS.test(block.name || "")) {
             substantiveBefore++;
@@ -111,29 +115,29 @@ function reason(lang, alreadyProposed) {
   if (lang === "en") {
     return alreadyProposed
       ? "Paused: you already proposed an effort level but there's no reply from the user " +
-        "yet in this conversation. Do not call any more tools this turn — wait for the " +
-        "user's next message before retrying."
+          "yet in this conversation. Do not call any more tools this turn — wait for the " +
+          "user's next message before retrying."
       : "Paused: this session is about to make its 2nd+ substantive edit without an effort " +
-        "estimate. Before calling any more tools, reply with ONLY this block (no tool " +
-        "calls in this turn), then stop and wait for the user's next message:\n\n" +
-        "[!] EFFORT RECOMMENDATION\n" +
-        "- Task: <short description>\n" +
-        "- Suggested level: /effort <low|medium|high|xhigh|max>\n" +
-        "- Reason: <why>\n\n" +
-        "Retry only after the user replies (confirming or naming a different level). See ADR-0031.";
+          "estimate. Before calling any more tools, reply with ONLY this block (no tool " +
+          "calls in this turn), then stop and wait for the user's next message:\n\n" +
+          "[!] EFFORT RECOMMENDATION\n" +
+          "- Task: <short description>\n" +
+          "- Suggested level: /effort <low|medium|high|xhigh|max>\n" +
+          "- Reason: <why>\n\n" +
+          "Retry only after the user replies (confirming or naming a different level). See ADR-0031.";
   }
   return alreadyProposed
     ? "Pausa: ya propusiste un nivel de esfuerzo pero todavía no hay respuesta del usuario " +
-      "en esta conversación. No llames más herramientas en este turno — esperá el próximo " +
-      "mensaje del usuario antes de reintentar."
+        "en esta conversación. No llames más herramientas en este turno — esperá el próximo " +
+        "mensaje del usuario antes de reintentar."
     : "Pausa: esta sesión va a hacer su 2.º+ edit sustantivo sin haber propuesto un nivel " +
-      "de esfuerzo. Antes de llamar más herramientas, respondé SOLO con este bloque (nada " +
-      "de tool calls en este turno), después parate y esperá el próximo mensaje del usuario:\n\n" +
-      "[!] RECOMENDACIÓN DE ESFUERZO\n" +
-      "- Tarea: <descripción breve>\n" +
-      "- Nivel sugerido: /effort <low|medium|high|xhigh|max>\n" +
-      "- Razón: <por qué>\n\n" +
-      "Reintentá solo después de que el usuario responda (confirmando u otro nivel). Ver ADR-0031.";
+        "de esfuerzo. Antes de llamar más herramientas, respondé SOLO con este bloque (nada " +
+        "de tool calls en este turno), después parate y esperá el próximo mensaje del usuario:\n\n" +
+        "[!] RECOMENDACIÓN DE ESFUERZO\n" +
+        "- Tarea: <descripción breve>\n" +
+        "- Nivel sugerido: /effort <low|medium|high|xhigh|max>\n" +
+        "- Razón: <por qué>\n\n" +
+        "Reintentá solo después de que el usuario responda (confirmando u otro nivel). Ver ADR-0031.";
 }
 
 function main() {

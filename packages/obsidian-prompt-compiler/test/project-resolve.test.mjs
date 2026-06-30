@@ -8,7 +8,8 @@ import { resolveProject } from "../src/project-resolve.mjs";
 function makeVaultWithProjects(names) {
   const vault = fs.mkdtempSync(path.join(os.tmpdir(), "prompt-compiler-proj-"));
   fs.mkdirSync(path.join(vault, "PROJECTS"));
-  for (const n of names) fs.writeFileSync(path.join(vault, "PROJECTS", `${n}.md`), "# " + n, "utf8");
+  for (const n of names)
+    fs.writeFileSync(path.join(vault, "PROJECTS", `${n}.md`), "# " + n, "utf8");
   return vault;
 }
 

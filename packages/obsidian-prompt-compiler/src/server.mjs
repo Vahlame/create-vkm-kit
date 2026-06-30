@@ -34,7 +34,11 @@ const VALID_PROJECT = /^[^/\\]*$/;
 
 function openBrowser(url) {
   const cmd =
-    process.platform === "win32" ? `start "" "${url}"` : process.platform === "darwin" ? `open "${url}"` : `xdg-open "${url}"`;
+    process.platform === "win32"
+      ? `start "" "${url}"`
+      : process.platform === "darwin"
+        ? `open "${url}"`
+        : `xdg-open "${url}"`;
   exec(cmd, () => {}); // best-effort: if it fails, the printed URL still works
 }
 
@@ -87,7 +91,8 @@ export function createServer({ vault, lang = "es" } = {}) {
       if (req.method === "POST" && req.url === "/api/compile") {
         const { idea, project } = JSON.parse((await readBody(req)) || "{}");
         if (!idea || !String(idea).trim()) return sendJson(res, 400, { error: "idea vacía" });
-        if (project && !VALID_PROJECT.test(project)) return sendJson(res, 400, { error: "proyecto inválido" });
+        if (project && !VALID_PROJECT.test(project))
+          return sendJson(res, 400, { error: "proyecto inválido" });
 
         const projectNote = project ? `PROJECTS/${project}.md` : null;
         const context = await searchContext({
@@ -137,12 +142,20 @@ function flagValue(argv, name) {
  */
 export function installDesktopShortcut({ vault, lang, port, desktopDir } = {}) {
   if (process.platform !== "win32") {
-    throw new Error("--install-shortcut solo soporta Windows por ahora (trick .vbs de WScript.Shell).");
+    throw new Error(
+      "--install-shortcut solo soporta Windows por ahora (trick .vbs de WScript.Shell)."
+    );
   }
   const desktop = desktopDir || path.join(os.homedir(), "Desktop");
   const serverScript = path.join(__dirname, "server.mjs");
   const vaultArg = requireVault(vault); // fail loud now, not when the user double-clicks later
-  const args = [`"${serverScript}"`, "--vault", `"${vaultArg}"`, "--port", String(port || DEFAULT_PORT)];
+  const args = [
+    `"${serverScript}"`,
+    "--vault",
+    `"${vaultArg}"`,
+    "--port",
+    String(port || DEFAULT_PORT)
+  ];
   if (lang) args.push("--lang", lang);
   const vbs = [
     'Set WshShell = CreateObject("WScript.Shell")',

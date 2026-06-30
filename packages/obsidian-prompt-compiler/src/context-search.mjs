@@ -12,7 +12,11 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { defaultRagSrc, requireVault, runRagJson } from "@vkmikc/obsidian-memory-mcp/src/rag-client.mjs";
+import {
+  defaultRagSrc,
+  requireVault,
+  runRagJson
+} from "@vkmikc/obsidian-memory-mcp/src/rag-client.mjs";
 
 const HYBRID_LIMIT = 6;
 const OBSERVATIONS_LIMIT = 50;
@@ -68,16 +72,29 @@ export async function searchContext({ vault, query, projectNote, projectName } =
     ).catch(() => ({ hits: [] })),
     projectNote
       ? runRagJson(
-          ["json-observations", "--vault", v, "--note", projectNote, "--limit", String(OBSERVATIONS_LIMIT)],
+          [
+            "json-observations",
+            "--vault",
+            v,
+            "--note",
+            projectNote,
+            "--limit",
+            String(OBSERVATIONS_LIMIT)
+          ],
           ragSrc
         ).catch(() => ({ observations: [] }))
       : Promise.resolve({ observations: [] }),
-    runRagJson(["json-observations", "--vault", v, "--tag", "stack", "--limit", "20"], ragSrc).catch(() => ({
+    runRagJson(
+      ["json-observations", "--vault", v, "--tag", "stack", "--limit", "20"],
+      ragSrc
+    ).catch(() => ({
       observations: []
     }))
   ]);
 
-  const projectObs = Array.isArray(projectObservations?.observations) ? projectObservations.observations : [];
+  const projectObs = Array.isArray(projectObservations?.observations)
+    ? projectObservations.observations
+    : [];
   const decisions = projectObs
     .filter((o) => /decision/i.test(o?.category || ""))
     .map((o) => o.content)
@@ -99,7 +116,9 @@ export async function searchContext({ vault, query, projectNote, projectName } =
     .filter(Boolean);
   const patterns = [...otherObservations, ...passages];
 
-  const techStack = (Array.isArray(stackObservations?.observations) ? stackObservations.observations : [])
+  const techStack = (
+    Array.isArray(stackObservations?.observations) ? stackObservations.observations : []
+  )
     .map((o) => o.content)
     .filter(Boolean);
 
