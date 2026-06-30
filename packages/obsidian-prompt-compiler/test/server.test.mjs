@@ -15,9 +15,16 @@ function indexedVault() {
   const vault = fs.mkdtempSync(path.join(os.tmpdir(), "prompt-compiler-srv-"));
   fs.mkdirSync(path.join(vault, ".obsidian"));
   fs.mkdirSync(path.join(vault, "PROJECTS"));
-  fs.writeFileSync(path.join(vault, "PROJECTS", "demo.md"), "# demo\n- [decision] usar SQLite #db\n", "utf8");
+  fs.writeFileSync(
+    path.join(vault, "PROJECTS", "demo.md"),
+    "# demo\n- [decision] usar SQLite #db\n",
+    "utf8"
+  );
   const env = { ...process.env, PYTHONPATH: ragSrc };
-  const r = spawnSync(py, ["-m", "obsidian_memory_rag", "json-index", "--vault", vault], { encoding: "utf8", env });
+  const r = spawnSync(py, ["-m", "obsidian_memory_rag", "json-index", "--vault", vault], {
+    encoding: "utf8",
+    env
+  });
   return r.status === 0 ? vault : null;
 }
 
@@ -133,31 +140,51 @@ test("static file serving refuses to escape the public/ directory", async (t) =>
   });
 });
 
-test("installDesktopShortcut writes a hidden, non-blocking launcher (Windows only)", { skip: process.platform !== "win32" }, () => {
-  const desktopDir = fs.mkdtempSync(path.join(os.tmpdir(), "prompt-compiler-desktop-"));
-  const vault = fs.mkdtempSync(path.join(os.tmpdir(), "prompt-compiler-desktop-vault-"));
-  const dest = installDesktopShortcut({ vault, port: 4321, lang: "en", desktopDir });
-  assert.equal(dest, path.join(desktopDir, "obsidian-prompt.vbs"));
-  const content = fs.readFileSync(dest, "utf8");
-  assert.match(content, /CreateObject\("WScript\.Shell"\)/);
-  assert.match(content, /\.Run "node .*", 0, False/, "hidden window (0) and non-blocking (False)");
-  assert.match(content, /--port 4321/);
-  assert.match(content, /--lang en/);
-  assert.ok(content.includes(vault), "vault path is baked into the launcher");
-});
-
-test("installDesktopShortcut requires a resolvable vault", { skip: process.platform !== "win32" }, () => {
-  const desktopDir = fs.mkdtempSync(path.join(os.tmpdir(), "prompt-compiler-desktop2-"));
-  const saved = { BASIC_MEMORY_HOME: process.env.BASIC_MEMORY_HOME, OBSIDIAN_MEMORY_VAULT: process.env.OBSIDIAN_MEMORY_VAULT };
-  delete process.env.BASIC_MEMORY_HOME;
-  delete process.env.OBSIDIAN_MEMORY_VAULT;
-  try {
-    assert.throws(() => installDesktopShortcut({ vault: undefined, desktopDir, port: 4321 }), /Missing vault/);
-  } finally {
-    if (saved.BASIC_MEMORY_HOME !== undefined) process.env.BASIC_MEMORY_HOME = saved.BASIC_MEMORY_HOME;
-    if (saved.OBSIDIAN_MEMORY_VAULT !== undefined) process.env.OBSIDIAN_MEMORY_VAULT = saved.OBSIDIAN_MEMORY_VAULT;
+test(
+  "installDesktopShortcut writes a hidden, non-blocking launcher (Windows only)",
+  { skip: process.platform !== "win32" },
+  () => {
+    const desktopDir = fs.mkdtempSync(path.join(os.tmpdir(), "prompt-compiler-desktop-"));
+    const vault = fs.mkdtempSync(path.join(os.tmpdir(), "prompt-compiler-desktop-vault-"));
+    const dest = installDesktopShortcut({ vault, port: 4321, lang: "en", desktopDir });
+    assert.equal(dest, path.join(desktopDir, "obsidian-prompt.vbs"));
+    const content = fs.readFileSync(dest, "utf8");
+    assert.match(content, /CreateObject\("WScript\.Shell"\)/);
+    assert.match(
+      content,
+      /\.Run "node .*", 0, False/,
+      "hidden window (0) and non-blocking (False)"
+    );
+    assert.match(content, /--port 4321/);
+    assert.match(content, /--lang en/);
+    assert.ok(content.includes(vault), "vault path is baked into the launcher");
   }
-});
+);
+
+test(
+  "installDesktopShortcut requires a resolvable vault",
+  { skip: process.platform !== "win32" },
+  () => {
+    const desktopDir = fs.mkdtempSync(path.join(os.tmpdir(), "prompt-compiler-desktop2-"));
+    const saved = {
+      BASIC_MEMORY_HOME: process.env.BASIC_MEMORY_HOME,
+      OBSIDIAN_MEMORY_VAULT: process.env.OBSIDIAN_MEMORY_VAULT
+    };
+    delete process.env.BASIC_MEMORY_HOME;
+    delete process.env.OBSIDIAN_MEMORY_VAULT;
+    try {
+      assert.throws(
+        () => installDesktopShortcut({ vault: undefined, desktopDir, port: 4321 }),
+        /Missing vault/
+      );
+    } finally {
+      if (saved.BASIC_MEMORY_HOME !== undefined)
+        process.env.BASIC_MEMORY_HOME = saved.BASIC_MEMORY_HOME;
+      if (saved.OBSIDIAN_MEMORY_VAULT !== undefined)
+        process.env.OBSIDIAN_MEMORY_VAULT = saved.OBSIDIAN_MEMORY_VAULT;
+    }
+  }
+);
 
 test("GET /does-not-exist returns 404", async (t) => {
   const vault = indexedVault();

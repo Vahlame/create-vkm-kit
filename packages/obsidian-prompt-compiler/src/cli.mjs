@@ -28,7 +28,12 @@ function flagValue(argv, name) {
 }
 
 function splitList(value) {
-  return value ? value.split(",").map((s) => s.trim()).filter(Boolean) : undefined;
+  return value
+    ? value
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : undefined;
 }
 
 function printHelp() {
@@ -81,7 +86,7 @@ async function main() {
   }
   const ideaText = positional[0];
   if (!ideaText) {
-    console.error(pc.red("Falta la idea: obsidian-prompt \"qué querés construir\""));
+    console.error(pc.red('Falta la idea: obsidian-prompt "qué querés construir"'));
     process.exitCode = 1;
     return;
   }
@@ -144,7 +149,10 @@ async function main() {
     const { openIt } = await prompts({
       type: "confirm",
       name: "openIt",
-      message: lang === "en" ? `Open in ${editorCommand()} to review/edit?` : `¿Abrir en ${editorCommand()} para revisar/corregir?`,
+      message:
+        lang === "en"
+          ? `Open in ${editorCommand()} to review/edit?`
+          : `¿Abrir en ${editorCommand()} para revisar/corregir?`,
       initial: true
     });
     if (openIt) finalText = reviewInEditor(xml);

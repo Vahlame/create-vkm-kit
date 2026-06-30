@@ -27,7 +27,7 @@ pegar a ciegas.
 
 ### Opciones
 
-```
+```text
 --project <name>        Proyecto (PROJECTS/<name>.md). Sin esto, selector interactivo.
 --vault <path>          Default: BASIC_MEMORY_HOME / OBSIDIAN_MEMORY_VAULT.
 --lang es|en             Idioma del prompt compilado (default: es).

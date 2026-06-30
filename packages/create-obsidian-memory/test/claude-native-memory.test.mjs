@@ -620,12 +620,21 @@ test("mergeEffortGateHook coexists with the native-memory guard as a separate Pr
   });
   assert.equal(out.hooks.PreToolUse.length, 2, "guard + effort-gate are separate entries");
   const cmds = out.hooks.PreToolUse.flatMap((e) => e.hooks.map((h) => h.command));
-  assert.ok(cmds.some((c) => c.includes(GUARD_HOOK_STEM)), "guard entry present");
-  assert.ok(cmds.some((c) => c.includes(EFFORT_GATE_HOOK_STEM)), "effort-gate entry present");
+  assert.ok(
+    cmds.some((c) => c.includes(GUARD_HOOK_STEM)),
+    "guard entry present"
+  );
+  assert.ok(
+    cmds.some((c) => c.includes(EFFORT_GATE_HOOK_STEM)),
+    "effort-gate entry present"
+  );
 });
 
 test("effortGateHookCommand carries the expected args", () => {
-  assert.equal(effortGateHookCommand("/h/guard-effort-gate.mjs"), 'node "/h/guard-effort-gate.mjs" es');
+  assert.equal(
+    effortGateHookCommand("/h/guard-effort-gate.mjs"),
+    'node "/h/guard-effort-gate.mjs" es'
+  );
   assert.equal(
     effortGateHookCommand("/h/guard-effort-gate.mjs", "en"),
     'node "/h/guard-effort-gate.mjs" en'
@@ -664,7 +673,10 @@ test("configureClaudeNativeMemory({ effortGate: false }) skips the effort-gate h
   const cmds = (j.hooks.PreToolUse || []).flatMap((e) => e.hooks.map((h) => h.command));
   assert.ok(!cmds.some((c) => c.includes(EFFORT_GATE_HOOK_STEM)), "effort-gate not registered");
   // unrelated to enforce: the native-memory guard (also default-on) is unaffected
-  assert.ok(cmds.some((c) => c.includes(GUARD_HOOK_STEM)), "native-memory guard unaffected");
+  assert.ok(
+    cmds.some((c) => c.includes(GUARD_HOOK_STEM)),
+    "native-memory guard unaffected"
+  );
 });
 
 test("configureClaudeNativeMemory --dry-run writes nothing for the effort-gate hook either", async () => {

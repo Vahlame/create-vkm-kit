@@ -35,10 +35,15 @@ export async function resolveProject({ vault, projectFlag, nonInteractive = fals
 
   if (projectFlag) {
     const exact = names.find((n) => n.toLowerCase() === projectFlag.toLowerCase());
-    if (exact) return { projectName: exact, projectNote: `PROJECTS/${exact}.md`, candidates: names };
+    if (exact)
+      return { projectName: exact, projectNote: `PROJECTS/${exact}.md`, candidates: names };
     const partial = names.filter((n) => n.toLowerCase().includes(projectFlag.toLowerCase()));
     if (partial.length === 1) {
-      return { projectName: partial[0], projectNote: `PROJECTS/${partial[0]}.md`, candidates: names };
+      return {
+        projectName: partial[0],
+        projectNote: `PROJECTS/${partial[0]}.md`,
+        candidates: names
+      };
     }
     // zero or multiple matches: fall through to interactive (or give up below) rather
     // than silently guessing which project was meant.

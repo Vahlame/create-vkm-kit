@@ -24,9 +24,16 @@ function buildIndexedVault() {
     "# demo\n- [decision] usar SQLite #db\n- [gotcha] el ORM no migra solo en Windows #db\n",
     "utf8"
   );
-  fs.writeFileSync(path.join(vault, "STACKS", "ts.md"), "# TS\n- [decision] strict mode #stack\n", "utf8");
+  fs.writeFileSync(
+    path.join(vault, "STACKS", "ts.md"),
+    "# TS\n- [decision] strict mode #stack\n",
+    "utf8"
+  );
   const env = { ...process.env, PYTHONPATH: ragSrc };
-  const r = spawnSync(py, ["-m", "obsidian_memory_rag", "json-index", "--vault", vault], { encoding: "utf8", env });
+  const r = spawnSync(py, ["-m", "obsidian_memory_rag", "json-index", "--vault", vault], {
+    encoding: "utf8",
+    env
+  });
   if (r.status !== 0) return null;
   return vault;
 }
@@ -39,7 +46,11 @@ test("searchContext splits project observations into decisions vs. patterns", as
   }
   process.env.OBSIDIAN_MEMORY_RAG_SRC = ragSrc;
   try {
-    const result = await searchContext({ vault, query: "agregar autenticación", projectNote: "PROJECTS/demo.md" });
+    const result = await searchContext({
+      vault,
+      query: "agregar autenticación",
+      projectNote: "PROJECTS/demo.md"
+    });
     assert.deepEqual(result.historicalDecisions, ["usar SQLite #db"]);
     assert.ok(result.activePatterns.some((p) => p.includes("gotcha") && p.includes("ORM")));
     assert.equal(result.usedFallback, false);
@@ -56,7 +67,11 @@ test("searchContext excludes the project note's own hybrid-search hit (no duplic
   }
   process.env.OBSIDIAN_MEMORY_RAG_SRC = ragSrc;
   try {
-    const result = await searchContext({ vault, query: "demo SQLite ORM", projectNote: "PROJECTS/demo.md" });
+    const result = await searchContext({
+      vault,
+      query: "demo SQLite ORM",
+      projectNote: "PROJECTS/demo.md"
+    });
     assert.ok(
       !result.activePatterns.some((p) => p.startsWith("[PROJECTS/demo.md]")),
       "the project note itself must not also show up as a raw hybrid-search passage"
@@ -74,7 +89,11 @@ test("searchContext returns empty buckets + usedFallback:true for an unrelated q
   }
   process.env.OBSIDIAN_MEMORY_RAG_SRC = ragSrc;
   try {
-    const result = await searchContext({ vault, query: "zzz_totally_unrelated_token_qqq", projectNote: null });
+    const result = await searchContext({
+      vault,
+      query: "zzz_totally_unrelated_token_qqq",
+      projectNote: null
+    });
     assert.deepEqual(result.historicalDecisions, []);
     assert.deepEqual(result.activePatterns, []);
     assert.equal(result.usedFallback, true);

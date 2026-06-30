@@ -84,7 +84,9 @@ export function compileOrchestrationPackage(input) {
     input.forbidden?.length ? leaf("forbidden", bulletBlock(input.forbidden), 2) : null,
     input.mustInclude?.length ? leaf("must_include", bulletBlock(input.mustInclude), 2) : null
   ].filter(Boolean);
-  const guardrailsBody = guardrailLeaves.length ? guardrailLeaves.join("\n") : leaf("constraints", noHistory, 2);
+  const guardrailsBody = guardrailLeaves.length
+    ? guardrailLeaves.join("\n")
+    : leaf("constraints", noHistory, 2);
 
   const sections = [
     leaf("system_role", input.systemRole, 1),
