@@ -326,6 +326,27 @@ type "%USERPROFILE%\.claude\settings.json"   # Windows
 cat ~/.claude/settings.json                    # macOS/Linux
 ```
 
+**Two more deterministic enforcement hooks ship by default too (ADR-0030)** — so the
+doctrine holds for **any** model, old or new, not just ones that reliably read and follow
+prose rules:
+
+- A `PreToolUse` hook (`guard-native-memory-write.mjs`) **denies** `Write`/`Edit`/
+  `MultiEdit`/`NotebookEdit` attempts into the native auto-memory directory, redirecting the
+  model to the vault.
+- A `Stop` hook (`stop-vault-close-reminder.mjs`) reminds the close ritual **once** per turn
+  when the session edited files but never touched the vault — with an explicit "ignore this
+  if nothing's worth saving" escape hatch, so it never forces low-value notes.
+
+Opt out of just these two with `--no-memory-enforcement`.
+
+**An effort-gate hook ships by default too, independently of the pair above (ADR-0031)** —
+makes a pause actually enforced instead of just announced: a `PreToolUse` hook
+(`guard-effort-gate.mjs`) **denies** a session's 2nd+ substantive edit
+(`Write`/`Edit`/`MultiEdit`/`NotebookEdit`) until the model has proposed an effort level
+(`/effort low|medium|high|xhigh|max`) and gotten a real reply from the user. The first
+substantive edit of a session is always free, and once satisfied the gate stays open for
+the rest of the session. Opt out with `--no-effort-gate`.
+
 ### Optional — Hybrid search (FTS + semantic)
 
 If your vault has hundreds of notes and you want fast search by word **and** by meaning:

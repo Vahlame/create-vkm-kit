@@ -71,9 +71,12 @@ then `npm run setup` — dependency preflight → `--full` install → verificat
 
 > 🤖 **Claude Code / Codex (fresh PC):** `--full` already registers the MCP via `claude mcp add` /
 > `codex mcp add` and builds the index in the same command. For Claude Code it also makes the vault
-> the **only** memory: it turns off Claude Code's native auto-memory (`autoMemoryEnabled:false`) and
-> installs a `SessionStart` vault hook (ADR-0029). Just the basics? Use `--ide codex,claude`. Full
-> guide: [fresh-PC install](docs/en/install-fresh-pc.md).
+> the **only** memory: it turns off Claude Code's native auto-memory (`autoMemoryEnabled:false`),
+> installs a `SessionStart` vault hook (ADR-0029), two deterministic enforcement hooks —
+> blocking writes into the native memory + a close-ritual reminder — so it works with any model
+> (ADR-0030), and an effort-gate hook that makes a pause before substantial edits actually
+> enforced, not just announced (ADR-0031). Just the basics? Use `--ide codex,claude`. Full guide:
+> [fresh-PC install](docs/en/install-fresh-pc.md).
 
 Then paste the **User Rules** and verify. The complete steps (and verification) are in the guide:
 

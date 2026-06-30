@@ -326,6 +326,28 @@ type "$env:USERPROFILE\.claude\settings.json"   # Windows
 cat ~/.claude/settings.json                       # macOS/Linux
 ```
 
+**Además, por defecto se instalan dos hooks de aplicación determinista (ADR-0030)** — para
+que la doctrina funcione con **cualquier modelo**, viejo o moderno, no solo con los que leen
+y siguen reglas de prosa de forma confiable:
+
+- Un hook `PreToolUse` (`guard-native-memory-write.mjs`) **bloquea** intentos de `Write`/
+  `Edit`/`MultiEdit`/`NotebookEdit` hacia la auto-memoria nativa, redirigiendo al modelo al
+  vault.
+- Un hook `Stop` (`stop-vault-close-reminder.mjs`) recuerda el cierre **una sola vez** por
+  turno cuando la sesión editó archivos pero nunca tocó el vault — con una salida explícita
+  ("si no hay nada que valga la pena guardar, ignora esto") para no forzar notas de bajo
+  valor.
+
+Desactívalos sin tocar el resto del override con `--no-memory-enforcement`.
+
+**Además, por defecto se instala un hook de "effort gate", independiente del par anterior
+(ADR-0031)** — hace que una pausa quede realmente impuesta y no solo anunciada: un hook
+`PreToolUse` (`guard-effort-gate.mjs`) **bloquea** la 2.ª+ edición sustantiva de la sesión
+(`Write`/`Edit`/`MultiEdit`/`NotebookEdit`) hasta que el modelo proponga un nivel de
+esfuerzo (`/effort low|medium|high|xhigh|max`) y obtenga una respuesta real del usuario. La
+primera edición sustantiva de la sesión siempre pasa libre, y una vez satisfecho el gate
+queda abierto el resto de la sesión. Desactívalo con `--no-effort-gate`.
+
 ### Opcional — Búsqueda híbrida (FTS + semántica)
 
 Si tu vault tiene cientos de notas y quieres búsqueda rápida por palabra **y** por significado:

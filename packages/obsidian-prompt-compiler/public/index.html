@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>obsidian-prompt</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root { color-scheme: dark light; }
+  body { font-family: ui-monospace, Consolas, monospace; max-width: 920px; margin: 1.5rem auto; padding: 0 1rem; }
+  h1 { font-size: 1.1rem; margin-bottom: 0.25rem; }
+  #vault { color: #888; font-size: 0.8rem; margin-bottom: 1rem; }
+  label { display: block; margin-top: 0.75rem; font-size: 0.85rem; color: #888; }
+  input, textarea { width: 100%; box-sizing: border-box; font-family: inherit; font-size: 0.95rem; padding: 0.4rem; }
+  textarea#idea { min-height: 3.5rem; resize: vertical; }
+  #preview { width: 100%; min-height: 18rem; margin-top: 0.75rem; white-space: pre-wrap; word-break: break-word;
+    border: 1px solid #888; padding: 0.6rem; font-size: 0.82rem; overflow: auto; }
+  .row { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.75rem; }
+  button { font-family: inherit; font-size: 0.95rem; padding: 0.5rem 1rem; cursor: pointer; }
+  #copyBtn { font-weight: bold; }
+  #copyBtn.done { background: #2e7d32; color: white; }
+  #stats { font-size: 0.8rem; color: #888; }
+  #status { font-size: 0.8rem; }
+  #status.thin { color: #b8860b; }
+</style>
+</head>
+<body>
+  <h1>obsidian-prompt</h1>
+  <div id="vault">vault: cargando…</div>
+
+  <label for="project">Proyecto (opcional)</label>
+  <input id="project" list="projects" placeholder="empezá a escribir…" autocomplete="off" />
+  <datalist id="projects"></datalist>
+
+  <label for="idea">Idea</label>
+  <textarea id="idea" placeholder="qué querés construir…" autofocus></textarea>
+
+  <div id="preview">(escribí una idea arriba — el preview se arma solo)</div>
+
+  <div class="row">
+    <button id="copyBtn">Copiar al portapapeles</button>
+    <span id="stats"></span>
+  </div>
+  <div id="status"></div>
+
+<script>
+const ideaEl = document.getElementById("idea");
+const projectEl = document.getElementById("project");
+const previewEl = document.getElementById("preview");
+const copyBtn = document.getElementById("copyBtn");
+const statsEl = document.getElementById("stats");
+const statusEl = document.getElementById("status");
+const vaultEl = document.getElementById("vault");
+const projectsList = document.getElementById("projects");
+
+let currentXml = "";
+let debounceTimer = null;
+let inFlight = 0; // guards against an older slow response overwriting a newer one
+
+fetch("/api/projects").then((r) => r.json()).then((data) => {
+  vaultEl.textContent = "vault: " + data.vault;
+  for (const name of data.projects) {
+    const opt = document.createElement("option");
+    opt.value = name;
+    projectsList.appendChild(opt);
+  }
+}).catch(() => { vaultEl.textContent = "vault: (no se pudo leer)"; });
+
+async function compile() {
+  const idea = ideaEl.value.trim();
+  if (!idea) {
+    previewEl.textContent = "(escribí una idea arriba — el preview se arma solo)";
+    currentXml = "";
+    statsEl.textContent = "";
+    statusEl.textContent = "";
+    return;
+  }
+  const myRequest = ++inFlight;
+  previewEl.style.opacity = "0.6";
+  try {
+    const r = await fetch("/api/compile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idea, project: projectEl.value.trim() || undefined })
+    });
+    const data = await r.json();
+    if (myRequest !== inFlight) return; // a newer keystroke already started a fresher request
+    if (!r.ok) {
+      previewEl.textContent = "Error: " + (data.error || r.status);
+      return;
+    }
+    currentXml = data.xml;
+    previewEl.textContent = data.xml;
+    statsEl.textContent = data.chars + " caracteres (~" + data.approxTokens + " tokens estimados)";
+    statusEl.textContent = data.usedFallback ? "Sin contexto previo encontrado — revisá antes de copiar." : "";
+    statusEl.className = data.usedFallback ? "thin" : "";
+  } catch (e) {
+    if (myRequest === inFlight) previewEl.textContent = "Error de conexión: " + e.message;
+  } finally {
+    if (myRequest === inFlight) previewEl.style.opacity = "1";
+  }
+}
+
+function scheduleCompile() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(compile, 400);
+}
+
+ideaEl.addEventListener("input", scheduleCompile);
+projectEl.addEventListener("input", scheduleCompile);
+
+copyBtn.addEventListener("click", async () => {
+  if (!currentXml) return;
+  try {
+    await navigator.clipboard.writeText(currentXml);
+    copyBtn.textContent = "✓ Copiado";
+    copyBtn.classList.add("done");
+    setTimeout(() => { copyBtn.textContent = "Copiar al portapapeles"; copyBtn.classList.remove("done"); }, 1500);
+  } catch (e) {
+    copyBtn.textContent = "No se pudo copiar (" + e.message + ")";
+  }
+});
+</script>
+</body>
+</html>

@@ -50,6 +50,7 @@ flowchart LR
 | `packages/obsidian-memory-mcp/`      | Node (ESM)     | The "hybrid" MCP sidecar (stdio): vault-locked file + search tools                  |
 | `packages/obsidian-memory-rag/`      | Python         | FTS5 indexer + BM25 search (the search engine the sidecar bridges to)               |
 | `packages/create-obsidian-memory/`   | Node           | `npx` initializer: merges MCP config, scaffolds a vault                             |
+| `packages/obsidian-prompt-compiler/` | Node (ESM)     | `obsidian-prompt` CLI + optional GUI: vault context → `<orchestration_package>` XML, no LLM |
 | `scripts/`                           | TS / Node      | `sync-agents.ts` (rule generator), parity + MCP smoke checks                        |
 | `.agents/`, `.cursor/`, `.continue/` | Markdown       | Per-IDE rule files; `.agents/rules/*` is the source, the rest derived               |
 | `evals/`                             | Node / Py / MD | Retrieval-quality benchmark (recall@k/MRR/nDCG/MAP, gated) + prompt-adherence smoke |
@@ -122,9 +123,43 @@ One `npx` command to wire an IDE to a vault, idempotently and safely.
 - **Config merge:** [`src/mcp-merge.mjs`](./packages/create-obsidian-memory/src/mcp-merge.mjs) — pure functions that splice `basic-memory` (and optionally `obsidian-memory-hybrid`) into an existing `~/.cursor/mcp.json` **without dropping other servers**. The `basic-memory` version is pinned in one constant (`BASIC_MEMORY_VERSION`) to close a supply-chain RCE vector (see [Security](#trust-and-security-model)).
 - **Safety:** BOM-stripping before JSON parse, **atomic writes** (tmp + fsync + rename, `0o600` on POSIX), and a timestamped backup of any prior `mcp.json` before overwriting.
 - **Claude-native-memory override:** [`src/claude-native-memory.mjs`](./packages/create-obsidian-memory/src/claude-native-memory.mjs) — when wiring Claude Code, idempotently merges `"autoMemoryEnabled": false` into `~/.claude/settings.json` and installs a cross-platform Node `SessionStart` hook ([`src/hooks/session-start-vault-context.mjs`](./packages/create-obsidian-memory/src/hooks/session-start-vault-context.mjs)) that injects the vault map + precedence reminders, so the vault — not Claude Code's native auto-memory — is the single source of truth (ADR-0029).
+- **Deterministic enforcement hooks (ADR-0030, on by default with the override above):** a `PreToolUse` guard ([`src/hooks/guard-native-memory-write.mjs`](./packages/create-obsidian-memory/src/hooks/guard-native-memory-write.mjs)) DENIES `Write`/`Edit`/`MultiEdit`/`NotebookEdit` into the native auto-memory directory, and a `Stop` nudge ([`src/hooks/stop-vault-close-reminder.mjs`](./packages/create-obsidian-memory/src/hooks/stop-vault-close-reminder.mjs)) blocks the stop once when the session edited files but never touched the vault's close ritual. Both are model-agnostic enforcement — they hold even when the driving model doesn't reliably honor a prose rule. `--no-memory-enforcement` opts out.
+- **Effort-gate hook (ADR-0031, on by default, independent of the pair above):** a `PreToolUse` gate ([`src/hooks/guard-effort-gate.mjs`](./packages/create-obsidian-memory/src/hooks/guard-effort-gate.mjs)) DENIES a session's 2nd+ substantive edit until the model proposes an effort level and gets a real reply from the user — making a pause enforced instead of just announced. `--no-effort-gate` opts out.
 - **Extras:** optional vault scaffold, `vault/.vscode/settings.json` Git-quieting on Windows, and a gitleaks pre-commit hook.
 
-### 5. Agent-rule surface + maintainer tooling
+### 5. `obsidian-prompt-compiler` — vault-aware prompt compiler (Node)
+
+For pasting into AI tools that don't have the vault's MCP wired (a web chat, another
+editor's chat panel). Not needed when the target already has `vault_hybrid_search`
+available — that's cheaper and on-demand; this is for when it can't reach the vault at all.
+
+- **Entry points:** [`src/cli.mjs`](./packages/obsidian-prompt-compiler/src/cli.mjs) (`obsidian-prompt` bin, terminal) and [`src/server.mjs`](./packages/obsidian-prompt-compiler/src/server.mjs) (`obsidian-prompt-gui` bin, optional — a localhost-only HTTP server + vanilla-JS page for a desktop-icon workflow, same core underneath).
+- **No LLM call:** context comes from `vault_observations` (already-distilled typed facts) and
+  `vault_hybrid_search`, via the same Python bridge `obsidian-memory-mcp` uses — see
+  [`rag-client.mjs`](./packages/obsidian-memory-mcp/src/rag-client.mjs), extracted out of
+  `hybrid-mcp.mjs` so both packages (and tests) can import the bridge without spawning the
+  full MCP stdio server.
+- **Module split:** `project-resolve.mjs` (capture — resolves/picks `PROJECTS/<name>.md`),
+  `context-search.mjs` (retrieval — splits observations into decisions vs. patterns; query
+  qualified by project name + `--graph` and snippets capped at 320 chars so a large real
+  vault's cross-project notes don't drown out the project's own context; falls back to a
+  capped raw excerpt of the project note itself when it has no formal observations yet),
+  `compile-xml.mjs` (pure compiler — CDATA-wrapped, no entity-escaping, so pasted
+  code/passages stay human-readable), `prompt-defaults.mjs` (copy shared between the CLI
+  and the GUI server), `clipboard.mjs` / `review.mjs` (CLI: copy + optional `$EDITOR`
+  review pass before copying), `server.mjs` + `public/index.html` (GUI: same retrieval +
+  compile pipeline behind `/api/compile`, live preview client-side, `navigator.clipboard`
+  for the copy step instead of a Node clipboard library) — the user always reviews before
+  pasting elsewhere, in either mode.
+- **XML schema:** a reduced `<orchestration_package>` (`system_role`, `project_environment`,
+  `knowledge_base_context`, `execution_spec`, `guardrails`, `output_format_instructions`),
+  trimmed from a generic ~35-tag prompt-engineering catalog down to the leaves that earn
+  their place for a coding task; self-check tags (`<thinking>`/`<reflect>`/`<verify>`/…)
+  were dropped as redundant boilerplate.
+- **Versioned independently** of the rest of the kit (not in `scripts/version.mjs`'s
+  `MARKERS`) — `private: true`, not published.
+
+### 6. Agent-rule surface + maintainer tooling
 
 The kit is **IDE-agnostic** (ADR-0011): one canonical rule set, projected into
 each IDE's format.

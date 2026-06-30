@@ -760,6 +760,13 @@ async function runNonInteractive(argv) {
   // forces it off.
   const wantNativeOverride =
     ides.includes("claude") && on("--native-memory-override", "--no-native-memory-override");
+  // ADR-0030: deterministic enforcement hooks (PreToolUse guard + Stop nudge) ride along
+  // with the native-memory override by default; --no-memory-enforcement opts out of just
+  // these two (keeping autoMemoryEnabled:false + the SessionStart hook).
+  const wantEnforce = wantNativeOverride && on("--memory-enforcement", "--no-memory-enforcement");
+  // ADR-0031: effort-gate hook (PreToolUse) also rides along by default, independently of
+  // --memory-enforcement; --no-effort-gate opts out of just this one.
+  const wantEffortGate = wantNativeOverride && on("--effort-gate", "--no-effort-gate");
   let kitRoot = null;
 
   if (wantHybrid) {
@@ -829,7 +836,11 @@ async function runNonInteractive(argv) {
     await registerClaudeCodeMcp(vault, dryRun, hybridOpts);
   }
   if (wantNativeOverride) {
-    await configureClaudeNativeMemory(home, vault, dryRun, { lang });
+    await configureClaudeNativeMemory(home, vault, dryRun, {
+      lang,
+      enforce: wantEnforce,
+      effortGate: wantEffortGate
+    });
   }
   if (ides.includes("codex")) {
     await registerCodexMcp(vault, dryRun, hybridOpts);
@@ -904,6 +915,16 @@ async function runNonInteractive(argv) {
   if (wantNativeOverride) {
     console.log(
       "- Claude Code native memory: DISABLED (autoMemoryEnabled:false) + SessionStart vault hook → ~/.claude/settings.json"
+    );
+  }
+  if (wantEnforce) {
+    console.log(
+      "- Deterministic enforcement (ADR-0030): PreToolUse guard (denies writes into native memory) + Stop nudge (close-ritual reminder) → ~/.claude/settings.json"
+    );
+  }
+  if (wantEffortGate) {
+    console.log(
+      "- Effort gate (ADR-0031): PreToolUse hook (denies the 2nd+ substantive edit until the model proposes an effort level and the user replies) → ~/.claude/settings.json"
     );
   }
   if (ides.includes("codex")) {
@@ -995,6 +1016,24 @@ Claude Code native-memory override (when --ide includes claude):
   Idempotent (merges settings.json; never duplicates the hook). --minimal opts out.
   --native-memory-override     Force it on (even under --minimal).
   --no-native-memory-override  Leave Claude's native auto-memory untouched.
+
+  Deterministic enforcement (ADR-0030, on by default with the override above) — makes
+  the doctrine real for ANY model, old or new, not just ones that reliably read prose
+  rules: a PreToolUse hook DENIES Write/Edit/MultiEdit/NotebookEdit into the native
+  auto-memory directory, and a Stop hook nudges the close ritual once per turn when the
+  session did substantive file work but never touched the vault.
+  --memory-enforcement         Force the two enforcement hooks on (even under --minimal).
+  --no-memory-enforcement      Keep autoMemoryEnabled:false + SessionStart, skip the
+                                PreToolUse guard and Stop nudge.
+
+  Effort gate (ADR-0031, on by default with the override above, independent of the
+  enforcement pair) — makes a pause real instead of just announced: a PreToolUse hook
+  DENIES a session's 2nd+ substantive edit (Write/Edit/MultiEdit/NotebookEdit) until the
+  model has proposed an effort level (/effort low|medium|high|xhigh|max) and gotten an
+  actual reply from the user. The first substantive edit of a session is always free.
+  --effort-gate                Force the effort-gate hook on (even under --minimal).
+  --no-effort-gate             Keep the override (+ enforcement, if on) without the
+                                effort-gate hook.
 
   --help          This message`);
     return;
@@ -1137,8 +1176,18 @@ Claude Code native-memory override (when --ide includes claude):
   // is selected; opt out with --no-native-memory-override.
   const wantNativeOverride =
     Boolean(ides?.includes("claude")) && !process.argv.includes("--no-native-memory-override");
+  // ADR-0030: deterministic enforcement hooks ride along by default; opt out with
+  // --no-memory-enforcement (keeps autoMemoryEnabled:false + the SessionStart hook).
+  const wantEnforce = wantNativeOverride && !process.argv.includes("--no-memory-enforcement");
+  // ADR-0031: effort-gate hook also rides along by default, independently of
+  // --memory-enforcement; opt out with --no-effort-gate.
+  const wantEffortGate = wantNativeOverride && !process.argv.includes("--no-effort-gate");
   if (wantNativeOverride) {
-    await configureClaudeNativeMemory(home, vault, dryRun, { lang });
+    await configureClaudeNativeMemory(home, vault, dryRun, {
+      lang,
+      enforce: wantEnforce,
+      effortGate: wantEffortGate
+    });
   }
   if (ides?.includes("codex")) {
     await registerCodexMcp(vault, dryRun, hybridOpts);
@@ -1200,6 +1249,16 @@ Claude Code native-memory override (when --ide includes claude):
   if (wantNativeOverride) {
     console.log(
       "- Claude Code native memory: DISABLED (autoMemoryEnabled:false) + SessionStart vault hook → ~/.claude/settings.json"
+    );
+  }
+  if (wantEnforce) {
+    console.log(
+      "- Deterministic enforcement (ADR-0030): PreToolUse guard (denies writes into native memory) + Stop nudge (close-ritual reminder) → ~/.claude/settings.json"
+    );
+  }
+  if (wantEffortGate) {
+    console.log(
+      "- Effort gate (ADR-0031): PreToolUse hook (denies the 2nd+ substantive edit until the model proposes an effort level and the user replies) → ~/.claude/settings.json"
     );
   }
   if (ides?.includes("codex")) {

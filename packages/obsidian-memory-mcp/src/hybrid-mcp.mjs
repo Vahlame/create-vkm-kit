@@ -8,10 +8,8 @@
  * - OBSIDIAN_MEMORY_RAG_SRC — override path to .../obsidian-memory-rag/src
  * - OBSIDIAN_MEMORY_PYTHON — python executable (default: python3 non-Windows, python on Windows)
  */
-import { execa } from "execa";
 import { readFileSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -20,13 +18,12 @@ import { vaultEditFile, vaultListDirectory, vaultReadFile, vaultWriteFile } from
 import { toolHandler } from "./mcp-result.mjs";
 import { scanInjection, wrapUntrusted } from "./untrusted.mjs";
 import { maybeStartOtel } from "./telemetry.mjs";
+import { defaultRagSrc, requireVault, runRagJson } from "./rag-client.mjs";
 
 // Re-export so any consumer that already imports these from hybrid-mcp.mjs keeps
-// working; new consumers should import from ./extract.mjs to avoid loading the
-// whole MCP server module.
+// working; new consumers should import from ./extract.mjs (or ./rag-client.mjs for the
+// Python bridge) to avoid loading the whole MCP server module.
 export { extractBullets, pickQueryTerms };
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Advertise the package's real version so the MCP handshake never drifts from
 // the kit version (this package.json is one of the version.mjs markers).
@@ -37,76 +34,6 @@ const pkgVersion = (() => {
     return "0.0.0";
   }
 })();
-
-function defaultPython() {
-  if (process.env.OBSIDIAN_MEMORY_PYTHON) return process.env.OBSIDIAN_MEMORY_PYTHON;
-  return process.platform === "win32" ? "python" : "python3";
-}
-
-function defaultVaultFromEnv() {
-  const raw = process.env.BASIC_MEMORY_HOME || process.env.OBSIDIAN_MEMORY_VAULT;
-  if (!raw) return null;
-  return path.resolve(raw);
-}
-
-function defaultRagSrc() {
-  if (process.env.OBSIDIAN_MEMORY_RAG_SRC) {
-    return path.resolve(process.env.OBSIDIAN_MEMORY_RAG_SRC);
-  }
-  return path.resolve(__dirname, "../../obsidian-memory-rag/src");
-}
-
-function requireVault(vaultArg) {
-  const v = vaultArg ? path.resolve(vaultArg) : defaultVaultFromEnv();
-  if (!v) {
-    throw new Error(
-      "Missing vault: pass `vault` on the tool call or set BASIC_MEMORY_HOME / OBSIDIAN_MEMORY_VAULT"
-    );
-  }
-  return v;
-}
-
-async function runRagJson(args, ragSrc) {
-  const py = defaultPython();
-  const env = { ...process.env };
-  const parts = [ragSrc, env.PYTHONPATH].filter(Boolean);
-  env.PYTHONPATH = parts.join(path.delimiter);
-  let r;
-  try {
-    r = await execa(py, ["-m", "obsidian_memory_rag", ...args], {
-      env,
-      reject: false,
-      stripFinalNewline: true
-    });
-  } catch (e) {
-    // reject:false normally turns failures into a result, but a spawn error
-    // (e.g. the Python binary is missing) can still throw.
-    if (e && e.code === "ENOENT") throw pythonNotFoundError(py);
-    throw e;
-  }
-  if (r.exitCode !== 0) {
-    if (r.code === "ENOENT" || /\bENOENT\b/.test(r.shortMessage || "")) {
-      throw pythonNotFoundError(py);
-    }
-    const detail = r.stderr || r.shortMessage || r.stdout || "(no output)";
-    throw new Error(`obsidian-memory-rag exited ${r.exitCode ?? "?"}: ${detail}`);
-  }
-  try {
-    return JSON.parse(r.stdout);
-  } catch (e) {
-    const head = (r.stdout || "").slice(0, 400);
-    throw new Error(
-      `obsidian-memory-rag returned non-JSON output (${e.message}). First 400 chars: ${head}`
-    );
-  }
-}
-
-function pythonNotFoundError(py) {
-  return new Error(
-    `Python executable "${py}" not found on PATH. Install Python 3.11+ (with the ` +
-      `obsidian-memory-rag package importable) or set OBSIDIAN_MEMORY_PYTHON to its full path.`
-  );
-}
 
 /**
  * Augment a search/hybrid-search result object with untrusted-data signals:

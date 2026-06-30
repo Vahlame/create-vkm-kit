@@ -6,6 +6,67 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Deterministic enforcement hooks, on by default with the Claude Code native-memory
+  override (ADR-0030).** Makes the ADR-0029 doctrine hold for ANY model — old or new,
+  not just ones that reliably read prose rules:
+  1. **`PreToolUse` guard** (`guard-native-memory-write.mjs`) — DENIES `Write`/`Edit`/
+     `MultiEdit`/`NotebookEdit` calls that target the native auto-memory directory
+     (`~/.claude/projects/*/memory/`), redirecting the model to `vault_write_file`/
+     `vault_edit_file`.
+  2. **`Stop` nudge** (`stop-vault-close-reminder.mjs`) — when a session did substantive
+     file work (≥2 `Write`/`Edit`/`MultiEdit`/`NotebookEdit` calls) but never touched the
+     vault's close-ritual tools, blocks the stop **once** with a reminder to close out —
+     with an explicit "ok to skip if nothing's reusable" escape hatch so it never forces
+     low-value writes. Loop-safe via `stop_hook_active`.
+  - Both ship as cross-platform Node scripts (same precedent as the `SessionStart` hook),
+    installed into `~/.claude/hooks/` and merged idempotently into
+    `~/.claude/settings.json` (`hooks.PreToolUse`, `hooks.Stop`).
+  - Opt out of just these two with `--no-memory-enforcement` (keeps
+    `autoMemoryEnabled:false` + the `SessionStart` hook); force on under `--minimal` with
+    `--memory-enforcement`. 19 new tests in `claude-native-memory.test.mjs`.
+
+- **Effort-gate hook, on by default with the Claude Code native-memory override,
+  independent of the enforcement pair above (ADR-0031).** Makes a pause real instead of
+  just announced: a `PreToolUse` hook (`guard-effort-gate.mjs`) DENIES a session's **2nd+**
+  substantive `Write`/`Edit`/`MultiEdit`/`NotebookEdit` call until the model has proposed
+  an effort level (`/effort low|medium|high|xhigh|max`) and gotten an actual reply from the
+  user — not just printed a "pausing here" message and kept going. The first substantive
+  edit of a session is always free (no nagging on one-line fixes), and once satisfied the
+  gate stays open for the rest of the session. Correctly distinguishes a real user reply
+  from a tool-result message (Claude Code encodes both as `type:"user"`), and the marker
+  text the model must print is taught in-band by the hook's own denial message, no separate
+  rules-file change needed. **Not a token-saving feature** — each time it fires it costs at
+  least one extra turn; its value is letting the user redirect a misscoped task before the
+  session commits to it, documented as a deliberate trade-off in ADR-0031. Opt out with
+  `--no-effort-gate`; force on under `--minimal` with `--effort-gate`. 18 new tests in
+  `claude-native-memory.test.mjs`.
+
+- **New package `@vkmikc/obsidian-prompt-compiler` (`obsidian-prompt` CLI + optional GUI).**
+  Compiles a one-line idea + vault context into an `<orchestration_package>` XML prompt and
+  copies it to the clipboard, for pasting into AI tools that don't have the vault's MCP
+  wired (a web chat, another editor without the wiring). No LLM call: context comes
+  straight from `vault_observations` (already-distilled typed facts) and
+  `vault_hybrid_search`, via the same Python bridge the hybrid MCP server uses, with the
+  search qualified by the project name (+ `--graph`) and snippets capped at 320 chars so a
+  large real vault's cross-project notes don't drown out the project's own context; when a
+  project note has no formal observations yet (rich prose instead of `- [decision] ...`
+  bullets), falls back to a capped raw excerpt of the note itself rather than coming up
+  empty. Interactive project picker (`PROJECTS/*.md` autocomplete), optional
+  `$EDITOR`/`$VISUAL` review pass before copying, and a reduced XML schema (trimmed from a
+  generic ~35-tag prompt-engineering catalog down to the leaves that matter for a coding
+  task — dropped boilerplate self-check tags like `<thinking>`/`<reflect>`/`<verify>`).
+  **Optional GUI** (`obsidian-prompt-gui`, or `--install-shortcut` for a hidden-window
+  Desktop launcher on Windows): a localhost-only `node:http` server + a vanilla-JS page
+  (no framework, no build step — picked over Tauri/Electron for being the lightest/fastest
+  option) with a live XML preview as you type (debounced) and one-click clipboard copy via
+  `navigator.clipboard`. Extracted `rag-client.mjs` out of
+  `obsidian-memory-mcp/src/hybrid-mcp.mjs` (pure refactor, same Python-bridge behavior) so
+  both packages can reuse it without spawning the MCP stdio server. 34 new tests across the
+  new package; versioned independently of the rest of the kit (not in
+  `scripts/version.mjs`'s `MARKERS`), `private: true`, not published.
+
 ## [3.10.0] - 2026-06-24
 
 ### Added
