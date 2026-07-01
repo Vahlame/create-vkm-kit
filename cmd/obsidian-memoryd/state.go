@@ -21,6 +21,14 @@ type DaemonState struct {
 	LastPush                time.Time `json:"last_push,omitempty"`
 	LastRebaseAbort         time.Time `json:"last_rebase_abort,omitempty"`
 	ConsecutivePushFailures int       `json:"consecutive_push_failures"`
+	// Sync-level health (any step: add/commit/pull/push). ConsecutivePushFailures
+	// alone left `doctor` falsely green when the vault stopped syncing for a
+	// NON-push reason (e.g. `pull --rebase` failing on expired credentials), since
+	// push never ran to bump its counter. These track the whole sync outcome.
+	LastSyncOK              time.Time `json:"last_sync_ok,omitempty"`
+	LastSyncError           string    `json:"last_sync_error,omitempty"`
+	LastSyncErrorAt         time.Time `json:"last_sync_error_at,omitempty"`
+	ConsecutiveSyncFailures int       `json:"consecutive_sync_failures"`
 }
 
 var (
@@ -145,6 +153,40 @@ func recordRebaseAbort() {
 	_ = updateState(func(s *DaemonState) {
 		s.LastRebaseAbort = time.Now().UTC()
 	})
+}
+
+// recordSyncSuccess marks a full add→commit→pull→push cycle as completed and
+// clears the consecutive sync-failure counter + last error.
+func recordSyncSuccess() {
+	_ = updateState(func(s *DaemonState) {
+		s.LastSyncOK = time.Now().UTC()
+		s.ConsecutiveSyncFailures = 0
+		s.LastSyncError = ""
+		s.LastSyncErrorAt = time.Time{}
+	})
+}
+
+// recordSyncFailure increments the consecutive sync-failure counter and records
+// the error message + time, so `doctor` alarms on a vault that stopped syncing
+// for ANY reason — not just repeated push failures (which alone left add/commit/
+// pull failures invisible to the health check).
+func recordSyncFailure(err error) {
+	_ = updateState(func(s *DaemonState) {
+		s.ConsecutiveSyncFailures++
+		s.LastSyncErrorAt = time.Now().UTC()
+		if err != nil {
+			s.LastSyncError = truncateString(err.Error(), 200)
+		}
+	})
+}
+
+// truncateString caps a string at n runes-ish (bytes) with an ellipsis, keeping
+// the persisted error message bounded.
+func truncateString(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "..."
 }
 
 // formatAgo formats a duration since `t` as e.g. "2m30s ago", or "never" when

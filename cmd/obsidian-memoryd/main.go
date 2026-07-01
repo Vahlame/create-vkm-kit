@@ -26,10 +26,10 @@ import (
 
 // version is the daemon version. Override at build time with:
 //
-//	go build -ldflags="-X main.version=3.10.0" ./cmd/obsidian-memoryd
+//	go build -ldflags="-X main.version=3.11.0" ./cmd/obsidian-memoryd
 //
 // Keep in sync with agent.toml.
-var version = "3.10.0"
+var version = "3.11.0"
 
 const usage = `obsidian-memoryd — vault git sync helper
 
@@ -227,10 +227,26 @@ func gitSyncWith(parent context.Context, l *slog.Logger, dir string, r Runner) e
 	}
 	defer syncMu.Unlock()
 
+	// Record the outcome of the WHOLE cycle (not just push). This is the fix for
+	// the health-blind spot: an add/commit/pull failure used to return an error
+	// that was only logged to JSONL, so `doctor` — keyed on push failures alone —
+	// reported healthy while the vault silently stopped syncing.
+	err := runSyncSteps(parent, l, dir, r)
+	if err != nil {
+		recordSyncFailure(err)
+	} else {
+		recordSyncSuccess()
+	}
+	return err
+}
+
+// runSyncSteps runs add → commit → pull --rebase → push in order, stopping at the
+// first failure. Split out from gitSyncWith so the latter can record one
+// success/failure for the whole cycle regardless of which step failed.
+func runSyncSteps(parent context.Context, l *slog.Logger, dir string, r Runner) error {
 	if _, err := git.PlainOpen(dir); err != nil {
 		return fmt.Errorf("not a git repo: %w", err)
 	}
-
 	if err := runStep(parent, r, stepTimeout, l, "add", "git", "-C", dir, "add", "-A"); err != nil {
 		return err
 	}
@@ -327,8 +343,11 @@ func truncate(b []byte, n int) string {
 }
 
 // doctor prints a human-readable health report (heartbeat age, last successful
-// push, unpushed commit count, recent rebase aborts, consecutive push fails)
-// and returns ErrDoctorAlarm if any signal looks bad. Useful when the daemon
+// push, last successful sync, unpushed commit count, recent rebase aborts, and
+// both the consecutive push-fail and consecutive sync-fail counters) and returns
+// ErrDoctorAlarm if any signal looks bad — a stale heartbeat, ≥3 push failures,
+// or ≥3 sync failures (the last catches a vault stuck on add/commit/pull, which
+// the push-only counter missed). Useful when the daemon
 // runs hidden (Windows -H windowsgui) and the user wants to know "is it alive
 // and is it pushing?" without grepping JSONL logs.
 func doctor(out io.Writer, vault string, now time.Time) error {
@@ -347,6 +366,7 @@ func doctor(out io.Writer, vault string, now time.Time) error {
 		fmt.Fprintf(out, "  heartbeat:                %s%s\n", formatAgo(now, s.Heartbeat), marker)
 	}
 	fmt.Fprintf(out, "  last successful push:     %s\n", formatAgo(now, s.LastPush))
+	fmt.Fprintf(out, "  last successful sync:     %s\n", formatAgo(now, s.LastSyncOK))
 	if !s.LastRebaseAbort.IsZero() {
 		fmt.Fprintf(out, "  last rebase abort:        %s ⚠\n", formatAgo(now, s.LastRebaseAbort))
 	}
@@ -356,6 +376,16 @@ func doctor(out io.Writer, vault string, now time.Time) error {
 			marker = " ⚠ repeated failure"
 		}
 		fmt.Fprintf(out, "  consecutive push fails:   %d%s\n", s.ConsecutivePushFailures, marker)
+	}
+	if s.ConsecutiveSyncFailures > 0 {
+		marker := ""
+		if s.ConsecutiveSyncFailures >= 3 {
+			marker = " ⚠ vault not syncing"
+		}
+		fmt.Fprintf(out, "  consecutive sync fails:   %d%s\n", s.ConsecutiveSyncFailures, marker)
+		if s.LastSyncError != "" {
+			fmt.Fprintf(out, "  last sync error:          %s (%s)\n", s.LastSyncError, formatAgo(now, s.LastSyncErrorAt))
+		}
 	}
 
 	// Unpushed commit count is best-effort: requires a configured upstream.
@@ -371,7 +401,9 @@ func doctor(out io.Writer, vault string, now time.Time) error {
 		}
 	}
 
-	alarm := staleHeartbeat(s, now, heartbeatStale) || s.ConsecutivePushFailures >= 3
+	alarm := staleHeartbeat(s, now, heartbeatStale) ||
+		s.ConsecutivePushFailures >= 3 ||
+		s.ConsecutiveSyncFailures >= 3
 	if alarm {
 		fmt.Fprintln(out, "")
 		fmt.Fprintln(out, "ALARM: one or more signals are unhealthy. See `obsidian-memoryd inspect --last 30` for details.")

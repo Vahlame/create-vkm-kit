@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [3.11.0] - 2026-07-01
+
 ### Added
 
 - **Deterministic enforcement hooks, on by default with the Claude Code native-memory
@@ -69,6 +71,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The sync daemon (`obsidian-memoryd`) reported healthy while the vault was
+  silently not syncing.** `doctor`'s alarm keyed only on _push_ failures, so a
+  failing `add` / `commit` / `pull --rebase` (e.g. expired git credentials breaking
+  the rebase) returned an error that was only written to the JSONL log — the
+  heartbeat stayed fresh, the push counter never moved, and `doctor` exited 0
+  indefinitely while nothing reached the remote. `gitSync` now records the outcome
+  of the _whole_ cycle: new `ConsecutiveSyncFailures` / `LastSyncOK` /
+  `LastSyncError` state, surfaced by `doctor` and alarming at ≥3 consecutive sync
+  failures (a transient failure that recovers self-clears on the next good sync).
+  Added regression tests for the pull-failure and stuck-sync paths; normalized the
+  daemon package with `gofmt`.
 - **`npm run setup`'s verify step now confirms the Python backend actually _runs_,**
   not just that the index file exists. Because `--install-backend` / `--build-index`
   are best-effort, a failed backend install plus a leftover `fts.sqlite` previously
