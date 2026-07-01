@@ -69,6 +69,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **`npm run setup`'s verify step now confirms the Python backend actually _runs_,**
+  not just that the index file exists. Because `--install-backend` / `--build-index`
+  are best-effort, a failed backend install plus a leftover `fts.sqlite` previously
+  showed an all-green table while every `vault_hybrid_search` failed at first use —
+  the exact "No Python at …" / import-error landmine that leaves memory silently
+  dead. The new check invokes the backend the way the MCP will
+  (`python -m obsidian_memory_rag --help` + the wired `PYTHONPATH`) and points at the
+  troubleshooting guide when it fails. Fresh-PC quick-check tables gained the same
+  restart-free CLI check.
 - **`[[wikilink]]`/relation parsing mistook documentation examples for real edges.**
   `audit.py`, `graphlink.py` and `knowledge_graph.py` scanned raw note text for
   `[[...]]` with no Markdown-structure awareness, so a note that _documents_ the

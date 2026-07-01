@@ -51,8 +51,12 @@ function defaultVault() {
  * shims like `claude.cmd` / `uvx.cmd`. Only ever called with trusted literals
  * (no user input), so there's no shell-injection surface.
  */
-function sh(cmdline) {
-  const r = spawnSync(cmdline, { encoding: "utf8", shell: true });
+function sh(cmdline, envOverlay) {
+  const r = spawnSync(cmdline, {
+    encoding: "utf8",
+    shell: true,
+    env: envOverlay ? { ...process.env, ...envOverlay } : process.env
+  });
   return {
     ok: !r.error && r.status === 0,
     out: `${r.stdout || ""}${r.stderr || ""}`
@@ -206,6 +210,29 @@ if (dryRun) {
   if (canFull) {
     const idxOk = existsSync(path.join(vault, ".obsidian-memory-rag", "fts.sqlite"));
     status("search index built", idxOk, path.join(vault, ".obsidian-memory-rag", "fts.sqlite"));
+
+    // The index FILE existing is not proof the hybrid backend can RUN. Because
+    // --install-backend / --build-index are best-effort, a failed backend install
+    // plus a leftover index would show all-green here while every real search
+    // fails at first use (the "No Python at …" / import-error landmine). Invoke the
+    // backend exactly the way the MCP will — bare `python`/`python3` (matching
+    // rag-client.mjs defaultPython) + the wired PYTHONPATH — so a non-importable
+    // backend fails loudly now, not later.
+    const pyCmd = WIN ? "python" : "python3";
+    const ragSrc = path.join(ROOT, "packages", "obsidian-memory-rag", "src");
+    const pyPath = process.env.PYTHONPATH
+      ? `${ragSrc}${path.delimiter}${process.env.PYTHONPATH}`
+      : ragSrc;
+    const backend = sh(`${pyCmd} -m obsidian_memory_rag --help`, { PYTHONPATH: pyPath });
+    status("Python backend runnable", backend.ok, `${pyCmd} -m obsidian_memory_rag`);
+    if (!backend.ok) {
+      console.log(
+        C.dim(
+          "    ↳ hybrid search will fail until the backend imports — recreate the venv / reinstall,"
+        )
+      );
+      console.log(C.dim("      then rebuild the index. See docs/en/troubleshooting.md."));
+    }
   }
 
   const wired = ides.split(",").map((s) => s.trim());

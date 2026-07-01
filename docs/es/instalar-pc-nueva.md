@@ -105,10 +105,11 @@ Luego copia el bloque de User Rules ([Paso 4 de la instalación](instalacion.md#
 
 ## Verificación rápida
 
-| Comprobación                     | Esperado                                                |
-| -------------------------------- | ------------------------------------------------------- |
-| `claude mcp list`                | `basic-memory` y `obsidian-memory-hybrid` → ✓ Connected |
-| `vault_hybrid_search` en un chat | devuelve **heading + sección**, con `_trust`            |
-| `vault_audit`                    | JSON de salud (oversized, links, SESSION_LOG)           |
+| Comprobación                           | Esperado                                                                |
+| -------------------------------------- | ----------------------------------------------------------------------- |
+| `claude mcp list`                      | `basic-memory` y `obsidian-memory-hybrid` → ✓ Connected                 |
+| `python -m obsidian_memory_rag --help` | imprime la ayuda → el backend de Python importa y corre (sin reiniciar) |
+| `vault_hybrid_search` en un chat       | devuelve **heading + sección**, con `_trust`                            |
+| `vault_audit`                          | JSON de salud (oversized, links, SESSION_LOG)                           |
 
 Si algo falla → [`troubleshooting.md`](troubleshooting.md).

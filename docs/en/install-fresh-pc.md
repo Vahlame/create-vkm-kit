@@ -105,10 +105,11 @@ Then copy the User Rules block ([install Step 4](install.md#step-4--paste-the-us
 
 ## Quick check
 
-| Check                           | Expected                                                  |
-| ------------------------------- | --------------------------------------------------------- |
-| `claude mcp list`               | `basic-memory` and `obsidian-memory-hybrid` → ✓ Connected |
-| `vault_hybrid_search` in a chat | returns **heading + section**, with `_trust`              |
-| `vault_audit`                   | health JSON (oversized, links, SESSION_LOG)               |
+| Check                                  | Expected                                                               |
+| -------------------------------------- | ---------------------------------------------------------------------- |
+| `claude mcp list`                      | `basic-memory` and `obsidian-memory-hybrid` → ✓ Connected              |
+| `python -m obsidian_memory_rag --help` | prints usage → the Python backend imports and runs (no restart needed) |
+| `vault_hybrid_search` in a chat        | returns **heading + section**, with `_trust`                           |
+| `vault_audit`                          | health JSON (oversized, links, SESSION_LOG)                            |
 
 If something fails → [`troubleshooting.md`](troubleshooting.md).
