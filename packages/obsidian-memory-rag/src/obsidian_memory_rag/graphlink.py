@@ -28,6 +28,8 @@ import re
 import sqlite3
 from collections import defaultdict
 
+from .text_scrub import strip_code_regions
+
 # [[target]] / [[target|alias]] / [[target#section]] — capture only the inner text.
 # Mirrors audit._WIKILINK_RE so both see the exact same edges.
 WIKILINK_RE = re.compile(r"\[\[([^\[\]]+?)\]\]")
@@ -50,9 +52,13 @@ def normalize_target(raw: str) -> str:
 
 
 def extract_targets(text: str) -> list[str]:
-    """Distinct normalized wikilink targets in a note (first-seen order)."""
+    """Distinct normalized wikilink targets in a note (first-seen order).
+
+    Ignores ``[[...]]`` occurrences inside fenced code blocks or inline code spans
+    (documentation examples of the syntax itself), which are not real edges.
+    """
     seen: dict[str, None] = {}
-    for match in WIKILINK_RE.finditer(text):
+    for match in WIKILINK_RE.finditer(strip_code_regions(text)):
         target = normalize_target(match.group(1))
         if target and target not in seen:
             seen[target] = None

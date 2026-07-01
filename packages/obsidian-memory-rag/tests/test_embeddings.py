@@ -7,6 +7,7 @@ from obsidian_memory_rag.embeddings import (
     _fastembed_cache_dir,
     _fastembed_identity,
     get_embedder,
+    resolve_embedder_name,
 )
 
 
@@ -39,3 +40,27 @@ def test_fastembed_cache_dir_default_is_durable_not_temp(monkeypatch) -> None:
 def test_get_embedder_default_is_dependency_free_hashing(monkeypatch) -> None:
     monkeypatch.delenv("OBSIDIAN_MEMORY_EMBEDDER", raising=False)
     assert isinstance(get_embedder(), HashingEmbedder)
+
+
+def test_resolve_embedder_name_matches_get_embedder_for_hashing() -> None:
+    # The cheap path (hashing) is safe to instantiate for real, so assert exact
+    # parity with what get_embedder(...).name actually produces.
+    assert resolve_embedder_name("hashing") == get_embedder("hashing").name
+    assert resolve_embedder_name("hashing-64") == get_embedder("hashing-64").name
+
+
+def test_resolve_embedder_name_matches_fastembed_identity_without_loading_model() -> None:
+    # For fastembed, resolve_embedder_name must NOT construct FastEmbedEmbedder (that
+    # loads an ONNX model) — it should compute the exact same identity string that
+    # get_embedder(...).name would, via the same _fastembed_identity helper.
+    assert resolve_embedder_name("fastembed:some/model") == _fastembed_identity("some/model")
+    assert resolve_embedder_name("fastembed") == _fastembed_identity("BAAI/bge-small-en-v1.5")
+
+
+def test_resolve_embedder_name_rejects_unknown_choice() -> None:
+    try:
+        resolve_embedder_name("not-a-real-embedder")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("expected ValueError for an unknown embedder choice")

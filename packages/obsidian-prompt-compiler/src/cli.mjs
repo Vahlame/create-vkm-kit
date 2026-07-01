@@ -20,7 +20,7 @@ import { searchContext } from "./context-search.mjs";
 import { compileOrchestrationPackage } from "./compile-xml.mjs";
 import { copyToClipboard } from "./clipboard.mjs";
 import { editorCommand, reviewInEditor } from "./review.mjs";
-import { defaultSystemRole, thinContextNote } from "./prompt-defaults.mjs";
+import { defaultSystemRole, thinContextNote, backendErrorNote } from "./prompt-defaults.mjs";
 
 function flagValue(argv, name) {
   const i = argv.indexOf(name);
@@ -113,8 +113,19 @@ async function main() {
 
   const context = await searchContext({ vault, query: ideaText, projectNote, projectName });
 
+  if (context.backendError) {
+    console.error(pc.red(`[!] Vault search backend failed: ${context.backendError}`));
+    console.error(
+      pc.dim(
+        lang === "en"
+          ? "The package below has no vault context because of this — fix the backend first."
+          : "El paquete de abajo no tiene contexto del vault por esto — arreglá el backend primero."
+      )
+    );
+  }
+
   let currentState = context.currentState || undefined;
-  if (context.usedFallback && !yes) {
+  if (context.usedFallback && !context.backendError && !yes) {
     const { extra } = await prompts({
       type: "text",
       name: "extra",
@@ -138,7 +149,11 @@ async function main() {
     functionalRequirements: splitList(flagValue(argv, "--requirements")),
     constraints: splitList(flagValue(argv, "--constraints")),
     format: flagValue(argv, "--format"),
-    note: context.usedFallback ? thinContextNote(lang) : undefined
+    note: context.backendError
+      ? backendErrorNote(lang, context.backendError)
+      : context.usedFallback
+        ? thinContextNote(lang)
+        : undefined
   });
 
   console.log(pc.dim(`Proyecto: ${projectName || "(ninguno)"} · vault: ${vault}`));

@@ -13,12 +13,15 @@
 
 /**
  * Wrap a handler's return value as a successful text CallToolResult.
- * Strings are emitted verbatim; everything else is pretty-printed JSON.
+ * Strings are emitted verbatim; everything else is compact JSON (no pretty-print
+ * indentation) — the consumer is an LLM, not a human reading a terminal, and the
+ * indentation/newlines of `JSON.stringify(value, null, 2)` cost ~15-25% extra
+ * tokens on every search/relations/observations/report response for zero benefit.
  * @param {unknown} value
  * @returns {{ content: { type: "text", text: string }[] }}
  */
 export function asTextResult(value) {
-  const text = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+  const text = typeof value === "string" ? value : JSON.stringify(value);
   return { content: [{ type: "text", text }] };
 }
 

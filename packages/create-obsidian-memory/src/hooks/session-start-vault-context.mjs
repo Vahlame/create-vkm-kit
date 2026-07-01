@@ -17,6 +17,7 @@
  *  - A non-zero exit is logged but does NOT abort the session. We never throw: a broken
  *    vault path must not block the user, so on any error we still emit the reminders.
  */
+import { pathToFileURL } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -31,8 +32,24 @@ function stripBom(text) {
   return typeof text === "string" && text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
 }
 
+/** Cap on the curated index dump injected into EVERY session, unconditionally. A
+ * hand-maintained index that gains one entry per project only grows over time — left
+ * uncapped, this hook's fixed per-session token tax grows right along with the vault
+ * (already ~10KB / ~2500 tokens on a modest 69-note vault). Generous enough to show the
+ * section headers and the first several entries, not the whole thing. */
+export const MAX_INDEX_CHARS = 4000;
+
+export function truncateIndex(index, lang) {
+  if (index.length <= MAX_INDEX_CHARS) return index;
+  const notice =
+    lang === "en"
+      ? `\n\n[...truncated: index is ${index.length} chars, showing the first ${MAX_INDEX_CHARS}. Use vault_read_file("_meta/index.md") for the rest.]`
+      : `\n\n[...truncado: el indice tiene ${index.length} caracteres, mostrando los primeros ${MAX_INDEX_CHARS}. Usa vault_read_file("_meta/index.md") para el resto.]`;
+  return index.slice(0, MAX_INDEX_CHARS) + notice;
+}
+
 /** The reinforced precedence reminders. Kept in sync with the CLAUDE.md rules block. */
-function reminders(lang) {
+export function reminders(lang) {
   if (lang === "en") {
     return [
       "---",
@@ -53,7 +70,7 @@ function reminders(lang) {
   ].join("\n");
 }
 
-function buildContext(vault, lang) {
+export function buildContext(vault, lang) {
   const header =
     lang === "en"
       ? "## Obsidian vault available (MCP memory)"
@@ -79,11 +96,11 @@ function buildContext(vault, lang) {
       /* vault unreadable — still emit the reminders below */
     }
 
-    // Curated index (_meta/index.md), if present.
+    // Curated index (_meta/index.md), if present — capped (see truncateIndex).
     try {
       const indexPath = path.join(vault, "_meta", "index.md");
       if (fs.existsSync(indexPath)) {
-        const index = stripBom(fs.readFileSync(indexPath, "utf8"));
+        const index = truncateIndex(stripBom(fs.readFileSync(indexPath, "utf8")), lang);
         parts.push(
           lang === "en" ? "Curated index (_meta/index.md):" : "Indice curado (_meta/index.md):",
           "",
@@ -100,7 +117,7 @@ function buildContext(vault, lang) {
   return parts.join("\n");
 }
 
-function main() {
+export function main() {
   const vault = resolveVault();
   const lang = (process.argv[3] || "es").toLowerCase() === "en" ? "en" : "es";
   let additionalContext;
@@ -118,4 +135,7 @@ function main() {
   process.stdout.write(JSON.stringify(payload));
 }
 
-main();
+// Guard so importing this module (e.g. from a test) does not also run main() as a
+// side effect — mirrors the pattern in hybrid-mcp.mjs / the other managed hooks.
+const isEntryPoint = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isEntryPoint) main();

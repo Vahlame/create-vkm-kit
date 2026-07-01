@@ -19,7 +19,7 @@ import { requireVault } from "@vkmikc/obsidian-memory-mcp/src/rag-client.mjs";
 import { listProjectNames } from "./project-resolve.mjs";
 import { searchContext } from "./context-search.mjs";
 import { compileOrchestrationPackage } from "./compile-xml.mjs";
-import { defaultSystemRole, thinContextNote } from "./prompt-defaults.mjs";
+import { defaultSystemRole, thinContextNote, backendErrorNote } from "./prompt-defaults.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.resolve(__dirname, "..", "public");
@@ -109,11 +109,16 @@ export function createServer({ vault, lang = "es" } = {}) {
           historicalDecisions: context.historicalDecisions,
           activePatterns: context.activePatterns,
           userIntent: idea,
-          note: context.usedFallback ? thinContextNote(lang) : undefined
+          note: context.backendError
+            ? backendErrorNote(lang, context.backendError)
+            : context.usedFallback
+              ? thinContextNote(lang)
+              : undefined
         });
         return sendJson(res, 200, {
           xml,
           usedFallback: context.usedFallback,
+          backendError: context.backendError,
           chars: xml.length,
           approxTokens: Math.round(xml.length / 4)
         });

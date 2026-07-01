@@ -97,7 +97,24 @@ test("searchContext returns empty buckets + usedFallback:true for an unrelated q
     assert.deepEqual(result.historicalDecisions, []);
     assert.deepEqual(result.activePatterns, []);
     assert.equal(result.usedFallback, true);
+    assert.equal(result.backendError, null);
   } finally {
     delete process.env.OBSIDIAN_MEMORY_RAG_SRC;
+  }
+});
+
+test("searchContext sets backendError (not just usedFallback) when the Python backend can't run", async (t) => {
+  const vault = fs.mkdtempSync(path.join(os.tmpdir(), "prompt-compiler-ctx-broken-"));
+  fs.mkdirSync(path.join(vault, ".obsidian"));
+  // Point at a nonexistent Python executable — the same ENOENT shape a broken/orphaned
+  // venv produces in production. The caller must be able to tell this apart from "vault
+  // has nothing on this topic" (a healthy call that just returns no hits).
+  process.env.OBSIDIAN_MEMORY_PYTHON = path.join(os.tmpdir(), `no-such-python-${Date.now()}.exe`);
+  try {
+    const result = await searchContext({ vault, query: "cualquier cosa", projectNote: null });
+    assert.equal(result.usedFallback, true);
+    assert.ok(result.backendError, "backendError should carry the underlying failure message");
+  } finally {
+    delete process.env.OBSIDIAN_MEMORY_PYTHON;
   }
 });

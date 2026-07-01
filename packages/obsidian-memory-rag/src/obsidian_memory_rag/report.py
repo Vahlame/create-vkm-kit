@@ -202,7 +202,9 @@ def build_report(
     }
     hygiene: dict = {
         "oversized": audit["oversized"],
+        "oversized_total": audit.get("oversized_total", len(audit["oversized"])),
         "broken_links": audit["broken_links"],
+        "broken_links_total": audit.get("broken_links_total", len(audit["broken_links"])),
         "session_log": audit["session_log"],
         "stale_notes": [],
         "orphan_notes": [],
@@ -227,9 +229,13 @@ def build_report(
             hygiene["stale_notes"] = _stale_notes(conn, stale_days=stale_days)
             hygiene["orphan_notes"] = _orphan_notes(conn, out_deg, in_deg)
             if duplicates and has_any_chunks(conn):
-                from .embeddings import get_embedder
+                from .embeddings import resolve_embedder_name
 
-                name = get_embedder(None).name
+                # Only the identity string is needed here (to filter note_chunks) —
+                # ensure_fresh already built/refreshed the actual embedder+vectors
+                # moments earlier; instantiating a second one (e.g. loading fastembed's
+                # ONNX model again) just to read `.name` would be pure waste.
+                name = resolve_embedder_name(None)
                 review_candidates["near_duplicate_notes"] = _near_duplicate_notes(
                     conn,
                     name,

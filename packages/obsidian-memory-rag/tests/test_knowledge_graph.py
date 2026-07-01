@@ -50,6 +50,29 @@ def test_prose_bullet_does_not_mint_a_relation_type() -> None:
     assert [(r.relation_type, r.target) for r in rels] == [(RELATES_TO, "lessons-learned")]
 
 
+def test_parse_relations_ignores_fenced_and_inline_code_examples() -> None:
+    # Docs explaining the relation syntax with a fenced example must not mint a
+    # real "implements" edge to a target that was only ever an illustration.
+    text = (
+        "- implements [[adr-0014]]\n\n"
+        "Example: `- supersedes [[adr-0019]]`\n\n"
+        "```\n"
+        "- extends [[some-example]]\n"
+        "```\n"
+    )
+    rels = parse_relations(text)
+    targets = {r.target for r in rels}
+    assert targets == {"adr-0014"}
+
+
+def test_parse_observations_ignores_fenced_code_examples() -> None:
+    # A fenced example of the observation syntax (e.g. in a template/README note)
+    # must not be parsed as a real fact.
+    text = "```\n- [decision] example only, not a real fact\n```\n- [decision] the real one\n"
+    obs = parse_observations(text)
+    assert [o.content for o in obs] == ["the real one"]
+
+
 def test_parse_observations_extracts_category_and_tags() -> None:
     text = "- [decision] weighted RRF weight 0.1 #ranking #rrf\n- [gotcha] dense scores #rrf\n"
     obs = parse_observations(text)

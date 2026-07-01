@@ -32,6 +32,17 @@ function truncate(text, max) {
   return `${text.slice(0, max).trimEnd()}…`;
 }
 
+/** Wraps a runRagJson call so a rejection becomes a tagged result instead of being lost —
+ * so a genuinely empty vault and a broken Python backend don't collapse into the same
+ * "nothing found" shape (see backendError below). */
+async function attempt(promise) {
+  try {
+    return { ok: true, value: await promise };
+  } catch (e) {
+    return { ok: false, error: e?.message || String(e) };
+  }
+}
+
 /**
  * @param {object} opts
  * @param {string} [opts.vault] - defaults to BASIC_MEMORY_HOME/OBSIDIAN_MEMORY_VAULT
@@ -41,7 +52,7 @@ function truncate(text, max) {
  *   toward notes about THIS project instead of any vault note sharing a keyword
  * @returns {Promise<{
  *   historicalDecisions: string[], activePatterns: string[], techStack: string[],
- *   currentState: string|null, usedFallback: boolean
+ *   currentState: string|null, usedFallback: boolean, backendError: string|null
  * }>}
  */
 export async function searchContext({ vault, query, projectNote, projectName } = {}) {
@@ -52,45 +63,57 @@ export async function searchContext({ vault, query, projectNote, projectName } =
   // "conexión"/"reconexión" matching an unrelated project's own websocket lessons).
   const searchQuery = projectName ? `${projectName} ${query}` : query;
 
-  const [hybridResult, projectObservations, stackObservations] = await Promise.all([
-    runRagJson(
-      [
-        "json-hybrid-search",
-        "--vault",
-        v,
-        "--query",
-        searchQuery,
-        "--limit",
-        String(HYBRID_LIMIT),
-        // With a project known, its own note is usually the top hit internally (the
-        // query is qualified with its name) — --graph then fuses in notes one
-        // [[wikilink]] hop from THAT hit, biasing toward what's actually connected to
-        // this project instead of any note sharing a generic technical keyword.
-        ...(projectName ? ["--graph"] : [])
-      ],
-      ragSrc
-    ).catch(() => ({ hits: [] })),
+  const [hybridAttempt, projectAttempt, stackAttempt] = await Promise.all([
+    attempt(
+      runRagJson(
+        [
+          "json-hybrid-search",
+          "--vault",
+          v,
+          "--query",
+          searchQuery,
+          "--limit",
+          String(HYBRID_LIMIT),
+          // With a project known, its own note is usually the top hit internally (the
+          // query is qualified with its name) — --graph then fuses in notes one
+          // [[wikilink]] hop from THAT hit, biasing toward what's actually connected to
+          // this project instead of any note sharing a generic technical keyword.
+          ...(projectName ? ["--graph"] : [])
+        ],
+        ragSrc
+      )
+    ),
     projectNote
-      ? runRagJson(
-          [
-            "json-observations",
-            "--vault",
-            v,
-            "--note",
-            projectNote,
-            "--limit",
-            String(OBSERVATIONS_LIMIT)
-          ],
-          ragSrc
-        ).catch(() => ({ observations: [] }))
-      : Promise.resolve({ observations: [] }),
-    runRagJson(
-      ["json-observations", "--vault", v, "--tag", "stack", "--limit", "20"],
-      ragSrc
-    ).catch(() => ({
-      observations: []
-    }))
+      ? attempt(
+          runRagJson(
+            [
+              "json-observations",
+              "--vault",
+              v,
+              "--note",
+              projectNote,
+              "--limit",
+              String(OBSERVATIONS_LIMIT)
+            ],
+            ragSrc
+          )
+        )
+      : Promise.resolve({ ok: true, value: { observations: [] } }),
+    attempt(
+      runRagJson(["json-observations", "--vault", v, "--tag", "stack", "--limit", "20"], ragSrc)
+    )
   ]);
+
+  // A rejected call and a call that legitimately returned nothing must not look the same
+  // to the caller — the compiler needs to tell "no history in the vault" apart from
+  // "couldn't reach the vault at all" (see backendError on the return value).
+  const hybridResult = hybridAttempt.ok ? hybridAttempt.value : { hits: [] };
+  const projectObservations = projectAttempt.ok ? projectAttempt.value : { observations: [] };
+  const stackObservations = stackAttempt.ok ? stackAttempt.value : { observations: [] };
+  const backendError =
+    [hybridAttempt, projectAttempt, stackAttempt]
+      .map((a) => (a.ok ? null : a.error))
+      .find(Boolean) || null;
 
   const projectObs = Array.isArray(projectObservations?.observations)
     ? projectObservations.observations
@@ -143,6 +166,7 @@ export async function searchContext({ vault, query, projectNote, projectName } =
     activePatterns: patterns,
     techStack,
     currentState,
-    usedFallback: decisions.length === 0 && patterns.length === 0 && !currentState
+    usedFallback: decisions.length === 0 && patterns.length === 0 && !currentState,
+    backendError
   };
 }

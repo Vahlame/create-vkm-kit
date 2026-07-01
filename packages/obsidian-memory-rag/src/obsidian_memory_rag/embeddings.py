@@ -156,6 +156,26 @@ class FastEmbedEmbedder:
         return out
 
 
+def resolve_embedder_name(name: str | None = None) -> str:
+    """The ``.name`` that :func:`get_embedder` would build, without instantiating it.
+
+    A caller that only needs the identity string (e.g. to filter ``note_chunks`` by
+    embedder) should use this instead of ``get_embedder(name).name`` — constructing a
+    ``FastEmbedEmbedder`` loads its ONNX model into memory, which is wasted work if
+    the model itself is never used to embed anything.
+    """
+    choice = (name or os.environ.get("OBSIDIAN_MEMORY_EMBEDDER") or "hashing").strip()
+    if choice in ("hashing", "default", ""):
+        return HashingEmbedder().name
+    if choice.startswith("hashing-"):
+        return HashingEmbedder(int(choice.split("-", 1)[1])).name
+    if choice in ("fastembed", "neural", "semantic"):
+        return _fastembed_identity("BAAI/bge-small-en-v1.5")
+    if choice.startswith("fastembed:"):
+        return _fastembed_identity(choice.split(":", 1)[1])
+    raise ValueError(f"unknown embedder: {choice!r}")
+
+
 def get_embedder(name: str | None = None) -> Embedder:
     """Resolve an embedder by explicit name or the ``OBSIDIAN_MEMORY_EMBEDDER`` env.
 

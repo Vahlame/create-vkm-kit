@@ -25,6 +25,19 @@ def test_extract_targets_is_distinct_and_ordered() -> None:
     assert extract_targets(text) == ["alpha", "beta"]
 
 
+def test_extract_targets_ignores_fenced_and_inline_code_examples() -> None:
+    # A note documenting the wikilink syntax itself must not mint edges to targets
+    # that were only ever mentioned as an EXAMPLE, not a real reference.
+    text = (
+        "Real link: [[Alpha]]\n\n"
+        "Docs example inline: use `[[target]]` to link a note.\n\n"
+        "```\n"
+        "- implements [[adr-0014]]\n"
+        "```\n"
+    )
+    assert extract_targets(text) == ["alpha"]
+
+
 def _linked_vault(tmp_path: Path) -> Path:
     vault = tmp_path / "vault"
     (vault / "PROJECTS").mkdir(parents=True)

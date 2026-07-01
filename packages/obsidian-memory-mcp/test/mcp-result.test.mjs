@@ -8,9 +8,10 @@ test("asTextResult: strings are emitted verbatim (no isError)", () => {
   assert.equal(r.isError, undefined);
 });
 
-test("asTextResult: objects are pretty-printed JSON", () => {
+test("asTextResult: objects are compact JSON (no pretty-print indentation)", () => {
   const r = asTextResult({ a: 1, b: [2, 3] });
-  assert.equal(r.content[0].text, JSON.stringify({ a: 1, b: [2, 3] }, null, 2));
+  assert.equal(r.content[0].text, JSON.stringify({ a: 1, b: [2, 3] }));
+  assert.ok(!r.content[0].text.includes("\n"), "compact JSON must not contain newlines");
 });
 
 test("asErrorResult: Error uses message and sets isError", () => {
@@ -25,10 +26,10 @@ test("asErrorResult: non-Error value is stringified", () => {
   assert.equal(r.isError, true);
 });
 
-test("toolHandler: resolved object becomes a JSON text result", async () => {
+test("toolHandler: resolved object becomes a compact JSON text result", async () => {
   const handler = toolHandler(async ({ n }) => ({ doubled: n * 2 }));
   const r = await handler({ n: 21 });
-  assert.equal(r.content[0].text, JSON.stringify({ doubled: 42 }, null, 2));
+  assert.equal(r.content[0].text, JSON.stringify({ doubled: 42 }));
   assert.equal(r.isError, undefined);
 });
 

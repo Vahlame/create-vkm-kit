@@ -37,5 +37,14 @@ tmp/
 !.cursor/rules/
 !.cursor/rules/**
 
+# Claude Code local project state (permissions allowlist, launch config, task
+# locks) — machine-specific, never meant to ship in the repo.
+.claude/
+
 # Local FTS5 sidecar (obsidian-memory-rag); keep indexes out of git
 **/.obsidian-memory-rag/
+
+# uv lockfile — this package is installed via `pip install -e .[extras]`
+# (see AGENTS.md), not `uv sync`; a locally-generated uv.lock is an incidental
+# dev artifact, not part of the documented reproducible-install path.
+**/uv.lock

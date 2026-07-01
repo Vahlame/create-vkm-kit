@@ -13,6 +13,7 @@ import re
 from dataclasses import dataclass
 
 _HEADING_RE = re.compile(r"^(#{1,6})\s+(.*\S)\s*$")
+_FENCE_MARKER_RE = re.compile(r"^(```|~~~)")
 
 
 @dataclass
@@ -60,12 +61,29 @@ def split_into_chunks(
     embedding and display keep section context. Tiny trailing fragments are folded
     into the previous chunk to avoid noise. A note with no body falls back to a
     single chunk built from the title.
+
+    A ``#``-prefixed line inside a fenced code block (```` ``` ```` or ``~~~``) is
+    real code (e.g. a shell comment or Python ``#`` comment), not a heading — fence
+    state is tracked across lines so it's never mistaken for one. The line itself is
+    still kept verbatim in the chunk text; only heading *detection* is suppressed.
     """
     sections: list[tuple[str, str]] = []
     cur_heading = (title or "").strip()
     cur_lines: list[str] = []
+    in_fence = False
+    fence_marker: str | None = None
     for line in (body or "").split("\n"):
-        m = _HEADING_RE.match(line.strip())
+        stripped = line.strip()
+        fence_match = _FENCE_MARKER_RE.match(stripped)
+        if fence_match:
+            marker = fence_match.group(1)
+            if not in_fence:
+                in_fence, fence_marker = True, marker
+            elif marker == fence_marker:
+                in_fence, fence_marker = False, None
+            cur_lines.append(line)
+            continue
+        m = None if in_fence else _HEADING_RE.match(stripped)
         if m:
             if cur_lines:
                 sections.append((cur_heading, "\n".join(cur_lines)))

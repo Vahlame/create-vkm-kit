@@ -51,6 +51,34 @@ def test_broken_link_detected_valid_link_not_flagged(tmp_path: Path) -> None:
     assert all(b[1] != "Existing" for b in broken)
 
 
+def test_broken_link_ignores_fenced_and_inline_code_examples(tmp_path: Path) -> None:
+    # A note documenting the [[wikilink]] syntax with an example target that was
+    # never meant to exist must not be flagged as a broken link.
+    vault = tmp_path / "vault"
+    _write(
+        vault / "docs.md",
+        "Use `[[target]]` to link a note.\n\n"
+        "```\n"
+        "- implements [[adr-0014]]\n"
+        "```\n\n"
+        "Real broken link: [[Missing]].\n",
+    )
+    report = audit_vault(vault)
+    targets = [b["target"] for b in report["broken_links"]]
+    assert targets == ["Missing"]
+
+
+def test_oversized_and_broken_links_capped_with_total(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    for i in range(5):
+        _write(vault / f"n{i}.md", f"# N{i}\n\n[[missing-{i}]]\n" + "x" * 1000)
+    report = audit_vault(vault, budget_tokens=10, limit=2)
+    assert len(report["oversized"]) == 2
+    assert report["oversized_total"] == 5
+    assert len(report["broken_links"]) == 2
+    assert report["broken_links_total"] == 5
+
+
 def test_wikilink_alias_and_section_are_stripped(tmp_path: Path) -> None:
     vault = tmp_path / "vault"
     _write(vault / "target.md", "# Target\n")
@@ -139,7 +167,9 @@ def test_report_is_json_serializable_with_exact_shape(tmp_path: Path) -> None:
         "budget_tokens",
         "totals",
         "oversized",
+        "oversized_total",
         "broken_links",
+        "broken_links_total",
         "session_log",
     }
     assert set(again["totals"]) == {"notes", "tokens"}

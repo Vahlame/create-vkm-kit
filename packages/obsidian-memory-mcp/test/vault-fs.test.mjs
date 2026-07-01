@@ -114,6 +114,42 @@ test("vaultReadFile: full + head + tail", async () => {
   }
 });
 
+test("vaultReadFile: whole-file read below the default cap is untouched", async () => {
+  const vault = await setupVault();
+  try {
+    const text = await vaultReadFile(vault, "MEMORY.md");
+    assert.equal(text, "line 1\nline 2\nline 3\n");
+  } finally {
+    await rm(vault, { recursive: true });
+  }
+});
+
+test("vaultReadFile: whole-file read past maxChars is truncated with a notice", async () => {
+  const vault = await setupVault();
+  try {
+    const big = "x".repeat(5000);
+    await writeFile(join(vault, "big.md"), big);
+    const text = await vaultReadFile(vault, "big.md", { maxChars: 1000 });
+    assert.equal(text.slice(0, 1000), "x".repeat(1000));
+    assert.match(text, /truncated: 5000 chars total, showing the first 1000/);
+    assert.match(text, /Pass head or tail/);
+  } finally {
+    await rm(vault, { recursive: true });
+  }
+});
+
+test("vaultReadFile: head/tail bypass the whole-file cap entirely", async () => {
+  const vault = await setupVault();
+  try {
+    const big = Array.from({ length: 10 }, (_, i) => "x".repeat(1000) + i).join("\n");
+    await writeFile(join(vault, "big.md"), big);
+    const h = await vaultReadFile(vault, "big.md", { head: 1, maxChars: 100 });
+    assert.ok(!h.includes("truncated"));
+  } finally {
+    await rm(vault, { recursive: true });
+  }
+});
+
 test("vaultReadFile: head AND tail rejected", async () => {
   const vault = await setupVault();
   try {

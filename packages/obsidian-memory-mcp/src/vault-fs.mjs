@@ -67,18 +67,34 @@ export async function safeVaultPath(vaultAbs, userPath) {
   return canonical;
 }
 
+/** Default cap on a whole-file read (no head/tail given). Generous enough for any
+ * normal note (even this kit's own ~90KB SESSION_LOG.md), but bounds how many
+ * tokens a single surprising giant file can dump into the conversation. */
+const DEFAULT_MAX_READ_CHARS = 200_000;
+
 /**
  * Read a file inside the vault. Optionally return only the first/last N lines.
+ * With neither `head` nor `tail`, the read is capped at `maxChars` (default
+ * {@link DEFAULT_MAX_READ_CHARS}) with a truncation notice appended — pass head/tail
+ * to page through a file bigger than that instead of getting a silent partial read.
  * @param {string} vaultAbs
  * @param {string} relPath
- * @param {{head?: number, tail?: number}} [opts]
+ * @param {{head?: number, tail?: number, maxChars?: number}} [opts]
  */
 export async function vaultReadFile(vaultAbs, relPath, opts = {}) {
   const fp = await safeVaultPath(vaultAbs, relPath);
   const text = await readFile(fp, "utf8");
   const head = opts.head;
   const tail = opts.tail;
-  if (head == null && tail == null) return text;
+  if (head == null && tail == null) {
+    const maxChars = opts.maxChars ?? DEFAULT_MAX_READ_CHARS;
+    if (text.length <= maxChars) return text;
+    return (
+      `${text.slice(0, maxChars)}\n\n` +
+      `[...truncated: ${text.length} chars total, showing the first ${maxChars}. ` +
+      `Pass head or tail to page through the rest instead of reading it whole.]`
+    );
+  }
   const lines = text.split(/\r?\n/);
   if (head != null && tail != null) {
     throw new Error("pass head OR tail, not both");

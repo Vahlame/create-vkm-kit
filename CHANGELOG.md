@@ -67,6 +67,46 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   new package; versioned independently of the rest of the kit (not in
   `scripts/version.mjs`'s `MARKERS`), `private: true`, not published.
 
+### Fixed
+
+- **`[[wikilink]]`/relation parsing mistook documentation examples for real edges.**
+  `audit.py`, `graphlink.py` and `knowledge_graph.py` scanned raw note text for
+  `[[...]]` with no Markdown-structure awareness, so a note that _documents_ the
+  syntax (e.g. `` `[[target]]` `` inline, or a fenced snippet showing
+  `- implements [[adr-0014]]`) was parsed as a real broken link / real relation.
+  New `text_scrub.strip_code_regions` (blanks fenced code blocks + inline code
+  spans, preserving line/char offsets) is now applied before every wikilink/
+  relation/observation scan, plus a fence-aware heading check in `chunking.py`
+  (a `#`-prefixed line inside a code fence is real code, not a section heading).
+  Verified against a real ~200k-token vault: false-positive broken links dropped
+  14→2, bogus relations dropped 40→36. The fence regex needs `\r?$`, not just
+  `$` — CRLF-terminated notes silently defeated the naive version.
+- **Every MCP tool response was pretty-printed JSON** (`JSON.stringify(v, null, 2)`)
+  — ~15-25% wasted tokens on every search/relations/observations/report call for
+  an LLM consumer that gets no benefit from indentation. Now compact.
+- **`session-start-vault-context.mjs` had no cap** on the `_meta/index.md` dump it
+  injects into every session unconditionally — already ~10KB/~2500 tokens on a
+  modest 69-note vault, and grows with every project added. Capped at 4000 chars
+  with a `vault_read_file` pointer for the rest; also added the standard
+  `isEntryPoint` import guard (was missing, unlike every other managed hook).
+- **`vault_read_file` had no size cap** on a whole-file read (no `head`/`tail`) —
+  one large note could return unbounded tokens. Default cap 200,000 chars
+  (configurable via `maxChars`), with a truncation notice pointing at head/tail.
+- **`memory_extract_candidates` ran its per-bullet dedup lookups serially** (one
+  Python subprocess spawn at a time) and **silently swallowed backend failures**
+  as "no duplicate found." Now parallelized (`Promise.all`) and surfaces a
+  `backendError` per candidate so a broken index/Python env can't masquerade as
+  a confirmed-new bullet.
+- **`build_report(duplicates=True)` instantiated the embedder twice** — once in
+  `ensure_fresh` to actually build vectors, again just to read `.name` (a second
+  ONNX model load when `fastembed` is the active embedder). New
+  `resolve_embedder_name()` computes the identity string without constructing
+  the model.
+- **`audit_vault`'s `oversized`/`broken_links` lists had no cap**, unlike the
+  rest of the memory-report hygiene indices (`stale_notes`/`orphan_notes`/
+  `hub_notes` were already capped) — a messy vault could return hundreds of
+  entries verbatim. Capped (default 100) with an accompanying `_total` count.
+
 ## [3.10.0] - 2026-06-24
 
 ### Added

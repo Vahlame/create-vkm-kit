@@ -40,6 +40,7 @@ import re
 from dataclasses import dataclass, field
 
 from .graphlink import WIKILINK_RE, normalize_target
+from .text_scrub import strip_code_regions
 
 # The default type for a bare ``[[wikilink]]`` that carries no explicit relation
 # verb — matches Basic Memory's implicit-link semantics.
@@ -141,7 +142,12 @@ def parse_relations(text: str) -> list[Relation]:
 
     Dedup key is ``(relation_type, target)``, so the same target may appear under two
     different verbs but never twice under one.
+
+    Fenced code blocks and inline code spans are blanked before scanning, so a
+    documentation example (``- implements [[adr-0014]]`` inside a fence, or
+    `` `[[target]]` `` inline) never mints a bogus relation.
     """
+    text = strip_code_regions(text)
     relations: list[Relation] = []
     seen: set[tuple[str, str]] = set()
     typed_targets: set[str] = set()
@@ -190,7 +196,11 @@ def parse_observations(text: str) -> list[Observation]:
     Skips GFM task checkboxes (``- [ ]`` / ``- [x]``). Inline ``#tags`` are pulled
     into ``tags`` (deduped, order-preserving) and also left in ``content`` verbatim,
     so a caller can show the original line or query by tag.
+
+    Fenced code blocks and inline code spans are blanked before scanning, so a
+    documentation example of the observation syntax is never parsed as a real fact.
     """
+    text = strip_code_regions(text)
     observations: list[Observation] = []
     for line in text.splitlines():
         m = _OBSERVATION_RE.match(line)

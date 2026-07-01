@@ -13,6 +13,8 @@ import re
 from math import ceil
 from pathlib import Path
 
+from .text_scrub import strip_code_regions
+
 # Directories that never hold user notes: VCS metadata, the Obsidian app config,
 # and our own SQLite sidecar. Excluded by name at any depth.
 _EXCLUDE_DIRS = frozenset({".git", ".obsidian", ".obsidian-memory-rag"})
@@ -64,12 +66,18 @@ def audit_vault(
     *,
     budget_tokens: int = 8000,
     session_log_budget: int = 6000,
+    limit: int = 100,
 ) -> dict:
     """Audit a vault and return a JSON-serializable health report.
 
-    - ``oversized``: notes whose estimated tokens exceed ``budget_tokens`` (desc).
+    - ``oversized``: notes whose estimated tokens exceed ``budget_tokens`` (desc),
+      capped at ``limit`` entries (worst first) — ``oversized_total`` carries the
+      real count so a messy vault can't blow up the response size.
     - ``broken_links``: ``[[target]]`` references with no ``<target>.md`` anywhere
-      in the vault (case-insensitive basename match).
+      in the vault (case-insensitive basename match); ``[[...]]`` occurrences inside
+      fenced code blocks or inline code spans are ignored (documentation examples of
+      the syntax, not real edges). Capped at ``limit`` entries — ``broken_links_total``
+      carries the real count.
     - ``session_log``: token count + over-threshold flag for ``SESSION_LOG.md``
       (``None`` when the file is absent).
     """
@@ -102,7 +110,8 @@ def audit_vault(
 
         # Decode for wikilink scanning; utf-8-sig drops a leading BOM if present.
         text = data.decode("utf-8-sig", errors="replace")
-        for match in _WIKILINK_RE.finditer(text):
+        scan_text = strip_code_regions(text)
+        for match in _WIKILINK_RE.finditer(scan_text):
             target = _wikilink_target(match.group(1))
             if not target:
                 continue
@@ -118,6 +127,10 @@ def audit_vault(
 
     oversized.sort(key=lambda item: item["tokens"], reverse=True)
     broken_links.sort(key=lambda item: (item["source"], item["target"]))
+    oversized_total = len(oversized)
+    broken_links_total = len(broken_links)
+    oversized = oversized[:limit]
+    broken_links = broken_links[:limit]
 
     session_log: dict | None = None
     log_path = vault / SESSION_LOG_NAME
@@ -137,6 +150,8 @@ def audit_vault(
         "budget_tokens": budget_tokens,
         "totals": {"notes": len(files), "tokens": total_tokens},
         "oversized": oversized,
+        "oversized_total": oversized_total,
         "broken_links": broken_links,
+        "broken_links_total": broken_links_total,
         "session_log": session_log,
     }
