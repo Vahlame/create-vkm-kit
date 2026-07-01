@@ -27,6 +27,7 @@ Si aún estás configurando, mira la guía de instalación
 ## Contenido
 
 - [MCP / Cursor](#mcp--cursor)
+- [Búsqueda híbrida y el backend de Python (Claude Code)](#búsqueda-híbrida-y-el-backend-de-python-claude-code)
 - [Git](#git)
 - [Tareas programadas de Windows](#tareas-programadas-de-windows)
 - [PowerShell](#powershell)
@@ -258,6 +259,143 @@ tarda unos **30 segundos**. (`npx` ejecuta paquetes de Node; la primera vez los
 descarga).
 
 **Solución.** Espera una vez. Cada llamada posterior es casi instantánea.
+
+---
+
+## Búsqueda híbrida y el backend de Python (Claude Code)
+
+El MCP híbrido (`obsidian-memory-hybrid`) y su motor de búsqueda local opcional
+(`obsidian-memory-rag`, Python) tienen sus propios modos de fallo, distintos de los
+problemas de `basic-memory` de arriba. Son los que aparecen con **Claude Code**
+cuando el agente "no usa la memoria de verdad". Recorre el árbol de arriba abajo —
+los mismos dos comandos diagnostican todos los casos.
+
+### ¿La memoria funciona de verdad? (dos comandos)
+
+**1. ¿Están conectados los servidores?**
+
+```powershell
+claude mcp list
+```
+
+Quieres estas dos líneas en verde (los comandos exactos mostrarán tus rutas):
+
+```text
+basic-memory: uvx ... - ✔ Connected
+obsidian-memory-hybrid: node ...hybrid-mcp.mjs - ✔ Connected
+```
+
+**2. ¿Una búsqueda real devuelve una sección?** En un chat nuevo, pídele al agente
+que ejecute `vault_hybrid_search` sobre un tema que _sabes_ que está en tu vault.
+Una respuesta sana es una **sección que coincide** (encabezado + pasaje) — no un
+error, no una lista vacía.
+
+Si cualquiera de las dos falla, sigue el árbol:
+
+```mermaid
+flowchart TD
+  Start["El agente ignora la memoria,<br/>o las tools vault_* dan error"] --> L{"claude mcp list muestra<br/>obsidian-memory-hybrid?"}
+  L -->|no| Reg["Sin registrar:<br/>re-corre el instalador --full,<br/>o claude mcp add"]
+  L -->|"sí, Failed to connect"| Path["Ruta del comando mal / vieja:<br/>el script node no existe<br/>donde está registrado"]
+  L -->|"sí, Connected"| Call{"resultado de<br/>vault_hybrid_search?"}
+  Call -->|"error: No Python at ..."| Venv["venv de Python huérfano:<br/>recréalo + reinstala el backend"]
+  Call -->|"vacío / sin hits"| Idx["Índice sin construir:<br/>vault_fts_index semantic true"]
+  Call -->|"corre, pero viejo comportamiento"| Clone["Registrado contra un clon viejo:<br/>re-apúntalo al repo activo"]
+  Call -->|"sección que coincide"| OK["La memoria está sana"]
+```
+
+### `obsidian-memory-hybrid` no aparece en `claude mcp list`
+
+**Causa.** El MCP híbrido nunca se registró para Claude Code (una máquina nueva, o
+solo cableaste Cursor).
+
+**Solución.** Regístralo. El stack completo de un tiro, desde un clon del kit:
+
+```bash
+npx @vkmikc/create-obsidian-memory --full --vault "<ruta-absoluta-del-vault>"
+```
+
+…o agrega solo el servidor híbrido a mano (ajusta las dos rutas a tu clon y tu
+vault):
+
+```bash
+claude mcp add obsidian-memory-hybrid -s user \
+  -e BASIC_MEMORY_HOME="<vault>" \
+  -e PYTHONPATH="<clon>/packages/obsidian-memory-rag/src" \
+  -- node "<clon>/packages/obsidian-memory-mcp/src/hybrid-mcp.mjs"
+```
+
+Luego **reinicia Claude Code** — las tools MCP se cargan al arrancar, así que una
+sesión en curso no toma solo un servidor recién registrado.
+
+### `claude mcp list` muestra `obsidian-memory-hybrid` como `Failed to connect`
+
+**Causa.** El comando registrado no arranca — casi siempre porque la ruta de su
+script `node` apunta a un **clon que se movió o se borró**, o `node` no está en el
+PATH.
+
+**Solución.** Imprime el comando registrado exacto y confirma que la ruta existe:
+
+```bash
+claude mcp get obsidian-memory-hybrid
+```
+
+Si la ruta de `Args` (`…/hybrid-mcp.mjs`) no existe, re-regístralo contra el clon
+que de verdad usas — `claude mcp remove obsidian-memory-hybrid -s user`, y luego el
+`claude mcp add …` de arriba. Una trampa común: **dos clones** del kit — el MCP
+registrado contra uno mientras editas el otro; conecta, pero corre el código
+equivocado (mira la entrada de "viejo comportamiento" abajo).
+
+### Una búsqueda da error `obsidian-memory-rag exited 103: No Python at …`
+
+**Causa.** El servidor híbrido invoca un intérprete de Python que ya no existe en
+disco. Pasa cuando el entorno virtual lo construyó **uv** y su intérprete base se
+eliminó después (una actualización de `uv` o una limpieza de caché), dejando el
+`pyvenv.cfg` del venv apuntando a un CPython borrado. Toda la superficie híbrida
+(`vault_hybrid_search`, `vault_observations`, …) falla igual — y **no** depende del
+shell: cmd, PowerShell y bash dan el mismo error.
+
+**Solución.** Recrea el entorno y reinstala el backend dentro:
+
+```bash
+uv venv --python 3.12 "<ruta-del-venv>"
+uv pip install --python "<ruta-del-venv>/Scripts/python.exe" \
+  -e "<clon>/packages/obsidian-memory-rag[semantic,vec]"
+```
+
+Si el servidor está fijado a un intérprete vía `OBSIDIAN_MEMORY_PYTHON`, asegúrate
+de que apunte al recreado. Luego reconstruye el índice (entrada siguiente) y
+reinicia Claude Code.
+
+### Una búsqueda conecta pero no devuelve hits
+
+**Causa.** El índice FTS / semántico aún no se ha construido para este vault (o
+toca reindexar tras una importación grande).
+
+**Solución.** Constrúyelo — desde el agente, llama `vault_fts_index({ semantic: true })`;
+o desde una terminal:
+
+```bash
+python -m obsidian_memory_rag json-index --vault "<vault>" --semantic
+```
+
+El índice vive junto al vault en `.obsidian-memory-rag/fts.sqlite` (ignorado por
+git, nunca se sincroniza). La primera construcción semántica descarga el modelo de
+embeddings una vez.
+
+### La búsqueda corre, pero se comporta como una versión vieja
+
+**Causa.** El MCP está registrado contra un **clon distinto** del kit que el que
+editas, así que los arreglos y las tools nuevas nunca surten efecto.
+
+**Solución.** Confirma desde qué clon corre el servidor, y re-apúntalo si está mal:
+
+```bash
+claude mcp get obsidian-memory-hybrid   # revisa la ruta de Args
+```
+
+Re-regístralo contra el clon activo (remove + add, como arriba), y reinicia Claude
+Code. Mantener un **solo** clon evita toda esta clase de problema.
 
 ---
 

@@ -107,6 +107,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `hub_notes` were already capped) — a messy vault could return hundreds of
   entries verbatim. Capped (default 100) with an accompanying `_total` count.
 
+### Documentation
+
+- **New troubleshooting section — "Hybrid search and the Python backend (Claude
+  Code)"** (`docs/en/troubleshooting.md` + `docs/es/troubleshooting.md`), with a
+  Mermaid decision tree and a two-command health check (`claude mcp list` +
+  a live `vault_hybrid_search`). Covers the Claude-Code-specific failure modes the
+  previous docs (Cursor-centric) didn't: the hybrid MCP missing/`Failed to
+connect`, an orphaned `uv` Python venv (`No Python at …`), an unbuilt index, and
+  an MCP registered against a stale second clone.
+- `ARCHITECTURE.md` and the "how it works" guides updated to reflect the code-span
+  scrubbing, the compact-JSON tool responses, and the `vault_read_file` size cap.
+
 ## [3.10.0] - 2026-06-24
 
 ### Added

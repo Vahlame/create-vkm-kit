@@ -241,8 +241,11 @@ flowchart LR
 ```
 
 On the maintainer's real 55-note vault it instantly surfaced: `SESSION_LOG` over budget, 6 oversized
-notes, 13 broken links, 8 orphan notes, and the true graph hubs. Two honest scopes: **"detect
-contradictions"** surfaces _near-duplicate pairs to review_, not a verdict (true contradiction
+notes, broken links, orphan notes, and the true graph hubs. The broken-link and knowledge-graph
+parsers **ignore `[[wikilink]]` examples inside fenced code blocks and inline code**, so a note that
+_documents_ the link syntax is never miscounted as a real (broken) edge — only genuine references
+count. Two honest scopes: **"detect contradictions"** surfaces _near-duplicate pairs to review_, not
+a verdict (true contradiction
 detection is semantic reasoning the deterministic engine doesn't claim); **"condense old notes"**
 means the report _flags_ candidates and the agent condenses with your confirmation. Detail:
 [ADR-0024](../adr/0024-memory-reports-and-compaction.md).

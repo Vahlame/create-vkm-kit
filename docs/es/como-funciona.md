@@ -242,9 +242,12 @@ flowchart LR
   R --> O["índices automáticos (por categoría, hubs, tags)<br/>higiene (gigantes · obsoletas · huérfanas · rotos)<br/>suggested_actions — tú actúas, nunca reescribe"]
 ```
 
-En el vault real de 55 notas afloró al instante: `SESSION_LOG` sobre presupuesto, 6 notas gigantes, 13
-enlaces rotos, 8 notas huérfanas y los hubs reales del grafo. Dos alcances honestos: **"detectar
-contradicciones"** aflora _pares casi-duplicados para revisar_, no un veredicto (la detección real de
+En el vault real de 55 notas afloró al instante: `SESSION_LOG` sobre presupuesto, 6 notas gigantes,
+enlaces rotos, notas huérfanas y los hubs reales del grafo. Los parsers de enlaces rotos y del grafo
+de conocimiento **ignoran los ejemplos de `[[wikilink]]` dentro de bloques de código y código en
+línea**, así que una nota que _documenta_ la sintaxis nunca se cuenta como un enlace (roto) real —
+solo cuentan las referencias genuinas. Dos alcances honestos: **"detectar contradicciones"** aflora
+_pares casi-duplicados para revisar_, no un veredicto (la detección real de
 contradicciones es razonamiento semántico que el motor determinista no afirma); **"condensar notas
 viejas"** = el report _marca_ candidatos y el agente condensa con tu confirmación. Detalle:
 [ADR-0024](../adr/0024-memory-reports-and-compaction.md).

@@ -25,6 +25,7 @@ Common questions live in the [FAQ](./faq.md).
 ## Contents
 
 - [MCP / Cursor](#mcp--cursor)
+- [Hybrid search and the Python backend (Claude Code)](#hybrid-search-and-the-python-backend-claude-code)
 - [Git](#git)
 - [Windows scheduled tasks](#windows-scheduled-tasks)
 - [PowerShell](#powershell)
@@ -253,6 +254,140 @@ The kit **merges** both of these keys when you run `create-obsidian-memory` with
 **30 seconds**. (`npx` runs Node packages; the first run downloads them.)
 
 **Fix.** Wait once. Every call after that is nearly instant.
+
+---
+
+## Hybrid search and the Python backend (Claude Code)
+
+The hybrid MCP (`obsidian-memory-hybrid`) and its optional local search engine
+(`obsidian-memory-rag`, Python) have their own failure modes, separate from the
+`basic-memory` issues above. These are the ones you meet with **Claude Code** when
+the agent "isn't really using memory." Work the tree from the top — the same two
+commands diagnose every case.
+
+### Is memory actually working? (two commands)
+
+**1. Are the servers connected?**
+
+```powershell
+claude mcp list
+```
+
+You want both of these green (the exact commands will show your own paths):
+
+```text
+basic-memory: uvx ... - ✔ Connected
+obsidian-memory-hybrid: node ...hybrid-mcp.mjs - ✔ Connected
+```
+
+**2. Does a real search return a section?** In a fresh chat, ask the agent to run
+`vault_hybrid_search` for a topic you _know_ is in your vault. A healthy answer is
+a **matching section** (heading + passage) — not an error, not an empty list.
+
+If either check fails, follow the tree:
+
+```mermaid
+flowchart TD
+  Start["Agent ignores memory,<br/>or vault_* tools error"] --> L{"claude mcp list shows<br/>obsidian-memory-hybrid?"}
+  L -->|no| Reg["Not registered:<br/>re-run installer --full,<br/>or claude mcp add"]
+  L -->|"yes, Failed to connect"| Path["Wrong / stale command path:<br/>the node script does not<br/>exist where it is registered"]
+  L -->|"yes, Connected"| Call{"vault_hybrid_search<br/>result?"}
+  Call -->|"error: No Python at ..."| Venv["Orphaned Python venv:<br/>recreate it + reinstall backend"]
+  Call -->|"empty / no hits"| Idx["Index not built yet:<br/>vault_fts_index semantic true"]
+  Call -->|"runs, but old behavior"| Clone["Registered against a stale clone:<br/>re-point to the active repo"]
+  Call -->|"matching section"| OK["Memory is healthy"]
+```
+
+### `obsidian-memory-hybrid` is missing from `claude mcp list`
+
+**Cause.** The hybrid MCP was never registered for Claude Code (a fresh machine,
+or you only wired Cursor).
+
+**Fix.** Register it. The one-shot full stack, from a clone of the kit:
+
+```bash
+npx @vkmikc/create-obsidian-memory --full --vault "<absolute-vault-path>"
+```
+
+…or add just the hybrid server by hand (adjust the two paths to your clone and
+your vault):
+
+```bash
+claude mcp add obsidian-memory-hybrid -s user \
+  -e BASIC_MEMORY_HOME="<vault>" \
+  -e PYTHONPATH="<clone>/packages/obsidian-memory-rag/src" \
+  -- node "<clone>/packages/obsidian-memory-mcp/src/hybrid-mcp.mjs"
+```
+
+Then **restart Claude Code** — MCP tools load at startup, so a running session
+never picks up a newly registered server on its own.
+
+### `claude mcp list` shows `obsidian-memory-hybrid` as `Failed to connect`
+
+**Cause.** The registered command can't start — usually because its `node` script
+path points at a **clone that moved or was deleted**, or `node` isn't on PATH.
+
+**Fix.** Print the exact registered command and confirm the path exists:
+
+```bash
+claude mcp get obsidian-memory-hybrid
+```
+
+If the `Args` path (`…/hybrid-mcp.mjs`) doesn't exist, re-register against the
+clone you actually use — `claude mcp remove obsidian-memory-hybrid -s user`, then
+the `claude mcp add …` above. A common trap: **two clones** of the kit — the MCP
+registered against one while you edit the other; it connects, but runs the wrong
+code (see the "old behavior" entry below).
+
+### A search errors with `obsidian-memory-rag exited 103: No Python at …`
+
+**Cause.** The hybrid server shells out to a Python interpreter that no longer
+exists on disk. This happens when the virtual environment was built by **uv** and
+its base interpreter was later removed (a `uv` upgrade or cache clean), leaving the
+venv's `pyvenv.cfg` pointing at a deleted CPython. The whole hybrid surface
+(`vault_hybrid_search`, `vault_observations`, …) then fails identically — and it is
+**not** shell-specific: cmd, PowerShell and bash all hit the same error.
+
+**Fix.** Recreate the environment and reinstall the backend into it:
+
+```bash
+uv venv --python 3.12 "<venv-path>"
+uv pip install --python "<venv-path>/Scripts/python.exe" \
+  -e "<clone>/packages/obsidian-memory-rag[semantic,vec]"
+```
+
+If the server is pinned to a specific interpreter via `OBSIDIAN_MEMORY_PYTHON`,
+make sure it points at the recreated one. Then rebuild the index (next entry) and
+restart Claude Code.
+
+### A search connects but returns no hits
+
+**Cause.** The FTS / semantic index hasn't been built for this vault yet (or a
+fresh reindex is due after a bulk import).
+
+**Fix.** Build it — from the agent, call `vault_fts_index({ semantic: true })`; or
+from a terminal:
+
+```bash
+python -m obsidian_memory_rag json-index --vault "<vault>" --semantic
+```
+
+The index lives beside the vault in `.obsidian-memory-rag/fts.sqlite` (git-ignored,
+never synced). A first semantic build downloads the embedding model once.
+
+### Search runs, but behaves like an older version
+
+**Cause.** The MCP is registered against a **different clone** of the kit than the
+one you edit, so fixes and new tools never take effect.
+
+**Fix.** Confirm which clone the server runs from, and re-point it if it's wrong:
+
+```bash
+claude mcp get obsidian-memory-hybrid   # inspect the Args path
+```
+
+Re-register against the active clone (remove + add, as above), then restart Claude
+Code. Keeping a **single** clone avoids this class of problem entirely.
 
 ---
 
