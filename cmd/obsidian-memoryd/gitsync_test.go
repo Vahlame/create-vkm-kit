@@ -24,10 +24,10 @@ func (f *fakeExitErr) ExitCode() int { return f.code }
 // fakeRunner scripts responses indexed by the command shape (joined with spaces).
 // Unscripted commands return nil error and empty output.
 type fakeRunner struct {
-	mu         sync.Mutex
-	calls      []string
-	responses  map[string][]fakeResp // key -> sequence consumed in order
-	pos        map[string]int
+	mu        sync.Mutex
+	calls     []string
+	responses map[string][]fakeResp // key -> sequence consumed in order
+	pos       map[string]int
 }
 
 type fakeResp struct {
@@ -103,12 +103,17 @@ func discardLogger() *slog.Logger {
 }
 
 func TestGitSync_HappyPath(t *testing.T) {
+	withTempStateDir(t)
 	dir := tempGitRepo(t)
 	r := newFakeRunner()
 	// All four steps return nil → happy path.
 
 	if err := gitSyncWith(context.Background(), discardLogger(), dir, r); err != nil {
 		t.Fatalf("expected nil, got %v", err)
+	}
+	// A full successful cycle records sync health: LastSyncOK set, no failures.
+	if s := readState(); s.LastSyncOK.IsZero() || s.ConsecutiveSyncFailures != 0 {
+		t.Errorf("happy path should set LastSyncOK and zero sync failures, got %+v", s)
 	}
 	wantPrefix := []string{
 		"git add -A",
@@ -130,6 +135,7 @@ func TestGitSync_HappyPath(t *testing.T) {
 // which keys responses by git verb so we don't have to match the exact commit
 // message (which embeds an RFC3339 timestamp).
 func TestGitSync_EmptyCommit(t *testing.T) {
+	withTempStateDir(t)
 	dir := tempGitRepo(t)
 	r := &verbRunner{
 		responses: map[string][]fakeResp{
@@ -151,6 +157,7 @@ func TestGitSync_EmptyCommit(t *testing.T) {
 }
 
 func TestGitSync_RebaseConflictAborts(t *testing.T) {
+	withTempStateDir(t)
 	dir := tempGitRepo(t)
 	r := &verbRunner{
 		responses: map[string][]fakeResp{
@@ -174,6 +181,7 @@ func TestGitSync_RebaseConflictAborts(t *testing.T) {
 }
 
 func TestGitSync_PushRetriesThenSucceeds(t *testing.T) {
+	withTempStateDir(t)
 	dir := tempGitRepo(t)
 	r := &verbRunner{
 		responses: map[string][]fakeResp{
@@ -205,6 +213,7 @@ func TestGitSync_PushRetriesThenSucceeds(t *testing.T) {
 }
 
 func TestGitSync_PushAllAttemptsFail(t *testing.T) {
+	withTempStateDir(t)
 	dir := tempGitRepo(t)
 	r := &verbRunner{
 		responses: map[string][]fakeResp{
@@ -222,6 +231,7 @@ func TestGitSync_PushAllAttemptsFail(t *testing.T) {
 }
 
 func TestGitSync_NotARepoRejects(t *testing.T) {
+	withTempStateDir(t)
 	dir := t.TempDir() // no git init
 	r := newFakeRunner()
 	err := gitSyncWith(context.Background(), discardLogger(), dir, r)
@@ -230,6 +240,73 @@ func TestGitSync_NotARepoRejects(t *testing.T) {
 	}
 	if len(r.calls) != 0 {
 		t.Errorf("no git commands should have run, got: %v", r.calls)
+	}
+	// Even a "not a git repo" cycle is a sync failure the user should see.
+	if s := readState(); s.ConsecutiveSyncFailures != 1 {
+		t.Errorf("not-a-repo should record a sync failure, got %d", s.ConsecutiveSyncFailures)
+	}
+}
+
+// TestGitSync_PullFailureRecordsSyncFailure is the regression test for the health
+// blind spot: a NON-push step failing (here a non-conflict `pull --rebase`, e.g.
+// expired credentials) must bump the sync-failure counter so `doctor` alarms —
+// previously only push failures did, so a stuck pull left doctor falsely green.
+func TestGitSync_PullFailureRecordsSyncFailure(t *testing.T) {
+	withTempStateDir(t)
+	dir := tempGitRepo(t)
+	r := &verbRunner{
+		responses: map[string][]fakeResp{
+			"pull": {{out: []byte("fatal: Authentication failed for 'https://example/repo'"), err: errors.New("auth failed")}},
+		},
+	}
+	err := gitSyncWith(context.Background(), discardLogger(), dir, r)
+	if err == nil || !strings.Contains(err.Error(), "pull --rebase") {
+		t.Fatalf("expected a pull failure error, got: %v", err)
+	}
+	for _, c := range r.calls {
+		if c == "push" {
+			t.Fatalf("push must not run after a pull failure; calls: %v", r.calls)
+		}
+	}
+	s := readState()
+	if s.ConsecutiveSyncFailures != 1 {
+		t.Errorf("pull failure should record a sync failure, got ConsecutiveSyncFailures=%d", s.ConsecutiveSyncFailures)
+	}
+	if s.ConsecutivePushFailures != 0 {
+		t.Errorf("a pull failure must NOT be counted as a push failure, got %d", s.ConsecutivePushFailures)
+	}
+	if s.LastSyncError == "" {
+		t.Error("LastSyncError should carry the failure message")
+	}
+	if !s.LastSyncOK.IsZero() {
+		t.Error("LastSyncOK should stay zero when the cycle failed")
+	}
+}
+
+// TestGitSync_SuccessAfterFailureResetsCounter verifies a good sync clears the
+// consecutive sync-failure counter + last error (so a transient outage that
+// recovers doesn't keep alarming).
+func TestGitSync_SuccessAfterFailureResetsCounter(t *testing.T) {
+	withTempStateDir(t)
+	dir := tempGitRepo(t)
+	recordSyncFailure(errors.New("boom"))
+	recordSyncFailure(errors.New("boom"))
+	if s := readState(); s.ConsecutiveSyncFailures != 2 {
+		t.Fatalf("setup: expected 2 prior failures, got %d", s.ConsecutiveSyncFailures)
+	}
+	r := newFakeRunner() // all steps succeed
+	if err := gitSyncWith(context.Background(), discardLogger(), dir, r); err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+	s := readState()
+	if s.ConsecutiveSyncFailures != 0 {
+		t.Errorf("a successful sync should reset the counter, got %d", s.ConsecutiveSyncFailures)
+	}
+	if s.LastSyncError != "" {
+		t.Errorf("a successful sync should clear the last error, got %q", s.LastSyncError)
+	}
+	if s.LastSyncOK.IsZero() {
+		t.Error("LastSyncOK should be set after success")
 	}
 }
 

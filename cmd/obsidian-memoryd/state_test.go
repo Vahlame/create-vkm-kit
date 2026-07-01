@@ -158,6 +158,32 @@ func TestDoctorPushFailures(t *testing.T) {
 	}
 }
 
+// TestDoctorSyncFailures is the health-fix regression test: a vault with a FRESH
+// heartbeat and ZERO push failures, but repeated sync failures (e.g. a stuck
+// pull), must alarm — before the fix this state reported perfectly healthy.
+func TestDoctorSyncFailures(t *testing.T) {
+	withTempStateDir(t)
+	now := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	_ = writeState(&DaemonState{
+		Heartbeat:               now.Add(-30 * time.Second), // fresh — daemon is alive
+		ConsecutivePushFailures: 0,                          // push never even ran
+		ConsecutiveSyncFailures: 3,
+		LastSyncError:           "git pull --rebase: auth failed",
+		LastSyncErrorAt:         now.Add(-1 * time.Minute),
+	})
+	var buf bytes.Buffer
+	err := doctor(&buf, "", now)
+	if !errors.Is(err, ErrDoctorAlarm) {
+		t.Fatalf("3 consecutive sync failures should trigger alarm, got %v", err)
+	}
+	out := buf.String()
+	for _, want := range []string{"consecutive sync fails:   3", "vault not syncing", "last sync error:"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing %q\n---\n%s", want, out)
+		}
+	}
+}
+
 func TestRecordPushSuccessResetsFailures(t *testing.T) {
 	withTempStateDir(t)
 	_ = writeState(&DaemonState{ConsecutivePushFailures: 5})
@@ -178,6 +204,20 @@ func TestRecordPushFailureIncrements(t *testing.T) {
 	s := readState()
 	if s.ConsecutivePushFailures != 2 {
 		t.Errorf("expected 2, got %d", s.ConsecutivePushFailures)
+	}
+}
+
+func TestRecordSyncFailureThenSuccess(t *testing.T) {
+	withTempStateDir(t)
+	recordSyncFailure(errors.New("git pull --rebase: auth failed"))
+	s := readState()
+	if s.ConsecutiveSyncFailures != 1 || s.LastSyncError == "" || s.LastSyncErrorAt.IsZero() {
+		t.Fatalf("failure should record count+error+time, got %+v", s)
+	}
+	recordSyncSuccess()
+	s = readState()
+	if s.ConsecutiveSyncFailures != 0 || s.LastSyncError != "" || s.LastSyncOK.IsZero() {
+		t.Fatalf("success should reset count+error and set LastSyncOK, got %+v", s)
 	}
 }
 
