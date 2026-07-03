@@ -115,16 +115,31 @@ async function main() {
           .string()
           .optional()
           .describe("Vault root; defaults to BASIC_MEMORY_HOME / OBSIDIAN_MEMORY_VAULT"),
-        limit: z.number().int().min(1).max(100).optional().default(20)
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(100)
+          .optional()
+          .default(10)
+          .describe(
+            "Max hits (default 10). Use 3-5 for a targeted recall; raise only for broad surveys — every extra hit costs input tokens."
+          ),
+        explain: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe(
+            "Include per-hit ranking diagnostics (bm25 score, mtime_ns). For debugging/benchmarks only — costs tokens; leave off for normal recall."
+          )
       },
       annotations: { readOnlyHint: true }
     },
-    toolHandler(async ({ query, vault, limit }) => {
+    toolHandler(async ({ query, vault, limit, explain }) => {
       const v = requireVault(vault || undefined);
-      const result = await runRagJson(
-        ["json-search", "--vault", v, "--query", query, "--limit", String(limit ?? 20)],
-        ragSrc
-      );
+      const args = ["json-search", "--vault", v, "--query", query, "--limit", String(limit ?? 10)];
+      if (explain) args.push("--explain");
+      const result = await runRagJson(args, ragSrc);
       return flagHits(result);
     })
   );
@@ -165,7 +180,7 @@ async function main() {
     {
       title: "Vault hybrid search (BM25 + semantic)",
       description:
-        "Relevance-ranked retrieval over the vault: fuses FTS5 BM25 (lexical) with per-section vector cosine (semantic) via Reciprocal Rank Fusion, so notes surface by meaning and partial matches, not just exact keywords. Each hit returns the matching section (heading + passage), not the whole note — usually enough to answer without a follow-up read_file, which saves tokens. Requires embeddings built by vault_fts_index with semantic:true; without them it gracefully returns the BM25 ranking. The embedder is chosen by the server's OBSIDIAN_MEMORY_EMBEDDER env (default: zero-dependency lexical 'hashing'; set 'fastembed' with the [semantic] extra for neural embeddings).",
+        "Relevance-ranked retrieval over the vault: fuses FTS5 BM25 (lexical) with per-section vector cosine (semantic) via Reciprocal Rank Fusion, so notes surface by meaning and partial matches, not just exact keywords. Each hit returns the matching section (heading + passage), not the whole note — usually enough to answer without a follow-up read_file, which saves tokens. Pass a low limit (3-5) for targeted recall; raise it only for broad surveys. Requires embeddings built by vault_fts_index with semantic:true; without them it gracefully returns the BM25 ranking.",
       inputSchema: {
         query: z
           .string()
@@ -174,7 +189,23 @@ async function main() {
           .string()
           .optional()
           .describe("Vault root; defaults to BASIC_MEMORY_HOME / OBSIDIAN_MEMORY_VAULT"),
-        limit: z.number().int().min(1).max(100).optional().default(20),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(100)
+          .optional()
+          .default(10)
+          .describe(
+            "Max hits (default 10). Use 3-5 for a targeted recall; raise only for broad surveys — every extra hit costs input tokens."
+          ),
+        explain: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe(
+            "Include per-hit ranking diagnostics (full-precision fused score, bm25/vector/graph ranks, rerank logit). For debugging/benchmarks only — costs tokens; leave off for normal recall."
+          ),
         graph: z
           .boolean()
           .optional()
@@ -235,6 +266,7 @@ async function main() {
         query,
         vault,
         limit,
+        explain,
         graph,
         recency,
         graphTyped,
@@ -251,8 +283,9 @@ async function main() {
           "--query",
           query,
           "--limit",
-          String(limit ?? 20)
+          String(limit ?? 10)
         ];
+        if (explain) args.push("--explain");
         if (graph || graphTyped) args.push("--graph");
         if (graphTyped) args.push("--graph-typed");
         if (recency) args.push("--recency");

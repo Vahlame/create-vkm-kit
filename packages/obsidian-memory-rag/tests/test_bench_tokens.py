@@ -80,6 +80,46 @@ def test_benchmark_is_deterministic() -> None:
     )
 
 
+@needs_fixture
+def test_wire_arm_charges_json_overhead_but_stays_cheap() -> None:
+    # ADR-0034: the wire arm counts the compact JSON the agent actually reads,
+    # so it must cost MORE than bare heading+snippet (overhead is charged, not
+    # hidden) while still clearing a healthy savings floor at the k the rules
+    # recommend (k=3 targeted recall).
+    report = run_token_benchmark(CORPUS, QUERIES, k=3)
+    for r in report.results:
+        assert r.wire_tokens > r.passage_tokens, "wire must include JSON overhead"
+    assert report.median_wire_savings >= 0.50, (
+        f"wire savings floor regressed: {report.median_wire_savings:.3f}"
+    )
+    assert report.total_wire_tokens > report.total_passage_tokens
+
+
+def test_wire_response_tokens_matches_compact_default_shape() -> None:
+    # The wire arm must serialize exactly the default (no --explain) hit shape:
+    # path/heading/snippet + 5-decimal score, no rank diagnostics, no nulls.
+    import json
+
+    from obsidian_memory_rag.bench_tokens import (
+        _TRUST_NOTICE,
+        wire_response_tokens,
+    )
+    from obsidian_memory_rag.query import HybridHit
+
+    hit = HybridHit("a.md", "t", "body", 0.03252247488101534, 2, 1)
+    expected = json.dumps(
+        {
+            "hits": [{"path": "a.md", "heading": "t", "snippet": "body", "score": 0.03252}],
+            "count": 1,
+            "_trust": _TRUST_NOTICE,
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    assert "bm25_rank" not in expected and "null" not in expected
+    assert wire_response_tokens([hit]) == estimate_tokens(expected)
+
+
 def test_estimate_tokens_matches_audit_rule() -> None:
     # Same ~4 bytes/token heuristic as audit.py, on UTF-8 bytes (not chars):
     # a non-ASCII character costs its encoded length.

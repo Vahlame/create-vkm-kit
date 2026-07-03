@@ -37,6 +37,7 @@ Each file in this directory captures one design decision: what was chosen, what 
 | [ADR-0031](./0031-effort-gate-hook.md)                             | Effort-gate hook: PreToolUse pause-and-confirm before costly work                         | Accepted |
 | [ADR-0032](./0032-token-discipline-and-token-economy-benchmark.md) | Token discipline distilled from caveman/ponytail + measured token-economy benchmark       | Accepted |
 | [ADR-0033](./0033-self-paste-frontmatter-guard.md)                 | Guard `vault_edit_file` against self-paste frontmatter duplication                        | Accepted |
+| [ADR-0034](./0034-compact-wire-format-and-lower-default-limit.md)  | Compact search wire format (`explain` opt-in) + default limit 20→10, wire-measured        | Accepted |
 
 ## Template
 

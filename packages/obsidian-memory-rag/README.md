@@ -32,20 +32,33 @@ obsidian-memory-rag audit --vault …
 
 # Latency smoke test
 obsidian-memory-rag bench --vault … --iterations 200 --query "memory"
+
+# Token-economy benchmark: passage-first vs whole-note reads, completeness-gated
+# (ADR-0032) — includes a wire arm counting the exact compact JSON the agent
+# reads (ADR-0034). The --assert-* flags turn it into a CI gate.
+obsidian-memory-rag bench-tokens --corpus evals/tokens/corpus \
+  --queries evals/tokens/queries.jsonl \
+  [--assert-savings 0.40 --assert-answered 0.95 --assert-wire-savings 0.30]
 ```
 
 Each search/index/audit/complete command has a `json-*` twin
 (`json-search`, `json-hybrid-search`, `json-index`, `json-audit`,
 `json-complete`) that prints one JSON object for the MCP bridge / scripting.
 Searches auto-refresh the index first (D8); pass `--no-auto-index` to opt out.
+The `json-search` / `json-hybrid-search` wire format is **compact by default**
+(ADR-0034): hits carry `path` / `title`-or-`heading` / `snippet` (+ a 5-decimal
+`score` on hybrid); pass `--explain` to include the ranking diagnostics
+(`score_raw`, `bm25_rank`, `vector_rank`, `graph_rank`, `rerank_score`, raw
+`bm25`, `mtime_ns`) — they cost ~20 tokens/hit, so they're opt-in.
 
 ## MCP bridge (IDE)
 
 After `pip install -e .`, add **`obsidian-memory-hybrid`**
 (`obsidian-memory-hybrid-mcp` bin, or `node …/hybrid-mcp.mjs`) to your MCP config.
 Tools: **`vault_fts_search`**, **`vault_fts_index`**, **`vault_hybrid_search`**
-(with optional `graph: true`), **`vault_complete`**, **`vault_audit`**, the
-vault-locked file tools, and **`memory_extract_candidates`**. See
+(with optional `graph: true`; default `limit` 10 — use 3–5 for targeted recall;
+`explain: true` for ranking diagnostics), **`vault_complete`**, **`vault_audit`**,
+the vault-locked file tools, and **`memory_extract_candidates`**. See
 `config/mcp/obsidian-memory-hybrid.json` in this repo.
 
 ## Scaling note

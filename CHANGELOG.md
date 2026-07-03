@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **Compact search wire format + MCP default `limit` 20→10 (ADR-0034).** The
+  mission "make Fable 5 cost like Sonnet 5" (~70% cut) on the memory path:
+  `vault_hybrid_search` / `vault_fts_search` hits now carry only what an agent
+  acts on (`path`, `heading`/`title`, `snippet`, 5-decimal `score`) — the
+  mostly-null ranking diagnostics (`bm25_rank`, `vector_rank`, `graph_rank`,
+  `rerank_score`, raw `bm25`, 19-digit `mtime_ns`, full-precision score) cost
+  ~20 tokens/hit and ship only under the new `explain: true` param /
+  `--explain` CLI flag. The MCP default `limit` drops 20→10 (resolves the
+  ADR-0032 deferral; tool descriptions now teach 3–5 for targeted recall).
+  Measured on real-vault recalls: **−37.8%** wire cost on the default call,
+  −60% on a broad query that hit the old cap. `bench-tokens` gains a **wire
+  arm** that counts the exact compact JSON response (overhead charged, not
+  hidden): median wire savings vs whole-note reads = 62% at k=3 / 37% at k=5,
+  100% answered — CI-gated via the new `--assert-wire-savings 0.30`. Breaking
+  only for consumers that parsed the diagnostic fields (none in-repo; pass
+  `explain: true` to get them back).
+
 ### Added
 
 - **`vault_edit_file` now rejects self-paste frontmatter duplication (ADR-0033).**
