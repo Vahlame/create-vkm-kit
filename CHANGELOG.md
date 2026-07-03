@@ -8,6 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Fixed-cost diet: schema budget gate + compact KG defaults + compressed
+  session hook (ADR-0035).** The per-session cost every wired agent pays
+  before calling anything: tool descriptions + server instructions trimmed
+  **10,226 → 7,641 chars (−25%, ~−650 tokens/session/agent)** — operator prose
+  cut, usage guidance and security semantics kept verbatim — and a new
+  `schema-budget.test.mjs` **fails the build** if schema text regrows past
+  8,000 chars (or any single description past 450). `vault_relations` /
+  `vault_observations` MCP default `limit` drops 200→50 (filter by
+  category/tag/note instead). The SessionStart hook now **compresses** the
+  curated index (100 chars per bullet, word-boundary cut; over-cap prose
+  dropped whole) instead of blindly truncating at 4,000: measured on the
+  reference vault, **−21% chars with +70% more pointers visible** (23 → 39 of
+  63 — the old cut left 40 entries invisible). Re-run `create-obsidian-memory`
+  to refresh installed hooks.
+
 - **Compact search wire format + MCP default `limit` 20→10 (ADR-0034).** The
   mission "make Fable 5 cost like Sonnet 5" (~70% cut) on the memory path:
   `vault_hybrid_search` / `vault_fts_search` hits now carry only what an agent

@@ -32,20 +32,70 @@ function stripBom(text) {
   return typeof text === "string" && text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
 }
 
-/** Cap on the curated index dump injected into EVERY session, unconditionally. A
+/** Backstop cap on the curated index dump injected into EVERY session. A
  * hand-maintained index that gains one entry per project only grows over time — left
  * uncapped, this hook's fixed per-session token tax grows right along with the vault
- * (already ~10KB / ~2500 tokens on a modest 69-note vault). Generous enough to show the
- * section headers and the first several entries, not the whole thing. */
-export const MAX_INDEX_CHARS = 4000;
+ * (~10KB / ~2500 tokens on a modest 69-note vault). Compression (below) runs first;
+ * this cap only bites on unusually large or unusually prosy indices. */
+export const MAX_INDEX_CHARS = 3000;
+
+/** Per-entry cap for compressIndex: enough for "name — one-line purpose", not for
+ * the whole multi-sentence history an index entry tends to accrete. */
+export const MAX_ENTRY_CHARS = 100;
+
+/**
+ * Compress the curated index instead of blindly truncating it (ADR-0035). The old
+ * hard cut kept the first N chars — full prose for early entries, and any project
+ * past the cap silently invisible to the session. For a *pointer map* that's
+ * backwards: every entry's NAME is worth more than any entry's third sentence.
+ * So: keep headings and structure, cap each list item at MAX_ENTRY_CHARS (cut at a
+ * word boundary, '…'), drop YAML frontmatter and collapse blank runs. Result: all
+ * pointers visible, prose available on demand via vault_read_file/search.
+ */
+export function compressIndex(index) {
+  const lines = index.split(/\r?\n/);
+  let i = 0;
+  // Drop a leading YAML frontmatter block (--- … ---): metadata, not pointers.
+  if (lines[0]?.trim() === "---") {
+    const end = lines.findIndex((l, j) => j > 0 && l.trim() === "---");
+    if (end > 0) i = end + 1;
+  }
+  const out = [];
+  let blank = false;
+  for (; i < lines.length; i++) {
+    const line = lines[i].trimEnd();
+    if (!line.trim()) {
+      if (!blank && out.length) out.push("");
+      blank = true;
+      continue;
+    }
+    const isHeading = line.startsWith("#");
+    const isBullet = line.trimStart().startsWith("- ");
+    let kept = line;
+    if (!isHeading && line.trim().length > MAX_ENTRY_CHARS) {
+      if (!isBullet) continue; // over-cap prose (incl. bullet overflow wraps): a
+      // mid-sentence fragment reads worse than absence — the full text is one
+      // vault_read_file away. Bullets ARE the pointers, so those get capped instead:
+      const slice = line.slice(0, MAX_ENTRY_CHARS);
+      const cutAt = slice.lastIndexOf(" ");
+      kept = slice.slice(0, cutAt > MAX_ENTRY_CHARS / 2 ? cutAt : MAX_ENTRY_CHARS) + "…";
+    }
+    blank = false;
+    out.push(kept);
+  }
+  // A dropped prose block can leave a dangling blank at the tail.
+  while (out.length && !out[out.length - 1]) out.pop();
+  return out.join("\n").trim();
+}
 
 export function truncateIndex(index, lang) {
-  if (index.length <= MAX_INDEX_CHARS) return index;
+  const compressed = compressIndex(index);
+  if (compressed.length <= MAX_INDEX_CHARS) return compressed;
   const notice =
     lang === "en"
-      ? `\n\n[...truncated: index is ${index.length} chars, showing the first ${MAX_INDEX_CHARS}. Use vault_read_file("_meta/index.md") for the rest.]`
-      : `\n\n[...truncado: el indice tiene ${index.length} caracteres, mostrando los primeros ${MAX_INDEX_CHARS}. Usa vault_read_file("_meta/index.md") para el resto.]`;
-  return index.slice(0, MAX_INDEX_CHARS) + notice;
+      ? `\n\n[...truncated: index is ${compressed.length} chars compressed, showing the first ${MAX_INDEX_CHARS}. Use vault_read_file("_meta/index.md") for the rest.]`
+      : `\n\n[...truncado: el indice comprimido tiene ${compressed.length} caracteres, mostrando los primeros ${MAX_INDEX_CHARS}. Usa vault_read_file("_meta/index.md") para el resto.]`;
+  return compressed.slice(0, MAX_INDEX_CHARS) + notice;
 }
 
 /** The reinforced precedence reminders. Kept in sync with the CLAUDE.md rules block. */
@@ -101,12 +151,16 @@ export function buildContext(vault, lang) {
       const indexPath = path.join(vault, "_meta", "index.md");
       if (fs.existsSync(indexPath)) {
         const index = truncateIndex(stripBom(fs.readFileSync(indexPath, "utf8")), lang);
-        parts.push(
-          lang === "en" ? "Curated index (_meta/index.md):" : "Indice curado (_meta/index.md):",
-          "",
-          index,
-          ""
-        );
+        // A pathological index (all over-cap prose, no pointers) compresses to "" —
+        // emit nothing rather than an empty labelled section.
+        if (index) {
+          parts.push(
+            lang === "en" ? "Curated index (_meta/index.md):" : "Indice curado (_meta/index.md):",
+            "",
+            index,
+            ""
+          );
+        }
       }
     } catch {
       /* index unreadable — still emit the reminders below */
