@@ -38,6 +38,7 @@ Each file in this directory captures one design decision: what was chosen, what 
 | [ADR-0032](./0032-token-discipline-and-token-economy-benchmark.md) | Token discipline distilled from caveman/ponytail + measured token-economy benchmark       | Accepted |
 | [ADR-0033](./0033-self-paste-frontmatter-guard.md)                 | Guard `vault_edit_file` against self-paste frontmatter duplication                        | Accepted |
 | [ADR-0034](./0034-compact-wire-format-and-lower-default-limit.md)  | Compact search wire format (`explain` opt-in) + default limit 20→10, wire-measured        | Accepted |
+| [ADR-0035](./0035-fixed-cost-diet-schema-budget.md)                | Fixed-cost diet: tool-schema budget gate, KG defaults 200→50, compressed session hook     | Accepted |
 
 ## Template
 
