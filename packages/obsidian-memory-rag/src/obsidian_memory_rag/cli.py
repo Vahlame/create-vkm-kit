@@ -11,6 +11,7 @@ from pathlib import Path
 
 from .audit import audit_vault
 from .bench_recall import format_report, run_benchmark
+from .bench_tokens import format_token_report, run_token_benchmark
 from .complete import complete as complete_prefix
 from .embeddings import get_embedder
 from .indexer import ensure_fresh, index_vault, index_vectors
@@ -198,6 +199,40 @@ def main() -> None:
         br.add_argument("--assert-hit1", type=float, default=None)
         br.add_argument("--assert-ndcg", type=float, default=None)
         br.add_argument("--assert-map", type=float, default=None)
+
+    for name, helptext in (
+        (
+            "bench-tokens",
+            "Measure passage-first token savings vs whole-note reads (completeness-gated)",
+        ),
+        (
+            "json-bench-tokens",
+            "Same as bench-tokens but print one JSON object (for scripting)",
+        ),
+    ):
+        bt = sub.add_parser(name, help=helptext)
+        bt.add_argument("--corpus", type=Path, required=True, help="Folder of Markdown notes")
+        bt.add_argument("--queries", type=Path, required=True, help="JSONL: {query, relevant, kind?}")
+        bt.add_argument("--k", type=int, default=5)
+        bt.add_argument("--embedder", default=None)
+        bt.add_argument(
+            "--in-place",
+            action="store_true",
+            help="Index the corpus where it lives (default: copy to a temp dir first)",
+        )
+        # Optional CI gates: exit non-zero if a metric falls below the threshold.
+        bt.add_argument(
+            "--assert-savings",
+            type=float,
+            default=None,
+            help="Fail if median savings over answered queries falls below this",
+        )
+        bt.add_argument(
+            "--assert-answered",
+            type=float,
+            default=None,
+            help="Fail if the completeness-gate pass rate falls below this",
+        )
 
     js = sub.add_parser(
         "json-search",
@@ -464,6 +499,31 @@ def main() -> None:
             failures.append(f"MAP {report.map:.3f} < {args.assert_map}")
         if failures:
             print("RETRIEVAL GATE FAILED: " + "; ".join(failures), file=sys.stderr)
+            raise SystemExit(1)
+    elif args.cmd in ("bench-tokens", "json-bench-tokens"):
+        treport = run_token_benchmark(
+            args.corpus,
+            args.queries,
+            k=args.k,
+            embedder_name=args.embedder,
+            in_place=args.in_place,
+        )
+        if args.cmd == "json-bench-tokens":
+            print(json.dumps(treport.to_dict(), ensure_ascii=False))
+        else:
+            print(format_token_report(treport))
+        # Optional gates (used by CI to fail on a token-economy regression).
+        failures = []
+        if args.assert_savings is not None and treport.median_savings < args.assert_savings:
+            failures.append(
+                f"median savings {treport.median_savings:.3f} < {args.assert_savings}"
+            )
+        if args.assert_answered is not None and treport.answered_rate < args.assert_answered:
+            failures.append(
+                f"answered rate {treport.answered_rate:.3f} < {args.assert_answered}"
+            )
+        if failures:
+            print("TOKEN GATE FAILED: " + "; ".join(failures), file=sys.stderr)
             raise SystemExit(1)
     elif args.cmd == "json-search":
         if not args.no_auto_index:

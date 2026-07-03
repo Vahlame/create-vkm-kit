@@ -260,7 +260,13 @@ Eres uno de varios modelos posibles (Claude, Cursor Composer, GPT, DeepSeek, Gem
 
 ### Mantenlo barato (tokens)
 
-Lecturas passage-first, bullets concisos, deduplica. La inteligencia viene de **buenas notas + recall dirigido**, no de releer todo ni de monólogos largos.
+Disciplina destilada de dos herramientas medidas (caveman y ponytail, MIT) y verificada en `evals/tokens/` del kit. La claridad manda: si comprimir arriesga un malentendido, no comprimas.
+
+- **Salida tersa:** sin relleno, cortesías ni hedging; no narres tool calls; sin tablas/emoji decorativos; no pegues logs enteros — cita la línea decisiva más corta. Términos técnicos, código, comandos, nombres de API y errores exactos: **siempre verbatim**. Comprime el estilo, nunca el idioma del usuario.
+- **Vuelve a prosa plena** en advertencias de seguridad, confirmaciones de acciones irreversibles y secuencias multi-paso donde el orden importa.
+- **Código mínimo (escalera — párate en el primer peldaño que aguante):** ¿necesita existir? → ¿ya está en el codebase? → ¿stdlib? → ¿feature nativa de la plataforma? → ¿dependencia ya instalada? → ¿una línea? → solo entonces, el mínimo que funciona. Sin abstracciones no pedidas ni scaffolding "para después".
+- **Nunca simplifiques** validación de entrada, manejo de errores que evita pérdida de datos, ni seguridad; el fix barato correcto es causa raíz en la función compartida, no parche al síntoma. Lógica no trivial deja UN check ejecutable.
+- **Memoria barata:** lecturas passage-first con `limit` bajo (3–5) cuando sabes qué buscas — notas pequeñas (`MEMORY.md`) enteras, notas grandes jamás. Bullets concisos, deduplica. La inteligencia viene de **buenas notas + recall dirigido**, no de releer todo ni de monólogos largos.
 
 ### Estilo de notas
 

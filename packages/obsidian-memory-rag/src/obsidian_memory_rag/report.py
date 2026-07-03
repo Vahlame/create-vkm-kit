@@ -261,7 +261,9 @@ def build_report(
         "notice": (
             "Read-only report. Compaction/condensing candidates are proposals — the "
             "agent summarizes and the human confirms; nothing here rewrites a note. "
-            "Near-duplicate pairs are candidates to review, not confirmed contradictions."
+            "Near-duplicate pairs are candidates to review, not confirmed contradictions. "
+            "When condensing, compress prose only: never drop decisions, gotchas, "
+            "commands, or exact error strings (ADR-0032)."
         ),
     }
 

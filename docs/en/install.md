@@ -259,7 +259,13 @@ You're one of several possible models (Claude, Cursor Composer, GPT, DeepSeek, G
 
 ### Keep it cheap (tokens)
 
-Passage-first reads, terse bullets, dedup. The intelligence comes from **good notes + targeted recall**, not from re-reading everything or long internal monologues.
+Discipline distilled from two measured tools (caveman and ponytail, MIT) and verified in the kit's `evals/tokens/`. Clarity wins: when compression risks a misread, don't compress.
+
+- **Terse output:** no filler, pleasantries or hedging; don't narrate tool calls; no decorative tables/emoji; don't paste whole logs — quote the shortest decisive line. Technical terms, code, commands, API names and exact error strings: **always verbatim**. Compress the style, never the user's language.
+- **Drop back to plain prose** for security warnings, irreversible-action confirmations, and multi-step sequences where order matters.
+- **Minimal code (a ladder — stop at the first rung that holds):** does it need to exist? → already in this codebase? → stdlib? → native platform feature? → an already-installed dependency? → one line? → only then, the minimum that works. No unrequested abstractions, no scaffolding "for later".
+- **Never simplify away** input validation, error handling that prevents data loss, or security; the correct lazy fix is the root cause in the shared function, not a patch on the symptom. Non-trivial logic leaves ONE runnable check behind.
+- **Cheap memory:** passage-first reads with a low `limit` (3–5) when you know what you're after — small notes (`MEMORY.md`) whole, big notes never. Terse bullets, dedup. Intelligence comes from **good notes + targeted recall**, not from re-reading everything or long monologues.
 
 ### Note style
 

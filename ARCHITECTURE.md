@@ -53,7 +53,7 @@ flowchart LR
 | `packages/obsidian-prompt-compiler/` | Node (ESM)     | `obsidian-prompt` CLI + optional GUI: vault context → `<orchestration_package>` XML, no LLM |
 | `scripts/`                           | TS / Node      | `sync-agents.ts` (rule generator), parity + MCP smoke checks                                |
 | `.agents/`, `.cursor/`, `.continue/` | Markdown       | Per-IDE rule files; `.agents/rules/*` is the source, the rest derived                       |
-| `evals/`                             | Node / Py / MD | Retrieval-quality benchmark (recall@k/MRR/nDCG/MAP, gated) + prompt-adherence smoke         |
+| `evals/`                             | Node / Py / MD | Retrieval-quality + token-economy benchmarks (gated) + prompt-adherence smoke               |
 | `docs/`                              | Markdown       | ADRs (decisions), setup guides, troubleshooting (bilingual ES/EN)                           |
 | `examples/`                          | Markdown       | Anonymized sample vault layout                                                              |
 

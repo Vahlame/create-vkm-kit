@@ -1,0 +1,19 @@
+# Token-economy golden set: each query names the note(s) an agent would otherwise
+# read whole. kind buckets: project-fact (PROJECTS section), stack-fact (STACKS
+# section), log-recall (SESSION_LOG entry), multi (spans two notes).
+{"query": "cache Redis TTL jitter estampida thundering herd", "relevant": ["STACKS/redis.md"], "kind": "stack-fact"}
+{"query": "lock distribuido SET NX token Lua liberar", "relevant": ["STACKS/redis.md"], "kind": "stack-fact"}
+{"query": "Terraform estado remoto S3 candado DynamoDB tf-locks", "relevant": ["STACKS/terraform.md"], "kind": "stack-fact"}
+{"query": "modulo Fargate autoscaling imagen por digest", "relevant": ["STACKS/terraform.md"], "kind": "stack-fact"}
+{"query": "webhooks Stripe idempotencia stripe_events indice unico", "relevant": ["PROJECTS/crm-dashboard.md"], "kind": "project-fact"}
+{"query": "backfill por lotes cursor de progreso replication lag swap", "relevant": ["PROJECTS/crm-dashboard.md"], "kind": "project-fact"}
+{"query": "geocerca poligonal Haversine histeresis alertas", "relevant": ["PROJECTS/fleet-tracker.md"], "kind": "project-fact"}
+{"query": "MQTT backpressure marca de agua degradar muestreo OOM", "relevant": ["PROJECTS/fleet-tracker.md"], "kind": "project-fact"}
+{"query": "impresora termica ESC/POS spooler reordenaba tickets", "relevant": ["PROJECTS/pos-terminal.md"], "kind": "project-fact"}
+{"query": "clave numerica 50 digitos contingencia Hacienda offline", "relevant": ["PROJECTS/pos-terminal.md"], "kind": "project-fact"}
+{"query": "preferencias idioma commits convencionales rollback probado", "relevant": ["MEMORY.md"], "kind": "project-fact"}
+{"query": "cuando se cerro la incidencia del doble cobro del plan anual", "relevant": ["SESSION_LOG.md"], "kind": "log-recall"}
+{"query": "postmortem corte de datos 14 de mayo certificado TLS broker", "relevant": ["SESSION_LOG.md"], "kind": "log-recall"}
+{"query": "drift check nocturno security group importada al codigo", "relevant": ["SESSION_LOG.md"], "kind": "log-recall"}
+{"query": "refresh token rotatorio deteccion de reuso familia invalidada", "relevant": ["PROJECTS/crm-dashboard.md", "SESSION_LOG.md"], "kind": "multi"}
+{"query": "outbox numero de secuencia corte de luz ventas duplicadas", "relevant": ["PROJECTS/pos-terminal.md", "SESSION_LOG.md"], "kind": "multi"}

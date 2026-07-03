@@ -93,7 +93,15 @@ Antes de una respuesta no trivial, chequea en silencio: ¿supuestos explícitos?
 
 Eres uno de varios modelos posibles (Claude, Cursor Composer, GPT, DeepSeek, Gemini…), cada uno con fortalezas distintas al decidir qué hacer. En una tarea no trivial, lee **tu fila** en \`_meta/agent-profiles.md\` y sigue su ajuste; cuando un modelo destaque o falle claramente en un tipo de tarea, añade ahí una línea para que el vault aprenda el mejor modelo por trabajo. Lee **solo tu fila** — passage-first.
 
-**Mantenlo barato (tokens):** lecturas passage-first, bullets concisos, deduplica. La inteligencia viene de **buenas notas + recall dirigido**, no de releer todo ni de monólogos largos.`,
+### Mantenlo barato (tokens)
+
+Disciplina destilada de dos herramientas medidas (caveman y ponytail, MIT) y verificada en \`evals/tokens/\` del kit. La claridad manda: si comprimir arriesga un malentendido, no comprimas.
+
+- **Salida tersa:** sin relleno, cortesías ni hedging; no narres tool calls; sin tablas/emoji decorativos; no pegues logs enteros — cita la línea decisiva más corta. Términos técnicos, código, comandos, nombres de API y errores exactos: **siempre verbatim**. Comprime el estilo, nunca el idioma del usuario.
+- **Vuelve a prosa plena** en advertencias de seguridad, confirmaciones de acciones irreversibles y secuencias multi-paso donde el orden importa.
+- **Código mínimo (escalera — párate en el primer peldaño que aguante):** ¿necesita existir? → ¿ya está en el codebase? → ¿stdlib? → ¿feature nativa de la plataforma? → ¿dependencia ya instalada? → ¿una línea? → solo entonces, el mínimo que funciona. Sin abstracciones no pedidas ni scaffolding "para después".
+- **Nunca simplifiques** validación de entrada, manejo de errores que evita pérdida de datos, ni seguridad; el fix barato correcto es causa raíz en la función compartida, no parche al síntoma. Lógica no trivial deja UN check ejecutable.
+- **Memoria barata:** lecturas passage-first con \`limit\` bajo (3–5) cuando sabes qué buscas — notas pequeñas (\`MEMORY.md\`) enteras, notas grandes jamás. Bullets concisos, deduplica. La inteligencia viene de **buenas notas + recall dirigido**, no de releer todo ni de monólogos largos.`,
   en: `## Markdown memory (vault + MCP)
 
 > **Block managed by \`create-obsidian-memory\`.** Don't edit between the
@@ -178,7 +186,15 @@ Spot a **high-impact** anti-pattern in the user's code/choices (hardcoded secret
 
 You're one of several possible models (Claude, Cursor Composer, GPT, DeepSeek, Gemini…), each with different decision-making strengths. On a non-trivial task, read **your row** in \`_meta/agent-profiles.md\` and follow its tuning; when a model clearly excelled or stumbled at a task type, append a one-line note there so the vault learns the best model per job. Read **only your row** — passage-first.
 
-**Keep it cheap (tokens):** passage-first reads, terse bullets, dedup. Intelligence comes from **good notes + targeted recall**, not from re-reading everything or long monologues.`
+### Keep it cheap (tokens)
+
+Discipline distilled from two measured tools (caveman and ponytail, MIT) and verified in the kit's \`evals/tokens/\`. Clarity wins: when compression risks a misread, don't compress.
+
+- **Terse output:** no filler, pleasantries or hedging; don't narrate tool calls; no decorative tables/emoji; don't paste whole logs — quote the shortest decisive line. Technical terms, code, commands, API names and exact error strings: **always verbatim**. Compress the style, never the user's language.
+- **Drop back to plain prose** for security warnings, irreversible-action confirmations, and multi-step sequences where order matters.
+- **Minimal code (a ladder — stop at the first rung that holds):** does it need to exist? → already in this codebase? → stdlib? → native platform feature? → an already-installed dependency? → one line? → only then, the minimum that works. No unrequested abstractions, no scaffolding "for later".
+- **Never simplify away** input validation, error handling that prevents data loss, or security; the correct lazy fix is the root cause in the shared function, not a patch on the symptom. Non-trivial logic leaves ONE runnable check behind.
+- **Cheap memory:** passage-first reads with a low \`limit\` (3–5) when you know what you're after — small notes (\`MEMORY.md\`) whole, big notes never. Terse bullets, dedup. Intelligence comes from **good notes + targeted recall**, not from re-reading everything or long monologues.`
 };
 
 /**

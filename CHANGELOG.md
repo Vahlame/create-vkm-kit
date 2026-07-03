@@ -6,6 +6,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Token-economy benchmark, measured and CI-gated (ADR-0032).** The kit's token
+  claim ("passage-first reads beat whole-note reads") is now a number, not an
+  assertion: `bench-tokens` / `json-bench-tokens` compare the top-k
+  `heading + snippet` passages `vault_hybrid_search` returns against every
+  ground-truth note read whole, over a new realistically-sized fixture
+  (`evals/tokens/`, 16 labelled queries). Methodology distilled from the two
+  tools evaluated in ADR-0032: caveman's honest control arm (the whole-note arm
+  pays zero discovery cost, so savings are a floor; median/min/max/stdev
+  reported, ~4 bytes/token estimator on both arms) and ponytail's completeness
+  gate (savings only count when every relevant note surfaces in the top-k).
+  Measured at k=5: 100% answered, median savings 47%, aggregate 56% — and the
+  per-kind breakdown keeps the honest counterpoint visible (small <2 KB notes
+  are cheaper read whole). CI gates at `--assert-savings 0.40
+--assert-answered 0.95`; 6 new tests in `test_bench_tokens.py` also pin that
+  a lower `k` saves strictly more without losing answers.
+
+### Changed
+
+- **Managed rules block: "Keep it cheap (tokens)" grew from a one-liner into a
+  distilled token-discipline section (ES/EN, ADR-0032)** — terse-output rules
+  from caveman (no filler/tool-call narration/log dumps; technical terms,
+  commands and exact errors always verbatim; **plain prose returns** for
+  security warnings, irreversible confirmations and order-sensitive sequences)
+  and the YAGNI ladder from ponytail (reuse → stdlib → platform → installed
+  dep → one line → minimal code; never simplify validation, data-loss error
+  handling or security; non-trivial logic leaves one runnable check). Plus the
+  measured `limit` guidance: pass a low `limit` (3–5) on targeted recalls.
+  Synced across `memory-rules.mjs`, `AGENTS.md` and `docs/{es,en}/install.md`.
+- **Memory report notice now carries the compression-safety rule** (from
+  caveman-compress's safety tests): when condensing notes, compress prose only —
+  never drop decisions, gotchas, commands, or exact error strings.
+
 ## [3.11.0] - 2026-07-01
 
 ### Added
