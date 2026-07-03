@@ -66,6 +66,9 @@ with the methodology borrowed from the two tools evaluated in ADR-0032:
   holds the answer (zero discovery cost), so the measured saving is a _floor_.
 - **Completeness gate** (ponytail): a query's saving only counts when every
   ground-truth note surfaces in the top-k. Cheap-but-wrong is a miss, not a win.
+- **Wire arm** (ADR-0034): the passage arm at its true cost — the compact JSON
+  response the MCP actually emits (default hit shape + `count` + `_trust`
+  notice), so JSON overhead is charged instead of hidden.
 
 ```bash
 # human report
@@ -73,24 +76,30 @@ python -m obsidian_memory_rag bench-tokens \
   --corpus evals/tokens/corpus --queries evals/tokens/queries.jsonl
 # CI gate (exits non-zero on regression)
 python -m obsidian_memory_rag bench-tokens ... \
-  --assert-savings 0.40 --assert-answered 0.95
+  --assert-savings 0.40 --assert-answered 0.95 --assert-wire-savings 0.30
 ```
 
 **Measured floor** (default `HashingEmbedder`, ~4 bytes/token estimator on both
 arms — the ratio is the signal, not the absolute count):
 
-| k   | answered | median savings | aggregate savings |
-| --- | -------- | -------------- | ----------------- |
-| 3   | 100%     | 69%            | 74%               |
-| 5   | 100%     | 47%            | 56%               |
-| 10  | 100%     | 33%            | 42%               |
+| k   | answered | median savings (content) | median savings (wire) |
+| --- | -------- | ------------------------ | --------------------- |
+| 3   | 100%     | 69%                      | 62%                   |
+| 5   | 100%     | 47%                      | 37%                   |
+| 10  | 100%     | 33%                      | 20%                   |
+
+The **wire** column is what the kit claims: it counts the exact compact JSON
+the agent reads (ADR-0034 moved ranking diagnostics behind `explain: true`,
+saving ~20 tokens/hit, and dropped the MCP default `limit` 20→10 — measured
+−37.8% on real-vault default recall calls, −60% on a broad query that hit the
+old cap).
 
 Two findings the per-kind breakdown keeps visible: on **small notes** (STACKS
 bucket at k=5: −52%) reading whole is cheaper than k passages — matching the
 doctrine "small notes whole, big notes never" — and **`limit` is the agent's
 main token lever**: k=3 still answers everything here and saves strictly more
-(`tests/test_bench_tokens.py` pins both as contracts). The CI job and the tests
-gate on the k=5 floor with a margin.
+(`tests/test_bench_tokens.py` pins both as contracts, plus the wire-arm floor).
+The CI job and the tests gate on the k=5 floor with a margin.
 
 ## 3. Adherence harness (smoke only)
 

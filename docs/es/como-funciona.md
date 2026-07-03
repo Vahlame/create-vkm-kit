@@ -124,11 +124,11 @@ configuras.
 búsqueda. Eso es el paquete **`obsidian-memory-rag`**, expuesto en el IDE por el **MCP híbrido**
 con estas herramientas:
 
-| Herramienta           | Qué hace                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vault_fts_search`    | Búsqueda **léxica** (SQLite FTS5 / BM25): rápida y exacta por palabras clave.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `vault_hybrid_search` | Búsqueda **híbrida**: mezcla lo léxico con lo **semántico** (por significado). "El daemon que sincroniza git" encuentra la nota aunque no uses esas palabras exactas — y devuelve **solo la sección relevante**, lo que **ahorra tokens**. Con `graph: true` además sigue tus `[[wikilinks]]`, así una nota enlazada desde un hit fuerte aflora aunque su propio texto apenas coincida (ADR-0019); con `recency: true` favorece las notas modificadas recientemente (ADR-0021). Más perillas de precisión **opt-in, off por defecto** (3.9): `rerank: true` añade un cross-encoder como pase final para consultas difíciles (ADR-0026, requiere el extra `[rerank]` + un modelo en el idioma del contenido), `graphTyped`/`importance` pesan relaciones tipadas / notas hub (ADR-0027), y `mmr` / `passageWindow` diversifican / devuelven una sección más completa (ADR-0028). |
-| `vault_complete`      | **Autocompletado** de un prefijo a los títulos de nota, nombres de archivo y `#tags` que existen de verdad — útil para resolver un nombre a medias antes de buscar o enlazar.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Herramienta           | Qué hace                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vault_fts_search`    | Búsqueda **léxica** (SQLite FTS5 / BM25): rápida y exacta por palabras clave.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `vault_hybrid_search` | Búsqueda **híbrida**: mezcla lo léxico con lo **semántico** (por significado). "El daemon que sincroniza git" encuentra la nota aunque no uses esas palabras exactas — y devuelve **solo la sección relevante**, lo que **ahorra tokens**. Con `graph: true` además sigue tus `[[wikilinks]]`, así una nota enlazada desde un hit fuerte aflora aunque su propio texto apenas coincida (ADR-0019); con `recency: true` favorece las notas modificadas recientemente (ADR-0021). Más perillas de precisión **opt-in, off por defecto** (3.9): `rerank: true` añade un cross-encoder como pase final para consultas difíciles (ADR-0026, requiere el extra `[rerank]` + un modelo en el idioma del contenido), `graphTyped`/`importance` pesan relaciones tipadas / notas hub (ADR-0027), y `mmr` / `passageWindow` diversifican / devuelven una sección más completa (ADR-0028). Desde 3.12 la respuesta viene en **formato compacto** — cada hit trae solo `path`/`heading`/`snippet`/`score` — y el `limit` por defecto es **10**: usa **3–5** para un recall dirigido y súbelo solo para barridos amplios; los diagnósticos de ranking vuelven con `explain: true` (ADR-0034). |
+| `vault_complete`      | **Autocompletado** de un prefijo a los títulos de nota, nombres de archivo y `#tags` que existen de verdad — útil para resolver un nombre a medias antes de buscar o enlazar.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 No es obligatorio para empezar. Es una capa de **comodidad, mejor recall y ahorro de tokens**,
 no el núcleo. Detalle técnico: [ADR-0017](../adr/0017-hybrid-query-embeddings.md) (consulta híbrida) y
@@ -307,6 +307,58 @@ flowchart LR
   O --> S3[sub-agente C]
   S1 & S2 & S3 -. solo un hybrid_search,<br/>sin leer notas enteras .-> V[("vault")]
 ```
+
+### El ahorro, medido en el wire — y el wire, más barato (nuevo en 3.12)
+
+**La analogía.** Antes medíamos el ahorro pesando solo la mercancía; ahora pesamos **el paquete
+completo con su embalaje** (el JSON que el modelo lee de verdad) — y de paso quitamos el embalaje
+que sobraba. Cada hit arrastraba ~20 tokens de diagnóstico que ningún modelo usa (ranks casi
+siempre `null`, un score de 17 dígitos); ahora el hit por defecto trae **solo lo que un agente
+necesita para actuar**, y los diagnósticos completos viven detrás de `explain: true`:
+
+```mermaid
+flowchart TB
+  subgraph antes["❌ hit antiguo (~20 tokens de ruido por hit)"]
+    A["path · heading · snippet<br/>score: 0.03252247488101534<br/>bm25_rank: 2 · vector_rank: 1<br/>graph_rank: null · rerank_score: null"]
+  end
+  subgraph ahora["✅ hit compacto por defecto (3.12)"]
+    B["path · heading · snippet<br/>score: 0.03252"]
+  end
+  ahora -.->|"explain: true<br/>(debugging / benchmarks)"| antes
+```
+
+Dos palancas más van en el mismo cambio ([ADR-0034](../adr/0034-compact-wire-format-and-lower-default-limit.md)):
+el `limit` por defecto del MCP baja **20→10** (medido en un vault real: la llamada de recall por
+defecto cuesta **−37.8%**; una consulta amplia que tocaba el tope viejo bajó de 1905 a 755 tokens),
+y el benchmark de economía de tokens ([ADR-0032](../adr/0032-token-discipline-and-token-economy-benchmark.md),
+`bench-tokens`) gana un **brazo wire** que cuenta el JSON compacto exacto — con **gate en CI**: si
+una versión futura engorda la respuesta, el build rompe.
+
+| k (hits pedidos) | respondidas | ahorro (solo contenido) | ahorro (wire, el honesto) |
+| ---------------- | ----------- | ----------------------- | ------------------------- |
+| 3                | 100%        | 69%                     | **62%**                   |
+| 5                | 100%        | 47%                     | **37%**                   |
+| 10               | 100%        | 33%                     | **20%**                   |
+
+El ahorro solo se acredita si **todas** las notas relevantes aparecen en el top-k (puerta de
+completitud: barato-pero-incompleto cuenta como fallo, no como ahorro) — por eso la calidad de la
+respuesta no se sacrifica. Y el número es un **piso**: el brazo de control ni siquiera paga el
+coste de descubrir qué nota abrir.
+
+**Qué significa en la práctica** — con un modelo caro tipo Fable 5 (~3.3× el peso de usage de
+Sonnet 5), el recall dirigido queda al nivel de usage de un modelo barato **sin cambiar de modelo**.
+Ejemplo real medido en un vault de verdad ("¿qué decidimos sobre el reranker y por qué es opt-in?"
+— la respuesta vivía en un archivo de log de 46.484 tokens):
+
+```mermaid
+flowchart LR
+  P["misma pregunta,<br/>misma respuesta"] --> N["❌ naive: leer la nota entera<br/>46.484 tokens"]
+  P --> K["✅ kit: hybrid_search k=3, wire compacto<br/>106 tokens (−99.8%)"]
+```
+
+La escalera del `limit` es tuya: **3–5** cuando sabes qué buscas (lo que recomiendan las reglas
+instaladas), 10 por defecto, más solo para barridos amplios. Números y metodología reproducibles en
+[`evals/README`](https://github.com/Vahlame/obsidian-memory-kit/tree/main/evals).
 
 ---
 

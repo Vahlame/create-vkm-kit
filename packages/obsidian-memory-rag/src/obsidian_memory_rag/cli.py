@@ -233,6 +233,13 @@ def main() -> None:
             default=None,
             help="Fail if the completeness-gate pass rate falls below this",
         )
+        bt.add_argument(
+            "--assert-wire-savings",
+            type=float,
+            default=None,
+            help="Fail if median WIRE savings (compact JSON the agent reads, "
+            "ADR-0034) falls below this",
+        )
 
     js = sub.add_parser(
         "json-search",
@@ -246,6 +253,12 @@ def main() -> None:
         action="store_true",
         help="Skip the pre-search incremental index refresh (query the index as-is)",
     )
+    js.add_argument(
+        "--explain",
+        action="store_true",
+        help="Include per-hit ranking diagnostics (bm25 score, mtime_ns); the default "
+        "wire format omits them — the consumer is an LLM and order already conveys rank",
+    )
 
     jh = sub.add_parser(
         "json-hybrid-search",
@@ -255,6 +268,13 @@ def main() -> None:
     jh.add_argument("--query", required=True)
     jh.add_argument("--limit", type=int, default=20)
     jh.add_argument("--embedder", default=None)
+    jh.add_argument(
+        "--explain",
+        action="store_true",
+        help="Include per-hit ranking diagnostics (full-precision fused score, "
+        "bm25/vector/graph ranks, rerank logit); the default wire format omits "
+        "them — the consumer is an LLM and order already conveys rank",
+    )
     _add_hybrid_flags(jh)
 
     ji = sub.add_parser(
@@ -522,6 +542,14 @@ def main() -> None:
             failures.append(
                 f"answered rate {treport.answered_rate:.3f} < {args.assert_answered}"
             )
+        if (
+            args.assert_wire_savings is not None
+            and treport.median_wire_savings < args.assert_wire_savings
+        ):
+            failures.append(
+                f"median wire savings {treport.median_wire_savings:.3f} "
+                f"< {args.assert_wire_savings}"
+            )
         if failures:
             print("TOKEN GATE FAILED: " + "; ".join(failures), file=sys.stderr)
             raise SystemExit(1)
@@ -529,14 +557,20 @@ def main() -> None:
         if not args.no_auto_index:
             ensure_fresh(args.vault)
         hits = search_vault(args.vault, args.query, limit=args.limit)
+        # Compact wire format (ADR-0034): the consumer is an LLM that pays input
+        # tokens per hit — order already conveys rank, so ranking diagnostics
+        # (raw bm25 distance, 19-digit mtime_ns) ship only under --explain.
         payload = {
             "hits": [
                 {
                     "path": h.path,
                     "title": h.title,
                     "snippet": h.snippet,
-                    "bm25": h.bm25,
-                    "mtime_ns": h.mtime_ns,
+                    **(
+                        {"bm25": h.bm25, "mtime_ns": h.mtime_ns}
+                        if args.explain
+                        else {}
+                    ),
                 }
                 for h in hits
             ],
@@ -548,17 +582,29 @@ def main() -> None:
         if not args.no_auto_index:
             ensure_fresh(args.vault, embedder=embedder)
         hits = hybrid_search(args.vault, args.query, embedder, **_hybrid_kwargs(args))
+        # Compact wire format (ADR-0034): default hits carry only what an agent
+        # acts on (path, heading, snippet, rounded score). Per-ranker ranks and
+        # the full-precision score — mostly-null diagnostics costing ~25 tokens
+        # per hit — ship only under --explain. round(score, 5) keeps adjacent
+        # RRF ranks (Δ ≈ 2e-4 at k=60) distinguishable.
         payload = {
             "hits": [
                 {
                     "path": h.path,
                     "heading": h.heading,
                     "snippet": h.snippet,
-                    "score": h.score,
-                    "bm25_rank": h.bm25_rank,
-                    "vector_rank": h.vector_rank,
-                    "graph_rank": h.graph_rank,
-                    "rerank_score": h.rerank_score,
+                    "score": round(h.score, 5),
+                    **(
+                        {
+                            "score_raw": h.score,
+                            "bm25_rank": h.bm25_rank,
+                            "vector_rank": h.vector_rank,
+                            "graph_rank": h.graph_rank,
+                            "rerank_score": h.rerank_score,
+                        }
+                        if args.explain
+                        else {}
+                    ),
                 }
                 for h in hits
             ],

@@ -123,11 +123,11 @@ None of this "uploads your notes forever" to a server owned by the AI provider. 
 the search. That's the **`obsidian-memory-rag`** package, exposed in the IDE by the **hybrid MCP**
 with these tools:
 
-| Tool                  | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vault_fts_search`    | **Lexical** search (SQLite FTS5 / BM25): fast and exact by keywords.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `vault_hybrid_search` | **Hybrid** search: mixes the lexical with the **semantic** (by meaning). "The daemon that syncs git" finds the note even if you don't use those exact words — and returns **only the relevant section**, which **saves tokens**. With `graph: true` it also follows your `[[wikilinks]]`, so a note linked from a strong hit surfaces even when its own text barely matches (ADR-0019); with `recency: true` it favors recently-modified notes (ADR-0021). More **opt-in, off-by-default** precision knobs (3.9): `rerank: true` adds a cross-encoder final pass for hard queries (ADR-0026, needs the `[rerank]` extra + a language-matched model), `graphTyped`/`importance` weight typed relations / hub notes (ADR-0027), and `mmr` / `passageWindow` diversify results / return a fuller section (ADR-0028). |
-| `vault_complete`      | **Autocomplete** a prefix to the note titles, filenames and `#tags` that actually exist — handy to resolve a half-remembered name before searching or linking.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Tool                  | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vault_fts_search`    | **Lexical** search (SQLite FTS5 / BM25): fast and exact by keywords.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `vault_hybrid_search` | **Hybrid** search: mixes the lexical with the **semantic** (by meaning). "The daemon that syncs git" finds the note even if you don't use those exact words — and returns **only the relevant section**, which **saves tokens**. With `graph: true` it also follows your `[[wikilinks]]`, so a note linked from a strong hit surfaces even when its own text barely matches (ADR-0019); with `recency: true` it favors recently-modified notes (ADR-0021). More **opt-in, off-by-default** precision knobs (3.9): `rerank: true` adds a cross-encoder final pass for hard queries (ADR-0026, needs the `[rerank]` extra + a language-matched model), `graphTyped`/`importance` weight typed relations / hub notes (ADR-0027), and `mmr` / `passageWindow` diversify results / return a fuller section (ADR-0028). Since 3.12 the response ships in a **compact format** — each hit carries only `path`/`heading`/`snippet`/`score` — and the default `limit` is **10**: use **3–5** for a targeted recall and raise it only for broad surveys; ranking diagnostics come back with `explain: true` (ADR-0034). |
+| `vault_complete`      | **Autocomplete** a prefix to the note titles, filenames and `#tags` that actually exist — handy to resolve a half-remembered name before searching or linking.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 It's not required to get started. It's a layer of **convenience, better recall and token savings**,
 not the core. Technical detail: [ADR-0017](../adr/0017-hybrid-query-embeddings.md) (hybrid query) and
@@ -303,6 +303,58 @@ flowchart LR
   O --> S3[sub-agent C]
   S1 & S2 & S3 -. only a hybrid_search,<br/>no whole-note reads .-> V[("vault")]
 ```
+
+### The savings, measured on the wire — and a cheaper wire (new in 3.12)
+
+**The analogy.** We used to measure the savings by weighing only the goods; now we weigh **the full
+parcel, packaging included** (the JSON the model actually reads) — and we trimmed the packaging
+that was dead weight. Each hit used to drag ~20 tokens of diagnostics no model acts on (ranks that
+are almost always `null`, a 17-digit score); the default hit now carries **only what an agent needs
+to act**, and the full diagnostics live behind `explain: true`:
+
+```mermaid
+flowchart TB
+  subgraph before["❌ old hit (~20 tokens of noise per hit)"]
+    A["path · heading · snippet<br/>score: 0.03252247488101534<br/>bm25_rank: 2 · vector_rank: 1<br/>graph_rank: null · rerank_score: null"]
+  end
+  subgraph now["✅ compact default hit (3.12)"]
+    B["path · heading · snippet<br/>score: 0.03252"]
+  end
+  now -.->|"explain: true<br/>(debugging / benchmarks)"| before
+```
+
+Two more levers ship in the same change ([ADR-0034](../adr/0034-compact-wire-format-and-lower-default-limit.md)):
+the MCP default `limit` drops **20→10** (measured on a real vault: the default recall call costs
+**−37.8%**; a broad query that hit the old cap fell from 1905 to 755 tokens), and the token-economy
+benchmark ([ADR-0032](../adr/0032-token-discipline-and-token-economy-benchmark.md), `bench-tokens`)
+gains a **wire arm** that counts the exact compact JSON — **CI-gated**: if a future release fattens
+the response, the build breaks.
+
+| k (hits requested) | answered | savings (content only) | savings (wire, the honest one) |
+| ------------------ | -------- | ---------------------- | ------------------------------ |
+| 3                  | 100%     | 69%                    | **62%**                        |
+| 5                  | 100%     | 47%                    | **37%**                        |
+| 10                 | 100%     | 33%                    | **20%**                        |
+
+A saving is only credited when **every** relevant note surfaces in the top-k (completeness gate:
+cheap-but-incomplete counts as a miss, not a win) — that's why answer quality is not traded away.
+And the number is a **floor**: the control arm doesn't even pay the cost of discovering which note
+to open.
+
+**What it means in practice** — with an expensive model like Fable 5 (~3.3× Sonnet 5's usage
+weight), a targeted recall lands at cheap-model usage **without changing models**. A real example
+measured on a real vault ("what did we decide about the reranker and why is it opt-in?" — the
+answer lived in a 46,484-token log archive):
+
+```mermaid
+flowchart LR
+  P["same question,<br/>same answer"] --> N["❌ naive: read the whole note<br/>46,484 tokens"]
+  P --> K["✅ kit: hybrid_search k=3, compact wire<br/>106 tokens (−99.8%)"]
+```
+
+The `limit` ladder is yours: **3–5** when you know what you're after (what the installed rules
+recommend), 10 by default, more only for broad surveys. Reproducible numbers and methodology in
+[`evals/README`](https://github.com/Vahlame/obsidian-memory-kit/tree/main/evals).
 
 ---
 

@@ -216,7 +216,10 @@ large vault only touches changed notes.
 which fuses BM25 with per-section vector cosine via Reciprocal Rank Fusion — so a
 note surfaces on meaning or partial match, not just exact keywords. Each hit carries
 the matching section's heading + text, so the agent usually answers without a
-follow-up full-note read (the main token saver). Build the vectors first with
+follow-up full-note read (the main token saver). The default wire format is compact
+(ADR-0034): `path`, `heading`, `snippet`, 5-decimal `score` — ranking diagnostics
+(`score_raw`, per-ranker ranks) ship only with `explain: true`, and the MCP default
+`limit` is 10 (use 3–5 for targeted recall). Build the vectors first with
 `vault_fts_index({ semantic: true })`; without them the tool returns the BM25
 ranking unchanged (ADR-0017).
 
