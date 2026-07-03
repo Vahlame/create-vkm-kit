@@ -36,6 +36,7 @@ Each file in this directory captures one design decision: what was chosen, what 
 | [ADR-0030](./0030-deterministic-enforcement-hooks.md)              | Deterministic enforcement hooks: PreToolUse native-memory guard + Stop close-ritual nudge | Accepted |
 | [ADR-0031](./0031-effort-gate-hook.md)                             | Effort-gate hook: PreToolUse pause-and-confirm before costly work                         | Accepted |
 | [ADR-0032](./0032-token-discipline-and-token-economy-benchmark.md) | Token discipline distilled from caveman/ponytail + measured token-economy benchmark       | Accepted |
+| [ADR-0033](./0033-self-paste-frontmatter-guard.md)                 | Guard `vault_edit_file` against self-paste frontmatter duplication                        | Accepted |
 
 ## Template
 

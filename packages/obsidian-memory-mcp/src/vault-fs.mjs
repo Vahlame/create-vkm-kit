@@ -117,10 +117,34 @@ export async function vaultWriteFile(vaultAbs, relPath, content) {
   return { path: fp, bytes: Buffer.byteLength(content, "utf8") };
 }
 
+const FRONTMATTER_RE = /^---\r?\n[\s\S]*?\r?\n---\r?\n/;
+
+/**
+ * Detect the self-paste corruption pattern found and fixed 2026-07-02 in
+ * `cursor-obsidian-memory-guide.md`: an edit whose `newText` re-inserts the
+ * note's own YAML frontmatter block into its body, duplicating the note
+ * inside itself (a triplicated ~53KB note went undetected until a manual
+ * audit). Cheap, deterministic, no false positives on ordinary edits — it
+ * only fires when the frontmatter block's occurrence count would increase
+ * beyond what the file already had.
+ * @param {string} originalText file content before any edits in this call
+ * @param {string} finalText file content after all edits in this call
+ * @returns {boolean}
+ */
+function wouldSelfPasteFrontmatter(originalText, finalText) {
+  const fm = originalText.match(FRONTMATTER_RE);
+  if (!fm) return false;
+  const block = fm[0];
+  const countIn = (s) => s.split(block).length - 1;
+  return countIn(finalText) > countIn(originalText);
+}
+
 /**
  * Apply a sequence of {oldText, newText} edits to a file. Each edit must match
  * exactly once; otherwise the whole call fails and the file is untouched
- * (atomic via tmp+rename of the final content).
+ * (atomic via tmp+rename of the final content). Also rejects an edit that
+ * would duplicate the note's own frontmatter into its body (see
+ * {@link wouldSelfPasteFrontmatter}).
  * @param {string} vaultAbs
  * @param {string} relPath
  * @param {Array<{oldText: string, newText: string}>} edits
@@ -130,7 +154,8 @@ export async function vaultEditFile(vaultAbs, relPath, edits) {
     throw new Error("edits must be a non-empty array of {oldText, newText}");
   }
   const fp = await safeVaultPath(vaultAbs, relPath);
-  let text = await readFile(fp, "utf8");
+  const original = await readFile(fp, "utf8");
+  let text = original;
   const applied = [];
   for (const [i, edit] of edits.entries()) {
     if (typeof edit.oldText !== "string" || typeof edit.newText !== "string") {
@@ -147,6 +172,12 @@ export async function vaultEditFile(vaultAbs, relPath, edits) {
     }
     text = text.replace(edit.oldText, edit.newText);
     applied.push(i);
+  }
+  if (wouldSelfPasteFrontmatter(original, text)) {
+    throw new Error(
+      "edit rejected: newText re-inserts this note's own frontmatter block, which would " +
+        "duplicate the note inside itself. If that is genuinely intended, use vault_write_file instead."
+    );
   }
   // Atomic write
   const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
