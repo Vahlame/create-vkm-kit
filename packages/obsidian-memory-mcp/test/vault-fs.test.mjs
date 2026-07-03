@@ -226,6 +226,54 @@ test("vaultEditFile: rejects when oldText matches multiple times", async () => {
   }
 });
 
+test("vaultEditFile: rejects an edit that pastes the note's own frontmatter into its body", async () => {
+  const vault = await setupVault();
+  try {
+    const fm = "---\ntype: project\npermalink: main/projects/x\n---\n";
+    await writeFile(join(vault, "self.md"), `${fm}\n# x\n\nbody line\n`);
+    await assert.rejects(
+      () =>
+        vaultEditFile(vault, "self.md", [
+          { oldText: "body line", newText: `body line\n\n${fm}\n# x\n\nrepeated` }
+        ]),
+      /would duplicate the note inside itself/
+    );
+    // File unchanged — the atomic write never happened.
+    const got = await readFile(join(vault, "self.md"), "utf8");
+    assert.equal(got, `${fm}\n# x\n\nbody line\n`);
+  } finally {
+    await rm(vault, { recursive: true });
+  }
+});
+
+test("vaultEditFile: allows editing the frontmatter itself (no duplication)", async () => {
+  const vault = await setupVault();
+  try {
+    const fm = "---\ntype: project\nupdated: 2026-01-01\n---\n";
+    await writeFile(join(vault, "self.md"), `${fm}\n# x\n\nbody\n`);
+    const res = await vaultEditFile(vault, "self.md", [
+      { oldText: "updated: 2026-01-01", newText: "updated: 2026-07-03" }
+    ]);
+    assert.equal(res.editsApplied, 1);
+    const got = await readFile(join(vault, "self.md"), "utf8");
+    assert.match(got, /updated: 2026-07-03/);
+  } finally {
+    await rm(vault, { recursive: true });
+  }
+});
+
+test("vaultEditFile: allows an ordinary edit on a note with no frontmatter", async () => {
+  const vault = await setupVault();
+  try {
+    const res = await vaultEditFile(vault, "MEMORY.md", [
+      { oldText: "line 3", newText: "line 3 (edited)" }
+    ]);
+    assert.equal(res.editsApplied, 1);
+  } finally {
+    await rm(vault, { recursive: true });
+  }
+});
+
 test("vaultListDirectory: lists vault root + subdirs", async () => {
   const vault = await setupVault();
   try {

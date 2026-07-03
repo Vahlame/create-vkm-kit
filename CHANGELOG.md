@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **`vault_edit_file` now rejects self-paste frontmatter duplication (ADR-0033).**
+  Found via a vault-hygiene pass: a past corrupt edit had triplicated a project
+  note by pasting its own YAML frontmatter (and the rest of the file) back into
+  its body, growing it to ~53K tokens undetected until a manual audit. The
+  guard is a targeted, deterministic check — if applying an edit's `newText`
+  would increase how many times the note's own frontmatter block occurs, the
+  whole call is rejected and the file is left untouched. 3 new tests in
+  `vault-fs.test.mjs`.
 - **Token-economy benchmark, measured and CI-gated (ADR-0032).** The kit's token
   claim ("passage-first reads beat whole-note reads") is now a number, not an
   assertion: `bench-tokens` / `json-bench-tokens` compare the top-k
