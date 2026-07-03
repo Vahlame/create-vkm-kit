@@ -1,12 +1,15 @@
 # Evaluations
 
-Two distinct things live here. Keep them separate:
+Three distinct things live here. Keep them separate:
 
 1. **Retrieval quality (`retrieval/`)** — a **real, measured** benchmark of the
    hybrid search: recall@k, MRR, hit@1, nDCG@k and MAP over a fixed labelled corpus.
    Deterministic (dependency-free embedder), so it gates CI and regressions fail the
    build.
-2. **Adherence harness (`adherence.yaml` + `run-adherence-ci.mjs`)** — a **smoke
+2. **Token economy (`tokens/`)** — a **real, measured** benchmark of the kit's
+   token claim: passage-first recall vs whole-note reads, completeness-gated.
+   Deterministic, gates CI (ADR-0032).
+3. **Adherence harness (`adherence.yaml` + `run-adherence-ci.mjs`)** — a **smoke
    test of the eval pipeline**, not a model-behaviour measurement (see below).
 
 ## 1. Retrieval quality — measured, gated
@@ -49,7 +52,47 @@ The slight graph-on recall trade (one displaced note in one adversarial
 multi-relevant query) is why graph fusion enters **weighted** RRF at a tuned sub-1
 weight (ADR-0021) and stays opt-in.
 
-## 2. Adherence harness (smoke only)
+## 2. Token economy — measured, gated
+
+`tokens/corpus/` is a 7-note fixture sized like a real vault (an 8.7 KB
+`SESSION_LOG.md`, 4.4–5.5 KB PROJECTS notes, deliberately small <2 KB STACKS
+notes as the honest counterpoint); `tokens/queries.jsonl` labels 16 queries with
+the note(s) an agent would otherwise read whole. `obsidian_memory_rag.bench_tokens`
+compares two arms per query — the top-k `heading + snippet` passages that
+`vault_hybrid_search` actually returns vs every ground-truth note read whole —
+with the methodology borrowed from the two tools evaluated in ADR-0032:
+
+- **Honest control arm** (caveman): the whole-note arm already knows which note
+  holds the answer (zero discovery cost), so the measured saving is a _floor_.
+- **Completeness gate** (ponytail): a query's saving only counts when every
+  ground-truth note surfaces in the top-k. Cheap-but-wrong is a miss, not a win.
+
+```bash
+# human report
+python -m obsidian_memory_rag bench-tokens \
+  --corpus evals/tokens/corpus --queries evals/tokens/queries.jsonl
+# CI gate (exits non-zero on regression)
+python -m obsidian_memory_rag bench-tokens ... \
+  --assert-savings 0.40 --assert-answered 0.95
+```
+
+**Measured floor** (default `HashingEmbedder`, ~4 bytes/token estimator on both
+arms — the ratio is the signal, not the absolute count):
+
+| k   | answered | median savings | aggregate savings |
+| --- | -------- | -------------- | ----------------- |
+| 3   | 100%     | 69%            | 74%               |
+| 5   | 100%     | 47%            | 56%               |
+| 10  | 100%     | 33%            | 42%               |
+
+Two findings the per-kind breakdown keeps visible: on **small notes** (STACKS
+bucket at k=5: −52%) reading whole is cheaper than k passages — matching the
+doctrine "small notes whole, big notes never" — and **`limit` is the agent's
+main token lever**: k=3 still answers everything here and saves strictly more
+(`tests/test_bench_tokens.py` pins both as contracts). The CI job and the tests
+gate on the k=5 floor with a margin.
+
+## 3. Adherence harness (smoke only)
 
 > The CI job **`eval-harness-smoke`** is **not** a model-adherence evaluation — it verifies the eval harness itself runs end-to-end with a deterministic stub provider that echoes the expected token. The gate is always **1.0** unless the harness pipeline breaks (missing yaml, broken require, etc.). Do **not** treat a green badge here as evidence that any agent follows the vault User Rules.
 

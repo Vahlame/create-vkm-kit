@@ -101,6 +101,12 @@ jobs:
             --queries evals/retrieval/queries.jsonl \
             --assert-recall 0.95 --assert-mrr 0.90 --assert-hit1 0.90 \
             --assert-ndcg 0.93 --assert-map 0.93
+      - name: token-economy gate (passage-first vs whole-note, completeness-gated, ADR-0032)
+        run: |
+          python -m obsidian_memory_rag bench-tokens \
+            --corpus evals/tokens/corpus \
+            --queries evals/tokens/queries.jsonl \
+            --assert-savings 0.40 --assert-answered 0.95
 
   links:
     runs-on: ubuntu-latest

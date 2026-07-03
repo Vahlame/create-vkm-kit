@@ -8,6 +8,13 @@ from .bench_recall import (
     load_queries,
     run_benchmark,
 )
+from .bench_tokens import (
+    TokenBenchReport,
+    TokenQueryResult,
+    estimate_tokens,
+    evaluate_tokens,
+    run_token_benchmark,
+)
 from .complete import build_completion_trie, complete
 from .embeddings import Embedder, HashingEmbedder, get_embedder
 from .indexer import (
@@ -63,6 +70,8 @@ __all__ = [
     "Reranker",
     "RotateResult",
     "SearchHit",
+    "TokenBenchReport",
+    "TokenQueryResult",
     "Trie",
     "VectorStats",
     "audit_vault",
@@ -70,7 +79,9 @@ __all__ = [
     "build_report",
     "complete",
     "ensure_fresh",
+    "estimate_tokens",
     "evaluate",
+    "evaluate_tokens",
     "get_embedder",
     "get_reranker",
     "graph_neighbors",
@@ -84,6 +95,7 @@ __all__ = [
     "relations_for",
     "rotate_session_log",
     "run_benchmark",
+    "run_token_benchmark",
     "search_vault",
     "semantic_search",
     "suggest_structure",
