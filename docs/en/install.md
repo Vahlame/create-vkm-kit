@@ -18,6 +18,18 @@ your real value (without the `< >`).
  (Node, uv)    (folder)     (1 command)    (green)         (paste)        (read a note)
 ```
 
+And this is **everything the installer touches** (each piece backed up and idempotent —
+reinstalling never breaks what you already have):
+
+```mermaid
+flowchart LR
+  I["npx @vkmikc/create-obsidian-memory<br/>(with --full: the whole stack in one command)"] --> V[("vault<br/>.md notes + git")]
+  I --> M["editor's mcp.json<br/>(merged without clobbering other entries)"]
+  I --> R["User Rules / CLAUDE.md<br/>(managed block between markers)"]
+  I --> H["Claude Code hooks<br/>(SessionStart · guards · close)"]
+  I --> X["search index<br/>(FTS5 + optional embeddings)"]
+```
+
 ---
 
 ## Step 0 — Requirements on your PC
