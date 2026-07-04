@@ -16,7 +16,7 @@ content; the JSON overhead the agent actually reads was invisible. Inspecting a
 real `vault_hybrid_search` response showed each hit ships ~20 tokens of pure
 diagnostics the agent never acts on:
 
-```
+```text
 "score":0.03252247488101534,"bm25_rank":2,"vector_rank":1,
 "graph_rank":null,"rerank_score":null
 ```

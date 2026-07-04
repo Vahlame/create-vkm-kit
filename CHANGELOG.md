@@ -53,6 +53,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   100% answered — CI-gated via the new `--assert-wire-savings 0.30`. Breaking
   only for consumers that parsed the diagnostic fields (none in-repo; pass
   `explain: true` to get them back).
+- **Managed rules block: "Keep it cheap (tokens)" grew from a one-liner into a
+  distilled token-discipline section (ES/EN, ADR-0032)** — terse-output rules
+  from caveman (no filler/tool-call narration/log dumps; technical terms,
+  commands and exact errors always verbatim; **plain prose returns** for
+  security warnings, irreversible confirmations and order-sensitive sequences)
+  and the YAGNI ladder from ponytail (reuse → stdlib → platform → installed
+  dep → one line → minimal code; never simplify validation, data-loss error
+  handling or security; non-trivial logic leaves one runnable check). Plus the
+  measured `limit` guidance: pass a low `limit` (3–5) on targeted recalls.
+  Synced across `memory-rules.mjs`, `AGENTS.md` and `docs/{es,en}/install.md`.
+- **Memory report notice now carries the compression-safety rule** (from
+  caveman-compress's safety tests): when condensing notes, compress prose only —
+  never drop decisions, gotchas, commands, or exact error strings.
 
 ### Added
 
@@ -79,22 +92,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   are cheaper read whole). CI gates at `--assert-savings 0.40
 --assert-answered 0.95`; 6 new tests in `test_bench_tokens.py` also pin that
   a lower `k` saves strictly more without losing answers.
-
-### Changed
-
-- **Managed rules block: "Keep it cheap (tokens)" grew from a one-liner into a
-  distilled token-discipline section (ES/EN, ADR-0032)** — terse-output rules
-  from caveman (no filler/tool-call narration/log dumps; technical terms,
-  commands and exact errors always verbatim; **plain prose returns** for
-  security warnings, irreversible confirmations and order-sensitive sequences)
-  and the YAGNI ladder from ponytail (reuse → stdlib → platform → installed
-  dep → one line → minimal code; never simplify validation, data-loss error
-  handling or security; non-trivial logic leaves one runnable check). Plus the
-  measured `limit` guidance: pass a low `limit` (3–5) on targeted recalls.
-  Synced across `memory-rules.mjs`, `AGENTS.md` and `docs/{es,en}/install.md`.
-- **Memory report notice now carries the compression-safety rule** (from
-  caveman-compress's safety tests): when condensing notes, compress prose only —
-  never drop decisions, gotchas, commands, or exact error strings.
 
 ## [3.11.0] - 2026-07-01
 
