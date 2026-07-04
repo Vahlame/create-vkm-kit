@@ -16,7 +16,12 @@ from __future__ import annotations
 import re
 
 _FENCED_BLOCK_RE = re.compile(r"^([ \t]*)(```|~~~).*?^\1\2[ \t]*\r?$", re.MULTILINE | re.DOTALL)
-_INLINE_CODE_RE = re.compile(r"`[^`\n]+`")
+# CommonMark code spans open with a run of N backticks and close with an equal run;
+# shorter runs inside are literal (`` `[[x]]` `` documents a one-backtick span). A
+# single-backtick-only regex mispairs the delimiters of such spans and lets the inner
+# [[x]] leak through to the wikilink scan — the delimiter run must be captured and
+# matched exactly on close.
+_INLINE_CODE_RE = re.compile(r"(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)")
 
 
 def _blank_fenced(match: "re.Match[str]") -> str:
