@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Rules-block diet + drift gate (ADR-0036).** The managed memory-rules
+  block — paid every session in every project by every wired agent — trimmed
+  **ES 9,746 → 7,979 chars (−18.1%) / EN 9,484 → 7,743 (−18.4%)** (~440
+  tokens/session) with **zero rules dropped** (Trust section byte-identical)
+  and **two rules rescued** from a silently-diverged docs variant ("never
+  claim to have persisted" when no vault MCP responds; "`memory://…` is IDE
+  memory, not the vault"). The redundant long-form tool catalogue defers to
+  the tool descriptions (canonical since ADR-0035). Three new build gates in
+  `memory-rules-budget.test.mjs`: size budget, 13 load-bearing rule phrases
+  per language that must survive any trim, and a drift assertion pinning
+  AGENTS.md + both docs install pages to the canonical source (they had
+  drifted for months under a "keep in sync" comment). Re-run
+  `create-obsidian-memory` (or `--rules`) to refresh installed blocks.
+
 - **Fixed-cost diet: schema budget gate + compact KG defaults + compressed
   session hook (ADR-0035).** The per-session cost every wired agent pays
   before calling anything: tool descriptions + server instructions trimmed
