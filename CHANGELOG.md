@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [3.12.0] - 2026-07-03
+
 ### Changed
 
 - **Rules-block diet + drift gate (ADR-0036).** The managed memory-rules
@@ -660,7 +662,8 @@ Prior history was undocumented and is summarized only in git log. Highlights:
 - Addition of `AGENTS.md` and `manifest.json` for machine-readable discoverability.
 - Seven hardening fixes for real-world install gaps.
 
-[Unreleased]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.10.0...HEAD
+[Unreleased]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.12.0...HEAD
+[3.12.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.11.0...v3.12.0
 [3.10.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.9.1...v3.10.0
 [3.7.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.6.0...v3.7.0
 [3.6.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.5.0...v3.6.0
