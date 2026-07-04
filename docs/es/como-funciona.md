@@ -360,6 +360,34 @@ La escalera del `limit` es tuya: **3–5** cuando sabes qué buscas (lo que reco
 instaladas), 10 por defecto, más solo para barridos amplios. Números y metodología reproducibles en
 [`evals/README`](https://github.com/Vahlame/obsidian-memory-kit/tree/main/evals).
 
+### La renta fija, también a dieta — y con candado (nuevo en 3.12)
+
+**La analogía.** Lo anterior abarata cada _llamada_; pero un agente también paga **alquiler**: texto
+que entra en su contexto en cada sesión aunque no llame a nada. El kit ataca las tres capas, cada
+una con su recorte **medido** y su **candado en CI** que rompe el build si el coste vuelve a crecer:
+
+```mermaid
+flowchart TB
+  subgraph fija["renta fija (por sesión, aunque no llames nada)"]
+    R["bloque de reglas (CLAUDE.md / User Rules)<br/>−18% ≈ −440 tokens · candado: presupuesto + 13 frases<br/>load-bearing por idioma + drift-test docs↔instalador"]
+    S["schemas de las 14 tools MCP<br/>−25% ≈ −650 tokens · candado: presupuesto 8.000 chars"]
+    H["hook SessionStart (índice del vault)<br/>−21% con +70% punteros visibles · comprime, no trunca"]
+  end
+  subgraph llamada["por llamada (cuando sí buscas)"]
+    W["wire compacto + limit 10<br/>−62% en recall dirigido (k=3) · candado: assert-wire-savings"]
+  end
+  fija --> T["≈ −1.300 tokens de renta fija por sesión<br/>+ cada recall a una fracción del coste"]
+  llamada --> T
+```
+
+Tres detalles honestos: los **recordatorios de seguridad y precedencia no se recortan nunca**
+(refuerzo deliberado — la adherencia protege más tokens de los que cuesta); el candado de _frases
+load-bearing_ hace que sobre-comprimir en el futuro **rompa el build** antes de que un agente pierda
+una regla; y al sincronizar se descubrió que los docs llevaban meses con una variante vieja del
+bloque de reglas — ese drift ahora también es un test. Detalle:
+[ADR-0035](../adr/0035-fixed-cost-diet-schema-budget.md) ·
+[ADR-0036](../adr/0036-rules-block-diet-and-drift-gate.md).
+
 ---
 
 ## Qué **no** es (para no confundirse)

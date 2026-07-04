@@ -356,6 +356,33 @@ The `limit` ladder is yours: **3–5** when you know what you're after (what the
 recommend), 10 by default, more only for broad surveys. Reproducible numbers and methodology in
 [`evals/README`](https://github.com/Vahlame/obsidian-memory-kit/tree/main/evals).
 
+### The fixed rent, also on a diet — and under lock (new in 3.12)
+
+**The analogy.** The above makes every _call_ cheaper; but an agent also pays **rent**: text that
+enters its context every session even if it never calls anything. The kit attacks all three layers,
+each with a **measured** cut and a **CI lock** that breaks the build if the cost ever grows back:
+
+```mermaid
+flowchart TB
+  subgraph fixed["fixed rent (per session, even with zero calls)"]
+    R["rules block (CLAUDE.md / User Rules)<br/>−18% ≈ −440 tokens · lock: budget + 13 load-bearing<br/>phrases per language + docs↔installer drift test"]
+    S["schemas of the 14 MCP tools<br/>−25% ≈ −650 tokens · lock: 8,000-char budget"]
+    H["SessionStart hook (vault index)<br/>−21% with +70% pointers visible · compresses, never truncates"]
+  end
+  subgraph percall["per call (when you do search)"]
+    W["compact wire + limit 10<br/>−62% on targeted recall (k=3) · lock: assert-wire-savings"]
+  end
+  fixed --> T["≈ −1,300 tokens of fixed rent per session<br/>+ every recall at a fraction of the cost"]
+  percall --> T
+```
+
+Three honest details: the **security and precedence reminders are never trimmed** (deliberate
+reinforcement — adherence protects more tokens than it costs); the _load-bearing phrases_ lock makes
+future over-compression **break the build** before any agent loses a rule; and the sync uncovered
+that the docs had carried a stale variant of the rules block for months — that drift is now a test
+too. Detail: [ADR-0035](../adr/0035-fixed-cost-diet-schema-budget.md) ·
+[ADR-0036](../adr/0036-rules-block-diet-and-drift-gate.md).
+
 ---
 
 ## What it is **not** (to avoid confusion)

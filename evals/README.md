@@ -101,6 +101,15 @@ main token lever**: k=3 still answers everything here and saves strictly more
 (`tests/test_bench_tokens.py` pins both as contracts, plus the wire-arm floor).
 The CI job and the tests gate on the k=5 floor with a margin.
 
+### Fixed costs are gated too (not here, but gated)
+
+The wire benchmark covers the **per-call** cost. The kit's **fixed** per-session
+costs live under package test suites, same doctrine (measured, build-gated):
+`packages/obsidian-memory-mcp/test/schema-budget.test.mjs` (tool schemas ≤ 8,000
+chars, ADR-0035) and
+`packages/create-obsidian-memory/test/memory-rules-budget.test.mjs` (rules block
+budget + load-bearing phrases + docs drift, ADR-0036).
+
 ## 3. Adherence harness (smoke only)
 
 > The CI job **`eval-harness-smoke`** is **not** a model-adherence evaluation — it verifies the eval harness itself runs end-to-end with a deterministic stub provider that echoes the expected token. The gate is always **1.0** unless the harness pipeline breaks (missing yaml, broken require, etc.). Do **not** treat a green badge here as evidence that any agent follows the vault User Rules.

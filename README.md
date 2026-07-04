@@ -120,6 +120,12 @@ or let [**an agent install it**](docs/en/install-with-agent.md)
 Mapa técnico completo y diagramas de flujo: [`ARCHITECTURE.md`](ARCHITECTURE.md). El _porqué_ de
 cada decisión: [`docs/adr/`](docs/adr/).
 
+**Economía de tokens, medida y con candado en CI · Token economy, measured and CI-locked:** recall
+passage-first **−62%** vs leer notas enteras (coste real del wire, k=3) y **≈ −1.300 tokens/sesión**
+de renta fija (schemas + hook + bloque de reglas) — cada número tiene un gate que **rompe el build**
+si regresa. Detalle · detail: [🇪🇸 cómo funciona](docs/es/como-funciona.md) ·
+[🇬🇧 how it works](docs/en/how-it-works.md) · [`evals/`](evals/).
+
 ---
 
 ## Más · More

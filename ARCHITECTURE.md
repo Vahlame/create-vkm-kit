@@ -223,6 +223,14 @@ follow-up full-note read (the main token saver). The default wire format is comp
 `vault_fts_index({ semantic: true })`; without them the tool returns the BM25
 ranking unchanged (ADR-0017).
 
+**Token-economy gates.** Every cost surface is measured and build-gated: the
+per-call wire via `bench-tokens --assert-wire-savings` (ADR-0034, CI), the tool
+schemas via `schema-budget.test.mjs` (ADR-0035: 8,000-char budget + per-description
+cap), and the managed rules block via `memory-rules-budget.test.mjs` (ADR-0036:
+size budget, 13 load-bearing rule phrases per language, and a drift assertion
+pinning AGENTS.md + the docs install pages to `memory-rules.mjs`). Cost
+regressions and rule loss fail the build, not the user.
+
 ### Git sync (daemon)
 
 ```mermaid
