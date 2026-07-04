@@ -59,7 +59,7 @@ flowchart LR
 
 ### ¿La búsqueda híbrida ahorra tokens de verdad?
 
-Para proyectos conocidos, sí. La búsqueda devuelve el **fragmento** que coincide (un encabezado + un pasaje de unos cientos de caracteres), no la nota entera, así que el agente normalmente responde **sin** tener que leer el archivo completo después. En una nota grande, eso es la diferencia entre leer un pasaje (~cientos de tokens) y un archivo de 8 KB (~miles). El coste fijo es la descripción de las herramientas de la sesión más el índice que se inyecta al arrancar; una o dos búsquedas sobre notas reales lo recuperan. Mídelo tú mismo con `obsidian-memory-rag bench --vault "<VAULT>"`; la justificación de diseño está en ADR-0014 y ADR-0017.
+Sí, y desde 3.12 es un **número medido y con candado en CI**, no una afirmación: sobre un corpus etiquetado, el recall passage-first cuesta una mediana de **62% menos** que leer las notas enteras contando el **JSON real** que el agente lee (k=3; 37% en k=5), con el **100% de las consultas aún respondidas** — barato-pero-incompleto cuenta como fallo, no como ahorro. En una nota-archivo real la diferencia llega a ~46.000 tokens vs ~100. El coste fijo (schemas de tools + hook de arranque + bloque de reglas) también está a dieta: ~**1.300 tokens menos por sesión** que en 3.11, y cada recorte tiene un gate que rompe el build si regresa. Mídelo tú mismo: `python -m obsidian_memory_rag bench-tokens --corpus evals/tokens/corpus --queries evals/tokens/queries.jsonl`. Detalle: ADR-0032/0034/0035/0036 y [`evals/`](https://github.com/Vahlame/obsidian-memory-kit/tree/main/evals).
 
 ### ¿Puedo renombrar `MEMORY.md` o `SESSION_LOG.md`?
 

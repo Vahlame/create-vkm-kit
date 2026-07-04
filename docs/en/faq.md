@@ -59,7 +59,7 @@ flowchart LR
 
 ### Does the hybrid search actually save tokens?
 
-For known projects, yes. Search returns the matching **chunk** (a heading + a few-hundred-character passage), not the whole note, so the agent usually answers **without** a follow-up full-file read. On a large note that's the difference between reading a passage (~hundreds of tokens) and an 8 KB file (~thousands). The fixed overhead is the session's tool descriptions plus the index injected at startup; one or two retrievals on real notes recover it. Measure it yourself with `obsidian-memory-rag bench --vault "<VAULT>"`; the design rationale lives in ADR-0014 and ADR-0017.
+Yes — and since 3.12 it's a **measured, CI-locked number**, not a claim: on a labelled corpus, passage-first recall costs a median of **62% less** than whole-note reads counting the **actual JSON** the agent reads (k=3; 37% at k=5), with **100% of queries still answered** — cheap-but-incomplete counts as a miss, not a saving. On a real archive note the gap reaches ~46,000 tokens vs ~100. The fixed overhead (tool schemas + startup hook + rules block) is also on a diet: ~**1,300 fewer tokens per session** than 3.11, and every cut has a gate that breaks the build if it regresses. Measure it yourself: `python -m obsidian_memory_rag bench-tokens --corpus evals/tokens/corpus --queries evals/tokens/queries.jsonl`. Detail: ADR-0032/0034/0035/0036 and [`evals/`](https://github.com/Vahlame/obsidian-memory-kit/tree/main/evals).
 
 ### Can I rename `MEMORY.md` or `SESSION_LOG.md`?
 

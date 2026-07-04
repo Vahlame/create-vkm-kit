@@ -99,6 +99,11 @@ Then paste the **User Rules** and verify. The complete steps (and verification) 
 Full technical map and flow diagrams: [`ARCHITECTURE.md`](ARCHITECTURE.md). The _why_ behind each
 decision: [`docs/adr/`](docs/adr/).
 
+**Token economy, measured and CI-locked:** passage-first recall costs **−62%** vs whole-note reads
+(true wire cost, k=3) plus **≈ −1,300 tokens/session** of fixed rent (schemas + hook + rules
+block) — every number has a gate that **breaks the build** if it regresses. Detail:
+[how it works](docs/en/how-it-works.md) · [`evals/`](evals/).
+
 ---
 
 ## More
