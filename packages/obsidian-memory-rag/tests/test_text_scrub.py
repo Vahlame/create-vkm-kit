@@ -44,3 +44,28 @@ def test_tilde_fence_supported() -> None:
 def test_unfenced_wikilinks_are_untouched() -> None:
     text = "plain prose with [[a]] and [[b]]\n"
     assert strip_code_regions(text) == text
+
+
+def test_double_backtick_span_with_inner_backticks() -> None:
+    # Real case from the kit's own vault: a note documenting the syntax writes
+    # `` `[[target]]` `` (double-backtick span, single backtick inside). A
+    # single-backtick regex mispairs the delimiters and the wikilink leaks.
+    text = "syntax note (e.g. `` `[[target]]` `` or `- implements [[adr-0014]]`) but [[real]]\n"
+    out = strip_code_regions(text)
+    assert "[[target]]" not in out
+    assert "[[adr-0014]]" not in out
+    assert "[[real]]" in out
+
+
+def test_backtick_parity_preserved_after_multi_backtick_span() -> None:
+    # A mispaired multi-backtick span must not flip the open/close parity for
+    # later single-backtick spans on the same line.
+    text = "first `` `x` `` then `[[hidden]]` and [[real]]\n"
+    out = strip_code_regions(text)
+    assert "[[hidden]]" not in out
+    assert "[[real]]" in out
+
+
+def test_lone_backtick_is_left_alone() -> None:
+    text = "a stray ` backtick with [[real]]\n"
+    assert "[[real]]" in strip_code_regions(text)
