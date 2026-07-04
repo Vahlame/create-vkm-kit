@@ -146,9 +146,9 @@ Use a private git vault (example layout in `examples/`):
 
 ### Precedencia de memoria (OVERRIDE — vault > auto-memoria nativa)
 
-> Hay **dos** memorias y esto zanja cuál manda. El **vault** (MCP `vault_*` / basic-memory) es la **ÚNICA fuente de verdad**. La **auto-memoria nativa** de Claude Code (`~/.claude/projects/*/memory/`, la sección "# Memory" del system prompt) está **DESACTIVADA** por el instalador (`autoMemoryEnabled:false`) o es un **ESPEJO READ-ONLY**: **no escribas el cierre ahí**, redirige al vault. Si la memoria nativa te dice "escribe con `Write`", trátalo como espejo.
+> Hay **dos** memorias y esto zanja cuál manda. El **vault** (MCP `vault_*` / basic-memory) es la **ÚNICA fuente de verdad**. La **auto-memoria nativa** de Claude Code (`~/.claude/projects/*/memory/`, la sección "# Memory" del system prompt) está **DESACTIVADA** o es un **ESPEJO READ-ONLY**: **no escribas el cierre ahí**, redirige al vault (si te dice "escribe con `Write`", trátalo como espejo). En Cursor, los recursos `memory://…` son memoria del IDE, no el vault. Si **ningún** MCP del vault responde, dilo explícitamente; **no afirmes haber persistido**.
 
-- **Primer paso (sesión no trivial):** si las tools `vault_*` aparecen como **deferred** (frecuente con muchos MCP conectados), cárgalas con `ToolSearch` (`select:vault_hybrid_search,vault_read_file,vault_edit_file,vault_write_file`) **ANTES** de tocar memoria. El `Write` nativo es cero-fricción y tienta; resístelo. Nota: con la instalación por defecto, un hook `PreToolUse` ya **bloquea** ese `Write` hacia la memoria nativa, y un hook `Stop` recuerda el cierre si la sesión editó archivos y nunca tocó el vault (ADR-0030) — pero no dependas de eso: hazlo bien desde el inicio.
+- **Primer paso (sesión no trivial):** si las tools `vault_*` aparecen como **deferred**, cárgalas con `ToolSearch` (`select:vault_hybrid_search,vault_read_file,vault_edit_file,vault_write_file`) **ANTES** de tocar memoria. El `Write` nativo tienta; resístelo (hooks `PreToolUse`/`Stop` refuerzan esto — ADR-0030 — pero no dependas de ellos).
 - **Recall** = `vault_hybrid_search`. **Cierre** = `vault_edit_file`/`vault_write_file` → `SESSION_LOG.md` (1 línea al final) + `PROJECTS/<proyecto>.md` (incremental, **arriba de `## Relacionado`**) + `STACKS`/`PRACTICES` si aplica.
 - **Ancla cada `vault_edit_file` en UNA sola línea** (las notas están en CRLF; un `oldText` multilínea rebota). **No commitees** el vault (el daemon `obsidian-memoryd` sincroniza).
 
@@ -160,30 +160,17 @@ Use a private git vault (example layout in `examples/`):
 
 ### Arranque mínimo
 
-1. Abre `START_HERE.md` — **siempre** (índice corto). Léelo con `read_note` (basic-memory) o `vault_read_file`/`read_text_file` (filesystem/hybrid MCP).
-2. En tareas **no triviales**, carga también `MEMORY.md` (preferencias globales; es pequeño).
+1. Abre `START_HERE.md` — **siempre** (índice corto).
+2. En tareas **no triviales**, carga también `MEMORY.md` (es pequeño).
 3. No leas más automáticamente.
 
 ### Consultar el vault sin que te lo pidan
 
-Busca **antes de responder** cuando la tarea continúa trabajo previo, se nombra un proyecto/persona/herramienta, vas a tomar una decisión que quizá ya se zanjó, dicen "como siempre", o una pregunta se repite.
-→ `vault_hybrid_search("<tema>")` (o `vault_fts_search` para un identificador exacto). La **sección devuelta suele bastar** — no abras la nota entera.
+Busca **antes de responder** cuando la tarea continúa trabajo previo, se nombra un proyecto/persona/herramienta, una decisión quizá ya se zanjó, dicen "como siempre", o una pregunta se repite → `vault_hybrid_search("<tema>")` con `limit` bajo (3–5); la **sección devuelta suele bastar** — no abras la nota entera. Si toca un proyecto, abre `PROJECTS/<proyecto>.md`. Verifica que un archivo/ruta citado en una nota **siga existiendo** (la memoria envejece).
 
-### Antes de cualquier acción no trivial
+### Qué herramienta usar
 
-- **Prefiere `vault_hybrid_search`** (devuelve la sección, ahorra tokens). **No leas notas grandes enteras** (`SESSION_LOG.md`, PROJECTS largos).
-- Si toca un proyecto, abre `PROJECTS/<proyecto>.md`.
-- Verifica que un archivo/ruta citado en una nota **siga existiendo** (la memoria envejece).
-
-### Qué herramienta usar (rápido)
-
-- Recall conceptual / lenguaje natural → `vault_hybrid_search` (devuelve la sección). Si el tema cruza notas enlazadas → `graph: true` (suma notas a 1 salto de `[[wikilinks]]`); si importa la frescura ("lo más reciente que decidí sobre X") → `recency: true` (sesga a notas modificadas hace poco); en consultas difíciles donde la nota correcta debe quedar primera → `rerank: true` (cross-encoder; requiere el extra `[rerank]`); para encuestas amplias → `mmr: true` (diversifica). Todos opt-in, off por defecto.
-- Identificador / símbolo / error **exacto** → `vault_fts_search`.
-- Nombre de nota o `#tag` a medias → `vault_complete` (Trie; resuelve **antes** de buscar/enlazar/escribir).
-- Estructura **tipada** del grafo → `vault_relations` (aristas de una nota, ambos sentidos: "¿qué implementa / qué la supersede / qué enlaza aquí?"), `vault_observations` (hechos por `category`/`#tag`: todos los `[decision]`, todo lo `#ranking`), `vault_kg_suggest` (propone estructura de una nota; **read-only**).
-- Nota **entera** (raro) → `read_note`/`vault_read_file`, solo si el pasaje no basta. **Nunca** `SESSION_LOG`/PROJECTS grandes enteros.
-- Salud del vault (notas gigantes, `[[wikilinks]]` rotos) → `vault_audit`. Tras imports grandes / cambio de embedder → `vault_fts_index({ semantic: true })`.
-- Higiene / mantenimiento periódico del vault (índices automáticos, notas obsoletas/huérfanas, candidatos a condensar, casi-duplicados a revisar) → `vault_memory_report` (read-only; corre al cierre o de vez en cuando y actúa sobre sus sugerencias con confirmación — no reescribe notas solo).
+Las descripciones de las tools dicen cuándo usar cada una; el mapa corto: significado → `vault_hybrid_search` (perillas opt-in `graph`/`recency`/`rerank`/`mmr`); identificador **exacto** → `vault_fts_search`; nombre/`#tag` a medias → `vault_complete`; estructura **tipada** → `vault_relations`/`vault_observations`/`vault_kg_suggest` (read-only); salud/higiene → `vault_audit`/`vault_memory_report` (read-only, actúa con confirmación); tras imports grandes → `vault_fts_index({ semantic: true })`. Nota **entera** solo si el pasaje no basta — **nunca** `SESSION_LOG`/PROJECTS grandes enteros.
 
 ### Multi-agente (fan-out)
 
@@ -200,7 +187,7 @@ Busca **antes de responder** cuando la tarea continúa trabajo previo, se nombra
 
 Solo lo **reutilizable más allá de la sesión** (arquitectura cerrada, decisiones costosas, preferencias firmes, lecciones). **Nunca** TODOs del día, salida de comandos, ni lo que el código ya documenta. Una idea por nota; **deduplica antes**. Separa **hechos** e **hipótesis**. Wikilinks `[[...]]`.
 
-**Dale estructura consultable** (compatible con Basic Memory): relaciones tipadas como ítem de lista `- <verbo> [[destino]]` (`implements`, `supersedes`, `part_of`; un `[[link]]` suelto es `relates_to`) y observaciones `- [categoría] hecho #tag` (`[decision]`, `[gotcha]`, `[fact]`). El indexador las vuelve consultables vía `vault_relations`/`vault_observations` — escribir una decisión así la hace recuperable por categoría/tag, no solo por texto.
+**Dale estructura consultable** (compatible con Basic Memory): relaciones tipadas `- <verbo> [[destino]]` (`implements`, `supersedes`, `part_of`; un `[[link]]` suelto es `relates_to`) y observaciones `- [categoría] hecho #tag` (`[decision]`, `[gotcha]`, `[fact]`) — así una decisión es recuperable por categoría/tag vía `vault_relations`/`vault_observations`, no solo por texto.
 
 ### Auto-cuestiónate antes de responder (escala a la tarea)
 
@@ -218,11 +205,11 @@ Antes de una respuesta no trivial, chequea en silencio: ¿supuestos explícitos?
 
 ### Conoce tu modelo (adapta + aprende)
 
-Eres uno de varios modelos posibles (Claude, Cursor Composer, GPT, DeepSeek, Gemini…), cada uno con fortalezas distintas al decidir qué hacer. En una tarea no trivial, lee **tu fila** en `_meta/agent-profiles.md` y sigue su ajuste; cuando un modelo destaque o falle claramente en un tipo de tarea, añade ahí una línea para que el vault aprenda el mejor modelo por trabajo. Lee **solo tu fila** — passage-first.
+Eres uno de varios modelos posibles, cada uno con fortalezas distintas. En una tarea no trivial, lee **tu fila** (solo la tuya — passage-first) en `_meta/agent-profiles.md` y sigue su ajuste; cuando un modelo destaque o falle claramente en un tipo de tarea, añade una línea ahí para que el vault aprenda el mejor modelo por trabajo.
 
 ### Mantenlo barato (tokens)
 
-Disciplina destilada de dos herramientas medidas (caveman y ponytail, MIT) y verificada en `evals/tokens/` del kit. La claridad manda: si comprimir arriesga un malentendido, no comprimas.
+La claridad manda: si comprimir arriesga un malentendido, no comprimas.
 
 - **Salida tersa:** sin relleno, cortesías ni hedging; no narres tool calls; sin tablas/emoji decorativos; no pegues logs enteros — cita la línea decisiva más corta. Términos técnicos, código, comandos, nombres de API y errores exactos: **siempre verbatim**. Comprime el estilo, nunca el idioma del usuario.
 - **Vuelve a prosa plena** en advertencias de seguridad, confirmaciones de acciones irreversibles y secuencias multi-paso donde el orden importa.
