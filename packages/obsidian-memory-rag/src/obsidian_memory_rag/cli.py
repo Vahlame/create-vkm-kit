@@ -194,6 +194,11 @@ def main() -> None:
         br.add_argument(
             "--importance", action="store_true", help="Bias toward hub notes (in-degree)"
         )
+        br.add_argument(
+            "--pin-failures",
+            action="store_true",
+            help="Boost matched notes carrying [failure]/[gotcha] observations (ADR-0038)",
+        )
         br.add_argument("--mmr", action="store_true", help="Diversify with MMR")
         br.add_argument(
             "--rerank",
@@ -511,6 +516,7 @@ def main() -> None:
             graph=args.graph or args.graph_typed,
             graph_typed=args.graph_typed,
             importance=args.importance,
+            pin_failures=args.pin_failures,
             mmr=args.mmr,
             reranker_name=args.rerank,
             in_place=args.in_place,
