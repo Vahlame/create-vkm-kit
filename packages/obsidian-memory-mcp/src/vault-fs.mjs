@@ -16,6 +16,7 @@ import { readFile, writeFile, readdir, stat, mkdir, rename, realpath } from "nod
 import { createHash } from "node:crypto";
 import { dirname, isAbsolute, join, normalize, resolve, sep } from "node:path";
 import { withVaultLock } from "./vault-lock.mjs";
+import { checkSchemaForWrite } from "./schema-config.mjs";
 
 /**
  * Resolve a relative-or-absolute vault path and refuse anything that escapes
@@ -190,11 +191,16 @@ export async function vaultWriteFile(vaultAbs, relPath, content, opts = {}) {
   // sidecar processes on this host (see vault-lock.mjs for scope and stealing).
   return withVaultLock(vaultAbs, "vault_write_file", async () => {
     if (opts.ifMatch) await assertEtagMatches(fp, opts.ifMatch);
+    // Opt-in frontmatter schema check (memory-schema.json): throws under
+    // enforce mode — before the tmp write, so a violation never lands on disk.
+    const warnings = await checkSchemaForWrite(vaultAbs, relPath, content);
     await mkdir(dirname(fp), { recursive: true });
     const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
     await writeFile(tmp, content, "utf8");
     await rename(tmp, fp);
-    return { path: fp, bytes: Buffer.byteLength(content, "utf8"), etag: fileEtag(content) };
+    const result = { path: fp, bytes: Buffer.byteLength(content, "utf8"), etag: fileEtag(content) };
+    if (warnings.length) result.warnings = warnings;
+    return result;
   });
 }
 
@@ -267,11 +273,14 @@ export async function vaultEditFile(vaultAbs, relPath, edits, opts = {}) {
           "duplicate the note inside itself. If that is genuinely intended, use vault_write_file instead."
       );
     }
+    const warnings = await checkSchemaForWrite(vaultAbs, relPath, text);
     // Atomic write
     const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
     await writeFile(tmp, text, "utf8");
     await rename(tmp, fp);
-    return { path: fp, editsApplied: applied.length, etag: fileEtag(text) };
+    const result = { path: fp, editsApplied: applied.length, etag: fileEtag(text) };
+    if (warnings.length) result.warnings = warnings;
+    return result;
   });
 }
 
