@@ -1,6 +1,6 @@
 {
   "name": "@vkmikc/create-obsidian-memory",
-  "version": "3.13.1",
+  "version": "3.14.0",
   "description": "Interactive initializer for Obsidian-style agent memory (v3 kit)",
   "license": "SEE LICENSE IN LICENSE.md",
   "homepage": "https://github.com/Vahlame/obsidian-memory-kit#readme",
