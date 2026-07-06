@@ -75,7 +75,7 @@ Antes de una respuesta no trivial, chequea en silencio: ¿supuestos explícitos?
 
 - Tech nueva que no esté en \`STACKS/\` → entrada de una línea (\`fecha · proyecto · verdict: unknown\`); vista otra vez → increméntala. Sin preguntar.
 - Preferencia firme del usuario (idioma, estilo, herramientas, "como me gusta") → anótala una vez en \`MEMORY.md\` y aplícala proactivamente.
-- Marca las hipótesis como tales; promuévelas a hechos solo al confirmarse; descarta observaciones que llevan meses sin tocarse.
+- Marca las hipótesis como tales (frontmatter \`status: hypothesis|confirmed\` + \`last_verified: YYYY-MM-DD\` al verificar); promuévelas a hechos solo al confirmarse; descarta observaciones que llevan meses sin tocarse.
 
 ### Conoce tu modelo (adapta + aprende)
 
@@ -156,7 +156,7 @@ Spot a **high-impact** anti-pattern in the user's code/choices (hardcoded secret
 
 - New tech you see that's not in \`STACKS/\` → add a one-line entry (\`date · project · verdict: unknown\`); seen again → bump it. No need to ask.
 - A firm user preference (language, style, tools, "how I like it") → record it once in \`MEMORY.md\` and apply it proactively.
-- Mark hypotheses as hypotheses; promote to facts only when confirmed; drop observations untouched for months.
+- Mark hypotheses as hypotheses (frontmatter \`status: hypothesis|confirmed\` + \`last_verified: YYYY-MM-DD\` when verified); promote to facts only when confirmed; drop observations untouched for months.
 
 ### Know your model (adapt + learn)
 

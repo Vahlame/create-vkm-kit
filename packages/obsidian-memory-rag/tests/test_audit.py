@@ -180,6 +180,10 @@ def test_report_is_json_serializable_with_exact_shape(tmp_path: Path) -> None:
         "git_state",
         "schema_violations",
         "schema_violations_total",
+        "stale_hypotheses",
+        "stale_hypotheses_total",
+        "unverified",
+        "unverified_total",
     }
     assert set(again["totals"]) == {"notes", "tokens"}
     assert again["budget_tokens"] == 100
@@ -270,6 +274,47 @@ def test_schema_violations_malformed_config_ignored(tmp_path: Path) -> None:
     _write(vault / "a.md", "x\n")
     report = audit_vault(vault)
     assert report["schema_violations"] is None
+
+
+def test_stale_hypotheses_and_unverified_from_frontmatter(tmp_path: Path) -> None:
+    import time as _time
+
+    vault = tmp_path / "vault"
+    old_day = _time.strftime("%Y-%m-%d", _time.localtime(_time.time() - 120 * 86_400))
+    ancient_day = _time.strftime("%Y-%m-%d", _time.localtime(_time.time() - 400 * 86_400))
+    today = _time.strftime("%Y-%m-%d")
+    _write(
+        vault / "old-hypo.md",
+        f"---\nstatus: hypothesis\nlast_verified: {old_day}\n---\nQuizá X.\n",
+    )
+    _write(
+        vault / "fresh-hypo.md",
+        f"---\nstatus: hypothesis\nlast_verified: {today}\n---\nQuizá Y.\n",
+    )
+    _write(
+        vault / "ancient-fact.md",
+        f"---\nstatus: confirmed\nlast_verified: {ancient_day}\n---\nHecho.\n",
+    )
+    _write(vault / "plain.md", "Sin frontmatter.\n")
+    report = audit_vault(vault)
+    assert [h["path"] for h in report["stale_hypotheses"]] == ["old-hypo.md"]
+    assert report["stale_hypotheses"][0]["age_days"] >= 119
+    assert [u["path"] for u in report["unverified"]] == ["ancient-fact.md"]
+    assert report["stale_hypotheses_total"] == 1
+    assert report["unverified_total"] == 1
+
+
+def test_confidence_falls_back_to_mtime_without_last_verified(tmp_path: Path) -> None:
+    import os
+    import time as _time
+
+    vault = tmp_path / "vault"
+    fp = vault / "hypo.md"
+    _write(fp, "---\nstatus: hypothesis\n---\nQuizá Z.\n")
+    old = _time.time() - 200 * 86_400
+    os.utime(fp, (old, old))
+    report = audit_vault(vault)
+    assert [h["path"] for h in report["stale_hypotheses"]] == ["hypo.md"]
 
 
 def test_git_state_none_without_repo_and_flags_rebase(tmp_path: Path) -> None:
