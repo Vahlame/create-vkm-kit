@@ -6,6 +6,73 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Optimistic concurrency for vault writes (ADR-0037).** `vault_read_file`
+  now reports a content `etag` (+ mtime) outside the untrusted envelope;
+  `vault_write_file` / `vault_edit_file` accept an opt-in `ifMatch` that
+  fails the write with a retryable `precondition failed` when the note
+  changed since the read — closing the lost-update window across
+  read→think→write round-trips. Write results return the new etag so edits
+  can chain without re-reading.
+- **Advisory cross-process write lock (ADR-0037).** Sidecar writes serialize
+  through an O_EXCL lockfile in `.obsidian-memory-rag/` with automatic
+  stale-lock recovery (dead PID / expired TTL, same-host only — foreign-host
+  locks are never stolen). Kill-switch `OBSIDIAN_MEMORY_NO_LOCK=1`. The
+  daemon watcher now skips the sidecar dir so lock/index churn can't trigger
+  spurious sync cycles.
+- **Audit-grade auto-commits (ADR-0037).** Daemon commits now carry the
+  staged-file list (subject counts, body lists up to 20 paths) and an
+  optional `Agent:` trailer from `OBSIDIAN_MEMORY_AGENT`, so `git log`
+  answers what changed and which daemon committed it.
+- **Corrupted-state checks in `vault_audit` (ADR-0037).** New read-only keys:
+  Syncthing `sync_conflicts` (any extension), committed git
+  `conflict_markers` outside code regions, `stale_tmp` leftovers from crashed
+  atomic writes, and `git_state` (in-progress rebase/merge). `doctor` also
+  records the watcher's last conflict-file sighting and scans the vault for
+  pre-existing ones.
+- **Opt-in frontmatter schema validation (ADR-0037).** A committed
+  `memory-schema.json` declares required keys per top-level folder (`*`
+  fallback); the write path warns (or rejects with `enforce: true`, before
+  anything lands on disk) and `vault_audit` reports `schema_violations` from
+  the same config. Required-keys presence only — no YAML dependency.
+- **Evolutive memory loop (ADR-0038).** `memory_extract_candidates`
+  classifies candidates (`failure`/`gotcha`/`preference`/`decision`/`fact`,
+  EN+ES) with routing hints and dedups failures against `KNOWN_FAILURES.md`;
+  a structured failure-entry convention makes lessons queryable by
+  category/tag; the opt-in `pin_failures` retrieval lever (CLI
+  `--pin-failures` / `OBSIDIAN_MEMORY_PIN_FAILURES=1`) resurfaces recorded
+  lessons on matching tasks, gated in CI by a new `failure-recall` bench
+  slice run baseline + lever-on.
+- **Usage reinforcement + decay (ADR-0038).** A local `recall_log` telemetry
+  table (survives reindexes, 1y auto-prune, `OBSIDIAN_MEMORY_RECALL_LOG=0`
+  to disable) records which notes searches return and which the agent then
+  opens; the opt-in `usage` lever (CLI `--usage` /
+  `OBSIDIAN_MEMORY_USAGE_BOOST=1`) boosts memory that demonstrably helped,
+  and `vault_memory_report` surfaces never-touched `cold_notes` for human
+  review (no telemetry ⇒ no cold claims; nothing is auto-deleted).
+- **`memory-reflect` consolidation proposals (ADR-0038).** New CLI pair
+  (`memory-reflect` / `json-memory-reflect`, plus
+  `vault_memory_report({reflect:true})`): pending `PRACTICES/observations.md`
+  lines past their window → confirm/dismiss; near-duplicate pairs → merge
+  candidates; stale `status: hypothesis` notes and orphans → verify/link/
+  archive proposals; SESSION_LOG recent-activity digest. `--write-note`
+  renders them to `_meta/reflection-YYYY-MM-DD.md` (idempotent per day).
+  `vault_audit` gains `stale_hypotheses` / `unverified` from the new
+  `status:` / `last_verified:` frontmatter convention.
+
+### Changed
+
+- **ADR-0013 amended:** the documented-but-never-implemented three-way
+  `git merge-file` auto-merge for Syncthing conflicts is withdrawn — the
+  daemon's contract is detect-and-surface; resolution stays human.
+- **Docs answer the "system of record belongs in Postgres" critique head-on:**
+  new ADR-0037 (vault vs database: transactions/concurrency/auth/audit stated
+  honestly) and ADR-0038 (evolutive loop), a FAQ entry ("Can I run a ticketing
+  system on the vault?" — no, and why), a SECURITY.md authentication-model
+  subsection, and a "Multiple agents writing to one vault" section (EN+ES)
+  with an ifMatch worked example and a conflict recovery playbook.
+
 ## [3.12.0] - 2026-07-03
 
 ### Changed
