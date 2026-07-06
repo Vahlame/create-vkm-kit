@@ -13,7 +13,7 @@ import { pathToFileURL } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { extractBullets, pickQueryTerms } from "./extract.mjs";
+import { classifyBullet, extractBullets, pickQueryTerms, routeForKind } from "./extract.mjs";
 import {
   vaultEditFile,
   vaultListDirectory,
@@ -566,6 +566,10 @@ async function main() {
       const candidates = await Promise.all(
         bullets.map(async (bullet) => {
           const terms = pickQueryTerms(bullet);
+          // Kind + routing hint (ADR-0038): failures dedup against
+          // KNOWN_FAILURES.md too — same single search, one more path checked.
+          const kind = classifyBullet(bullet);
+          const dedupFiles = kind === "failure" ? [file, "KNOWN_FAILURES.md"] : [file];
           let existing = null;
           let backendError = null;
           if (terms) {
@@ -574,7 +578,7 @@ async function main() {
                 ["json-search", "--vault", v, "--query", terms, "--limit", "5"],
                 ragSrc
               );
-              const hit = (data.hits || []).find((h) => h.path === file);
+              const hit = (data.hits || []).find((h) => dedupFiles.includes(h.path));
               if (hit) {
                 existing = { path: hit.path, snippet: hit.snippet ?? "" };
               }
@@ -585,7 +589,7 @@ async function main() {
               backendError = e?.message || String(e);
             }
           }
-          return { bullet, query: terms, existing, backendError };
+          return { bullet, kind, suggestedTarget: routeForKind(kind), query: terms, existing, backendError };
         })
       );
       return {

@@ -185,6 +185,16 @@ _NS_PER_DAY = 86_400 * 1_000_000_000
 # relevance for an off-topic hub. Off by default (it changes ranking).
 IMPORTANCE_WEIGHT = 0.15
 
+# Optional failure-pinning (ADR-0038, evolutive memory). Notes carrying a
+# `[failure]` / `[gotcha]` observation are recorded lessons — exactly the memory
+# that should resurface when a matching task comes back. When enabled, a fourth
+# RRF ranking lists the candidate notes (already matched by BM25 or vector) that
+# carry such an observation, fused at a small weight like the graph signal: a
+# nudge among comparably-relevant notes, never able to outvote BM25+cosine
+# agreement or to surface an off-topic failure note. Off by default.
+FAILURE_WEIGHT = 0.15
+FAILURE_CATEGORIES = ("failure", "gotcha")
+
 # Optional cross-encoder reranking (ADR-0026). When a reranker is supplied,
 # hybrid_search widens the fused pool to this many candidates and re-scores their
 # passages jointly with the query, reordering by the (relative) cross-encoder logit.
@@ -385,6 +395,32 @@ def _note_indegree(vault: Path, paths: list[str]) -> dict[str, int]:
     return out
 
 
+def _failure_note_paths(vault: Path) -> set[str]:
+    """Paths of notes carrying at least one failure/gotcha observation.
+
+    Backed by the persisted ``observations`` table (ADR-0023) and its category
+    index — one cheap SELECT. Empty set when the index/table is absent so the
+    lever degrades to a no-op.
+    """
+    db_path = index_db_path(vault.resolve())
+    if not db_path.is_file():
+        return set()
+    conn = connect(db_path)
+    try:
+        init_schema(conn)
+        placeholders = ",".join("?" * len(FAILURE_CATEGORIES))
+        rows = conn.execute(
+            f"SELECT DISTINCT source_path FROM observations "
+            f"WHERE lower(category) IN ({placeholders})",
+            [c.lower() for c in FAILURE_CATEGORIES],
+        ).fetchall()
+    except Exception:
+        return set()
+    finally:
+        conn.close()
+    return {str(r["source_path"]) for r in rows}
+
+
 def _cosine(a: "_Array | None", b: "_Array | None") -> float:
     """Dot product of two L2-normalized vectors (== cosine), 0.0 if either missing."""
     if a is None or b is None or len(a) != len(b):
@@ -451,6 +487,8 @@ def hybrid_search(
     recency_half_life_days: float = RECENCY_HALF_LIFE_DAYS,
     importance: bool = False,
     importance_weight: float = IMPORTANCE_WEIGHT,
+    pin_failures: bool = False,
+    failure_weight: float = FAILURE_WEIGHT,
     mmr: bool = False,
     mmr_lambda: float = 0.5,
     passage_window: int = 0,
@@ -477,6 +515,9 @@ def hybrid_search(
       freshest of comparably-relevant notes wins.
     - ``importance=True`` multiplies by a bounded in-degree boost (Generative-Agents
       relevance×recency×importance, ADR-0027) so a hub note wins among ties.
+    - ``pin_failures=True`` fuses a low-weight ranking of the candidates that carry
+      a ``[failure]``/``[gotcha]`` observation (ADR-0038), so recorded lessons edge
+      out neutral notes of comparable relevance when a matching task returns.
     - ``mmr=True`` reorders the fused pool for diversity (Maximal Marginal Relevance)
       using the stored chunk vectors; ``mmr_lambda`` trades relevance vs. novelty.
     - ``reranker`` (an optional cross-encoder, ADR-0026) re-scores the fused pool's
@@ -510,6 +551,18 @@ def hybrid_search(
         if graph_paths:
             rankings.append(graph_paths)
             weights.append(graph_weight)
+
+    if pin_failures:
+        failure_set = _failure_note_paths(vault)
+        if failure_set:
+            # Only candidates the query already surfaced (BM25 or vector order,
+            # BM25 first) — pinning boosts matched lessons, it never imports
+            # unrelated failure notes into the pool.
+            pinned = [p for p in bm_paths if p in failure_set]
+            pinned += [p for p in sem_paths if p in failure_set and p not in pinned]
+            if pinned:
+                rankings.append(pinned)
+                weights.append(failure_weight)
 
     # Any post-fusion stage (recency/importance multiply, MMR, rerank) needs a wider
     # candidate pool so an item from just outside the top-``limit`` can be promoted;
