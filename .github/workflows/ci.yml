@@ -101,6 +101,14 @@ jobs:
             --queries evals/retrieval/queries.jsonl \
             --assert-recall 0.95 --assert-mrr 0.90 --assert-hit1 0.90 \
             --assert-ndcg 0.93 --assert-map 0.93
+      - name: learning-effectiveness gate — same corpus with the pin-failures lever (ADR-0038)
+        run: |
+          python -m obsidian_memory_rag bench-recall \
+            --corpus evals/retrieval/corpus \
+            --queries evals/retrieval/queries.jsonl \
+            --pin-failures \
+            --assert-recall 0.95 --assert-mrr 0.90 --assert-hit1 0.90 \
+            --assert-ndcg 0.93 --assert-map 0.93
       - name: token-economy gate (passage-first vs whole-note, completeness-gated, ADR-0032/0034)
         run: |
           python -m obsidian_memory_rag bench-tokens \
