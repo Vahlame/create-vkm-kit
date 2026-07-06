@@ -9,6 +9,8 @@
     "setup:dry": "node scripts/agent-install.mjs --dry-run",
     "sync-agents": "npx --yes tsx scripts/sync-agents.ts",
     "sync-agents:check": "npx --yes tsx scripts/sync-agents.ts --check",
+    "license:sync": "node scripts/license-sync.mjs",
+    "license:sync:check": "node scripts/license-sync.mjs --check",
     "linkcheck": "node scripts/linkcheck.mjs .",
     "eval:adherence": "node evals/run-adherence-ci.mjs",
     "version:check": "node scripts/version.mjs check",

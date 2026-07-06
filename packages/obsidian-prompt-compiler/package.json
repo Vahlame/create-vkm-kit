@@ -2,6 +2,7 @@
   "name": "@vkmikc/obsidian-prompt-compiler",
   "version": "0.1.0",
   "private": true,
+  "license": "SEE LICENSE IN LICENSE.md",
   "description": "Compile a vault-aware <orchestration_package> XML prompt from a one-line idea, for pasting into AI tools that don't have the MCP wired (no LLM call — reuses vault_hybrid_search/vault_observations).",
   "type": "module",
   "bin": {
