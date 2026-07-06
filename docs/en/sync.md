@@ -109,6 +109,18 @@ The MCP write tools (`vault_write_file`, `vault_edit_file`) write **atomically**
 
 Rule of thumb: keep notes **you** hand-edit heavily and notes the **agent** maintains in separate files/folders, and concurrency stops being a concern.
 
+### Multiple agents writing to one vault
+
+Several IDE windows or a sub-agent fan-out can share a vault. What protects you (see [ADR-0037](../adr/0037-vault-vs-database-system-of-record.md)):
+
+- **Atomic writes + single-match edits** (above) — no torn notes, and an edit whose context changed underneath it fails instead of landing wrong.
+- **Optimistic concurrency (`ifMatch`).** `vault_read_file` ends with an `etag:` line. Pass it back as `ifMatch` on `vault_write_file`/`vault_edit_file` and the write fails with `precondition failed` if anything changed the note since your read — re-read and retry. Worked example: read `MEMORY.md` (etag `a1b2c3d4e5f6`) → another window appends a line → your `vault_edit_file(..., ifMatch: "a1b2c3d4e5f6")` fails safely instead of clobbering.
+- **Advisory write lock (same host).** All sidecar writes serialize through `.obsidian-memory-rag/write.lock` (stale locks from crashed writers are stolen automatically; a busy vault returns a retryable `vault busy`). Disable with `OBSIDIAN_MEMORY_NO_LOCK=1` if you truly have a single writer.
+
+What does **not** exist, on purpose: cross-note transactions and cross-machine locks. Across machines the coordination is git — conflicts are surfaced, never auto-merged.
+
+**Recovery playbook** when a conflict does happen: the daemon aborts the rebase and stops syncing → `obsidian-memoryd doctor` shows the abort (and any Syncthing conflict files) → `vault_audit` flags conflict files, committed `<<<<<<<` markers and a stuck rebase state → resolve in git normally → `obsidian-memoryd sync once`.
+
 ### Health check: `doctor`
 
 Since the daemon runs hidden, you need a way to ask it "are you still alive and pushing?". That's `doctor`:
