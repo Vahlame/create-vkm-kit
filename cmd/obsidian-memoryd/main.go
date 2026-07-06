@@ -44,6 +44,7 @@ Usage:
 Environment:
   BASIC_MEMORY_HOME or OBSIDIAN_MEMORY_VAULT — vault root (git repo)
   OBSIDIAN_MEMORY_DEBOUNCE — optional debounce before git sync after file changes (Go duration, e.g. 30s, 2m); default 45s; min 5s, max 15m
+  OBSIDIAN_MEMORY_AGENT — optional label added as an "Agent:" trailer on auto-commits (attributes this daemon instance/machine in git log)
 `
 
 func main() {
@@ -269,13 +270,64 @@ func runStep(parent context.Context, r Runner, to time.Duration, l *slog.Logger,
 	return nil
 }
 
+// commitMessage builds the auto-commit subject + body: the subject carries the
+// staged-file count, the body lists up to commitListMax paths and an optional
+// `Agent:` trailer (from OBSIDIAN_MEMORY_AGENT) so `git log` is a usable audit
+// trail — WHAT changed and WHICH daemon/machine committed it — instead of a
+// bare timestamp. The label attributes the daemon instance, not a tool call.
+const commitListMax = 20
+
+func commitMessage(now time.Time, files []string, agent string) (subject, body string) {
+	ts := now.UTC().Format(time.RFC3339)
+	if len(files) == 0 {
+		subject = "auto: " + ts
+	} else {
+		noun := "files"
+		if len(files) == 1 {
+			noun = "file"
+		}
+		subject = fmt.Sprintf("auto: %s (%d %s)", ts, len(files), noun)
+	}
+	var b strings.Builder
+	for i, f := range files {
+		if i == commitListMax {
+			fmt.Fprintf(&b, "…and %d more\n", len(files)-commitListMax)
+			break
+		}
+		b.WriteString(f)
+		b.WriteByte('\n')
+	}
+	if agent != "" {
+		if b.Len() > 0 {
+			b.WriteByte('\n')
+		}
+		b.WriteString("Agent: " + agent + "\n")
+	}
+	return subject, strings.TrimRight(b.String(), "\n")
+}
+
 func commitStep(parent context.Context, r Runner, to time.Duration, l *slog.Logger, dir string) error {
 	ctx, cancel := context.WithTimeout(parent, to)
 	defer cancel()
-	msg := "auto: " + time.Now().UTC().Format(time.RFC3339)
-	err := r.Run(ctx, "git", "-C", dir, "commit", "-m", msg)
+	// Best-effort staged-file list for the commit body; a diff failure must
+	// never block the sync cycle (files stays empty, subject falls back to the
+	// bare timestamp).
+	var files []string
+	if out, err := r.Output(ctx, "git", "-C", dir, "diff", "--cached", "--name-only"); err == nil {
+		for _, ln := range strings.Split(string(out), "\n") {
+			if ln = strings.TrimSpace(ln); ln != "" {
+				files = append(files, ln)
+			}
+		}
+	}
+	subject, body := commitMessage(time.Now(), files, strings.TrimSpace(os.Getenv("OBSIDIAN_MEMORY_AGENT")))
+	args := []string{"-C", dir, "commit", "-m", subject}
+	if body != "" {
+		args = append(args, "-m", body)
+	}
+	err := r.Run(ctx, "git", args...)
 	if err == nil {
-		l.Info("git step ok", "step", "commit")
+		l.Info("git step ok", "step", "commit", "files", len(files))
 		return nil
 	}
 	var ce exitCoder
@@ -370,6 +422,10 @@ func doctor(out io.Writer, vault string, now time.Time) error {
 	if !s.LastRebaseAbort.IsZero() {
 		fmt.Fprintf(out, "  last rebase abort:        %s ⚠\n", formatAgo(now, s.LastRebaseAbort))
 	}
+	if !s.LastConflictFileAt.IsZero() {
+		fmt.Fprintf(out, "  syncthing conflict seen:  %s (%s) ⚠ resolve manually\n",
+			formatAgo(now, s.LastConflictFileAt), s.LastConflictFile)
+	}
 	if s.ConsecutivePushFailures > 0 {
 		marker := ""
 		if s.ConsecutivePushFailures >= 3 {
@@ -385,6 +441,16 @@ func doctor(out io.Writer, vault string, now time.Time) error {
 		fmt.Fprintf(out, "  consecutive sync fails:   %d%s\n", s.ConsecutiveSyncFailures, marker)
 		if s.LastSyncError != "" {
 			fmt.Fprintf(out, "  last sync error:          %s (%s)\n", s.LastSyncError, formatAgo(now, s.LastSyncErrorAt))
+		}
+	}
+
+	// Doctor-time scan for conflict files already sitting in the vault — the
+	// watcher only records ones it SEES appear, so files that predate the
+	// daemon (or landed while it was down) would otherwise stay invisible.
+	if vault != "" {
+		if conflicts := scanConflictFiles(vault, 5); len(conflicts) > 0 {
+			fmt.Fprintf(out, "  conflict files in vault:  %d (e.g. %s) ⚠ resolve manually\n",
+				len(conflicts), filepath.Base(conflicts[0]))
 		}
 	}
 
@@ -472,7 +538,8 @@ func runWatchWith(ctx context.Context, l *slog.Logger, root string, dur time.Dur
 				}
 			}
 			if strings.Contains(filepath.Base(ev.Name), ".sync-conflict-") {
-				l.Warn("syncthing conflict file detected", "file", ev.Name)
+				l.Warn("syncthing conflict file detected; resolve manually", "file", ev.Name)
+				recordConflictFile(ev.Name)
 			}
 			if debounce != nil {
 				debounce.Stop()
@@ -487,6 +554,33 @@ func runWatchWith(ctx context.Context, l *slog.Logger, root string, dur time.Dur
 			return ctx.Err()
 		}
 	}
+}
+
+// scanConflictFiles walks the vault (skipping the same dirs the watcher skips)
+// and returns up to max paths containing the Syncthing conflict marker.
+// Read-only, best-effort: walk errors are swallowed — this feeds a doctor
+// warning line, not a health decision.
+func scanConflictFiles(root string, max int) []string {
+	var found []string
+	_ = filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if d.IsDir() {
+			if skipDir(path) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if strings.Contains(d.Name(), ".sync-conflict-") {
+			found = append(found, path)
+			if len(found) >= max {
+				return filepath.SkipAll
+			}
+		}
+		return nil
+	})
+	return found
 }
 
 func addRecursive(w *fsnotify.Watcher, root string) error {

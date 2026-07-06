@@ -58,6 +58,45 @@ func TestRunWatchWatchesNewSubdirectory(t *testing.T) {
 	<-done // wait for clean shutdown (heartbeat stop) before t.Cleanup removes temp dirs
 }
 
+// TestRunWatchRecordsConflictFile: a Syncthing conflict file appearing in the
+// watched tree must be recorded in daemon state (ADR-0013 amendment: detect and
+// surface, never auto-merge).
+func TestRunWatchRecordsConflictFile(t *testing.T) {
+	withTempStateDir(t)
+	root := t.TempDir()
+
+	synced := make(chan struct{}, 8)
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		_ = runWatchWith(ctx, discardLogger(), root, 40*time.Millisecond, func(context.Context) {
+			select {
+			case synced <- struct{}{}:
+			default:
+			}
+		})
+		close(done)
+	}()
+	time.Sleep(150 * time.Millisecond)
+
+	name := "MEMORY.sync-conflict-20260706-101010-AAAAAA.md"
+	if err := os.WriteFile(filepath.Join(root, name), []byte("theirs"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	waitSync(t, synced)
+
+	cancel()
+	<-done
+
+	s := readState()
+	if s.LastConflictFile != name {
+		t.Errorf("expected conflict file %q recorded, got %q", name, s.LastConflictFile)
+	}
+	if s.LastConflictFileAt.IsZero() {
+		t.Error("LastConflictFileAt should be set")
+	}
+}
+
 // TestServiceStartStopLifecycle verifies Start launches the watch goroutine and
 // Stop cancels it. The fix replaced a no-op Stop (which leaked the goroutine and
 // its watcher on every service stop/restart) with context cancellation.

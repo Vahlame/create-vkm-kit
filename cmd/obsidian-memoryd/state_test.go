@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -184,6 +185,33 @@ func TestDoctorSyncFailures(t *testing.T) {
 	}
 }
 
+// TestRecordConflictFile: the watcher's sighting must round-trip through state
+// (basename only) and surface in doctor as a warning line — without alarming,
+// since a conflict file is a "human should look" signal, not a daemon failure.
+func TestRecordConflictFile(t *testing.T) {
+	withTempStateDir(t)
+	recordConflictFile("/some/vault/notes/MEMORY.sync-conflict-20260706-120000-ABCDEF.md")
+	s := readState()
+	if s.LastConflictFile != "MEMORY.sync-conflict-20260706-120000-ABCDEF.md" {
+		t.Errorf("expected basename recorded, got %q", s.LastConflictFile)
+	}
+	if s.LastConflictFileAt.IsZero() {
+		t.Error("LastConflictFileAt should be set")
+	}
+	var buf bytes.Buffer
+	if err := doctor(&buf, "", time.Now().UTC()); err != nil {
+		// A fresh heartbeat is absent, but zero heartbeat is not stale; a conflict
+		// file alone must not alarm.
+		t.Fatalf("conflict file alone should not alarm doctor, got %v", err)
+	}
+	out := buf.String()
+	for _, want := range []string{"syncthing conflict seen:", "MEMORY.sync-conflict-20260706-120000-ABCDEF.md", "resolve manually"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("doctor output missing %q\n---\n%s", want, out)
+		}
+	}
+}
+
 func TestRecordPushSuccessResetsFailures(t *testing.T) {
 	withTempStateDir(t)
 	_ = writeState(&DaemonState{ConsecutivePushFailures: 5})
@@ -218,6 +246,55 @@ func TestRecordSyncFailureThenSuccess(t *testing.T) {
 	s = readState()
 	if s.ConsecutiveSyncFailures != 0 || s.LastSyncError != "" || s.LastSyncOK.IsZero() {
 		t.Fatalf("success should reset count+error and set LastSyncOK, got %+v", s)
+	}
+}
+
+// TestDoctorScansVaultForConflictFiles: files that predate the daemon (or landed
+// while it was down) never hit the watcher, so doctor does its own read-only scan.
+func TestDoctorScansVaultForConflictFiles(t *testing.T) {
+	withTempStateDir(t)
+	vault := t.TempDir()
+	if err := writeRaw(vault+"/note.sync-conflict-20260101-000000-XYZ.md", []byte("x")); err != nil {
+		t.Fatal(err)
+	}
+	// A conflict file inside .git must be ignored (skipDir).
+	if err := writeRaw(vault+"/clean.md", []byte("y")); err != nil {
+		t.Fatal(err)
+	}
+	var buf bytes.Buffer
+	if err := doctor(&buf, vault, time.Now().UTC()); err != nil {
+		t.Fatalf("conflict files alone should not alarm, got %v", err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "conflict files in vault:  1") ||
+		!strings.Contains(out, "note.sync-conflict-20260101-000000-XYZ.md") {
+		t.Errorf("doctor should list the scanned conflict file\n---\n%s", out)
+	}
+}
+
+func TestScanConflictFilesSkipsGitAndCaps(t *testing.T) {
+	vault := t.TempDir()
+	mustWrite := func(rel string) {
+		fp := vault + "/" + rel
+		if err := writeRaw(fp, []byte("x")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.MkdirAll(vault+"/.git", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	mustWrite(".git/hidden.sync-conflict-1.md") // must be skipped
+	mustWrite("a.sync-conflict-1.md")
+	mustWrite("b.sync-conflict-2.md")
+	mustWrite("c.sync-conflict-3.md")
+	got := scanConflictFiles(vault, 2)
+	if len(got) != 2 {
+		t.Fatalf("expected cap at 2, got %d: %v", len(got), got)
+	}
+	for _, p := range got {
+		if strings.Contains(p, ".git") {
+			t.Errorf("scan must skip .git, got %v", got)
+		}
 	}
 }
 
