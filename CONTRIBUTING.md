@@ -81,4 +81,4 @@ Do not include secrets, tokens, or real user paths in PRs. See `SECURITY.md` for
 
 ## License
 
-By contributing you agree your contribution is licensed under the MIT License.
+By contributing you agree your contribution is licensed under the repository's free-use-with-mandatory-attribution license — see [`LICENSE.md`](LICENSE.md).
