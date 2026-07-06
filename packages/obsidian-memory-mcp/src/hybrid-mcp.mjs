@@ -471,8 +471,7 @@ async function main() {
       // Etag line lives OUTSIDE the untrusted envelope so note content cannot
       // spoof it; it identifies the whole file version even for head/tail reads.
       return (
-        wrapUntrusted(text, path) +
-        `\netag: ${etag} · modified: ${new Date(mtimeMs).toISOString()}`
+        wrapUntrusted(text, path) + `\netag: ${etag} · modified: ${new Date(mtimeMs).toISOString()}`
       );
     })
   );
@@ -604,7 +603,14 @@ async function main() {
               backendError = e?.message || String(e);
             }
           }
-          return { bullet, kind, suggestedTarget: routeForKind(kind), query: terms, existing, backendError };
+          return {
+            bullet,
+            kind,
+            suggestedTarget: routeForKind(kind),
+            query: terms,
+            existing,
+            backendError
+          };
         })
       );
       return {

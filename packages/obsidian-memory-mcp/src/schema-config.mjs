@@ -63,7 +63,10 @@ export async function loadSchemaConfig(vaultAbs) {
       ? { config: { folders, enforce: parsed.enforce === true } }
       : { config: null, warning: `${SCHEMA_CONFIG_NAME}: no "folders" object — ignored` };
   } catch (err) {
-    value = { config: null, warning: `${SCHEMA_CONFIG_NAME}: invalid JSON — ignored (${err.message})` };
+    value = {
+      config: null,
+      warning: `${SCHEMA_CONFIG_NAME}: invalid JSON — ignored (${err.message})`
+    };
   }
   cache.set(vaultAbs, { mtimeMs, value });
   return value;
