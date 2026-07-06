@@ -90,6 +90,28 @@ test("mergeObsidianHybridServer with rerank wires OBSIDIAN_MEMORY_RERANK (ADR-00
   assert.equal(withRerank.mcpServers["obsidian-memory-hybrid"].env.OBSIDIAN_MEMORY_RERANK, "1");
 });
 
+test("mergeObsidianHybridServer wires the ADR-0038 levers (pin_failures + usage)", () => {
+  const base = mergeBasicMemoryServer({}, "/vault");
+  // Off when not requested (e.g. --no-pin-failures / --no-usage-boost).
+  const plain = mergeObsidianHybridServer(base, "/vault", repoRoot);
+  assert.equal(
+    plain.mcpServers["obsidian-memory-hybrid"].env.OBSIDIAN_MEMORY_PIN_FAILURES,
+    undefined
+  );
+  assert.equal(
+    plain.mcpServers["obsidian-memory-hybrid"].env.OBSIDIAN_MEMORY_USAGE_BOOST,
+    undefined
+  );
+  // The default stack passes both (installer wires them ON unless opted out).
+  const withLevers = mergeObsidianHybridServer(base, "/vault", repoRoot, {
+    pinFailures: true,
+    usage: true
+  });
+  const env = withLevers.mcpServers["obsidian-memory-hybrid"].env;
+  assert.equal(env.OBSIDIAN_MEMORY_PIN_FAILURES, "1");
+  assert.equal(env.OBSIDIAN_MEMORY_USAGE_BOOST, "1");
+});
+
 test("claudeAddArgv builds `claude mcp add -s user -e … -- cmd args`", () => {
   const argv = claudeAddArgv("basic-memory", basicMemoryServer("/v"));
   assert.deepEqual(argv.slice(0, 5), ["mcp", "add", "basic-memory", "-s", "user"]);

@@ -49,12 +49,15 @@ export function basicMemoryServer(vaultAbs) {
  * neural embedder. Shared by the Cursor merge and the Claude Code CLI path.
  * @param {string} vaultAbs
  * @param {string} kitRepoAbs
- * @param {{ semantic?: boolean, vec?: boolean, rerank?: boolean }} [opts] - `vec`
+ * @param {{ semantic?: boolean, vec?: boolean, rerank?: boolean, pinFailures?: boolean, usage?: boolean }} [opts] - `vec`
  *   enables the sqlite-vec acceleration (ADR-0025) via OBSIDIAN_MEMORY_SQLITE_VEC=1
  *   (ranking-identical, safe fallback, on under `--full`). `rerank` turns on the
  *   cross-encoder reranker (ADR-0026) via OBSIDIAN_MEMORY_RERANK=1 — opt-in only
  *   (needs the `[rerank]` extra and downloads a model on first use; uses the
- *   multilingual default model), so it is NOT enabled by `--full`.
+ *   multilingual default model), so it is NOT enabled by `--full`. `pinFailures`
+ *   wires OBSIDIAN_MEMORY_PIN_FAILURES=1 (resurface recorded lessons on matching
+ *   tasks) and `usage` wires OBSIDIAN_MEMORY_USAGE_BOOST=1 (boost notes the agent
+ *   demonstrably used) — the ADR-0038 retrieval levers, part of the default stack.
  */
 export function hybridServer(vaultAbs, kitRepoAbs, opts = {}) {
   const { hybridJs, pythonSrc } = hybridMcpPathsFromKitRoot(kitRepoAbs);
@@ -68,6 +71,8 @@ export function hybridServer(vaultAbs, kitRepoAbs, opts = {}) {
   if (opts && opts.semantic) env.OBSIDIAN_MEMORY_EMBEDDER = SEMANTIC_EMBEDDER;
   if (opts && opts.vec) env.OBSIDIAN_MEMORY_SQLITE_VEC = "1";
   if (opts && opts.rerank) env.OBSIDIAN_MEMORY_RERANK = "1";
+  if (opts && opts.pinFailures) env.OBSIDIAN_MEMORY_PIN_FAILURES = "1";
+  if (opts && opts.usage) env.OBSIDIAN_MEMORY_USAGE_BOOST = "1";
   return { command: "node", args: [hybridJs], env };
 }
 
@@ -166,10 +171,12 @@ export function mergeBasicMemoryServer(raw, vaultAbs) {
  * @param {Record<string, unknown>} merged - output of mergeBasicMemoryServer (or compatible)
  * @param {string} vaultAbs - absolute vault root
  * @param {string} kitRepoAbs - absolute path to obsidian-memory-kit clone (contains packages/)
- * @param {{ semantic?: boolean, vec?: boolean }} [opts] - semantic:true wires
- *   OBSIDIAN_MEMORY_EMBEDDER=fastembed so vault_hybrid_search ranks by meaning
- *   (needs the Python `[semantic]` extra); vec:true wires OBSIDIAN_MEMORY_SQLITE_VEC=1
- *   for the in-file sqlite-vec acceleration (needs the `[vec]` extra; ADR-0025).
+ * @param {{ semantic?: boolean, vec?: boolean, rerank?: boolean, pinFailures?: boolean, usage?: boolean }} [opts] -
+ *   semantic:true wires OBSIDIAN_MEMORY_EMBEDDER=fastembed so vault_hybrid_search ranks
+ *   by meaning (needs the Python `[semantic]` extra); vec:true wires
+ *   OBSIDIAN_MEMORY_SQLITE_VEC=1 for the in-file sqlite-vec acceleration (needs the
+ *   `[vec]` extra; ADR-0025); pinFailures/usage wire the ADR-0038 retrieval levers.
+ *   Passed straight to hybridServer — see its JSDoc for the full mapping.
  */
 export function mergeObsidianHybridServer(merged, vaultAbs, kitRepoAbs, opts = {}) {
   const base = /** @type {Record<string, unknown>} */ (JSON.parse(JSON.stringify(merged)));
