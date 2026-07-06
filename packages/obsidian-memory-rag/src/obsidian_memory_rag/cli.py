@@ -18,6 +18,7 @@ from .embeddings import get_embedder
 from .indexer import ensure_fresh, index_vault, index_vectors
 from .kg_query import observations_query, relations_for, suggest_structure
 from .query import hybrid_search, search_vault
+from .reflect import build_reflection, format_reflection, write_reflection_note
 from .report import build_report
 from .rerank import get_reranker
 from .rotate import rotate_session_log
@@ -437,7 +438,44 @@ def main() -> None:
             default=0.92,
             help="Cosine threshold for near-duplicate pairs (default 0.92)",
         )
+        mr.add_argument(
+            "--reflect",
+            action="store_true",
+            help="Also embed consolidation proposals (promotions/merges/decay, ADR-0038)",
+        )
         mr.add_argument("--no-auto-index", action="store_true")
+
+    for name, helptext in (
+        ("memory-reflect", "Read-only consolidation proposals: promotions, merges, decay"),
+        ("json-memory-reflect", "Same as memory-reflect but print one JSON object (for MCP)"),
+    ):
+        rf = sub.add_parser(name, help=helptext)
+        rf.add_argument("--vault", type=Path, required=True)
+        rf.add_argument(
+            "--since-days",
+            type=float,
+            default=14.0,
+            help="Pending observations older than this become promotion proposals (default 14)",
+        )
+        rf.add_argument(
+            "--stale-days",
+            type=float,
+            default=180.0,
+            help="Hypothesis notes untouched this long become decay proposals (default 180)",
+        )
+        rf.add_argument(
+            "--similarity",
+            type=float,
+            default=0.92,
+            help="Cosine threshold for merge candidates (default 0.92)",
+        )
+        rf.add_argument(
+            "--write-note",
+            action="store_true",
+            help="Also write the proposals to _meta/reflection-YYYY-MM-DD.md "
+            "(overwrites the same day's note; the only write this command does)",
+        )
+        rf.add_argument("--no-auto-index", action="store_true")
 
     args = p.parse_args()
     if args.cmd == "index":
@@ -812,6 +850,12 @@ def main() -> None:
             similarity=args.similarity,
             duplicates=args.duplicates,
         )
+        if args.reflect:
+            report["reflection"] = build_reflection(
+                args.vault,
+                stale_days=args.stale_days,
+                similarity=args.similarity,
+            )
         if args.cmd == "json-memory-report":
             print(json.dumps(report, ensure_ascii=False))
         else:
@@ -832,6 +876,24 @@ def main() -> None:
             print("  suggested actions:")
             for s in report["suggested_actions"]:
                 print(f"    - {s}")
+    elif args.cmd in ("memory-reflect", "json-memory-reflect"):
+        if not args.no_auto_index:
+            ensure_fresh(args.vault)
+        reflection = build_reflection(
+            args.vault,
+            since_days=args.since_days,
+            stale_days=args.stale_days,
+            similarity=args.similarity,
+        )
+        if args.write_note:
+            target = write_reflection_note(args.vault, reflection)
+            reflection["note_written"] = str(target)
+        if args.cmd == "json-memory-reflect":
+            print(json.dumps(reflection, ensure_ascii=False))
+        else:
+            print(format_reflection(reflection))
+            if args.write_note:
+                print(f"wrote {reflection['note_written']}")
 
 
 if __name__ == "__main__":
