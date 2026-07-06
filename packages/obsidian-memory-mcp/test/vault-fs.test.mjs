@@ -5,7 +5,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   safeVaultPath,
+  fileEtag,
   vaultReadFile,
+  vaultReadFileWithMeta,
   vaultWriteFile,
   vaultEditFile,
   vaultListDirectory
@@ -288,6 +290,105 @@ test("vaultListDirectory: lists vault root + subdirs", async () => {
     assert.equal(proj.length, 1);
     assert.equal(proj[0].name, "a.md");
     assert.equal(proj[0].type, "file");
+  } finally {
+    await rm(vault, { recursive: true });
+  }
+});
+
+test("vaultReadFileWithMeta: etag is over the FULL content even for head reads", async () => {
+  const vault = await setupVault();
+  try {
+    const full = await readFile(join(vault, "MEMORY.md"), "utf8");
+    const meta = await vaultReadFileWithMeta(vault, "MEMORY.md", { head: 1 });
+    assert.equal(meta.text, "line 1");
+    assert.equal(meta.etag, fileEtag(full));
+    assert.ok(Number.isFinite(meta.mtimeMs));
+  } finally {
+    await rm(vault, { recursive: true });
+  }
+});
+
+test("vaultWriteFile: returned etag matches a follow-up read", async () => {
+  const vault = await setupVault();
+  try {
+    const res = await vaultWriteFile(vault, "note.md", "v1");
+    const meta = await vaultReadFileWithMeta(vault, "note.md");
+    assert.equal(res.etag, meta.etag);
+    assert.equal(meta.etag, fileEtag("v1"));
+  } finally {
+    await rm(vault, { recursive: true });
+  }
+});
+
+test("vaultWriteFile: matching ifMatch succeeds and returns the new etag", async () => {
+  const vault = await setupVault();
+  try {
+    const { etag } = await vaultWriteFile(vault, "note.md", "v1");
+    const res = await vaultWriteFile(vault, "note.md", "v2", { ifMatch: etag });
+    assert.equal(res.etag, fileEtag("v2"));
+    assert.equal(await readFile(join(vault, "note.md"), "utf8"), "v2");
+  } finally {
+    await rm(vault, { recursive: true });
+  }
+});
+
+test("vaultWriteFile: stale ifMatch fails and the file is untouched", async () => {
+  const vault = await setupVault();
+  try {
+    const { etag } = await vaultWriteFile(vault, "note.md", "v1");
+    // Concurrent writer changes the file after our read.
+    await writeFile(join(vault, "note.md"), "v1-concurrent");
+    await assert.rejects(
+      () => vaultWriteFile(vault, "note.md", "v2", { ifMatch: etag }),
+      /precondition failed: file changed since read/
+    );
+    assert.equal(await readFile(join(vault, "note.md"), "utf8"), "v1-concurrent");
+  } finally {
+    await rm(vault, { recursive: true });
+  }
+});
+
+test("vaultWriteFile: ifMatch against a missing file fails (does not create it)", async () => {
+  const vault = await setupVault();
+  try {
+    await assert.rejects(
+      () => vaultWriteFile(vault, "ghost.md", "x", { ifMatch: "deadbeef0000" }),
+      /precondition failed: file does not exist/
+    );
+    await assert.rejects(() => readFile(join(vault, "ghost.md"), "utf8"), { code: "ENOENT" });
+  } finally {
+    await rm(vault, { recursive: true });
+  }
+});
+
+test("vaultEditFile: stale ifMatch fails before any edit is applied", async () => {
+  const vault = await setupVault();
+  try {
+    const meta = await vaultReadFileWithMeta(vault, "MEMORY.md");
+    await writeFile(join(vault, "MEMORY.md"), "changed elsewhere\nline 2\n");
+    await assert.rejects(
+      () =>
+        vaultEditFile(vault, "MEMORY.md", [{ oldText: "line 2", newText: "X" }], {
+          ifMatch: meta.etag
+        }),
+      /precondition failed: file changed since read/
+    );
+    assert.equal(await readFile(join(vault, "MEMORY.md"), "utf8"), "changed elsewhere\nline 2\n");
+  } finally {
+    await rm(vault, { recursive: true });
+  }
+});
+
+test("vaultEditFile: matching ifMatch applies and returns the new etag", async () => {
+  const vault = await setupVault();
+  try {
+    const meta = await vaultReadFileWithMeta(vault, "MEMORY.md");
+    const res = await vaultEditFile(vault, "MEMORY.md", [{ oldText: "line 2", newText: "L2" }], {
+      ifMatch: meta.etag
+    });
+    assert.equal(res.editsApplied, 1);
+    const now = await readFile(join(vault, "MEMORY.md"), "utf8");
+    assert.equal(res.etag, fileEtag(now));
   } finally {
     await rm(vault, { recursive: true });
   }
