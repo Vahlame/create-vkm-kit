@@ -171,6 +171,76 @@ def test_report_is_json_serializable_with_exact_shape(tmp_path: Path) -> None:
         "broken_links",
         "broken_links_total",
         "session_log",
+        "sync_conflicts",
+        "sync_conflicts_total",
+        "conflict_markers",
+        "conflict_markers_total",
+        "stale_tmp",
+        "stale_tmp_total",
+        "git_state",
     }
     assert set(again["totals"]) == {"notes", "tokens"}
     assert again["budget_tokens"] == 100
+
+
+def test_sync_conflict_files_reported_any_extension(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    _write(vault / "clean.md", "# ok\n")
+    _write(vault / "MEMORY.sync-conflict-20260706-101010-ABC.md", "theirs\n")
+    _write(vault / "img.sync-conflict-20260706-101010-ABC.png", "binaryish")
+    _write(vault / ".obsidian-memory-rag" / "x.sync-conflict-1.md", "excluded dir")
+    report = audit_vault(vault)
+    paths = [c["path"] for c in report["sync_conflicts"]]
+    assert "MEMORY.sync-conflict-20260706-101010-ABC.md" in paths
+    assert "img.sync-conflict-20260706-101010-ABC.png" in paths
+    assert report["sync_conflicts_total"] == 2
+
+
+def test_conflict_markers_flagged_outside_code_only(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    _write(
+        vault / "corrupt.md",
+        "# note\n\n<<<<<<< HEAD\nmine\n=======\ntheirs\n>>>>>>> other\n",
+    )
+    _write(
+        vault / "docs.md",
+        "How markers look:\n\n```\n<<<<<<< HEAD\n```\n",
+    )
+    report = audit_vault(vault)
+    flagged = {m["path"]: m["line"] for m in report["conflict_markers"]}
+    assert flagged == {"corrupt.md": 3}
+    assert report["conflict_markers_total"] == 1
+
+
+def test_stale_tmp_files_reported_only_when_old(tmp_path: Path) -> None:
+    import os
+    import time as _time
+
+    vault = tmp_path / "vault"
+    _write(vault / "note.md", "# ok\n")
+    old = vault / "note.md.tmp-1234-1700000000000"
+    _write(old, "half-written")
+    two_hours_ago = _time.time() - 7200
+    os.utime(old, (two_hours_ago, two_hours_ago))
+    fresh = vault / "other.md.tmp-999-1700000000001"
+    _write(fresh, "in-flight write")  # mtime = now → not stale
+    report = audit_vault(vault)
+    paths = [t["path"] for t in report["stale_tmp"]]
+    assert paths == ["note.md.tmp-1234-1700000000000"]
+    assert report["stale_tmp"][0]["age_hours"] >= 1.9
+    assert report["stale_tmp_total"] == 1
+
+
+def test_git_state_none_without_repo_and_flags_rebase(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    _write(vault / "a.md", "# ok\n")
+    assert audit_vault(vault)["git_state"] is None
+
+    (vault / ".git").mkdir()
+    report = audit_vault(vault)
+    assert report["git_state"] == {"rebase_in_progress": False, "merge_in_progress": False}
+
+    (vault / ".git" / "rebase-merge").mkdir()
+    (vault / ".git" / "MERGE_HEAD").write_text("abc\n", encoding="utf-8")
+    report = audit_vault(vault)
+    assert report["git_state"] == {"rebase_in_progress": True, "merge_in_progress": True}
