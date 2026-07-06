@@ -601,7 +601,10 @@ func addRecursive(w *fsnotify.Watcher, root string) error {
 func skipDir(path string) bool {
 	base := filepath.Base(path)
 	switch base {
-	case ".git", "node_modules", ".obsidian":
+	// .obsidian-memory-rag is the derived sidecar (SQLite index + write lock):
+	// git-ignored, rebuildable, and churning on every search/write — watching it
+	// would turn index updates and lock acquire/release into spurious sync cycles.
+	case ".git", "node_modules", ".obsidian", ".obsidian-memory-rag":
 		return true
 	default:
 		return false
