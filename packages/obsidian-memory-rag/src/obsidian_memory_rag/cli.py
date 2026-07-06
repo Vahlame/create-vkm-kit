@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import statistics
 import sys
 import time
@@ -48,6 +49,13 @@ def _add_hybrid_flags(parser) -> None:
         help="Bias toward hub notes by [[wikilink]] in-degree (centrality)",
     )
     parser.add_argument(
+        "--pin-failures",
+        action="store_true",
+        help="Boost matched notes carrying [failure]/[gotcha] observations "
+        "(recorded lessons resurface on matching tasks; also via "
+        "OBSIDIAN_MEMORY_PIN_FAILURES=1)",
+    )
+    parser.add_argument(
         "--mmr",
         action="store_true",
         help="Diversify results with Maximal Marginal Relevance",
@@ -89,13 +97,19 @@ def _add_hybrid_flags(parser) -> None:
 
 
 def _hybrid_kwargs(args) -> dict:
-    """Build hybrid_search keyword args from parsed hybrid flags."""
+    """Build hybrid_search keyword args from parsed hybrid flags.
+
+    ``pin_failures`` can also be switched on install-wide via the env var
+    OBSIDIAN_MEMORY_PIN_FAILURES=1 — no MCP schema surface needed (ADR-0038).
+    """
+    env_pin = os.environ.get("OBSIDIAN_MEMORY_PIN_FAILURES") == "1"
     return {
         "limit": args.limit,
         "graph": args.graph or args.graph_typed,
         "graph_typed": args.graph_typed,
         "recency": args.recency,
         "importance": args.importance,
+        "pin_failures": args.pin_failures or env_pin,
         "mmr": args.mmr,
         "mmr_lambda": args.mmr_lambda,
         "passage_window": args.passage_window,

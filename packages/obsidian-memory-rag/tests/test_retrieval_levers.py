@@ -139,6 +139,59 @@ def test_mmr_high_lambda_is_relevance_order() -> None:
     assert out == ["a", "b", "c"]
 
 
+# --- Failure pinning (ADR-0038, evolutive memory) --------------------------------
+
+
+def test_pin_failures_promotes_recorded_lesson_among_ties(tmp_path: Path) -> None:
+    """Two comparably-relevant notes; the one carrying a [failure] observation
+    wins only when the lever is on, and the default path is byte-identical."""
+    v = tmp_path / "v"
+    body = "Subida a S3 con reintentos timeout multipart upload.\n"
+    # `aaa-neutral` sorts/ranks first among ties without the lever.
+    _write(v, "STACKS/aaa-neutral.md", f"# aaa-neutral\n\n{body}")
+    _write(
+        v,
+        "KNOWN_FAILURES.md",
+        f"# fallos\n\n{body}\n- [failure] multipart upload timeout con archivos >5GB #s3\n"
+        "- [root_cause] keep-alive corto\n- [fix] reintento con backoff\n",
+    )
+    emb = HashingEmbedder(dim=256)
+    index_vault(v)
+    index_vectors(v, emb)
+    q = "subida S3 multipart timeout"
+    base = hybrid_search(v, q, emb, limit=2)
+    boosted = hybrid_search(v, q, emb, limit=2, pin_failures=True)
+    base_paths = [h.path for h in base]
+    boosted_paths = [h.path for h in boosted]
+    assert "KNOWN_FAILURES.md" in boosted_paths
+    # The lesson never ranks worse with the lever on…
+    assert boosted_paths.index("KNOWN_FAILURES.md") <= base_paths.index("KNOWN_FAILURES.md")
+    # …and with a fused nudge it must take the top slot over the neutral tie.
+    assert boosted_paths[0] == "KNOWN_FAILURES.md"
+    # Default path unchanged by merely having failure notes in the vault.
+    again = hybrid_search(v, q, emb, limit=2)
+    assert [h.path for h in again] == base_paths
+    assert [h.score for h in again] == [h.score for h in base]
+
+
+def test_pin_failures_never_imports_unmatched_failure_notes(tmp_path: Path) -> None:
+    """A failure note that matches neither BM25 nor vectors for the query must not
+    appear just because the lever is on."""
+    v = tmp_path / "v"
+    _write(v, "STACKS/redis.md", "# redis\n\nCache Redis conexiones pool timeout.\n")
+    _write(
+        v,
+        "KNOWN_FAILURES.md",
+        "# fallos\n\n- [failure] migración de esquema Postgres bloqueó la tabla #postgres\n",
+    )
+    emb = HashingEmbedder(dim=256)
+    index_vault(v)
+    index_vectors(v, emb)
+    hits = hybrid_search(v, "cache redis pool", emb, limit=5, pin_failures=True)
+    top = hits[0]
+    assert top.path == "STACKS/redis.md"
+
+
 # --- Passage-window expansion (ADR-0026 §passage-window) -------------------------
 
 
