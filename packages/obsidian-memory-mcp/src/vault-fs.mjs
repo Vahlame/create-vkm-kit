@@ -15,6 +15,7 @@
 import { readFile, writeFile, readdir, stat, mkdir, rename, realpath } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { dirname, isAbsolute, join, normalize, resolve, sep } from "node:path";
+import { withVaultLock } from "./vault-lock.mjs";
 
 /**
  * Resolve a relative-or-absolute vault path and refuse anything that escapes
@@ -185,12 +186,16 @@ async function assertEtagMatches(fp, ifMatch) {
  */
 export async function vaultWriteFile(vaultAbs, relPath, content, opts = {}) {
   const fp = await safeVaultPath(vaultAbs, relPath);
-  if (opts.ifMatch) await assertEtagMatches(fp, opts.ifMatch);
-  await mkdir(dirname(fp), { recursive: true });
-  const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
-  await writeFile(tmp, content, "utf8");
-  await rename(tmp, fp);
-  return { path: fp, bytes: Buffer.byteLength(content, "utf8"), etag: fileEtag(content) };
+  // The advisory lock makes the ifMatch-check→rename span atomic against other
+  // sidecar processes on this host (see vault-lock.mjs for scope and stealing).
+  return withVaultLock(vaultAbs, "vault_write_file", async () => {
+    if (opts.ifMatch) await assertEtagMatches(fp, opts.ifMatch);
+    await mkdir(dirname(fp), { recursive: true });
+    const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
+    await writeFile(tmp, content, "utf8");
+    await rename(tmp, fp);
+    return { path: fp, bytes: Buffer.byteLength(content, "utf8"), etag: fileEtag(content) };
+  });
 }
 
 const FRONTMATTER_RE = /^---\r?\n[\s\S]*?\r?\n---\r?\n/;
@@ -232,38 +237,42 @@ export async function vaultEditFile(vaultAbs, relPath, edits, opts = {}) {
     throw new Error("edits must be a non-empty array of {oldText, newText}");
   }
   const fp = await safeVaultPath(vaultAbs, relPath);
-  const original = opts.ifMatch
-    ? await assertEtagMatches(fp, opts.ifMatch)
-    : await readFile(fp, "utf8");
-  let text = original;
-  const applied = [];
-  for (const [i, edit] of edits.entries()) {
-    if (typeof edit.oldText !== "string" || typeof edit.newText !== "string") {
-      throw new Error(`edit ${i}: oldText and newText must be strings`);
+  // Locked from the read to the rename: the single-match check below is only a
+  // same-content guarantee if no other process rewrites the file mid-edit.
+  return withVaultLock(vaultAbs, "vault_edit_file", async () => {
+    const original = opts.ifMatch
+      ? await assertEtagMatches(fp, opts.ifMatch)
+      : await readFile(fp, "utf8");
+    let text = original;
+    const applied = [];
+    for (const [i, edit] of edits.entries()) {
+      if (typeof edit.oldText !== "string" || typeof edit.newText !== "string") {
+        throw new Error(`edit ${i}: oldText and newText must be strings`);
+      }
+      const occurrences = text.split(edit.oldText).length - 1;
+      if (occurrences === 0) {
+        throw new Error(`edit ${i}: oldText not found in file`);
+      }
+      if (occurrences > 1) {
+        throw new Error(
+          `edit ${i}: oldText matches ${occurrences} times — provide more surrounding context to make it unique`
+        );
+      }
+      text = text.replace(edit.oldText, edit.newText);
+      applied.push(i);
     }
-    const occurrences = text.split(edit.oldText).length - 1;
-    if (occurrences === 0) {
-      throw new Error(`edit ${i}: oldText not found in file`);
-    }
-    if (occurrences > 1) {
+    if (wouldSelfPasteFrontmatter(original, text)) {
       throw new Error(
-        `edit ${i}: oldText matches ${occurrences} times — provide more surrounding context to make it unique`
+        "edit rejected: newText re-inserts this note's own frontmatter block, which would " +
+          "duplicate the note inside itself. If that is genuinely intended, use vault_write_file instead."
       );
     }
-    text = text.replace(edit.oldText, edit.newText);
-    applied.push(i);
-  }
-  if (wouldSelfPasteFrontmatter(original, text)) {
-    throw new Error(
-      "edit rejected: newText re-inserts this note's own frontmatter block, which would " +
-        "duplicate the note inside itself. If that is genuinely intended, use vault_write_file instead."
-    );
-  }
-  // Atomic write
-  const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
-  await writeFile(tmp, text, "utf8");
-  await rename(tmp, fp);
-  return { path: fp, editsApplied: applied.length, etag: fileEtag(text) };
+    // Atomic write
+    const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
+    await writeFile(tmp, text, "utf8");
+    await rename(tmp, fp);
+    return { path: fp, editsApplied: applied.length, etag: fileEtag(text) };
+  });
 }
 
 /**
