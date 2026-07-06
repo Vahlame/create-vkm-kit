@@ -202,7 +202,7 @@ Antes de una respuesta no trivial, chequea en silencio: ¿supuestos explícitos?
 
 - Tech nueva que no esté en `STACKS/` → entrada de una línea (`fecha · proyecto · verdict: unknown`); vista otra vez → increméntala. Sin preguntar.
 - Preferencia firme del usuario (idioma, estilo, herramientas, "como me gusta") → anótala una vez en `MEMORY.md` y aplícala proactivamente.
-- Marca las hipótesis como tales; promuévelas a hechos solo al confirmarse; descarta observaciones que llevan meses sin tocarse.
+- Marca las hipótesis como tales (frontmatter `status: hypothesis|confirmed` + `last_verified: YYYY-MM-DD` al verificar); promuévelas a hechos solo al confirmarse; descarta observaciones que llevan meses sin tocarse.
 
 ### Conoce tu modelo (adapta + aprende)
 

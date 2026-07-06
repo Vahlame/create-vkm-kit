@@ -73,6 +73,43 @@ def _scan_conflict_and_tmp_files(vault: Path, *, now: float) -> tuple[list[dict]
     return sync_conflicts, stale_tmp
 
 
+# Confidence / verification metadata (ADR-0038): notes may declare
+# `status: hypothesis|confirmed` and `last_verified: YYYY-MM-DD` in frontmatter.
+# The audit surfaces hypotheses that have gone unexamined and confirmed facts
+# nobody has re-verified in a long time — the raw material for the reflection
+# loop's promote/verify/archive proposals.
+_STATUS_RE = re.compile(r"^status:\s*(hypothesis|confirmed)\b", re.MULTILINE | re.IGNORECASE)
+_LAST_VERIFIED_RE = re.compile(r"^last_verified:\s*(\d{4}-\d{2}-\d{2})\b", re.MULTILINE)
+
+HYPOTHESIS_STALE_DAYS = 90
+UNVERIFIED_DAYS = 365
+
+_SECONDS_PER_DAY = 86_400
+
+
+def _confidence_ages(
+    text: str, mtime: float, now: float
+) -> tuple[str | None, float]:
+    """(status, age_days) from a note's frontmatter: age since ``last_verified``
+    when declared, else since mtime. (None, 0) when the note declares no status."""
+    m = _FRONTMATTER_BLOCK_RE.match(text)
+    if not m:
+        return None, 0.0
+    block = m.group(1)
+    status_m = _STATUS_RE.search(block)
+    if not status_m:
+        return None, 0.0
+    verified_m = _LAST_VERIFIED_RE.search(block)
+    if verified_m:
+        try:
+            anchor = time.mktime(time.strptime(verified_m.group(1), "%Y-%m-%d"))
+        except ValueError:
+            anchor = mtime
+    else:
+        anchor = mtime
+    return status_m.group(1).lower(), max(0.0, (now - anchor) / _SECONDS_PER_DAY)
+
+
 # Opt-in frontmatter schema (same file the Node write path reads — see
 # packages/obsidian-memory-mcp/src/schema-config.mjs; keep the two ~40-line
 # validators in sync, the spec is deliberately just required-keys presence).
@@ -201,7 +238,10 @@ def audit_vault(
     broken_links: list[dict] = []
     conflict_markers: list[dict] = []
     schema_violations: list[dict] = []
+    stale_hypotheses: list[dict] = []
+    unverified: list[dict] = []
     schema_config = _load_schema_config(vault)
+    now = time.time()
     seen_broken: set[tuple[str, str]] = set()  # dedup (source, target) pairs
 
     for fp in files:
@@ -221,6 +261,15 @@ def audit_vault(
             missing = _missing_frontmatter_keys(rel, text, schema_config)
             if missing:
                 schema_violations.append({"path": rel, "missing": missing})
+        try:
+            mtime = fp.stat().st_mtime
+        except OSError:
+            mtime = now
+        status, age_days = _confidence_ages(text, mtime, now)
+        if status == "hypothesis" and age_days >= HYPOTHESIS_STALE_DAYS:
+            stale_hypotheses.append({"path": rel, "age_days": round(age_days, 1)})
+        elif status == "confirmed" and age_days >= UNVERIFIED_DAYS:
+            unverified.append({"path": rel, "age_days": round(age_days, 1)})
         scan_text = strip_code_regions(text)
         for lineno, line in enumerate(scan_text.splitlines(), start=1):
             if line.startswith(_CONFLICT_MARKER_PREFIX):
@@ -292,4 +341,10 @@ def audit_vault(
         "schema_violations_total": (
             len(schema_violations) if schema_config is not None else None
         ),
+        "stale_hypotheses": sorted(
+            stale_hypotheses, key=lambda item: -item["age_days"]
+        )[:limit],
+        "stale_hypotheses_total": len(stale_hypotheses),
+        "unverified": sorted(unverified, key=lambda item: -item["age_days"])[:limit],
+        "unverified_total": len(unverified),
     }

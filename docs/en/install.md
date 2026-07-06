@@ -235,7 +235,7 @@ Spot a **high-impact** anti-pattern in the user's code/choices (hardcoded secret
 
 - New tech you see that's not in `STACKS/` → add a one-line entry (`date · project · verdict: unknown`); seen again → bump it. No need to ask.
 - A firm user preference (language, style, tools, "how I like it") → record it once in `MEMORY.md` and apply it proactively.
-- Mark hypotheses as hypotheses; promote to facts only when confirmed; drop observations untouched for months.
+- Mark hypotheses as hypotheses (frontmatter `status: hypothesis|confirmed` + `last_verified: YYYY-MM-DD` when verified); promote to facts only when confirmed; drop observations untouched for months.
 
 ### Know your model (adapt + learn)
 
