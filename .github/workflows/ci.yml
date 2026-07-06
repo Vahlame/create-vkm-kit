@@ -31,6 +31,8 @@ jobs:
         run: npx --yes prettier@3.8.4 --check "**/*.{json,yml,yaml,md,mjs,js,cjs,ts}"
       - name: sync agents
         run: npm run sync-agents:check
+      - name: license mirrors (packages/* == root LICENSE.md)
+        run: npm run license:sync:check
       - name: validate agent.toml (tomllib)
         run: python -c "import pathlib,tomllib;tomllib.loads(pathlib.Path('agent.toml').read_text(encoding='utf-8'));print('agent.toml ok')"
 

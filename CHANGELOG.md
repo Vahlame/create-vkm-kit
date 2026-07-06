@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **npm license metadata caught up with the license change.** The published
+  package (`@vkmikc/create-obsidian-memory`) still declared `"license": "MIT"`
+  and its tarball shipped no license text — npm only auto-includes `LICENSE*`
+  files from the _package_ root, not the repo root. The field now reads
+  `SEE LICENSE IN LICENSE.md`, every `packages/*` dir mirrors the canonical
+  root `LICENSE.md` (new `npm run license:sync` + `license:sync:check`,
+  drift-gated in the CI lint job and before `npm publish` in the release
+  workflow), the private packages (`obsidian-memory-mcp`,
+  `obsidian-prompt-compiler`) declare the same field, and stale "MIT" wording
+  in the package README and `CONTRIBUTING.md` now points at `LICENSE.md`.
+  Verified with `npm pack --dry-run` that `LICENSE.md` lands in the tarball.
+
 ## [3.13.1] - 2026-07-06
 
 ### Changed

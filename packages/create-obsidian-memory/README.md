@@ -141,4 +141,4 @@ Read the rules block before installing — it's printed in [`docs/en/install.md`
 
 ## License
 
-MIT © Vahlame. See the [repository](https://github.com/Vahlame/obsidian-memory-kit) for details.
+Free use with mandatory visible attribution (MIT-based) — © Vahlame. See [`LICENSE.md`](./LICENSE.md) and the [repository](https://github.com/Vahlame/obsidian-memory-kit) for details.

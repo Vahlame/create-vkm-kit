@@ -71,6 +71,8 @@ jobs:
         with:
           node-version: 20
           registry-url: "https://registry.npmjs.org"
+      - name: guard — LICENSE.md mirror matches root
+        run: node scripts/license-sync.mjs --check
       - name: publish create-obsidian-memory
         working-directory: packages/create-obsidian-memory
         env:
