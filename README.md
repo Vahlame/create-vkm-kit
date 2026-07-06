@@ -60,7 +60,9 @@ npx @vkmikc/create-obsidian-memory "<RUTA>" -y     # sin preguntas, en la ruta q
 > Enfocado **primero en Codex y Claude Code**, con **todas las funciones activas por defecto ·
 > every feature on by default**: registra el MCP en ambos, activa la búsqueda híbrida (BM25,
 > semántica y grafo), el **grafo de conocimiento** (relaciones tipadas y observaciones), los
-> **memory reports** y la **aceleración sqlite-vec**, instala el backend Python, construye el
+> **memory reports**, la **aceleración sqlite-vec**, la **seguridad multi-escritor** (etag,
+> `ifMatch` y lock de escritura, ADR-0037) y el **bucle de memoria evolutiva** (recall de fallos,
+> boost por uso, propuestas de `memory-reflect`, ADR-0038), instala el backend Python, construye el
 > índice e instala las reglas — sin preguntas. Córrelo desde un clon del kit (o pásale
 > `--repo-root <clon>`):
 >

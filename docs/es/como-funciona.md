@@ -124,11 +124,11 @@ configuras.
 búsqueda. Eso es el paquete **`obsidian-memory-rag`**, expuesto en el IDE por el **MCP híbrido**
 con estas herramientas:
 
-| Herramienta           | Qué hace                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vault_fts_search`    | Búsqueda **léxica** (SQLite FTS5 / BM25): rápida y exacta por palabras clave.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `vault_hybrid_search` | Búsqueda **híbrida**: mezcla lo léxico con lo **semántico** (por significado). "El daemon que sincroniza git" encuentra la nota aunque no uses esas palabras exactas — y devuelve **solo la sección relevante**, lo que **ahorra tokens**. Con `graph: true` además sigue tus `[[wikilinks]]`, así una nota enlazada desde un hit fuerte aflora aunque su propio texto apenas coincida (ADR-0019); con `recency: true` favorece las notas modificadas recientemente (ADR-0021). Más perillas de precisión **opt-in, off por defecto** (3.9): `rerank: true` añade un cross-encoder como pase final para consultas difíciles (ADR-0026, requiere el extra `[rerank]` + un modelo en el idioma del contenido), `graphTyped`/`importance` pesan relaciones tipadas / notas hub (ADR-0027), y `mmr` / `passageWindow` diversifican / devuelven una sección más completa (ADR-0028). Desde 3.12 la respuesta viene en **formato compacto** — cada hit trae solo `path`/`heading`/`snippet`/`score` — y el `limit` por defecto es **10**: usa **3–5** para un recall dirigido y súbelo solo para barridos amplios; los diagnósticos de ranking vuelven con `explain: true` (ADR-0034). |
-| `vault_complete`      | **Autocompletado** de un prefijo a los títulos de nota, nombres de archivo y `#tags` que existen de verdad — útil para resolver un nombre a medias antes de buscar o enlazar.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Herramienta           | Qué hace                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vault_fts_search`    | Búsqueda **léxica** (SQLite FTS5 / BM25): rápida y exacta por palabras clave.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `vault_hybrid_search` | Búsqueda **híbrida**: mezcla lo léxico con lo **semántico** (por significado). "El daemon que sincroniza git" encuentra la nota aunque no uses esas palabras exactas — y devuelve **solo la sección relevante**, lo que **ahorra tokens**. Con `graph: true` además sigue tus `[[wikilinks]]`, así una nota enlazada desde un hit fuerte aflora aunque su propio texto apenas coincida (ADR-0019); con `recency: true` favorece las notas modificadas recientemente (ADR-0021). Más perillas de precisión **opt-in, off por defecto** (3.9): `rerank: true` añade un cross-encoder como pase final para consultas difíciles (ADR-0026, requiere el extra `[rerank]` + un modelo en el idioma del contenido), `graphTyped`/`importance` pesan relaciones tipadas / notas hub (ADR-0027), y `mmr` / `passageWindow` diversifican / devuelven una sección más completa (ADR-0028). Desde 3.12 la respuesta viene en **formato compacto** — cada hit trae solo `path`/`heading`/`snippet`/`score` — y el `limit` por defecto es **10**: usa **3–5** para un recall dirigido y súbelo solo para barridos amplios; los diagnósticos de ranking vuelven con `explain: true` (ADR-0034). Desde 3.13, las palancas CLI/env `pin_failures` y `usage` (ADR-0038) hacen que lecciones registradas y notas demostradamente útiles ganen los empates. |
+| `vault_complete`      | **Autocompletado** de un prefijo a los títulos de nota, nombres de archivo y `#tags` que existen de verdad — útil para resolver un nombre a medias antes de buscar o enlazar.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 No es obligatorio para empezar. Es una capa de **comodidad, mejor recall y ahorro de tokens**,
 no el núcleo. Detalle técnico: [ADR-0017](../adr/0017-hybrid-query-embeddings.md) (consulta híbrida) y
@@ -136,17 +136,19 @@ no el núcleo. Detalle técnico: [ADR-0017](../adr/0017-hybrid-query-embeddings.
 
 ### El stack de recuperación de un vistazo (viejo + nuevo)
 
-La misma pregunta la responden **tres rankers a la vez** y luego se **fusionan** — ninguno gana por sí solo, y eso mantiene los resultados equilibrados. Léxico y semántico son las capas originales; el ranker de **grafo** es opt-in (nuevo en 3.5). Etapas más nuevas **opt-in, off por defecto** (3.9) pueden afinar el orden después: un reordenamiento ligero (recencia · importancia · diversificación MMR) y un **reranker cross-encoder** opcional que vuelve a leer cada candidato _junto con_ la consulta. Todo lo posterior a RRF está apagado salvo que lo pidas, así el camino por defecto no cambia:
+La misma pregunta la responden **tres rankers a la vez** y luego se **fusionan** — ninguno gana por sí solo, y eso mantiene los resultados equilibrados. Léxico y semántico son las capas originales; el ranker de **grafo** es opt-in (nuevo en 3.5). Etapas más nuevas **opt-in, off por defecto** (3.9) pueden afinar el orden después: un reordenamiento ligero (recencia · importancia · diversificación MMR) y un **reranker cross-encoder** opcional que vuelve a leer cada candidato _junto con_ la consulta. Desde 3.13 se suman dos **palancas de aprendizaje** (ADR-0038): `pin_failures` fusiona un cuarto ranking de bajo peso con las notas coincidentes que llevan lecciones `[failure]`/`[gotcha]`, y `usage` empuja la memoria que ya demostró ayudar. Todo lo posterior a RRF está apagado salvo que lo pidas, así el camino por defecto no cambia:
 
 ```mermaid
 flowchart LR
   Q["tu pregunta"] --> L["BM25 léxico<br/>palabras exactas · fallback AND→OR"]
   Q --> S["vector semántico<br/>por significado"]
   Q --> G["saltos por enlaces<br/>opt-in · grafo tipado (3.9)"]
+  Q --> X["lecciones registradas<br/>opt-in pin_failures (3.13)"]
   L --> F["fusión RRF<br/>(por rango, no scores crudos)"]
   S --> F
   G --> F
-  F --> B["reorden opt-in (3.9)<br/>recencia · importancia · MMR"]
+  X --> F
+  F --> B["reorden opt-in<br/>recencia · importancia · MMR (3.9)<br/>boost por uso (3.13)"]
   B --> R["cross-encoder opt-in<br/>rerank · off por defecto (3.9)"]
   R --> P["sección que coincide<br/>(passage-first · ± ventana)"]
 ```
@@ -236,10 +238,11 @@ Compone tres señales que el kit ya tiene en un único digest **read-only**:
 
 ```mermaid
 flowchart LR
-  A["audit<br/>tamaños · enlaces rotos · log"] --> R["vault_memory_report<br/>(read-only)"]
+  A["audit<br/>tamaños · enlaces rotos · log<br/>conflictos · estado git · schema (3.13)"] --> R["vault_memory_report<br/>(read-only)"]
   K["grafo de conocimiento<br/>relaciones · observaciones"] --> R
   V["vectores<br/>casi-duplicados (opt-in)"] --> R
-  R --> O["índices automáticos (por categoría, hubs, tags)<br/>higiene (gigantes · obsoletas · huérfanas · rotos)<br/>suggested_actions — tú actúas, nunca reescribe"]
+  U["telemetría de recall<br/>notas frías (3.13)"] --> R
+  R --> O["índices automáticos (por categoría, hubs, tags)<br/>higiene (gigantes · obsoletas · huérfanas · rotos · frías)<br/>reflect: true → propuestas de consolidación (3.13)<br/>suggested_actions — tú actúas, nunca reescribe"]
 ```
 
 En el vault real de 55 notas afloró al instante: `SESSION_LOG` sobre presupuesto, 6 notas gigantes,
@@ -387,6 +390,51 @@ una regla; y al sincronizar se descubrió que los docs llevaban meses con una va
 bloque de reglas — ese drift ahora también es un test. Detalle:
 [ADR-0035](../adr/0035-fixed-cost-diet-schema-budget.md) ·
 [ADR-0036](../adr/0036-rules-block-diet-and-drift-gate.md).
+
+---
+
+## Seguro con varios escritores + memoria que aprende (nuevo en 3.13)
+
+Dos respuestas a una misma crítica ("markdown plano = carreras y notas estáticas"), ambas aditivas y
+opt-in (detalle: [ADR-0037](../adr/0037-vault-vs-database-system-of-record.md) ·
+[ADR-0038](../adr/0038-evolutive-memory-loop.md)).
+
+**Seguridad multi-escritor.** Cada lectura devuelve ahora un **etag** del contenido; devuélvelo como
+`ifMatch` y la escritura falla de forma segura si algo cambió la nota entre medias — sin updates
+perdidos entre dos ventanas del IDE. En una misma máquina, un **lock de escritura** advisory
+(`.obsidian-memory-rag/write.lock`, con recuperación automática de locks huérfanos) serializa el
+tramo comprobar-y-escribir; entre máquinas el árbitro sigue siendo git y los conflictos se muestran,
+nunca se auto-mergean:
+
+```mermaid
+sequenceDiagram
+  participant W1 as ventana 1
+  participant V as nota del vault
+  participant W2 as ventana 2
+  W1->>V: lee (etag a1b2)
+  W2->>V: escribe (la nota cambia)
+  W1->>V: edita ifMatch a1b2
+  V-->>W1: precondition failed — relee y reintenta
+  W1->>V: lee (etag c3d4) → edita ifMatch c3d4 ✓
+```
+
+**El bucle evolutivo.** Un error se registra **una vez** como entrada estructurada en
+`KNOWN_FAILURES.md` (`- [failure] síntoma #tag` · `- [root_cause]` · `- [fix]`), reaparece en la
+siguiente tarea que coincida (`pin_failures`, con gate en CI), la memoria que sigue ayudando sube
+(`usage`, con telemetría local `recall_log` que nunca sale de tu máquina), la que nadie toca aflora
+como `cold_notes`, y `memory-reflect` propone periódicamente promociones / fusiones / archivado —
+que **tú** apruebas:
+
+```mermaid
+flowchart LR
+  M["error / lección"] --> K["KNOWN_FAILURES.md<br/>entrada estructurada"]
+  K --> P["siguiente tarea que coincide<br/>recall pin_failures (gate en CI)"]
+  P --> U["¿volvió a ayudar?<br/>boost usage vía recall_log"]
+  U --> C["¿nunca usada?<br/>cold_notes → revisión"]
+  C --> RF["memory-reflect<br/>propuestas: promover · fusionar · archivar"]
+  RF -- "el humano aprueba" --> V["vault actualizado"]
+  V --> K
+```
 
 ---
 
