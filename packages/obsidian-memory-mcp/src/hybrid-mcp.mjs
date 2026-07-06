@@ -88,6 +88,13 @@ function flagKg(result) {
   return result;
 }
 
+/** Recall telemetry (ADR-0038) is on unless explicitly disabled — it powers the
+ * usage ranking boost and the cold-notes decay report; the data never leaves
+ * the vault's local sidecar DB. */
+function recallLogEnabled() {
+  return process.env.OBSIDIAN_MEMORY_RECALL_LOG !== "0";
+}
+
 async function main() {
   // Opt-in tracing: no-ops unless OTEL_EXPORTER_OTLP_ENDPOINT is set and the
   // optional @opentelemetry/* deps are installed (see docs/observability.md).
@@ -141,6 +148,7 @@ async function main() {
       const v = requireVault(vault || undefined);
       const args = ["json-search", "--vault", v, "--query", query, "--limit", String(limit ?? 10)];
       if (explain) args.push("--explain");
+      if (recallLogEnabled()) args.push("--log-recall");
       const result = await runRagJson(args, ragSrc);
       return flagHits(result);
     })
@@ -292,6 +300,7 @@ async function main() {
         if (mmr) args.push("--mmr");
         if (passageWindow) args.push("--passage-window", String(passageWindow));
         if (rerank) args.push("--rerank");
+        if (recallLogEnabled()) args.push("--log-recall");
         const result = await runRagJson(args, ragSrc);
         return flagHits(result);
       }
@@ -453,6 +462,12 @@ async function main() {
       if (tail != null) opts.tail = tail;
       if (maxChars != null) opts.maxChars = maxChars;
       const { text, etag, mtimeMs } = await vaultReadFileWithMeta(v, path, opts);
+      // Implicit-feedback telemetry: search returned it, the agent opened it →
+      // that's the "this memory helped" signal. Fire-and-forget — a telemetry
+      // failure must never delay or break a read.
+      if (recallLogEnabled() && path.toLowerCase().endsWith(".md")) {
+        runRagJson(["json-log-use", "--vault", v, "--path", path], ragSrc).catch(() => {});
+      }
       // Etag line lives OUTSIDE the untrusted envelope so note content cannot
       // spoof it; it identifies the whole file version even for head/tail reads.
       return (

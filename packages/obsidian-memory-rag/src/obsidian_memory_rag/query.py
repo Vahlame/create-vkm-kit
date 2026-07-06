@@ -195,6 +195,15 @@ IMPORTANCE_WEIGHT = 0.15
 FAILURE_WEIGHT = 0.15
 FAILURE_CATEGORIES = ("failure", "gotcha")
 
+# Optional usage reinforcement (ADR-0038): memory that demonstrably helped —
+# search returned it AND the agent then opened it (recall_log 'used' events) —
+# gets a bounded multiplicative boost, log-damped so a runaway favourite cannot
+# monopolize ranking: 1 + weight × log1p(uses)/log1p(max_uses). Like recency/
+# importance it can only promote among already-matched candidates. Off by
+# default; an empty log makes it an exact no-op.
+USAGE_WEIGHT = 0.15
+USAGE_WINDOW_DAYS = 90.0
+
 # Optional cross-encoder reranking (ADR-0026). When a reranker is supplied,
 # hybrid_search widens the fused pool to this many candidates and re-scores their
 # passages jointly with the query, reordering by the (relative) cross-encoder logit.
@@ -489,6 +498,9 @@ def hybrid_search(
     importance_weight: float = IMPORTANCE_WEIGHT,
     pin_failures: bool = False,
     failure_weight: float = FAILURE_WEIGHT,
+    usage: bool = False,
+    usage_weight: float = USAGE_WEIGHT,
+    usage_window_days: float = USAGE_WINDOW_DAYS,
     mmr: bool = False,
     mmr_lambda: float = 0.5,
     passage_window: int = 0,
@@ -518,6 +530,9 @@ def hybrid_search(
     - ``pin_failures=True`` fuses a low-weight ranking of the candidates that carry
       a ``[failure]``/``[gotcha]`` observation (ADR-0038), so recorded lessons edge
       out neutral notes of comparable relevance when a matching task returns.
+    - ``usage=True`` multiplies by a bounded, log-damped boost from recall_log
+      'used' events (ADR-0038): memory that repeatedly helped ranks higher among
+      comparables; an empty log is an exact no-op.
     - ``mmr=True`` reorders the fused pool for diversity (Maximal Marginal Relevance)
       using the stored chunk vectors; ``mmr_lambda`` trades relevance vs. novelty.
     - ``reranker`` (an optional cross-encoder, ADR-0026) re-scores the fused pool's
@@ -567,7 +582,7 @@ def hybrid_search(
     # Any post-fusion stage (recency/importance multiply, MMR, rerank) needs a wider
     # candidate pool so an item from just outside the top-``limit`` can be promoted;
     # with every stage off the result is byte-identical to plain weighted RRF.
-    widen = recency or importance or mmr or reranker is not None
+    widen = recency or importance or usage or mmr or reranker is not None
     fused = reciprocal_rank_fusion(
         rankings, weights=weights, limit=max(limit, candidate_pool) if widen else limit
     )
@@ -587,7 +602,18 @@ def hybrid_search(
                 (p, s * (1.0 + importance_weight * (indeg.get(p, 0) / max_deg)))
                 for p, s in fused
             ]
-    if recency or importance:
+    if usage:
+        from .recall_log import usage_counts
+
+        uses = usage_counts(vault, [p for p, _ in fused], window_days=usage_window_days)
+        max_uses = max(uses.values(), default=0)
+        if max_uses > 0:
+            denom = math.log1p(max_uses)
+            fused = [
+                (p, s * (1.0 + usage_weight * (math.log1p(uses.get(p, 0)) / denom)))
+                for p, s in fused
+            ]
+    if recency or importance or usage:
         fused.sort(key=lambda kv: kv[1], reverse=True)
 
     bm_rank = {p: i + 1 for i, p in enumerate(bm_paths)}

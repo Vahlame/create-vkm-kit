@@ -18,6 +18,7 @@ from .embeddings import get_embedder
 from .indexer import ensure_fresh, index_vault, index_vectors
 from .kg_query import observations_query, relations_for, suggest_structure
 from .query import hybrid_search, search_vault
+from .recall_log import log_events
 from .reflect import build_reflection, format_reflection, write_reflection_note
 from .report import build_report
 from .rerank import get_reranker
@@ -91,6 +92,19 @@ def _add_hybrid_flags(parser) -> None:
         "(default off = reorder-only; only set it with a validated model)",
     )
     parser.add_argument(
+        "--usage",
+        action="store_true",
+        help="Boost notes with recent 'used' recall-log events (memory that helped "
+        "ranks higher; also via OBSIDIAN_MEMORY_USAGE_BOOST=1)",
+    )
+    parser.add_argument(
+        "--log-recall",
+        action="store_true",
+        help="Log one 'returned' recall_log event per hit (telemetry for the usage "
+        "boost and cold-notes report; disable from the MCP with "
+        "OBSIDIAN_MEMORY_RECALL_LOG=0)",
+    )
+    parser.add_argument(
         "--no-auto-index",
         action="store_true",
         help="Skip the pre-search incremental index refresh (query the index as-is)",
@@ -111,6 +125,7 @@ def _hybrid_kwargs(args) -> dict:
         "recency": args.recency,
         "importance": args.importance,
         "pin_failures": args.pin_failures or env_pin,
+        "usage": args.usage or os.environ.get("OBSIDIAN_MEMORY_USAGE_BOOST") == "1",
         "mmr": args.mmr,
         "mmr_lambda": args.mmr_lambda,
         "passage_window": args.passage_window,
@@ -155,6 +170,11 @@ def main() -> None:
     q.add_argument("--vault", type=Path, required=True)
     q.add_argument("query", help="Space-separated terms (AND semantics on body)")
     q.add_argument("--limit", type=int, default=20)
+    q.add_argument(
+        "--log-recall",
+        action="store_true",
+        help="Log one 'returned' recall_log event per hit (usage telemetry)",
+    )
     q.add_argument(
         "--no-auto-index",
         action="store_true",
@@ -279,6 +299,18 @@ def main() -> None:
         help="Include per-hit ranking diagnostics (bm25 score, mtime_ns); the default "
         "wire format omits them — the consumer is an LLM and order already conveys rank",
     )
+    js.add_argument(
+        "--log-recall",
+        action="store_true",
+        help="Log one 'returned' recall_log event per hit (usage telemetry)",
+    )
+
+    jlu = sub.add_parser(
+        "json-log-use",
+        help="Record a 'used' recall_log event for a note the agent opened (telemetry)",
+    )
+    jlu.add_argument("--vault", type=Path, required=True)
+    jlu.add_argument("--path", required=True, help="Vault-relative note path that was read")
 
     jh = sub.add_parser(
         "json-hybrid-search",
@@ -507,6 +539,8 @@ def main() -> None:
         if not args.no_auto_index:
             ensure_fresh(args.vault)
         hits = search_vault(args.vault, args.query, limit=args.limit)
+        if args.log_recall and hits:
+            log_events(args.vault, "returned", [h.path for h in hits], query=args.query)
         if not hits:
             print("no hits (run `index` first or broaden query)")
             return
@@ -518,6 +552,8 @@ def main() -> None:
         if not args.no_auto_index:
             ensure_fresh(args.vault, embedder=embedder)
         hits = hybrid_search(args.vault, args.query, embedder, **_hybrid_kwargs(args))
+        if args.log_recall and hits:
+            log_events(args.vault, "returned", [h.path for h in hits], query=args.query)
         if not hits:
             print("no hits (run `index --semantic` first or broaden query)")
             return
@@ -615,6 +651,8 @@ def main() -> None:
         if not args.no_auto_index:
             ensure_fresh(args.vault)
         hits = search_vault(args.vault, args.query, limit=args.limit)
+        if args.log_recall and hits:
+            log_events(args.vault, "returned", [h.path for h in hits], query=args.query)
         # Compact wire format (ADR-0034): the consumer is an LLM that pays input
         # tokens per hit — order already conveys rank, so ranking diagnostics
         # (raw bm25 distance, 19-digit mtime_ns) ship only under --explain.
@@ -640,6 +678,8 @@ def main() -> None:
         if not args.no_auto_index:
             ensure_fresh(args.vault, embedder=embedder)
         hits = hybrid_search(args.vault, args.query, embedder, **_hybrid_kwargs(args))
+        if args.log_recall and hits:
+            log_events(args.vault, "returned", [h.path for h in hits], query=args.query)
         # Compact wire format (ADR-0034): default hits carry only what an agent
         # acts on (path, heading, snippet, rounded score). Per-ranker ranks and
         # the full-precision score — mostly-null diagnostics costing ~25 tokens
@@ -876,6 +916,9 @@ def main() -> None:
             print("  suggested actions:")
             for s in report["suggested_actions"]:
                 print(f"    - {s}")
+    elif args.cmd == "json-log-use":
+        written = log_events(args.vault, "used", [args.path])
+        print(json.dumps({"logged": written}))
     elif args.cmd in ("memory-reflect", "json-memory-reflect"):
         if not args.no_auto_index:
             ensure_fresh(args.vault)
