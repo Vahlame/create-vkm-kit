@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="./LICENSE"><img src="https://img.shields.io/badge/licencia-MIT-blue.svg" alt="MIT"></a>
+  <a href="./LICENSE.md"><img src="https://img.shields.io/badge/licencia-MIT_%2B_atribuci%C3%B3n-blue.svg" alt="Licencia"></a>
   <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v3.13.1-orange.svg" alt="Release"></a>
   <a href="https://github.com/Vahlame/obsidian-memory-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/obsidian-memory-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
@@ -140,4 +140,4 @@ si regresa. Detalle · detail: [🇪🇸 cómo funciona](docs/es/como-funciona.m
 
 ## Licencia · License
 
-MIT — ver [`LICENSE`](LICENSE).
+Libre uso con atribución visible obligatoria (base MIT) — ver [`LICENSE.md`](LICENSE.md).
