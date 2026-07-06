@@ -1,4 +1,6 @@
-"""Vault health audit: size budget, broken wikilinks, SESSION_LOG growth (D4/D7).
+"""Vault health audit: size budget, broken wikilinks, SESSION_LOG growth (D4/D7),
+plus corruption/conflict signals (sync-conflict files, committed merge markers,
+in-progress git rebase/merge state, stale atomic-write temp files).
 
 Pure stdlib, read-only. Scans every ``*.md`` under the vault (excluding the
 sidecar/tooling dirs) and reports notes that blow the per-note token budget,
@@ -10,6 +12,7 @@ the Node MCP bridge can forward it untouched (see ``cli.py`` ``json-audit``).
 from __future__ import annotations
 
 import re
+import time
 from math import ceil
 from pathlib import Path
 
@@ -27,6 +30,60 @@ _WIKILINK_RE = re.compile(r"\[\[([^\[\]]+?)\]\]")
 _BYTES_PER_TOKEN = 4
 
 SESSION_LOG_NAME = "SESSION_LOG.md"
+
+# A git merge-conflict marker committed into a note is corrupted state the human
+# needs to see. Only the opening marker is scanned for (7 chars + space), on
+# code-stripped text so documentation examples inside fences don't trip it.
+_CONFLICT_MARKER_PREFIX = "<<<<<<< "
+
+# Leftover from a crashed atomic write (the MCP writes `<file>.tmp-<pid>-<ts>`
+# then renames). Anything matching that shape older than this many seconds is
+# debris — a live write holds its tmp file for milliseconds.
+_STALE_TMP_RE = re.compile(r"\.tmp-\d+-\d+$")
+_STALE_TMP_AGE_SECONDS = 3600
+
+
+def _scan_conflict_and_tmp_files(vault: Path, *, now: float) -> tuple[list[dict], list[dict]]:
+    """One rglob pass for Syncthing conflict files and stale atomic-write temps.
+
+    Conflict files can be any extension (Syncthing marks whatever it synced), so
+    this walks all files, not just ``*.md``, still skipping the tooling dirs.
+    """
+    sync_conflicts: list[dict] = []
+    stale_tmp: list[dict] = []
+    for path in vault.rglob("*"):
+        if not path.is_file():
+            continue
+        rel_parts = path.relative_to(vault).parts
+        if any(part in _EXCLUDE_DIRS for part in rel_parts[:-1]):
+            continue
+        rel = path.relative_to(vault).as_posix()
+        if ".sync-conflict-" in path.name:
+            sync_conflicts.append({"path": rel})
+        elif _STALE_TMP_RE.search(path.name):
+            try:
+                age = now - path.stat().st_mtime
+            except OSError:
+                continue
+            if age > _STALE_TMP_AGE_SECONDS:
+                stale_tmp.append({"path": rel, "age_hours": round(age / 3600, 1)})
+    sync_conflicts.sort(key=lambda item: item["path"])
+    stale_tmp.sort(key=lambda item: item["path"])
+    return sync_conflicts, stale_tmp
+
+
+def _git_state(vault: Path) -> dict | None:
+    """In-progress rebase/merge markers inside ``.git`` — the state the daemon
+    leaves behind when it aborts on conflict (or a human interrupted a merge).
+    ``None`` when the vault is not a git repo."""
+    git_dir = vault / ".git"
+    if not git_dir.is_dir():
+        return None
+    return {
+        "rebase_in_progress": (git_dir / "rebase-merge").exists()
+        or (git_dir / "rebase-apply").exists(),
+        "merge_in_progress": (git_dir / "MERGE_HEAD").exists(),
+    }
 
 
 def _estimate_tokens(num_bytes: int) -> int:
@@ -80,6 +137,13 @@ def audit_vault(
       carries the real count.
     - ``session_log``: token count + over-threshold flag for ``SESSION_LOG.md``
       (``None`` when the file is absent).
+    - ``sync_conflicts``: Syncthing ``*.sync-conflict-*`` files (any extension).
+    - ``conflict_markers``: notes with a committed git ``<<<<<<< `` marker outside
+      code regions (first offending line per note).
+    - ``stale_tmp``: leftover ``*.tmp-<pid>-<ts>`` files from a crashed atomic
+      write, older than an hour.
+    - ``git_state``: in-progress rebase/merge markers (``None`` if not a git repo)
+      — the state the sync daemon leaves when it aborts on conflict.
     """
     vault = vault.resolve()
     files = _iter_md_files(vault)
@@ -95,6 +159,7 @@ def audit_vault(
     total_tokens = 0
     oversized: list[dict] = []
     broken_links: list[dict] = []
+    conflict_markers: list[dict] = []
     seen_broken: set[tuple[str, str]] = set()  # dedup (source, target) pairs
 
     for fp in files:
@@ -111,6 +176,11 @@ def audit_vault(
         # Decode for wikilink scanning; utf-8-sig drops a leading BOM if present.
         text = data.decode("utf-8-sig", errors="replace")
         scan_text = strip_code_regions(text)
+        for lineno, line in enumerate(scan_text.splitlines(), start=1):
+            if line.startswith(_CONFLICT_MARKER_PREFIX):
+                # First marker per note is enough to flag it for a human.
+                conflict_markers.append({"path": rel, "line": lineno})
+                break
         for match in _WIKILINK_RE.finditer(scan_text):
             target = _wikilink_target(match.group(1))
             if not target:
@@ -146,6 +216,11 @@ def audit_vault(
             "over_threshold": log_tokens > session_log_budget,
         }
 
+    sync_conflicts, stale_tmp = _scan_conflict_and_tmp_files(vault, now=time.time())
+    sync_conflicts_total = len(sync_conflicts)
+    stale_tmp_total = len(stale_tmp)
+    conflict_markers_total = len(conflict_markers)
+
     return {
         "budget_tokens": budget_tokens,
         "totals": {"notes": len(files), "tokens": total_tokens},
@@ -154,4 +229,11 @@ def audit_vault(
         "broken_links": broken_links,
         "broken_links_total": broken_links_total,
         "session_log": session_log,
+        "sync_conflicts": sync_conflicts[:limit],
+        "sync_conflicts_total": sync_conflicts_total,
+        "conflict_markers": conflict_markers[:limit],
+        "conflict_markers_total": conflict_markers_total,
+        "stale_tmp": stale_tmp[:limit],
+        "stale_tmp_total": stale_tmp_total,
+        "git_state": _git_state(vault),
     }
