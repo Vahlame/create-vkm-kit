@@ -29,6 +29,12 @@ type DaemonState struct {
 	LastSyncError           string    `json:"last_sync_error,omitempty"`
 	LastSyncErrorAt         time.Time `json:"last_sync_error_at,omitempty"`
 	ConsecutiveSyncFailures int       `json:"consecutive_sync_failures"`
+	// Syncthing conflict visibility (ADR-0013 amendment): the daemon never
+	// auto-merges *.sync-conflict-* files — it records the sighting so `doctor`
+	// can surface "there is a divergence waiting for a human" instead of the
+	// warning living only in the JSONL log.
+	LastConflictFile   string    `json:"last_conflict_file,omitempty"`
+	LastConflictFileAt time.Time `json:"last_conflict_file_at,omitempty"`
 }
 
 var (
@@ -152,6 +158,15 @@ func recordPushFailure() {
 func recordRebaseAbort() {
 	_ = updateState(func(s *DaemonState) {
 		s.LastRebaseAbort = time.Now().UTC()
+	})
+}
+
+// recordConflictFile timestamps the most recent Syncthing conflict file the
+// watcher saw (basename only — the state file must not accumulate full paths).
+func recordConflictFile(name string) {
+	_ = updateState(func(s *DaemonState) {
+		s.LastConflictFile = truncateString(filepath.Base(name), 120)
+		s.LastConflictFileAt = time.Now().UTC()
 	})
 }
 
