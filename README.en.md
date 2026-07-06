@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT"></a>
+  <a href="./LICENSE.md"><img src="https://img.shields.io/badge/license-MIT_%2B_attribution-blue.svg" alt="License"></a>
   <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v3.13.1-orange.svg" alt="Release"></a>
   <a href="https://github.com/Vahlame/obsidian-memory-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/obsidian-memory-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
@@ -118,4 +118,4 @@ block) — every number has a gate that **breaks the build** if it regresses. De
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE).
+Free use with mandatory visible attribution (MIT-based) — see [`LICENSE.md`](LICENSE.md).

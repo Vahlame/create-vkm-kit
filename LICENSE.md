@@ -1,9 +1,9 @@
 # Licencia de libre uso con atribución obligatoria — obsidian-memory-kit
 
-*(Basada en la Licencia MIT, con una condición adicional de atribución visible.
-Based on the MIT License, with one additional visible-attribution condition.)*
+_(Basada en la Licencia MIT, con una condición adicional de atribución visible.
+Based on the MIT License, with one additional visible-attribution condition.)_
 
-Copyright (c) 2026 Jorge David Hidalgo Oporta («Vahlame») — vahlame@gmail.com
+Copyright (c) 2026 Jorge David Hidalgo Oporta («Vahlame») — <vahlame@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,9 +25,9 @@ furnished to do so, subject to the following conditions:
    (<https://github.com/Vahlame/obsidian-memory-kit>), for example in the
    README or equivalent primary documentation.
 
-   *En español: toda copia, uso, fork o derivado de este proyecto debe incluir
+   _En español: toda copia, uso, fork o derivado de este proyecto debe incluir
    la atribución visible indicada arriba junto con el enlace al repositorio
-   original, por ejemplo en el README o documentación principal equivalente.*
+   original, por ejemplo en el README o documentación principal equivalente._
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -38,6 +38,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ---
-*Este es el único proyecto de Vahlame de libre uso; todos los demás son
+_Este es el único proyecto de Vahlame de libre uso; todos los demás son
 propietarios y todo uso se acuerda directamente con el titular:
-vahlame@gmail.com · (+506) 8610-8287.*
+<vahlame@gmail.com> · (+506) 8610-8287._
