@@ -13,7 +13,10 @@
  * StdioServerTransport.
  */
 import { readFile, writeFile, readdir, stat, mkdir, rename, realpath } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { dirname, isAbsolute, join, normalize, resolve, sep } from "node:path";
+import { withVaultLock } from "./vault-lock.mjs";
+import { checkSchemaForWrite } from "./schema-config.mjs";
 
 /**
  * Resolve a relative-or-absolute vault path and refuse anything that escapes
@@ -73,17 +76,23 @@ export async function safeVaultPath(vaultAbs, userPath) {
 const DEFAULT_MAX_READ_CHARS = 200_000;
 
 /**
- * Read a file inside the vault. Optionally return only the first/last N lines.
- * With neither `head` nor `tail`, the read is capped at `maxChars` (default
- * {@link DEFAULT_MAX_READ_CHARS}) with a truncation notice appended — pass head/tail
- * to page through a file bigger than that instead of getting a silent partial read.
- * @param {string} vaultAbs
- * @param {string} relPath
- * @param {{head?: number, tail?: number, maxChars?: number}} [opts]
+ * Content etag for optimistic concurrency: first 12 hex chars of sha256 over the
+ * exact file text. Content-addressed (not mtime-based) so the tmp+rename write
+ * path and filesystem timestamp granularity can't produce false mismatches.
+ * @param {string} text
+ * @returns {string}
  */
-export async function vaultReadFile(vaultAbs, relPath, opts = {}) {
-  const fp = await safeVaultPath(vaultAbs, relPath);
-  const text = await readFile(fp, "utf8");
+export function fileEtag(text) {
+  return createHash("sha256").update(text, "utf8").digest("hex").slice(0, 12);
+}
+
+/**
+ * Render a raw file text according to head/tail/maxChars read options.
+ * @param {string} text
+ * @param {{head?: number, tail?: number, maxChars?: number}} opts
+ * @returns {string}
+ */
+function renderRead(text, opts) {
   const head = opts.head;
   const tail = opts.tail;
   if (head == null && tail == null) {
@@ -95,26 +104,104 @@ export async function vaultReadFile(vaultAbs, relPath, opts = {}) {
       `Pass head or tail to page through the rest instead of reading it whole.]`
     );
   }
-  const lines = text.split(/\r?\n/);
   if (head != null && tail != null) {
     throw new Error("pass head OR tail, not both");
   }
+  const lines = text.split(/\r?\n/);
   return head != null ? lines.slice(0, head).join("\n") : lines.slice(-tail).join("\n");
 }
 
 /**
+ * Read a file inside the vault. Optionally return only the first/last N lines.
+ * With neither `head` nor `tail`, the read is capped at `maxChars` (default
+ * {@link DEFAULT_MAX_READ_CHARS}) with a truncation notice appended — pass head/tail
+ * to page through a file bigger than that instead of getting a silent partial read.
+ * @param {string} vaultAbs
+ * @param {string} relPath
+ * @param {{head?: number, tail?: number, maxChars?: number}} [opts]
+ */
+export async function vaultReadFile(vaultAbs, relPath, opts = {}) {
+  const fp = await safeVaultPath(vaultAbs, relPath);
+  const text = await readFile(fp, "utf8");
+  return renderRead(text, opts);
+}
+
+/**
+ * Like {@link vaultReadFile} but also returns the whole-file etag (computed over
+ * the full content even when head/tail/maxChars narrow the returned text — the
+ * etag identifies the file version, not the excerpt) and the mtime.
+ * @param {string} vaultAbs
+ * @param {string} relPath
+ * @param {{head?: number, tail?: number, maxChars?: number}} [opts]
+ * @returns {Promise<{text: string, etag: string, mtimeMs: number}>}
+ */
+export async function vaultReadFileWithMeta(vaultAbs, relPath, opts = {}) {
+  const fp = await safeVaultPath(vaultAbs, relPath);
+  const raw = await readFile(fp, "utf8");
+  const st = await stat(fp);
+  return { text: renderRead(raw, opts), etag: fileEtag(raw), mtimeMs: st.mtimeMs };
+}
+
+/**
+ * Enforce an optimistic-concurrency precondition: the file's current content
+ * must hash to `ifMatch` (an etag from a prior read). Throws a retryable
+ * "precondition failed" error on mismatch or when the file is missing.
+ * NOTE: check-then-rename is not one atomic step — without the advisory write
+ * lock the race window shrinks from "since the agent's read" to milliseconds;
+ * with the lock (vault-lock.mjs) it is closed on a single host.
+ * @param {string} fp canonical absolute path
+ * @param {string} ifMatch expected etag
+ * @returns {Promise<string>} the current content (so edit flows can reuse it)
+ */
+async function assertEtagMatches(fp, ifMatch) {
+  let current;
+  try {
+    current = await readFile(fp, "utf8");
+  } catch (err) {
+    if (err.code === "ENOENT") {
+      throw new Error(
+        `precondition failed: file does not exist but ifMatch "${ifMatch}" was given — ` +
+          `re-read (or omit ifMatch to create it)`
+      );
+    }
+    throw err;
+  }
+  const now = fileEtag(current);
+  if (now !== ifMatch) {
+    throw new Error(
+      `precondition failed: file changed since read (etag ${now} ≠ expected ${ifMatch}) — ` +
+        `re-read the file and retry`
+    );
+  }
+  return current;
+}
+
+/**
  * Atomic write: temp file in the same dir + rename. Creates parent dirs if missing.
+ * With `opts.ifMatch` (an etag from a prior read) the write only proceeds if the
+ * file still hashes to it — the caller's view is current, no lost update.
  * @param {string} vaultAbs
  * @param {string} relPath
  * @param {string} content
+ * @param {{ifMatch?: string}} [opts]
  */
-export async function vaultWriteFile(vaultAbs, relPath, content) {
+export async function vaultWriteFile(vaultAbs, relPath, content, opts = {}) {
   const fp = await safeVaultPath(vaultAbs, relPath);
-  await mkdir(dirname(fp), { recursive: true });
-  const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
-  await writeFile(tmp, content, "utf8");
-  await rename(tmp, fp);
-  return { path: fp, bytes: Buffer.byteLength(content, "utf8") };
+  // The advisory lock makes the ifMatch-check→rename span atomic against other
+  // sidecar processes on this host (see vault-lock.mjs for scope and stealing).
+  return withVaultLock(vaultAbs, "vault_write_file", async () => {
+    if (opts.ifMatch) await assertEtagMatches(fp, opts.ifMatch);
+    // Opt-in frontmatter schema check (memory-schema.json): throws under
+    // enforce mode — before the tmp write, so a violation never lands on disk.
+    const warnings = await checkSchemaForWrite(vaultAbs, relPath, content);
+    await mkdir(dirname(fp), { recursive: true });
+    const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
+    await writeFile(tmp, content, "utf8");
+    await rename(tmp, fp);
+    const result = { path: fp, bytes: Buffer.byteLength(content, "utf8"), etag: fileEtag(content) };
+    if (warnings.length) result.warnings = warnings;
+    return result;
+  });
 }
 
 const FRONTMATTER_RE = /^---\r?\n[\s\S]*?\r?\n---\r?\n/;
@@ -144,46 +231,57 @@ function wouldSelfPasteFrontmatter(originalText, finalText) {
  * exactly once; otherwise the whole call fails and the file is untouched
  * (atomic via tmp+rename of the final content). Also rejects an edit that
  * would duplicate the note's own frontmatter into its body (see
- * {@link wouldSelfPasteFrontmatter}).
+ * {@link wouldSelfPasteFrontmatter}). With `opts.ifMatch` the edit only
+ * proceeds if the file still hashes to that etag from a prior read.
  * @param {string} vaultAbs
  * @param {string} relPath
  * @param {Array<{oldText: string, newText: string}>} edits
+ * @param {{ifMatch?: string}} [opts]
  */
-export async function vaultEditFile(vaultAbs, relPath, edits) {
+export async function vaultEditFile(vaultAbs, relPath, edits, opts = {}) {
   if (!Array.isArray(edits) || edits.length === 0) {
     throw new Error("edits must be a non-empty array of {oldText, newText}");
   }
   const fp = await safeVaultPath(vaultAbs, relPath);
-  const original = await readFile(fp, "utf8");
-  let text = original;
-  const applied = [];
-  for (const [i, edit] of edits.entries()) {
-    if (typeof edit.oldText !== "string" || typeof edit.newText !== "string") {
-      throw new Error(`edit ${i}: oldText and newText must be strings`);
+  // Locked from the read to the rename: the single-match check below is only a
+  // same-content guarantee if no other process rewrites the file mid-edit.
+  return withVaultLock(vaultAbs, "vault_edit_file", async () => {
+    const original = opts.ifMatch
+      ? await assertEtagMatches(fp, opts.ifMatch)
+      : await readFile(fp, "utf8");
+    let text = original;
+    const applied = [];
+    for (const [i, edit] of edits.entries()) {
+      if (typeof edit.oldText !== "string" || typeof edit.newText !== "string") {
+        throw new Error(`edit ${i}: oldText and newText must be strings`);
+      }
+      const occurrences = text.split(edit.oldText).length - 1;
+      if (occurrences === 0) {
+        throw new Error(`edit ${i}: oldText not found in file`);
+      }
+      if (occurrences > 1) {
+        throw new Error(
+          `edit ${i}: oldText matches ${occurrences} times — provide more surrounding context to make it unique`
+        );
+      }
+      text = text.replace(edit.oldText, edit.newText);
+      applied.push(i);
     }
-    const occurrences = text.split(edit.oldText).length - 1;
-    if (occurrences === 0) {
-      throw new Error(`edit ${i}: oldText not found in file`);
-    }
-    if (occurrences > 1) {
+    if (wouldSelfPasteFrontmatter(original, text)) {
       throw new Error(
-        `edit ${i}: oldText matches ${occurrences} times — provide more surrounding context to make it unique`
+        "edit rejected: newText re-inserts this note's own frontmatter block, which would " +
+          "duplicate the note inside itself. If that is genuinely intended, use vault_write_file instead."
       );
     }
-    text = text.replace(edit.oldText, edit.newText);
-    applied.push(i);
-  }
-  if (wouldSelfPasteFrontmatter(original, text)) {
-    throw new Error(
-      "edit rejected: newText re-inserts this note's own frontmatter block, which would " +
-        "duplicate the note inside itself. If that is genuinely intended, use vault_write_file instead."
-    );
-  }
-  // Atomic write
-  const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
-  await writeFile(tmp, text, "utf8");
-  await rename(tmp, fp);
-  return { path: fp, editsApplied: applied.length };
+    const warnings = await checkSchemaForWrite(vaultAbs, relPath, text);
+    // Atomic write
+    const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
+    await writeFile(tmp, text, "utf8");
+    await rename(tmp, fp);
+    const result = { path: fp, editsApplied: applied.length, etag: fileEtag(text) };
+    if (warnings.length) result.warnings = warnings;
+    return result;
+  });
 }
 
 /**

@@ -1,4 +1,6 @@
-"""Vault health audit: size budget, broken wikilinks, SESSION_LOG growth (D4/D7).
+"""Vault health audit: size budget, broken wikilinks, SESSION_LOG growth (D4/D7),
+plus corruption/conflict signals (sync-conflict files, committed merge markers,
+in-progress git rebase/merge state, stale atomic-write temp files).
 
 Pure stdlib, read-only. Scans every ``*.md`` under the vault (excluding the
 sidecar/tooling dirs) and reports notes that blow the per-note token budget,
@@ -9,7 +11,9 @@ the Node MCP bridge can forward it untouched (see ``cli.py`` ``json-audit``).
 
 from __future__ import annotations
 
+import json
 import re
+import time
 from math import ceil
 from pathlib import Path
 
@@ -27,6 +31,136 @@ _WIKILINK_RE = re.compile(r"\[\[([^\[\]]+?)\]\]")
 _BYTES_PER_TOKEN = 4
 
 SESSION_LOG_NAME = "SESSION_LOG.md"
+
+# A git merge-conflict marker committed into a note is corrupted state the human
+# needs to see. Only the opening marker is scanned for (7 chars + space), on
+# code-stripped text so documentation examples inside fences don't trip it.
+_CONFLICT_MARKER_PREFIX = "<<<<<<< "
+
+# Leftover from a crashed atomic write (the MCP writes `<file>.tmp-<pid>-<ts>`
+# then renames). Anything matching that shape older than this many seconds is
+# debris — a live write holds its tmp file for milliseconds.
+_STALE_TMP_RE = re.compile(r"\.tmp-\d+-\d+$")
+_STALE_TMP_AGE_SECONDS = 3600
+
+
+def _scan_conflict_and_tmp_files(vault: Path, *, now: float) -> tuple[list[dict], list[dict]]:
+    """One rglob pass for Syncthing conflict files and stale atomic-write temps.
+
+    Conflict files can be any extension (Syncthing marks whatever it synced), so
+    this walks all files, not just ``*.md``, still skipping the tooling dirs.
+    """
+    sync_conflicts: list[dict] = []
+    stale_tmp: list[dict] = []
+    for path in vault.rglob("*"):
+        if not path.is_file():
+            continue
+        rel_parts = path.relative_to(vault).parts
+        if any(part in _EXCLUDE_DIRS for part in rel_parts[:-1]):
+            continue
+        rel = path.relative_to(vault).as_posix()
+        if ".sync-conflict-" in path.name:
+            sync_conflicts.append({"path": rel})
+        elif _STALE_TMP_RE.search(path.name):
+            try:
+                age = now - path.stat().st_mtime
+            except OSError:
+                continue
+            if age > _STALE_TMP_AGE_SECONDS:
+                stale_tmp.append({"path": rel, "age_hours": round(age / 3600, 1)})
+    sync_conflicts.sort(key=lambda item: item["path"])
+    stale_tmp.sort(key=lambda item: item["path"])
+    return sync_conflicts, stale_tmp
+
+
+# Confidence / verification metadata (ADR-0038): notes may declare
+# `status: hypothesis|confirmed` and `last_verified: YYYY-MM-DD` in frontmatter.
+# The audit surfaces hypotheses that have gone unexamined and confirmed facts
+# nobody has re-verified in a long time — the raw material for the reflection
+# loop's promote/verify/archive proposals.
+_STATUS_RE = re.compile(r"^status:\s*(hypothesis|confirmed)\b", re.MULTILINE | re.IGNORECASE)
+_LAST_VERIFIED_RE = re.compile(r"^last_verified:\s*(\d{4}-\d{2}-\d{2})\b", re.MULTILINE)
+
+HYPOTHESIS_STALE_DAYS = 90
+UNVERIFIED_DAYS = 365
+
+_SECONDS_PER_DAY = 86_400
+
+
+def _confidence_ages(
+    text: str, mtime: float, now: float
+) -> tuple[str | None, float]:
+    """(status, age_days) from a note's frontmatter: age since ``last_verified``
+    when declared, else since mtime. (None, 0) when the note declares no status."""
+    m = _FRONTMATTER_BLOCK_RE.match(text)
+    if not m:
+        return None, 0.0
+    block = m.group(1)
+    status_m = _STATUS_RE.search(block)
+    if not status_m:
+        return None, 0.0
+    verified_m = _LAST_VERIFIED_RE.search(block)
+    if verified_m:
+        try:
+            anchor = time.mktime(time.strptime(verified_m.group(1), "%Y-%m-%d"))
+        except ValueError:
+            anchor = mtime
+    else:
+        anchor = mtime
+    return status_m.group(1).lower(), max(0.0, (now - anchor) / _SECONDS_PER_DAY)
+
+
+# Opt-in frontmatter schema (same file the Node write path reads — see
+# packages/obsidian-memory-mcp/src/schema-config.mjs; keep the two ~40-line
+# validators in sync, the spec is deliberately just required-keys presence).
+SCHEMA_CONFIG_NAME = "memory-schema.json"
+
+_FRONTMATTER_BLOCK_RE = re.compile(r"^---\r?\n(.*?)\r?\n---(?:\r?\n|$)", re.DOTALL)
+
+
+def _load_schema_config(vault: Path) -> dict | None:
+    """Parse ``memory-schema.json`` at the vault root; ``None`` when absent or
+    malformed (audit is read-only — a broken config is not an audit failure)."""
+    fp = vault / SCHEMA_CONFIG_NAME
+    if not fp.is_file():
+        return None
+    try:
+        parsed = json.loads(fp.read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError):
+        return None
+    folders = parsed.get("folders") if isinstance(parsed, dict) else None
+    return {"folders": folders} if isinstance(folders, dict) else None
+
+
+def _missing_frontmatter_keys(rel: str, text: str, config: dict) -> list[str]:
+    """Required keys (per the note's top-level folder, '*' fallback) absent from
+    the note's frontmatter block. Same line-regex contract as the Node side."""
+    folder = rel.split("/", 1)[0] if "/" in rel else ""
+    rule = config["folders"].get(folder) or config["folders"].get("*")
+    required = rule.get("required") if isinstance(rule, dict) else None
+    if not isinstance(required, list) or not required:
+        return []
+    match = _FRONTMATTER_BLOCK_RE.match(text)
+    block = match.group(1) if match else ""
+    missing = []
+    for key in required:
+        if not re.search(rf"^{re.escape(str(key))}\s*:", block, re.MULTILINE):
+            missing.append(str(key))
+    return missing
+
+
+def _git_state(vault: Path) -> dict | None:
+    """In-progress rebase/merge markers inside ``.git`` — the state the daemon
+    leaves behind when it aborts on conflict (or a human interrupted a merge).
+    ``None`` when the vault is not a git repo."""
+    git_dir = vault / ".git"
+    if not git_dir.is_dir():
+        return None
+    return {
+        "rebase_in_progress": (git_dir / "rebase-merge").exists()
+        or (git_dir / "rebase-apply").exists(),
+        "merge_in_progress": (git_dir / "MERGE_HEAD").exists(),
+    }
 
 
 def _estimate_tokens(num_bytes: int) -> int:
@@ -80,6 +214,13 @@ def audit_vault(
       carries the real count.
     - ``session_log``: token count + over-threshold flag for ``SESSION_LOG.md``
       (``None`` when the file is absent).
+    - ``sync_conflicts``: Syncthing ``*.sync-conflict-*`` files (any extension).
+    - ``conflict_markers``: notes with a committed git ``<<<<<<< `` marker outside
+      code regions (first offending line per note).
+    - ``stale_tmp``: leftover ``*.tmp-<pid>-<ts>`` files from a crashed atomic
+      write, older than an hour.
+    - ``git_state``: in-progress rebase/merge markers (``None`` if not a git repo)
+      — the state the sync daemon leaves when it aborts on conflict.
     """
     vault = vault.resolve()
     files = _iter_md_files(vault)
@@ -95,6 +236,12 @@ def audit_vault(
     total_tokens = 0
     oversized: list[dict] = []
     broken_links: list[dict] = []
+    conflict_markers: list[dict] = []
+    schema_violations: list[dict] = []
+    stale_hypotheses: list[dict] = []
+    unverified: list[dict] = []
+    schema_config = _load_schema_config(vault)
+    now = time.time()
     seen_broken: set[tuple[str, str]] = set()  # dedup (source, target) pairs
 
     for fp in files:
@@ -110,7 +257,25 @@ def audit_vault(
 
         # Decode for wikilink scanning; utf-8-sig drops a leading BOM if present.
         text = data.decode("utf-8-sig", errors="replace")
+        if schema_config is not None:
+            missing = _missing_frontmatter_keys(rel, text, schema_config)
+            if missing:
+                schema_violations.append({"path": rel, "missing": missing})
+        try:
+            mtime = fp.stat().st_mtime
+        except OSError:
+            mtime = now
+        status, age_days = _confidence_ages(text, mtime, now)
+        if status == "hypothesis" and age_days >= HYPOTHESIS_STALE_DAYS:
+            stale_hypotheses.append({"path": rel, "age_days": round(age_days, 1)})
+        elif status == "confirmed" and age_days >= UNVERIFIED_DAYS:
+            unverified.append({"path": rel, "age_days": round(age_days, 1)})
         scan_text = strip_code_regions(text)
+        for lineno, line in enumerate(scan_text.splitlines(), start=1):
+            if line.startswith(_CONFLICT_MARKER_PREFIX):
+                # First marker per note is enough to flag it for a human.
+                conflict_markers.append({"path": rel, "line": lineno})
+                break
         for match in _WIKILINK_RE.finditer(scan_text):
             target = _wikilink_target(match.group(1))
             if not target:
@@ -146,6 +311,11 @@ def audit_vault(
             "over_threshold": log_tokens > session_log_budget,
         }
 
+    sync_conflicts, stale_tmp = _scan_conflict_and_tmp_files(vault, now=time.time())
+    sync_conflicts_total = len(sync_conflicts)
+    stale_tmp_total = len(stale_tmp)
+    conflict_markers_total = len(conflict_markers)
+
     return {
         "budget_tokens": budget_tokens,
         "totals": {"notes": len(files), "tokens": total_tokens},
@@ -154,4 +324,27 @@ def audit_vault(
         "broken_links": broken_links,
         "broken_links_total": broken_links_total,
         "session_log": session_log,
+        "sync_conflicts": sync_conflicts[:limit],
+        "sync_conflicts_total": sync_conflicts_total,
+        "conflict_markers": conflict_markers[:limit],
+        "conflict_markers_total": conflict_markers_total,
+        "stale_tmp": stale_tmp[:limit],
+        "stale_tmp_total": stale_tmp_total,
+        "git_state": _git_state(vault),
+        # None = no memory-schema.json (validation unconfigured), mirroring
+        # git_state's absent-vs-clean distinction.
+        "schema_violations": (
+            sorted(schema_violations, key=lambda item: item["path"])[:limit]
+            if schema_config is not None
+            else None
+        ),
+        "schema_violations_total": (
+            len(schema_violations) if schema_config is not None else None
+        ),
+        "stale_hypotheses": sorted(
+            stale_hypotheses, key=lambda item: -item["age_days"]
+        )[:limit],
+        "stale_hypotheses_total": len(stale_hypotheses),
+        "unverified": sorted(unverified, key=lambda item: -item["age_days"])[:limit],
+        "unverified_total": len(unverified),
     }

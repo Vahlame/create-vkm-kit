@@ -67,6 +67,10 @@ If the vault remote is shared (team, multi-machine), assume an attacker with wri
 
 `config/mcp/basic-memory.json` and the initializer use `uvx --from "basic-memory==0.21.4" basic-memory mcp`. Without the pin, `uvx` resolves PyPI latest on every start — a supply-chain RCE if the package is compromised. Upgrades are explicit (bump the constant in `packages/create-obsidian-memory/src/mcp-merge.mjs` and the templates) and reviewable via `CHANGELOG.md`.
 
+### 4. There is no in-band authentication — the boundary is the filesystem and the git remote
+
+The MCP sidecar is **local stdio serving one user**; it has no accounts, tokens, or per-note permissions, and adding them would be security theater for that topology. Anyone who can read the vault directory can read every note; anyone who can write it (or push to its remote) can write memory. The enforcement points are therefore **OS file permissions** on the vault and **git-remote access control** (private repo, 2FA, branch protection). Never expose the sidecar or a Streamable HTTP listener beyond localhost. If you need multi-user authorization over shared memory, that is a database/service problem (see `docs/adr/0037-vault-vs-database-system-of-record.md`) — not something to bolt onto a markdown folder. Git history is a **reviewable** audit trail (auto-commits list changed files and an optional `Agent:` label), but it is not tamper-evident: a writer with push access can rewrite unprotected history.
+
 ## Hardening guidance for users
 
 If you are about to follow agent instructions from this repo:

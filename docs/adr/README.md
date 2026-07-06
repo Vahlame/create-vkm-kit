@@ -40,6 +40,8 @@ Each file in this directory captures one design decision: what was chosen, what 
 | [ADR-0034](./0034-compact-wire-format-and-lower-default-limit.md)  | Compact search wire format (`explain` opt-in) + default limit 20→10, wire-measured        | Accepted |
 | [ADR-0035](./0035-fixed-cost-diet-schema-budget.md)                | Fixed-cost diet: tool-schema budget gate, KG defaults 200→50, compressed session hook     | Accepted |
 | [ADR-0036](./0036-rules-block-diet-and-drift-gate.md)              | Rules-block diet (−18%, zero rules lost, two rescued) + sync turned into a build gate     | Accepted |
+| [ADR-0037](./0037-vault-vs-database-system-of-record.md)           | Vault = memory layer, not system of record: transactions/concurrency/auth/audit honestly  | Accepted |
+| [ADR-0038](./0038-evolutive-memory-loop.md)                        | Evolutive memory loop: learn from failures, reinforce what helps, decay what doesn't      | Accepted |
 
 ## Template
 

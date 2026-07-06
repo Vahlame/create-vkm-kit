@@ -33,3 +33,6 @@
 {"query": "recetas de cocina italiana pasta carbonara con queso parmesano", "relevant": [], "kind": "negative"}
 {"query": "horario de trenes de alta velocidad entre ciudades europeas", "relevant": [], "kind": "negative"}
 {"query": "rutina de ejercicios de gimnasio para principiantes sin equipo", "relevant": [], "kind": "negative"}
+{"query": "el build de webpack vuelve a abortar por heap out of memory", "relevant": ["KNOWN_FAILURES.md"], "kind": "failure-recall"}
+{"query": "playwright se cuelga instalando chromium con el proxy de la empresa", "relevant": ["KNOWN_FAILURES.md"], "kind": "failure-recall"}
+{"query": "pnpm install da ERR_PNPM_LOCKFILE_BREAKING_CHANGE al cambiar de rama", "relevant": ["KNOWN_FAILURES.md"], "kind": "failure-recall"}

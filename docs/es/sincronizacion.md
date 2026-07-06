@@ -109,6 +109,18 @@ Las tools MCP de escritura (`vault_write_file`, `vault_edit_file`) escriben de f
 
 Regla práctica: mantén en archivos/carpetas separados las notas que **tú** editas mucho a mano y las que mantiene el **agente**, y la concurrencia deja de ser un problema.
 
+### Varios agentes escribiendo en un mismo vault
+
+Varias ventanas del IDE o un fan-out de sub-agentes pueden compartir vault. Qué te protege (ver [ADR-0037](../adr/0037-vault-vs-database-system-of-record.md)):
+
+- **Escrituras atómicas + ediciones de coincidencia única** (arriba): sin notas a medias, y una edición cuyo contexto cambió por debajo falla en vez de aterrizar mal.
+- **Concurrencia optimista (`ifMatch`).** `vault_read_file` termina con una línea `etag:`. Devuélvela como `ifMatch` en `vault_write_file`/`vault_edit_file` y la escritura falla con `precondition failed` si algo cambió la nota desde tu lectura — relee y reintenta. Ejemplo: lees `MEMORY.md` (etag `a1b2c3d4e5f6`) → otra ventana añade una línea → tu `vault_edit_file(..., ifMatch: "a1b2c3d4e5f6")` falla de forma segura en vez de pisar el cambio.
+- **Lock de escritura advisory (mismo equipo).** Todas las escrituras del sidecar se serializan vía `.obsidian-memory-rag/write.lock` (los locks huérfanos de escritores caídos se roban solos; un vault ocupado devuelve un `vault busy` reintentable). Desactívalo con `OBSIDIAN_MEMORY_NO_LOCK=1` si de verdad solo hay un escritor.
+
+Lo que **no** existe, a propósito: transacciones entre notas y locks entre máquinas. Entre máquinas la coordinación es git — los conflictos se muestran, nunca se auto-mergean.
+
+**Guía de recuperación** cuando hay conflicto: el daemon aborta el rebase y deja de sincronizar → `obsidian-memoryd doctor` muestra el aborto (y archivos de conflicto de Syncthing) → `vault_audit` marca archivos de conflicto, marcadores `<<<<<<<` commiteados y un rebase atascado → resuelves en git normal → `obsidian-memoryd sync once`.
+
 ### Comprobar salud: `doctor`
 
 Como el daemon corre oculto, necesitas una forma de preguntarle "¿sigues vivo y empujando?". Eso es `doctor`:
