@@ -94,6 +94,7 @@ Subir el debounce (p. ej. `2m` o `5m`) es útil si no quieres microcommits const
 
 El daemon ejecuta el orden seguro `add → commit → pull --rebase → push`, con protecciones que no tendrías a mano:
 
+- Los auto-commits son un **rastro de auditoría** usable (3.13): el asunto lleva el número de archivos cambiados y el cuerpo lista las rutas; define `OBSIDIAN_MEMORY_AGENT=<etiqueta>` y cada commit lleva además un trailer `Agent:` que identifica qué daemon/máquina lo hizo.
 - Un **commit vacío** (nada que guardar) se detecta y se omite, no es un error.
 - Si `pull --rebase` encuentra un **conflicto**, hace `rebase --abort` automáticamente y te avisa en el log para que lo resuelvas tú; nunca deja el repo a medias ni fuerza nada.
 - El `push` **reintenta hasta 3 veces** con espera creciente, por si el remoto rebota un instante.

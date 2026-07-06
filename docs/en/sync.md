@@ -94,6 +94,7 @@ Raising the debounce (e.g. `2m` or `5m`) is useful if you don't want constant mi
 
 The daemon runs the safe order `add → commit → pull --rebase → push`, with safeguards you wouldn't have by hand:
 
+- Auto-commits are a usable **audit trail** (3.13): the subject carries the changed-file count and the body lists the paths; set `OBSIDIAN_MEMORY_AGENT=<label>` and each commit also carries an `Agent:` trailer identifying which daemon/machine made it.
 - An **empty commit** (nothing to save) is detected and skipped — it's not an error.
 - If `pull --rebase` hits a **conflict**, it runs `rebase --abort` automatically and warns you in the log so you can resolve it yourself; it never leaves the repo half-done or force-pushes anything.
 - The `push` **retries up to 3 times** with growing back-off, in case the remote bounces for a moment.

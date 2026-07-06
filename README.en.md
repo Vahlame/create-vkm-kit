@@ -55,7 +55,9 @@ npx @vkmikc/create-obsidian-memory "<PATH>" -y     # no questions, at the path y
 > ⚡ **The whole stack in one command — `--full`.**
 > Focused **on Codex and Claude Code first**, with **every feature on by default**: it registers
 > the MCP in both, enables hybrid search (BM25, semantic, and graph), the **knowledge graph**
-> (typed relations and observations), the **memory reports**, and the **sqlite-vec acceleration**,
+> (typed relations and observations), the **memory reports**, the **sqlite-vec acceleration**,
+> **multi-writer safety** (etag/`ifMatch` + write lock, ADR-0037) and the **evolutive memory loop**
+> (failure recall, usage boost, `memory-reflect` proposals, ADR-0038),
 > installs the Python backend, builds the index, and installs the rules — no questions. Run it from
 > a clone of the kit (or pass it `--repo-root <clone>`):
 >

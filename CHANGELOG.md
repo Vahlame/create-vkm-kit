@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **Docs caught up with v3.13.0 across both languages.** how-it-works /
+  como-funciona gain a "multi-writer safety + evolutive memory" section with
+  two new diagrams (ifMatch sequence; the learning loop), the retrieval-stack
+  and memory-report diagrams now show the `pin_failures`/`usage` levers,
+  recall telemetry and `reflect: true`; sync guides document the 3.13
+  audit-trail commits and `OBSIDIAN_MEMORY_AGENT`; the AGENTS stack catalog
+  and README `--full` callouts mention the new capabilities (ADR-0037/0038).
+
 ## [3.13.0] - 2026-07-06
 
 ### Added
