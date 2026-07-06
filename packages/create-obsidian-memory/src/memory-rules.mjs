@@ -39,7 +39,7 @@ const BODY = {
 
 ### Consultar el vault sin que te lo pidan
 
-Busca **antes de responder** cuando la tarea continúa trabajo previo, se nombra un proyecto/persona/herramienta, una decisión quizá ya se zanjó, dicen "como siempre", o una pregunta se repite → \`vault_hybrid_search("<tema>")\` con \`limit\` bajo (3–5); la **sección devuelta suele bastar** — no abras la nota entera. Si toca un proyecto, abre \`PROJECTS/<proyecto>.md\`. Verifica que un archivo/ruta citado en una nota **siga existiendo** (la memoria envejece).
+Busca **antes de responder** cuando la tarea continúa trabajo previo, se nombra un proyecto/persona/herramienta, una decisión quizá ya se zanjó, dicen "como siempre", o una pregunta se repite → \`vault_hybrid_search("<tema>")\` con \`limit\` bajo (3–5); la **sección devuelta suele bastar** — no abras la nota entera. Si toca un proyecto, abre \`PROJECTS/<proyecto>.md\`. Tarea sobre tech/proyecto con historial → revisa fallos previos: \`vault_observations(category:'failure', tag:'<tech>')\`. Verifica que un archivo/ruta citado en una nota **siga existiendo** (la memoria envejece).
 
 ### Qué herramienta usar
 
@@ -55,6 +55,7 @@ Las descripciones de las tools dicen cuándo usar cada una; el mapa corto: signi
 1. \`memory_extract_candidates(summary=<resumen>)\` (si está el híbrido) o escribe 1-3 bullets.
 2. **Muestra los candidatos** y espera confirmación.
 3. Confirmado → \`MEMORY.md\` / \`PROJECTS/<proyecto>.md\` / \`RULES/<proyecto>.md\` / \`KNOWN_FAILURES.md\`; una línea en \`SESSION_LOG.md\`.
+4. Fallo/lección → entrada estructurada en \`KNOWN_FAILURES.md\`: \`## <síntoma>\` + \`- [failure] síntoma #tech\`, \`- [root_cause] …\`, \`- [fix] …\` (así se recupera por categoría/tag, no solo por texto).
 
 ### Qué guardar (alto valor)
 
@@ -74,7 +75,7 @@ Antes de una respuesta no trivial, chequea en silencio: ¿supuestos explícitos?
 
 - Tech nueva que no esté en \`STACKS/\` → entrada de una línea (\`fecha · proyecto · verdict: unknown\`); vista otra vez → increméntala. Sin preguntar.
 - Preferencia firme del usuario (idioma, estilo, herramientas, "como me gusta") → anótala una vez en \`MEMORY.md\` y aplícala proactivamente.
-- Marca las hipótesis como tales; promuévelas a hechos solo al confirmarse; descarta observaciones que llevan meses sin tocarse.
+- Marca las hipótesis como tales (frontmatter \`status: hypothesis|confirmed\` + \`last_verified: YYYY-MM-DD\` al verificar); promuévelas a hechos solo al confirmarse; descarta observaciones que llevan meses sin tocarse.
 
 ### Conoce tu modelo (adapta + aprende)
 
@@ -119,7 +120,7 @@ La claridad manda: si comprimir arriesga un malentendido, no comprimas.
 
 ### Consult the vault without being asked
 
-Search **before answering** when the task continues prior work, names a project/person/tool, a decision may already be settled, the user says "as usual", or a question repeats → \`vault_hybrid_search("<topic>")\` with a low \`limit\` (3–5); the **returned section is usually enough** — don't open the whole note. If it touches a project, open \`PROJECTS/<project>.md\`. Verify a file/path quoted in a note **still exists** (memory goes stale).
+Search **before answering** when the task continues prior work, names a project/person/tool, a decision may already be settled, the user says "as usual", or a question repeats → \`vault_hybrid_search("<topic>")\` with a low \`limit\` (3–5); the **returned section is usually enough** — don't open the whole note. If it touches a project, open \`PROJECTS/<project>.md\`. Task touches a tech/project with history → check past failures first: \`vault_observations(category:'failure', tag:'<tech>')\`. Verify a file/path quoted in a note **still exists** (memory goes stale).
 
 ### Which tool to use
 
@@ -135,6 +136,7 @@ The tool descriptions say when to use each one; the short map: meaning → \`vau
 1. \`memory_extract_candidates(summary=<summary>)\` (if hybrid is available) or write 1-3 bullets.
 2. **Show the candidates** and wait for confirmation.
 3. Confirmed → \`MEMORY.md\` / \`PROJECTS/<project>.md\` / \`RULES/<project>.md\` / \`KNOWN_FAILURES.md\`; one line in \`SESSION_LOG.md\`.
+4. Failure/lesson → structured \`KNOWN_FAILURES.md\` entry: \`## <symptom>\` + \`- [failure] symptom #tech\`, \`- [root_cause] …\`, \`- [fix] …\` (recallable by category/tag, not just text).
 
 ### What to save (high-signal)
 
@@ -154,7 +156,7 @@ Spot a **high-impact** anti-pattern in the user's code/choices (hardcoded secret
 
 - New tech you see that's not in \`STACKS/\` → add a one-line entry (\`date · project · verdict: unknown\`); seen again → bump it. No need to ask.
 - A firm user preference (language, style, tools, "how I like it") → record it once in \`MEMORY.md\` and apply it proactively.
-- Mark hypotheses as hypotheses; promote to facts only when confirmed; drop observations untouched for months.
+- Mark hypotheses as hypotheses (frontmatter \`status: hypothesis|confirmed\` + \`last_verified: YYYY-MM-DD\` when verified); promote to facts only when confirmed; drop observations untouched for months.
 
 ### Know your model (adapt + learn)
 

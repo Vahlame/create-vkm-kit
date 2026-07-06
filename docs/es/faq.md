@@ -141,3 +141,7 @@ mem0 es excelente para memoria de **aplicación**; este patrón es para memoria 
 ### Markdown frente a SQLite
 
 Los diffs de Markdown son **auditables por una persona**; SQLite gana en restricciones (constraints) e integridad. Aquí inclinamos la balanza hacia Markdown para la memoria del agente; usa Postgres/Qdrant para backends de producto multi-inquilino o de alta escala, gestionados por separado de este patrón de vault.
+
+### ¿Puedo montar un sistema de tickets o un backend de producto sobre el vault?
+
+No — y es una frontera de diseño, no un descuido ([ADR-0037](../adr/0037-vault-vs-database-system-of-record.md)). Lo que el vault **sí** garantiza: escrituras atómicas por nota (tmp+rename), concurrencia optimista (`vault_read_file` devuelve un etag; las escrituras aceptan `ifMatch` y fallan si la nota cambió), un lock de escritura advisory en un mismo equipo, chequeo opt-in de frontmatter (`memory-schema.json`) y un rastro de auditoría en git cuyos auto-commits listan los archivos cambiados más una etiqueta `Agent:` opcional. Lo que deliberadamente **no** ofrece: transacciones entre notas, autenticación propia (la frontera son los permisos del filesystem y del remoto git), logs a prueba de manipulación, ni merge automático de ediciones en conflicto (los conflictos se muestran para que decida una persona). Un sistema de registro necesita todo eso — ponlo en Postgres y deja el vault como capa de memoria del agente.

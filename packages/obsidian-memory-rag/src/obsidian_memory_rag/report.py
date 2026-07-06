@@ -208,6 +208,7 @@ def build_report(
         "session_log": audit["session_log"],
         "stale_notes": [],
         "orphan_notes": [],
+        "cold_notes": [],
     }
     review_candidates: dict = {"near_duplicate_notes": []}
 
@@ -245,6 +246,13 @@ def build_report(
                 )
         finally:
             conn.close()
+        # Cold notes (ADR-0038): indexed for a while, never returned by a search
+        # nor opened by the agent — the decay side of the usage loop. Opens its
+        # own connection internally; [] when no recall telemetry exists at all
+        # (absence of data is not evidence of disuse).
+        from .recall_log import cold_notes
+
+        hygiene["cold_notes"] = cold_notes(vault)
 
     suggestions = _suggestions(totals, hygiene, review_candidates)
 
@@ -297,6 +305,12 @@ def _suggestions(totals, hygiene, review_candidates) -> list[str]:
         out.append(
             f"{len(stale)} stale note(s) (oldest: {stale[0]['path']}, {stale[0]['age_days']}d) — "
             "review whether they are still accurate or should be condensed/archived."
+        )
+    cold = hygiene.get("cold_notes") or []
+    if cold:
+        out.append(
+            f"{len(cold)} cold note(s) never returned by a search nor opened "
+            f"(e.g. {cold[0]['path']}) — review for archiving with `memory-reflect`."
         )
     dupes = review_candidates.get("near_duplicate_notes") or []
     if dupes:

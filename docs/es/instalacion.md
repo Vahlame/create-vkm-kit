@@ -200,7 +200,7 @@ cualquier archivo).
 
 ### Consultar el vault sin que te lo pidan
 
-Busca **antes de responder** cuando la tarea continúa trabajo previo, se nombra un proyecto/persona/herramienta, una decisión quizá ya se zanjó, dicen "como siempre", o una pregunta se repite → `vault_hybrid_search("<tema>")` con `limit` bajo (3–5); la **sección devuelta suele bastar** — no abras la nota entera. Si toca un proyecto, abre `PROJECTS/<proyecto>.md`. Verifica que un archivo/ruta citado en una nota **siga existiendo** (la memoria envejece).
+Busca **antes de responder** cuando la tarea continúa trabajo previo, se nombra un proyecto/persona/herramienta, una decisión quizá ya se zanjó, dicen "como siempre", o una pregunta se repite → `vault_hybrid_search("<tema>")` con `limit` bajo (3–5); la **sección devuelta suele bastar** — no abras la nota entera. Si toca un proyecto, abre `PROJECTS/<proyecto>.md`. Tarea sobre tech/proyecto con historial → revisa fallos previos: `vault_observations(category:'failure', tag:'<tech>')`. Verifica que un archivo/ruta citado en una nota **siga existiendo** (la memoria envejece).
 
 ### Qué herramienta usar
 
@@ -216,6 +216,7 @@ Las descripciones de las tools dicen cuándo usar cada una; el mapa corto: signi
 1. `memory_extract_candidates(summary=<resumen>)` (si está el híbrido) o escribe 1-3 bullets.
 2. **Muestra los candidatos** y espera confirmación.
 3. Confirmado → `MEMORY.md` / `PROJECTS/<proyecto>.md` / `RULES/<proyecto>.md` / `KNOWN_FAILURES.md`; una línea en `SESSION_LOG.md`.
+4. Fallo/lección → entrada estructurada en `KNOWN_FAILURES.md`: `## <síntoma>` + `- [failure] síntoma #tech`, `- [root_cause] …`, `- [fix] …` (así se recupera por categoría/tag, no solo por texto).
 
 ### Qué guardar (alto valor)
 
@@ -235,7 +236,7 @@ Antes de una respuesta no trivial, chequea en silencio: ¿supuestos explícitos?
 
 - Tech nueva que no esté en `STACKS/` → entrada de una línea (`fecha · proyecto · verdict: unknown`); vista otra vez → increméntala. Sin preguntar.
 - Preferencia firme del usuario (idioma, estilo, herramientas, "como me gusta") → anótala una vez en `MEMORY.md` y aplícala proactivamente.
-- Marca las hipótesis como tales; promuévelas a hechos solo al confirmarse; descarta observaciones que llevan meses sin tocarse.
+- Marca las hipótesis como tales (frontmatter `status: hypothesis|confirmed` + `last_verified: YYYY-MM-DD` al verificar); promuévelas a hechos solo al confirmarse; descarta observaciones que llevan meses sin tocarse.
 
 ### Conoce tu modelo (adapta + aprende)
 

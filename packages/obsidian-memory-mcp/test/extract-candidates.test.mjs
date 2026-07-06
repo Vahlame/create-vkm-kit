@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 // latter would spawn StdioServerTransport on import and hang `node --test`
 // forever waiting on stdin. The hybrid module re-exports these for back-compat
 // but tests stay decoupled from the MCP server lifecycle.
-import { extractBullets, pickQueryTerms } from "../src/extract.mjs";
+import { classifyBullet, extractBullets, pickQueryTerms, routeForKind } from "../src/extract.mjs";
 
 test("extractBullets pulls dash-prefixed items", () => {
   const summary = `Things from this session:
@@ -44,4 +44,31 @@ test("pickQueryTerms returns identifier-ish tokens up to 3", () => {
 
 test("pickQueryTerms returns empty string when nothing meaningful", () => {
   assert.equal(pickQueryTerms("a is to be"), "");
+});
+
+// --- classifyBullet / routeForKind (ADR-0038, evolutive memory) -------------------
+
+test("classifyBullet: failures win over co-present decision words, EN + ES", () => {
+  assert.equal(
+    classifyBullet("Decided to add retries after the S3 upload failed with a timeout"),
+    "failure"
+  );
+  assert.equal(classifyBullet("La migración falló por un lock de tabla en Postgres"), "failure");
+  assert.equal(classifyBullet("Root cause of the crash was an unbounded queue"), "failure");
+});
+
+test("classifyBullet: gotcha / preference / decision / fact routing, EN + ES", () => {
+  assert.equal(classifyBullet("Watch out: the flag only works if the index exists"), "gotcha");
+  assert.equal(classifyBullet("Ojo: solo funciona si el índice ya existe"), "gotcha");
+  assert.equal(classifyBullet("User prefers conventional commits with scope"), "preference");
+  assert.equal(classifyBullet("Siempre usar tabs en Go, nunca usar espacios"), "preference");
+  assert.equal(classifyBullet("We decided to use UUIDv7 for primary keys"), "decision");
+  assert.equal(classifyBullet("Decidimos usar SQLite WAL para el índice"), "decision");
+  assert.equal(classifyBullet("The vault lives under BASIC_MEMORY_HOME"), "fact");
+
+  assert.equal(routeForKind("failure"), "KNOWN_FAILURES.md");
+  assert.equal(routeForKind("preference"), "MEMORY.md");
+  assert.match(routeForKind("gotcha"), /STACKS|PRACTICES/);
+  assert.match(routeForKind("decision"), /PROJECTS/);
+  assert.equal(routeForKind("fact"), "MEMORY.md");
 });

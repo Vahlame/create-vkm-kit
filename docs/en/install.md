@@ -199,7 +199,7 @@ Rules still need the manual paste below (the IDE stores them outside any file).
 
 ### Consult the vault without being asked
 
-Search **before answering** when the task continues prior work, names a project/person/tool, a decision may already be settled, the user says "as usual", or a question repeats → `vault_hybrid_search("<topic>")` with a low `limit` (3–5); the **returned section is usually enough** — don't open the whole note. If it touches a project, open `PROJECTS/<project>.md`. Verify a file/path quoted in a note **still exists** (memory goes stale).
+Search **before answering** when the task continues prior work, names a project/person/tool, a decision may already be settled, the user says "as usual", or a question repeats → `vault_hybrid_search("<topic>")` with a low `limit` (3–5); the **returned section is usually enough** — don't open the whole note. If it touches a project, open `PROJECTS/<project>.md`. Task touches a tech/project with history → check past failures first: `vault_observations(category:'failure', tag:'<tech>')`. Verify a file/path quoted in a note **still exists** (memory goes stale).
 
 ### Which tool to use
 
@@ -215,6 +215,7 @@ The tool descriptions say when to use each one; the short map: meaning → `vaul
 1. `memory_extract_candidates(summary=<summary>)` (if hybrid is available) or write 1-3 bullets.
 2. **Show the candidates** and wait for confirmation.
 3. Confirmed → `MEMORY.md` / `PROJECTS/<project>.md` / `RULES/<project>.md` / `KNOWN_FAILURES.md`; one line in `SESSION_LOG.md`.
+4. Failure/lesson → structured `KNOWN_FAILURES.md` entry: `## <symptom>` + `- [failure] symptom #tech`, `- [root_cause] …`, `- [fix] …` (recallable by category/tag, not just text).
 
 ### What to save (high-signal)
 
@@ -234,7 +235,7 @@ Spot a **high-impact** anti-pattern in the user's code/choices (hardcoded secret
 
 - New tech you see that's not in `STACKS/` → add a one-line entry (`date · project · verdict: unknown`); seen again → bump it. No need to ask.
 - A firm user preference (language, style, tools, "how I like it") → record it once in `MEMORY.md` and apply it proactively.
-- Mark hypotheses as hypotheses; promote to facts only when confirmed; drop observations untouched for months.
+- Mark hypotheses as hypotheses (frontmatter `status: hypothesis|confirmed` + `last_verified: YYYY-MM-DD` when verified); promote to facts only when confirmed; drop observations untouched for months.
 
 ### Know your model (adapt + learn)
 

@@ -117,12 +117,13 @@ func TestGitSync_HappyPath(t *testing.T) {
 	}
 	wantPrefix := []string{
 		"git add -A",
+		"git diff --cached --name-only",
 		"git commit -m",
 		"git pull --rebase",
 		"git push",
 	}
-	if len(r.calls) != 4 {
-		t.Fatalf("expected 4 calls, got %d: %v", len(r.calls), r.calls)
+	if len(r.calls) != 5 {
+		t.Fatalf("expected 5 calls, got %d: %v", len(r.calls), r.calls)
 	}
 	for i, p := range wantPrefix {
 		if !strings.HasPrefix(r.calls[i], p) {
@@ -145,9 +146,9 @@ func TestGitSync_EmptyCommit(t *testing.T) {
 	if err := gitSyncWith(context.Background(), discardLogger(), dir, r); err != nil {
 		t.Fatalf("empty commit should be a noop, got: %v", err)
 	}
-	wantVerbs := []string{"add", "commit", "pull", "push"}
-	if len(r.calls) != 4 {
-		t.Fatalf("expected 4 calls, got %d: %v", len(r.calls), r.calls)
+	wantVerbs := []string{"add", "diff", "commit", "pull", "push"}
+	if len(r.calls) != 5 {
+		t.Fatalf("expected 5 calls, got %d: %v", len(r.calls), r.calls)
 	}
 	for i, v := range wantVerbs {
 		if r.calls[i] != v {
@@ -168,8 +169,8 @@ func TestGitSync_RebaseConflictAborts(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "conflict") {
 		t.Fatalf("expected conflict error, got: %v", err)
 	}
-	// add, commit, pull, rebase --abort. Push is skipped because pull failed.
-	wantVerbs := []string{"add", "commit", "pull", "rebase"}
+	// add, diff, commit, pull, rebase --abort. Push is skipped because pull failed.
+	wantVerbs := []string{"add", "diff", "commit", "pull", "rebase"}
 	if len(r.calls) != len(wantVerbs) {
 		t.Fatalf("expected %d calls, got %d: %v", len(wantVerbs), len(r.calls), r.calls)
 	}
@@ -316,6 +317,7 @@ func TestGitSync_SuccessAfterFailureResetsCounter(t *testing.T) {
 type verbRunner struct {
 	mu        sync.Mutex
 	calls     []string
+	rawCalls  [][]string // full argv per call, for tests that assert message content
 	responses map[string][]fakeResp
 	pos       map[string]int
 }
@@ -352,6 +354,7 @@ func (v *verbRunner) Run(ctx context.Context, name string, args ...string) error
 	defer v.mu.Unlock()
 	verb := v.verbOf(name, args)
 	v.calls = append(v.calls, verb)
+	v.rawCalls = append(v.rawCalls, append([]string{name}, args...))
 	return v.next(verb).err
 }
 
@@ -360,6 +363,7 @@ func (v *verbRunner) Output(ctx context.Context, name string, args ...string) ([
 	defer v.mu.Unlock()
 	verb := v.verbOf(name, args)
 	v.calls = append(v.calls, verb)
+	v.rawCalls = append(v.rawCalls, append([]string{name}, args...))
 	r := v.next(verb)
 	return r.out, r.err
 }
@@ -368,3 +372,115 @@ func (v *verbRunner) Output(ctx context.Context, name string, args ...string) ([
 // test source structure changes. The tempGitRepo helper uses t.TempDir; we keep
 // filepath available for future tests that exercise nested paths.
 var _ = filepath.Separator
+
+func TestCommitMessage(t *testing.T) {
+	now := time.Date(2026, 7, 6, 0, 0, 0, 0, time.UTC)
+	many := make([]string, 25)
+	for i := range many {
+		many[i] = fmt.Sprintf("notes/n%02d.md", i)
+	}
+	cases := []struct {
+		name        string
+		files       []string
+		agent       string
+		wantSubject string
+		wantInBody  []string
+		wantNotBody []string
+	}{
+		{
+			name:        "no files no agent falls back to bare timestamp",
+			wantSubject: "auto: 2026-07-06T00:00:00Z",
+		},
+		{
+			name:        "single file",
+			files:       []string{"MEMORY.md"},
+			wantSubject: "auto: 2026-07-06T00:00:00Z (1 file)",
+			wantInBody:  []string{"MEMORY.md"},
+		},
+		{
+			name:        "three files with agent trailer",
+			files:       []string{"a.md", "b.md", "c.md"},
+			agent:       "laptop-claude",
+			wantSubject: "auto: 2026-07-06T00:00:00Z (3 files)",
+			wantInBody:  []string{"a.md", "b.md", "c.md", "Agent: laptop-claude"},
+		},
+		{
+			name:        "25 files truncate at 20",
+			files:       many,
+			wantSubject: "auto: 2026-07-06T00:00:00Z (25 files)",
+			wantInBody:  []string{"notes/n19.md", "…and 5 more"},
+			wantNotBody: []string{"notes/n20.md"},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			subject, body := commitMessage(now, tc.files, tc.agent)
+			if subject != tc.wantSubject {
+				t.Errorf("subject: want %q, got %q", tc.wantSubject, subject)
+			}
+			for _, w := range tc.wantInBody {
+				if !strings.Contains(body, w) {
+					t.Errorf("body should contain %q, got:\n%s", w, body)
+				}
+			}
+			for _, w := range tc.wantNotBody {
+				if strings.Contains(body, w) {
+					t.Errorf("body should NOT contain %q, got:\n%s", w, body)
+				}
+			}
+		})
+	}
+}
+
+// TestGitSync_CommitCarriesFileListAndAgent asserts the actual `git commit`
+// argv embeds the staged-file list (from `diff --cached --name-only`) and the
+// OBSIDIAN_MEMORY_AGENT trailer — the audit-trail contract, end to end.
+func TestGitSync_CommitCarriesFileListAndAgent(t *testing.T) {
+	withTempStateDir(t)
+	t.Setenv("OBSIDIAN_MEMORY_AGENT", "test-daemon")
+	dir := tempGitRepo(t)
+	r := &verbRunner{
+		responses: map[string][]fakeResp{
+			"diff": {{out: []byte("MEMORY.md\nPROJECTS/kit.md\n")}},
+		},
+	}
+	if err := gitSyncWith(context.Background(), discardLogger(), dir, r); err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+	var commitArgv []string
+	for _, argv := range r.rawCalls {
+		if len(argv) > 3 && argv[3] == "commit" {
+			commitArgv = argv
+		}
+	}
+	if commitArgv == nil {
+		t.Fatalf("no commit call recorded: %v", r.calls)
+	}
+	joined := strings.Join(commitArgv, "\x00")
+	for _, want := range []string{"(2 files)", "MEMORY.md", "PROJECTS/kit.md", "Agent: test-daemon"} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("commit argv should contain %q, got: %q", want, commitArgv)
+		}
+	}
+}
+
+// TestGitSync_DiffFailureStillCommits: the staged-file list is best-effort — a
+// failing diff must not block the sync cycle, just degrade to the bare subject.
+func TestGitSync_DiffFailureStillCommits(t *testing.T) {
+	withTempStateDir(t)
+	dir := tempGitRepo(t)
+	r := &verbRunner{
+		responses: map[string][]fakeResp{
+			"diff": {{out: nil, err: errors.New("diff exploded")}},
+		},
+	}
+	if err := gitSyncWith(context.Background(), discardLogger(), dir, r); err != nil {
+		t.Fatalf("diff failure must not fail the sync, got %v", err)
+	}
+	wantVerbs := []string{"add", "diff", "commit", "pull", "push"}
+	for i, v := range wantVerbs {
+		if r.calls[i] != v {
+			t.Errorf("call %d: want %q, got %q", i, v, r.calls[i])
+		}
+	}
+}

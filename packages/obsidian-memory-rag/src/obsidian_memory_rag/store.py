@@ -58,6 +58,19 @@ CREATE TABLE IF NOT EXISTS observations(
   PRIMARY KEY (source_path, ordinal)
 );
 CREATE INDEX IF NOT EXISTS idx_observations_category ON observations(category);
+
+-- Recall telemetry (ADR-0038): which notes searches RETURNED and which the agent
+-- then actually USED (opened). NOT a derived table — it cannot be rebuilt from
+-- the markdown, so it must never join the schema-version DELETE block in
+-- indexer.py; reindexes leave it untouched. Feeds the opt-in `usage` ranking
+-- boost and the cold-notes decay report.
+CREATE TABLE IF NOT EXISTS recall_log(
+  path       TEXT NOT NULL,
+  event      TEXT NOT NULL CHECK(event IN ('returned', 'used')),
+  query_hash TEXT NOT NULL DEFAULT '',
+  at_ns      INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_recall_log_path ON recall_log(path, event, at_ns);
 """
 
 

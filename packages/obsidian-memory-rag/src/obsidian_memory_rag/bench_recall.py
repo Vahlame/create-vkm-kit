@@ -144,6 +144,7 @@ def evaluate(
     graph: bool = False,
     graph_typed: bool = False,
     importance: bool = False,
+    pin_failures: bool = False,
     mmr: bool = False,
     reranker: "Reranker | None" = None,
 ) -> BenchReport:
@@ -166,6 +167,7 @@ def evaluate(
             graph=graph,
             graph_typed=graph_typed,
             importance=importance,
+            pin_failures=pin_failures,
             mmr=mmr,
             reranker=reranker,
         )
@@ -260,6 +262,7 @@ def run_benchmark(
     graph: bool = False,
     graph_typed: bool = False,
     importance: bool = False,
+    pin_failures: bool = False,
     mmr: bool = False,
     reranker_name: str | None = None,
     in_place: bool = False,
@@ -292,6 +295,7 @@ def run_benchmark(
             graph=graph,
             graph_typed=graph_typed,
             importance=importance,
+            pin_failures=pin_failures,
             mmr=mmr,
             reranker=reranker,
         )

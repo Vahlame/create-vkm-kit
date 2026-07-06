@@ -140,3 +140,33 @@ def test_load_queries_rejects_malformed(tmp_path: Path) -> None:
     bad.write_text('{"query": "x"}\n', encoding="utf-8")  # missing 'relevant'
     with pytest.raises(ValueError):
         load_queries(bad)
+
+
+def test_evaluate_pin_failures_passthrough_and_kind_bucket(tmp_path: Path) -> None:
+    """The bench forwards pin_failures to hybrid_search and reports the
+    failure-recall slice in by_kind — the learning-effectiveness gate's plumbing."""
+    from obsidian_memory_rag import HashingEmbedder, index_vault, index_vectors
+
+    vault = tmp_path / "v"
+    vault.mkdir()
+    (vault / "KNOWN_FAILURES.md").write_text(
+        "# fallos\n\nSubida S3 multipart timeout.\n"
+        "- [failure] multipart upload timeout #s3\n- [fix] backoff\n",
+        encoding="utf-8",
+    )
+    (vault / "neutral.md").write_text(
+        "# neutral\n\nSubida S3 multipart timeout.\n", encoding="utf-8"
+    )
+    emb = HashingEmbedder(dim=256)
+    index_vault(vault)
+    index_vectors(vault, emb)
+    queries = [
+        {
+            "query": "subida S3 multipart timeout",
+            "relevant": ["KNOWN_FAILURES.md"],
+            "kind": "failure-recall",
+        }
+    ]
+    report = evaluate(vault, queries, emb, k=1, pin_failures=True)
+    assert report.by_kind["failure-recall"]["hit_at_1"] == 1.0
+    assert report.results[0].retrieved == ["KNOWN_FAILURES.md"]

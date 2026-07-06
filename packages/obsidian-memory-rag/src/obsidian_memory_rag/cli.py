@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import statistics
 import sys
 import time
@@ -17,6 +18,8 @@ from .embeddings import get_embedder
 from .indexer import ensure_fresh, index_vault, index_vectors
 from .kg_query import observations_query, relations_for, suggest_structure
 from .query import hybrid_search, search_vault
+from .recall_log import log_events
+from .reflect import build_reflection, format_reflection, write_reflection_note
 from .report import build_report
 from .rerank import get_reranker
 from .rotate import rotate_session_log
@@ -46,6 +49,13 @@ def _add_hybrid_flags(parser) -> None:
         "--importance",
         action="store_true",
         help="Bias toward hub notes by [[wikilink]] in-degree (centrality)",
+    )
+    parser.add_argument(
+        "--pin-failures",
+        action="store_true",
+        help="Boost matched notes carrying [failure]/[gotcha] observations "
+        "(recorded lessons resurface on matching tasks; also via "
+        "OBSIDIAN_MEMORY_PIN_FAILURES=1)",
     )
     parser.add_argument(
         "--mmr",
@@ -82,6 +92,19 @@ def _add_hybrid_flags(parser) -> None:
         "(default off = reorder-only; only set it with a validated model)",
     )
     parser.add_argument(
+        "--usage",
+        action="store_true",
+        help="Boost notes with recent 'used' recall-log events (memory that helped "
+        "ranks higher; also via OBSIDIAN_MEMORY_USAGE_BOOST=1)",
+    )
+    parser.add_argument(
+        "--log-recall",
+        action="store_true",
+        help="Log one 'returned' recall_log event per hit (telemetry for the usage "
+        "boost and cold-notes report; disable from the MCP with "
+        "OBSIDIAN_MEMORY_RECALL_LOG=0)",
+    )
+    parser.add_argument(
         "--no-auto-index",
         action="store_true",
         help="Skip the pre-search incremental index refresh (query the index as-is)",
@@ -89,13 +112,20 @@ def _add_hybrid_flags(parser) -> None:
 
 
 def _hybrid_kwargs(args) -> dict:
-    """Build hybrid_search keyword args from parsed hybrid flags."""
+    """Build hybrid_search keyword args from parsed hybrid flags.
+
+    ``pin_failures`` can also be switched on install-wide via the env var
+    OBSIDIAN_MEMORY_PIN_FAILURES=1 — no MCP schema surface needed (ADR-0038).
+    """
+    env_pin = os.environ.get("OBSIDIAN_MEMORY_PIN_FAILURES") == "1"
     return {
         "limit": args.limit,
         "graph": args.graph or args.graph_typed,
         "graph_typed": args.graph_typed,
         "recency": args.recency,
         "importance": args.importance,
+        "pin_failures": args.pin_failures or env_pin,
+        "usage": args.usage or os.environ.get("OBSIDIAN_MEMORY_USAGE_BOOST") == "1",
         "mmr": args.mmr,
         "mmr_lambda": args.mmr_lambda,
         "passage_window": args.passage_window,
@@ -141,6 +171,11 @@ def main() -> None:
     q.add_argument("query", help="Space-separated terms (AND semantics on body)")
     q.add_argument("--limit", type=int, default=20)
     q.add_argument(
+        "--log-recall",
+        action="store_true",
+        help="Log one 'returned' recall_log event per hit (usage telemetry)",
+    )
+    q.add_argument(
         "--no-auto-index",
         action="store_true",
         help="Skip the pre-search incremental index refresh (query the index as-is)",
@@ -179,6 +214,11 @@ def main() -> None:
         )
         br.add_argument(
             "--importance", action="store_true", help="Bias toward hub notes (in-degree)"
+        )
+        br.add_argument(
+            "--pin-failures",
+            action="store_true",
+            help="Boost matched notes carrying [failure]/[gotcha] observations (ADR-0038)",
         )
         br.add_argument("--mmr", action="store_true", help="Diversify with MMR")
         br.add_argument(
@@ -259,6 +299,18 @@ def main() -> None:
         help="Include per-hit ranking diagnostics (bm25 score, mtime_ns); the default "
         "wire format omits them — the consumer is an LLM and order already conveys rank",
     )
+    js.add_argument(
+        "--log-recall",
+        action="store_true",
+        help="Log one 'returned' recall_log event per hit (usage telemetry)",
+    )
+
+    jlu = sub.add_parser(
+        "json-log-use",
+        help="Record a 'used' recall_log event for a note the agent opened (telemetry)",
+    )
+    jlu.add_argument("--vault", type=Path, required=True)
+    jlu.add_argument("--path", required=True, help="Vault-relative note path that was read")
 
     jh = sub.add_parser(
         "json-hybrid-search",
@@ -418,7 +470,44 @@ def main() -> None:
             default=0.92,
             help="Cosine threshold for near-duplicate pairs (default 0.92)",
         )
+        mr.add_argument(
+            "--reflect",
+            action="store_true",
+            help="Also embed consolidation proposals (promotions/merges/decay, ADR-0038)",
+        )
         mr.add_argument("--no-auto-index", action="store_true")
+
+    for name, helptext in (
+        ("memory-reflect", "Read-only consolidation proposals: promotions, merges, decay"),
+        ("json-memory-reflect", "Same as memory-reflect but print one JSON object (for MCP)"),
+    ):
+        rf = sub.add_parser(name, help=helptext)
+        rf.add_argument("--vault", type=Path, required=True)
+        rf.add_argument(
+            "--since-days",
+            type=float,
+            default=14.0,
+            help="Pending observations older than this become promotion proposals (default 14)",
+        )
+        rf.add_argument(
+            "--stale-days",
+            type=float,
+            default=180.0,
+            help="Hypothesis notes untouched this long become decay proposals (default 180)",
+        )
+        rf.add_argument(
+            "--similarity",
+            type=float,
+            default=0.92,
+            help="Cosine threshold for merge candidates (default 0.92)",
+        )
+        rf.add_argument(
+            "--write-note",
+            action="store_true",
+            help="Also write the proposals to _meta/reflection-YYYY-MM-DD.md "
+            "(overwrites the same day's note; the only write this command does)",
+        )
+        rf.add_argument("--no-auto-index", action="store_true")
 
     args = p.parse_args()
     if args.cmd == "index":
@@ -450,6 +539,8 @@ def main() -> None:
         if not args.no_auto_index:
             ensure_fresh(args.vault)
         hits = search_vault(args.vault, args.query, limit=args.limit)
+        if args.log_recall and hits:
+            log_events(args.vault, "returned", [h.path for h in hits], query=args.query)
         if not hits:
             print("no hits (run `index` first or broaden query)")
             return
@@ -461,6 +552,8 @@ def main() -> None:
         if not args.no_auto_index:
             ensure_fresh(args.vault, embedder=embedder)
         hits = hybrid_search(args.vault, args.query, embedder, **_hybrid_kwargs(args))
+        if args.log_recall and hits:
+            log_events(args.vault, "returned", [h.path for h in hits], query=args.query)
         if not hits:
             print("no hits (run `index --semantic` first or broaden query)")
             return
@@ -497,6 +590,7 @@ def main() -> None:
             graph=args.graph or args.graph_typed,
             graph_typed=args.graph_typed,
             importance=args.importance,
+            pin_failures=args.pin_failures,
             mmr=args.mmr,
             reranker_name=args.rerank,
             in_place=args.in_place,
@@ -557,6 +651,8 @@ def main() -> None:
         if not args.no_auto_index:
             ensure_fresh(args.vault)
         hits = search_vault(args.vault, args.query, limit=args.limit)
+        if args.log_recall and hits:
+            log_events(args.vault, "returned", [h.path for h in hits], query=args.query)
         # Compact wire format (ADR-0034): the consumer is an LLM that pays input
         # tokens per hit — order already conveys rank, so ranking diagnostics
         # (raw bm25 distance, 19-digit mtime_ns) ship only under --explain.
@@ -582,6 +678,8 @@ def main() -> None:
         if not args.no_auto_index:
             ensure_fresh(args.vault, embedder=embedder)
         hits = hybrid_search(args.vault, args.query, embedder, **_hybrid_kwargs(args))
+        if args.log_recall and hits:
+            log_events(args.vault, "returned", [h.path for h in hits], query=args.query)
         # Compact wire format (ADR-0034): default hits carry only what an agent
         # acts on (path, heading, snippet, rounded score). Per-ranker ranks and
         # the full-precision score — mostly-null diagnostics costing ~25 tokens
@@ -792,6 +890,12 @@ def main() -> None:
             similarity=args.similarity,
             duplicates=args.duplicates,
         )
+        if args.reflect:
+            report["reflection"] = build_reflection(
+                args.vault,
+                stale_days=args.stale_days,
+                similarity=args.similarity,
+            )
         if args.cmd == "json-memory-report":
             print(json.dumps(report, ensure_ascii=False))
         else:
@@ -812,6 +916,27 @@ def main() -> None:
             print("  suggested actions:")
             for s in report["suggested_actions"]:
                 print(f"    - {s}")
+    elif args.cmd == "json-log-use":
+        written = log_events(args.vault, "used", [args.path])
+        print(json.dumps({"logged": written}))
+    elif args.cmd in ("memory-reflect", "json-memory-reflect"):
+        if not args.no_auto_index:
+            ensure_fresh(args.vault)
+        reflection = build_reflection(
+            args.vault,
+            since_days=args.since_days,
+            stale_days=args.stale_days,
+            similarity=args.similarity,
+        )
+        if args.write_note:
+            target = write_reflection_note(args.vault, reflection)
+            reflection["note_written"] = str(target)
+        if args.cmd == "json-memory-reflect":
+            print(json.dumps(reflection, ensure_ascii=False))
+        else:
+            print(format_reflection(reflection))
+            if args.write_note:
+                print(f"wrote {reflection['note_written']}")
 
 
 if __name__ == "__main__":
