@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **ADR-0038 retrieval levers join the default stack.** The installer now wires
+  `OBSIDIAN_MEMORY_PIN_FAILURES=1` and `OBSIDIAN_MEMORY_USAGE_BOOST=1` into the
+  `obsidian-memory-hybrid` MCP env by default (all three surfaces: Cursor
+  `mcp.json`, `claude mcp add`, `codex mcp add`), same rationale as sqlite-vec:
+  ranking-only levers over telemetry that is already collected by default,
+  bench-gated in CI. Opt out with `--no-pin-failures` / `--no-usage-boost`.
+  The cross-encoder reranker stays opt-in (`--rerank`) — it downloads a model
+  on first use and needs the `[rerank]` extra.
+
 ### Fixed
 
 - **npm license metadata caught up with the license change.** The published

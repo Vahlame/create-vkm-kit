@@ -409,7 +409,7 @@ async function atomicWriteJson(fp, data) {
  * @param {string} home
  * @param {string} vaultAbs
  * @param {boolean} dryRun
- * @param {{ withHybrid?: boolean, repoRoot?: string | null }} [hybridOpts]
+ * @param {{ withHybrid?: boolean, repoRoot?: string | null, semantic?: boolean, vec?: boolean, rerank?: boolean, pinFailures?: boolean, usage?: boolean }} [hybridOpts]
  */
 async function writeCursorMcp(home, vaultAbs, dryRun, hybridOpts = {}) {
   const dir = path.join(home, ".cursor");
@@ -434,13 +434,17 @@ async function writeCursorMcp(home, vaultAbs, dryRun, hybridOpts = {}) {
     repoRoot = null,
     semantic = false,
     vec = false,
-    rerank = false
+    rerank = false,
+    pinFailures = false,
+    usage = false
   } = hybridOpts;
   if (withHybrid && repoRoot) {
     merged = mergeObsidianHybridServer(merged, vaultAbs, path.resolve(repoRoot), {
       semantic,
       vec,
-      rerank
+      rerank,
+      pinFailures,
+      usage
     });
   }
   if (dryRun) {
@@ -536,7 +540,7 @@ function idesFromArgs(argv, { full = false } = {}) {
  * entry first. Falls back to printing the command if `claude` isn't on PATH.
  * @param {string} vaultAbs
  * @param {boolean} dryRun
- * @param {{ withHybrid?: boolean, repoRoot?: string|null, semantic?: boolean, vec?: boolean, rerank?: boolean }} [hybridOpts]
+ * @param {{ withHybrid?: boolean, repoRoot?: string|null, semantic?: boolean, vec?: boolean, rerank?: boolean, pinFailures?: boolean, usage?: boolean }} [hybridOpts]
  */
 async function registerClaudeCodeMcp(vaultAbs, dryRun, hybridOpts = {}) {
   const {
@@ -544,14 +548,16 @@ async function registerClaudeCodeMcp(vaultAbs, dryRun, hybridOpts = {}) {
     repoRoot = null,
     semantic = false,
     vec = false,
-    rerank = false
+    rerank = false,
+    pinFailures = false,
+    usage = false
   } = hybridOpts;
   /** @type {Array<[string, object]>} */
   const servers = [["basic-memory", basicMemoryServer(vaultAbs)]];
   if (withHybrid && repoRoot) {
     servers.push([
       "obsidian-memory-hybrid",
-      hybridServer(vaultAbs, path.resolve(repoRoot), { semantic, vec, rerank })
+      hybridServer(vaultAbs, path.resolve(repoRoot), { semantic, vec, rerank, pinFailures, usage })
     ]);
   }
   for (const [name, server] of servers) {
@@ -583,7 +589,7 @@ async function registerClaudeCodeMcp(vaultAbs, dryRun, hybridOpts = {}) {
  * `config.toml` block if `codex` isn't on PATH.
  * @param {string} vaultAbs
  * @param {boolean} dryRun
- * @param {{ withHybrid?: boolean, repoRoot?: string|null, semantic?: boolean, vec?: boolean, rerank?: boolean }} [hybridOpts]
+ * @param {{ withHybrid?: boolean, repoRoot?: string|null, semantic?: boolean, vec?: boolean, rerank?: boolean, pinFailures?: boolean, usage?: boolean }} [hybridOpts]
  */
 async function registerCodexMcp(vaultAbs, dryRun, hybridOpts = {}) {
   const {
@@ -591,14 +597,16 @@ async function registerCodexMcp(vaultAbs, dryRun, hybridOpts = {}) {
     repoRoot = null,
     semantic = false,
     vec = false,
-    rerank = false
+    rerank = false,
+    pinFailures = false,
+    usage = false
   } = hybridOpts;
   /** @type {Array<[string, object]>} */
   const servers = [["basic-memory", basicMemoryServer(vaultAbs)]];
   if (withHybrid && repoRoot) {
     servers.push([
       "obsidian-memory-hybrid",
-      hybridServer(vaultAbs, path.resolve(repoRoot), { semantic, vec, rerank })
+      hybridServer(vaultAbs, path.resolve(repoRoot), { semantic, vec, rerank, pinFailures, usage })
     ]);
   }
   for (const [name, server] of servers) {
@@ -752,6 +760,13 @@ async function runNonInteractive(argv) {
   // model on first use and only helps with a strong, content-language-matched model.
   // `--rerank` installs the [rerank] extra and sets OBSIDIAN_MEMORY_RERANK=1.
   let wantRerank = wantHybrid && argv.includes("--rerank");
+  // ADR-0038 retrieval levers: pin_failures (resurface recorded lessons on matching
+  // tasks) and usage boost (reinforce notes the agent demonstrably used). Pure
+  // ranking levers over data that is already collected by default (recall_log),
+  // bench-gated in CI — so the default stack ships them ON; --no-pin-failures /
+  // --no-usage-boost opt out.
+  let wantPinFailures = wantHybrid && on("--pin-failures", "--no-pin-failures");
+  let wantUsageBoost = wantHybrid && on("--usage-boost", "--no-usage-boost");
   const wantGitleaks = argv.includes("--with-gitleaks");
   const ides = idesFromArgs(argv, { full });
   // Claude Code only: disable the native per-project auto-memory + install the SessionStart
@@ -797,6 +812,8 @@ async function runNonInteractive(argv) {
         wantInstallBackend = false;
         wantVec = false;
         wantRerank = false;
+        wantPinFailures = false;
+        wantUsageBoost = false;
         kitRoot = null;
       } else {
         console.error(
@@ -825,7 +842,9 @@ async function runNonInteractive(argv) {
     repoRoot: kitRoot,
     semantic: wantSemantic,
     vec: wantVec,
-    rerank: wantRerank
+    rerank: wantRerank,
+    pinFailures: wantPinFailures,
+    usage: wantUsageBoost
   };
   if (ides.includes("cursor") && !noCursorMcp) {
     await writeCursorMcp(home, vault, dryRun, hybridOpts);
@@ -972,7 +991,8 @@ Feature set:
   --full, --all   Alias for the default full stack PLUS --ide codex,claude (implies -y).
                   Since the full stack is now the default, --full mainly flips the IDE
                   default to codex,claude. Opt out of a piece with --no-semantic /
-                  --no-vec / --no-build-index / --no-install-backend / --no-rules.
+                  --no-vec / --no-pin-failures / --no-usage-boost / --no-build-index /
+                  --no-install-backend / --no-rules.
   --minimal       Opposite of the default: install plain basic-memory only (no hybrid,
                   semantic, index, vec, or rules). Re-add one piece with --with-hybrid /
                   --semantic / --vec / --build-index / --install-backend / --rules.
@@ -995,6 +1015,12 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
   --rerank        With --with-hybrid: cross-encoder reranker (installs the [rerank] extra;
                   sets OBSIDIAN_MEMORY_RERANK=1). Opt-in only (downloads a model on first use;
                   uses the multilingual default) — NOT enabled by --full.
+  --pin-failures  With --with-hybrid: resurface recorded KNOWN_FAILURES lessons on matching
+                  tasks (sets OBSIDIAN_MEMORY_PIN_FAILURES=1; ADR-0038). ON by default;
+                  opt out with --no-pin-failures.
+  --usage-boost   With --with-hybrid: boost notes the agent demonstrably used, from the
+                  local recall_log telemetry (sets OBSIDIAN_MEMORY_USAGE_BOOST=1; ADR-0038).
+                  ON by default; opt out with --no-usage-boost.
   --build-index   After wiring, build the local FTS (+semantic) index (needs the Python backend)
   --install-backend  pip install -e the Python RAG backend (best-effort; on by default under --full)
   --with-gitleaks Install gitleaks pre-commit hook in <vault>/.git/hooks/
@@ -1147,11 +1173,15 @@ Claude Code native-memory override (when --ide includes claude):
           });
           // vec (sqlite-vec acceleration) rides along with hybrid: ranking-identical
           // and falls back safely, so the default install ships it (ADR-0025).
+          // Same deal for the ADR-0038 retrieval levers (pin_failures + usage boost):
+          // ranking-only, bench-gated, data already collected by default.
           hybridOpts = {
             withHybrid: true,
             repoRoot: kitRoot,
             semantic: Boolean(semantic),
-            vec: true
+            vec: true,
+            pinFailures: true,
+            usage: true
           };
         } else {
           console.warn(pc.yellow("Hybrid paths not found; skipping obsidian-memory-hybrid."));
