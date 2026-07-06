@@ -14,7 +14,12 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { extractBullets, pickQueryTerms } from "./extract.mjs";
-import { vaultEditFile, vaultListDirectory, vaultReadFile, vaultWriteFile } from "./vault-fs.mjs";
+import {
+  vaultEditFile,
+  vaultListDirectory,
+  vaultReadFileWithMeta,
+  vaultWriteFile
+} from "./vault-fs.mjs";
 import { toolHandler } from "./mcp-result.mjs";
 import { scanInjection, wrapUntrusted } from "./untrusted.mjs";
 import { maybeStartOtel } from "./telemetry.mjs";
@@ -447,8 +452,13 @@ async function main() {
       if (head != null) opts.head = head;
       if (tail != null) opts.tail = tail;
       if (maxChars != null) opts.maxChars = maxChars;
-      const text = await vaultReadFile(v, path, opts);
-      return wrapUntrusted(text, path);
+      const { text, etag, mtimeMs } = await vaultReadFileWithMeta(v, path, opts);
+      // Etag line lives OUTSIDE the untrusted envelope so note content cannot
+      // spoof it; it identifies the whole file version even for head/tail reads.
+      return (
+        wrapUntrusted(text, path) +
+        `\netag: ${etag} · modified: ${new Date(mtimeMs).toISOString()}`
+      );
     })
   );
 
@@ -460,13 +470,17 @@ async function main() {
         "Write a UTF-8 text file inside BASIC_MEMORY_HOME using tmp+rename for atomicity. Creates parent dirs if missing. Overwrites without confirmation — for in-place edits prefer vault_edit_file. Refuses paths that escape the vault.",
       inputSchema: {
         path: z.string().describe("Path relative to vault root"),
-        content: z.string().describe("Full file content (UTF-8)")
+        content: z.string().describe("Full file content (UTF-8)"),
+        ifMatch: z
+          .string()
+          .optional()
+          .describe("Etag from vault_read_file; fails if the file changed since")
       },
       annotations: { readOnlyHint: false, destructiveHint: true }
     },
-    toolHandler(async ({ path, content }) => {
+    toolHandler(async ({ path, content, ifMatch }) => {
       const v = requireVault();
-      return vaultWriteFile(v, path, content);
+      return vaultWriteFile(v, path, content, ifMatch ? { ifMatch } : {});
     })
   );
 
@@ -486,13 +500,17 @@ async function main() {
             })
           )
           .min(1)
-          .describe("Sequence of find/replace pairs; applied in order")
+          .describe("Sequence of find/replace pairs; applied in order"),
+        ifMatch: z
+          .string()
+          .optional()
+          .describe("Etag from vault_read_file; fails if the file changed since")
       },
       annotations: { readOnlyHint: false }
     },
-    toolHandler(async ({ path, edits }) => {
+    toolHandler(async ({ path, edits, ifMatch }) => {
       const v = requireVault();
-      return vaultEditFile(v, path, edits);
+      return vaultEditFile(v, path, edits, ifMatch ? { ifMatch } : {});
     })
   );
 
