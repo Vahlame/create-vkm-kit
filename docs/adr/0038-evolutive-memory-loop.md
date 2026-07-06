@@ -24,7 +24,7 @@ Ship the loop as five small, deterministic pieces — **telemetry in SQLite, tru
 
 - **New MCP tools (`memory_log_failure`, `memory_feedback`, standalone `memory_reflect`):** rejected — each costs schema budget every session for every wired agent; classification + implicit read-after-return + the report fold-in cover the same ground at zero schema cost. Revisit with usage data.
 - **Auto-applying promotions/merges/decay:** rejected — the vault is the user's; a wrong auto-merge or auto-archive is the corruption ADR-0037 promises not to cause.
-- **LLM-driven reflection (clustering, NLI contradiction detection):** rejected for the engine — stdlib-deterministic proposals are testable and free; the *agent* reading the proposals supplies the intelligence.
+- **LLM-driven reflection (clustering, NLI contradiction detection):** rejected for the engine — stdlib-deterministic proposals are testable and free; the _agent_ reading the proposals supplies the intelligence.
 - **Learned ranking weights:** rejected — the levers stay fixed, bounded multipliers/fusion weights so ranking remains deterministic and mechanism-testable (ADR-0027 doctrine).
 
 ## Consequences

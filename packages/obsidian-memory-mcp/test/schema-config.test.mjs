@@ -89,8 +89,7 @@ test("enforce mode: an edit that strips a required key is rejected, file untouch
     const before = "---\ntitle: X\ntype: t\ntags: [a]\n---\nok";
     await vaultWriteFile(vault, "PROJECTS/x.md", before);
     await assert.rejects(
-      () =>
-        vaultEditFile(vault, "PROJECTS/x.md", [{ oldText: "type: t\n", newText: "" }]),
+      () => vaultEditFile(vault, "PROJECTS/x.md", [{ oldText: "type: t\n", newText: "" }]),
       /schema violation/
     );
     assert.equal(await readFile(join(vault, "PROJECTS", "x.md"), "utf8"), before);

@@ -53,7 +53,8 @@ export function pickQueryTerms(bullet) {
  */
 const FAILURE_RE =
   /(fail(ed|s|ure)|\berror(s|ed)?\b|crash|broke\b|broken|regress(ion|ed)|\bbugs?\b|root cause|fall(ó|aba|an|a al)|errores|romp(ió|ieron)|se cay(ó|e)|regresi(ón|on)|causa ra(í|i)z)/;
-const FIX_AFTER_RE = /fix(ed|es)?\b.*\b(after|because|when)|arregl(ado|é|amos).*(tras|porque|cuando)/;
+const FIX_AFTER_RE =
+  /fix(ed|es)?\b.*\b(after|because|when)|arregl(ado|é|amos).*(tras|porque|cuando)/;
 const GOTCHA_RE =
   /(watch out|careful|beware|gotcha|pitfall|only works? (if|when|with)|silently|counterintuitive|cuidado|\bojo\b|trampa|solo funciona (si|cuando|con)|silenciosamente)/;
 const PREFERENCE_RE =
