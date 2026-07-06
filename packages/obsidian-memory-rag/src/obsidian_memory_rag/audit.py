@@ -11,6 +11,7 @@ the Node MCP bridge can forward it untouched (see ``cli.py`` ``json-audit``).
 
 from __future__ import annotations
 
+import json
 import re
 import time
 from math import ceil
@@ -70,6 +71,45 @@ def _scan_conflict_and_tmp_files(vault: Path, *, now: float) -> tuple[list[dict]
     sync_conflicts.sort(key=lambda item: item["path"])
     stale_tmp.sort(key=lambda item: item["path"])
     return sync_conflicts, stale_tmp
+
+
+# Opt-in frontmatter schema (same file the Node write path reads — see
+# packages/obsidian-memory-mcp/src/schema-config.mjs; keep the two ~40-line
+# validators in sync, the spec is deliberately just required-keys presence).
+SCHEMA_CONFIG_NAME = "memory-schema.json"
+
+_FRONTMATTER_BLOCK_RE = re.compile(r"^---\r?\n(.*?)\r?\n---(?:\r?\n|$)", re.DOTALL)
+
+
+def _load_schema_config(vault: Path) -> dict | None:
+    """Parse ``memory-schema.json`` at the vault root; ``None`` when absent or
+    malformed (audit is read-only — a broken config is not an audit failure)."""
+    fp = vault / SCHEMA_CONFIG_NAME
+    if not fp.is_file():
+        return None
+    try:
+        parsed = json.loads(fp.read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError):
+        return None
+    folders = parsed.get("folders") if isinstance(parsed, dict) else None
+    return {"folders": folders} if isinstance(folders, dict) else None
+
+
+def _missing_frontmatter_keys(rel: str, text: str, config: dict) -> list[str]:
+    """Required keys (per the note's top-level folder, '*' fallback) absent from
+    the note's frontmatter block. Same line-regex contract as the Node side."""
+    folder = rel.split("/", 1)[0] if "/" in rel else ""
+    rule = config["folders"].get(folder) or config["folders"].get("*")
+    required = rule.get("required") if isinstance(rule, dict) else None
+    if not isinstance(required, list) or not required:
+        return []
+    match = _FRONTMATTER_BLOCK_RE.match(text)
+    block = match.group(1) if match else ""
+    missing = []
+    for key in required:
+        if not re.search(rf"^{re.escape(str(key))}\s*:", block, re.MULTILINE):
+            missing.append(str(key))
+    return missing
 
 
 def _git_state(vault: Path) -> dict | None:
@@ -160,6 +200,8 @@ def audit_vault(
     oversized: list[dict] = []
     broken_links: list[dict] = []
     conflict_markers: list[dict] = []
+    schema_violations: list[dict] = []
+    schema_config = _load_schema_config(vault)
     seen_broken: set[tuple[str, str]] = set()  # dedup (source, target) pairs
 
     for fp in files:
@@ -175,6 +217,10 @@ def audit_vault(
 
         # Decode for wikilink scanning; utf-8-sig drops a leading BOM if present.
         text = data.decode("utf-8-sig", errors="replace")
+        if schema_config is not None:
+            missing = _missing_frontmatter_keys(rel, text, schema_config)
+            if missing:
+                schema_violations.append({"path": rel, "missing": missing})
         scan_text = strip_code_regions(text)
         for lineno, line in enumerate(scan_text.splitlines(), start=1):
             if line.startswith(_CONFLICT_MARKER_PREFIX):
@@ -236,4 +282,14 @@ def audit_vault(
         "stale_tmp": stale_tmp[:limit],
         "stale_tmp_total": stale_tmp_total,
         "git_state": _git_state(vault),
+        # None = no memory-schema.json (validation unconfigured), mirroring
+        # git_state's absent-vs-clean distinction.
+        "schema_violations": (
+            sorted(schema_violations, key=lambda item: item["path"])[:limit]
+            if schema_config is not None
+            else None
+        ),
+        "schema_violations_total": (
+            len(schema_violations) if schema_config is not None else None
+        ),
     }

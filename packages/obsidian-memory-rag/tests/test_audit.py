@@ -178,6 +178,8 @@ def test_report_is_json_serializable_with_exact_shape(tmp_path: Path) -> None:
         "stale_tmp",
         "stale_tmp_total",
         "git_state",
+        "schema_violations",
+        "schema_violations_total",
     }
     assert set(again["totals"]) == {"notes", "tokens"}
     assert again["budget_tokens"] == 100
@@ -229,6 +231,45 @@ def test_stale_tmp_files_reported_only_when_old(tmp_path: Path) -> None:
     assert paths == ["note.md.tmp-1234-1700000000000"]
     assert report["stale_tmp"][0]["age_hours"] >= 1.9
     assert report["stale_tmp_total"] == 1
+
+
+def test_schema_violations_none_without_config(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    _write(vault / "PROJECTS" / "x.md", "no frontmatter\n")
+    report = audit_vault(vault)
+    assert report["schema_violations"] is None
+    assert report["schema_violations_total"] is None
+
+
+def test_schema_violations_folder_rule_and_wildcard(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    _write(
+        vault / "memory-schema.json",
+        json.dumps(
+            {
+                "folders": {
+                    "PROJECTS": {"required": ["title", "type"]},
+                    "*": {"required": ["title"]},
+                }
+            }
+        ),
+    )
+    _write(vault / "PROJECTS" / "bad.md", "---\ntitle: x\n---\nbody\n")
+    _write(vault / "PROJECTS" / "good.md", "---\ntitle: x\ntype: t\n---\nbody\n")
+    _write(vault / "root-bad.md", "just prose\n")
+    _write(vault / "root-good.md", "---\ntitle: y\n---\n")
+    report = audit_vault(vault)
+    violations = {v["path"]: v["missing"] for v in report["schema_violations"]}
+    assert violations == {"PROJECTS/bad.md": ["type"], "root-bad.md": ["title"]}
+    assert report["schema_violations_total"] == 2
+
+
+def test_schema_violations_malformed_config_ignored(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    _write(vault / "memory-schema.json", "not json {{")
+    _write(vault / "a.md", "x\n")
+    report = audit_vault(vault)
+    assert report["schema_violations"] is None
 
 
 def test_git_state_none_without_repo_and_flags_rebase(tmp_path: Path) -> None:
