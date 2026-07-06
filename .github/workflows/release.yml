@@ -1,9 +1,15 @@
 name: release
 
+# Two entry points, same guarded pipeline:
+#   - tag push vX.Y.Z (the normal path)
+#   - workflow_dispatch on main: derives the tag from the version markers and
+#     creates it as part of the release — the fallback for environments whose
+#     git transport can push branches but not tags.
 on:
   push:
     tags:
       - "v*.*.*"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -16,18 +22,24 @@ jobs:
       - name: guard — tag matches every version marker
         shell: bash
         run: |
-          tag="${GITHUB_REF_NAME#v}"
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            tag="${GITHUB_REF_NAME#v}"
+          else
+            # Manual dispatch: the version markers are the source of truth.
+            tag="$(node scripts/version.mjs print)"
+          fi
           changelog="$(node scripts/version.mjs print)"
           if [ "$tag" != "$changelog" ]; then
             echo "tag v$tag != CHANGELOG latest $changelog" >&2
             exit 1
           fi
           node scripts/version.mjs check
+          echo "RELEASE_TAG=v$tag" >> "$GITHUB_ENV"
       - name: extract changelog section
         id: changelog
         shell: bash
         run: |
-          tag="${GITHUB_REF_NAME#v}"
+          tag="${RELEASE_TAG#v}"
           awk -v ver="$tag" '
             $0 ~ "^## \\[" ver "\\]" { capture=1; next }
             capture && /^## \[/ { exit }
@@ -40,6 +52,7 @@ jobs:
       - name: create release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
           body_path: release-notes.md
           draft: false
           prerelease: false
