@@ -321,6 +321,49 @@ tags: [start]
   await fse.writeFile(path.join(vault, "PRACTICES", "observations.md"), practices.obs, "utf8");
   await fse.writeFile(path.join(vault, "PRACTICES", "confirmed-good.md"), practices.good, "utf8");
   await fse.writeFile(path.join(vault, "PRACTICES", "confirmed-bad.md"), practices.bad, "utf8");
+  // Project rules home: dated, sourced, reasoned hard rules (ADR-0039).
+  await fse.ensureDir(path.join(vault, "RULES"));
+  const rulesTemplate =
+    lang === "en"
+      ? `---
+type: rules
+tags: [rules, template]
+---
+
+# RULES — <project>
+
+Hard rules for [[PROJECTS/<project>]]. **Binding**: if a rule blocks the task, stop and ask.
+
+> PROJECT rules only — knowledge invisible from the repo (domain contracts, deliberate traps, hard-won decisions, user mandates). Generic method is not stored: models already ship with it.
+
+- **R1 — <imperative one-line rule>.** <minimal operational detail>
+  - why: <concrete story or reason — rules with a why get respected; bare ones get misapplied>
+  - source: \`<file/test/ADR that defines or enforces it>\` · last_verified: YYYY-MM-DD
+
+## Changes
+
+- [decision] YYYY-MM-DD · <rule added/retired/edited + reason>
+`
+      : `---
+type: rules
+tags: [rules, template]
+---
+
+# RULES — <proyecto>
+
+Reglas duras de [[PROJECTS/<proyecto>]]. **Vinculantes**: si una regla bloquea la tarea, para y consulta.
+
+> Solo reglas de PROYECTO — conocimiento invisible desde el repo (contratos de dominio, trampas deliberadas, decisiones costosas, mandatos del usuario). El método genérico no se guarda: ya viene en los modelos.
+
+- **R1 — <regla imperativa en una línea>.** <detalle mínimo operativo>
+  - porqué: <historia o razón concreta — las reglas con porqué se respetan; las secas se obedecen mal>
+  - fuente: \`<archivo/test/ADR que la define o la enforcea>\` · last_verified: YYYY-MM-DD
+
+## Cambios
+
+- [decision] YYYY-MM-DD · <alta/retiro/edición de regla + motivo>
+`;
+  await fse.writeFile(path.join(vault, "RULES", "TEMPLATE.md"), rulesTemplate, "utf8");
   // Per-model adaptive layer: the rules point here; the agent reads only its own row.
   await fse.ensureDir(path.join(vault, "_meta"));
   const profilesDoc =

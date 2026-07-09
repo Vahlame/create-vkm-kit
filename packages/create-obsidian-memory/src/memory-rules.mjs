@@ -63,6 +63,8 @@ Solo lo **reutilizable más allá de la sesión** (arquitectura cerrada, decisio
 
 **Dale estructura consultable** (compatible con Basic Memory): relaciones tipadas \`- <verbo> [[destino]]\` (\`implements\`, \`supersedes\`, \`part_of\`; un \`[[link]]\` suelto es \`relates_to\`) y observaciones \`- [categoría] hecho #tag\` (\`[decision]\`, \`[gotcha]\`, \`[fact]\`) — así una decisión es recuperable por categoría/tag vía \`vault_relations\`/\`vault_observations\`, no solo por texto.
 
+**\`RULES/\` = reglas de proyecto, no método** (solo lo invisible desde el repo), cada una con **porqué, fuente y \`last_verified\`** — plantilla \`RULES/TEMPLATE.md\`; al usarla re-verifícala contra su fuente, y si una nota contradice al repo, **corrígela en la misma sesión**.
+
 ### Auto-cuestiónate antes de responder (escala a la tarea)
 
 Antes de una respuesta no trivial, chequea en silencio: ¿supuestos explícitos? ¿casos límite y modos de fallo cubiertos? ¿qué la haría incorrecta? Corrige lo que encuentres. Un one-liner no necesita nada; un diseño o algo sensible a seguridad, sí. Es interno — no infles la respuesta.
@@ -143,6 +145,8 @@ The tool descriptions say when to use each one; the short map: meaning → \`vau
 Only what's **reusable beyond the session** (closed architecture, hard-won decisions, firm preferences, lessons). **Never** per-day TODOs, command output, or what the code already documents. One idea per note; **dedup first**. Separate **facts** and **hypotheses**. Wikilinks \`[[...]]\`.
 
 **Give it queryable structure** (Basic-Memory-compatible): typed relations \`- <verb> [[target]]\` (\`implements\`, \`supersedes\`, \`part_of\`; a bare \`[[link]]\` is \`relates_to\`) and observations \`- [category] fact #tag\` (\`[decision]\`, \`[gotcha]\`, \`[fact]\`) — so a decision becomes recallable by category/tag via \`vault_relations\`/\`vault_observations\`, not just by text.
+
+**\`RULES/\` = project rules, not method** (only what's invisible from the repo), each with a **why, a source and \`last_verified\`** — template \`RULES/TEMPLATE.md\`; re-verify it against its source when you use it, and when a note contradicts the repo, **fix it in the same session**.
 
 ### Self-check before answering (scale to the task)
 

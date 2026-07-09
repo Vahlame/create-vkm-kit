@@ -224,6 +224,8 @@ Solo lo **reutilizable más allá de la sesión** (arquitectura cerrada, decisio
 
 **Dale estructura consultable** (compatible con Basic Memory): relaciones tipadas `- <verbo> [[destino]]` (`implements`, `supersedes`, `part_of`; un `[[link]]` suelto es `relates_to`) y observaciones `- [categoría] hecho #tag` (`[decision]`, `[gotcha]`, `[fact]`) — así una decisión es recuperable por categoría/tag vía `vault_relations`/`vault_observations`, no solo por texto.
 
+**`RULES/` = reglas de proyecto, no método** (solo lo invisible desde el repo), cada una con **porqué, fuente y `last_verified`** — plantilla `RULES/TEMPLATE.md`; al usarla re-verifícala contra su fuente, y si una nota contradice al repo, **corrígela en la misma sesión**.
+
 ### Auto-cuestiónate antes de responder (escala a la tarea)
 
 Antes de una respuesta no trivial, chequea en silencio: ¿supuestos explícitos? ¿casos límite y modos de fallo cubiertos? ¿qué la haría incorrecta? Corrige lo que encuentres. Un one-liner no necesita nada; un diseño o algo sensible a seguridad, sí. Es interno — no infles la respuesta.
