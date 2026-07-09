@@ -223,6 +223,8 @@ Only what's **reusable beyond the session** (closed architecture, hard-won decis
 
 **Give it queryable structure** (Basic-Memory-compatible): typed relations `- <verb> [[target]]` (`implements`, `supersedes`, `part_of`; a bare `[[link]]` is `relates_to`) and observations `- [category] fact #tag` (`[decision]`, `[gotcha]`, `[fact]`) — so a decision becomes recallable by category/tag via `vault_relations`/`vault_observations`, not just by text.
 
+**`RULES/` = project rules, not method** (only what's invisible from the repo), each with a **why, a source and `last_verified`** — template `RULES/TEMPLATE.md`; re-verify it against its source when you use it, and when a note contradicts the repo, **fix it in the same session**.
+
 ### Self-check before answering (scale to the task)
 
 Before a non-trivial answer, silently check: assumptions stated? obvious edge cases and failure modes covered? what would make this wrong? Fix what you find. A one-liner needs none; a design or security-sensitive change needs a real pass. It's internal — don't pad the reply.

@@ -19,8 +19,8 @@ import { memoryRulesBlock, memoryRulesBody } from "../src/memory-rules.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
-// Measured 7,979 (es) / 7,743 (en) after the ADR-0036 diet — ~5% headroom each.
-const BUDGET = { es: 8400, en: 8200 };
+// Measured 8,660 (es) / 8,421 (en) after ADR-0039's RULES contract — ~5% headroom each.
+const BUDGET = { es: 9100, en: 8850 };
 
 const LOAD_BEARING = {
   es: [
@@ -36,7 +36,9 @@ const LOAD_BEARING = {
     "Muestra los candidatos",
     "Nunca simplifiques",
     "Nunca impongas",
-    "no comprimas"
+    "no comprimas",
+    "corrígela en la misma sesión",
+    "RULES/TEMPLATE.md"
   ],
   en: [
     "ONLY source of truth",
@@ -51,7 +53,9 @@ const LOAD_BEARING = {
     "Show the candidates",
     "Never simplify",
     "Never impose",
-    "don't compress"
+    "don't compress",
+    "fix it in the same session",
+    "RULES/TEMPLATE.md"
   ]
 };
 

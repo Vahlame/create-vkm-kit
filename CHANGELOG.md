@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **RULES contract — dated, sourced, reasoned project rules (ADR-0039).** The
+  vault scaffold now creates `RULES/TEMPLATE.md` (es/en) and the managed rules
+  block teaches the contract in its What-to-save section: keep **project**
+  rules (knowledge invisible from the repo — domain contracts, deliberate
+  traps, user mandates), each carrying its **why** (history), its **source**
+  (the file/test/ADR that defines or enforces it) and a **last_verified**
+  date; re-verify a rule against its source when you use it, and when a note
+  contradicts the repo, fix the note in the same session. Grounded in an
+  external multi-agent bench (sop-suite RUN1–RUN7): memory pays on invisible
+  project rules, not on generic method (+2–3 pts/task); rules with a recorded
+  why get respected; agents self-verify stale rules when the source of truth
+  is one link away (aged-memory trap: 0/7 fell). Rules-block budgets raised
+  es 8,400 → 9,100 / en 8,200 → 8,850 chars as a reviewed ADR-0036 decision
+  (+~270 chars per language), with two new load-bearing phrases pinned per
+  language.
+
 ## [3.14.0] - 2026-07-06
 
 ### Changed
