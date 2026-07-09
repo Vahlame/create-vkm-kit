@@ -31,8 +31,17 @@
  *  - To defer to the normal permission flow, print nothing and exit 0.
  *  - Never throw: a malformed payload or unreadable transcript must fall through to the
  *    normal permission flow (fail OPEN — this hook must never hang or break a session).
+ *
+ * Performance: re-parsing the WHOLE transcript on every gated call gets slower as a session
+ * grows (measured ~75ms on a real 25.8MB transcript) — see `_transcript-cache.mjs` (installed
+ * alongside this file) for the sidecar-cache fix that makes each call only read the NEW
+ * suffix appended since the last one. Purely a performance change: `scanTranscript` below
+ * returns the identical shape/values a full rescan always did.
  */
 import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { getIncrementalState } from "./_transcript-cache.mjs";
 
 const SUBSTANTIVE_TOOLS = /^(Write|Edit|MultiEdit|NotebookEdit)$/;
 /** Below this many PRIOR substantive calls, the gate stays out of the way entirely. */
@@ -61,54 +70,56 @@ function isRealUserTurn(entry) {
   return content.some((block) => block && block.type !== "tool_result");
 }
 
+function initialScanState() {
+  return { substantiveBefore: 0, pending: false, satisfied: false };
+}
+
 /**
- * Scan the JSONL transcript in order. Walks each assistant turn's content blocks in
- * array order (text marker before any later tool_use in the SAME prior turn still counts,
- * since the call currently being gated is by definition not yet in this file). `satisfied`
- * is monotonic — once a real user turn follows a proposal, it stays satisfied for the rest
- * of the scan, even if a later unconfirmed proposal appears. Never throws.
+ * Fold ONE raw JSONL line into `state` (mutate-and-return). Same per-line logic the old
+ * always-full-rescan version used, factored out so it can run over just the transcript's
+ * NEW suffix (see `_transcript-cache.mjs`) with an identical result to scanning from byte 0:
+ * each line's effect depends only on itself and the accumulator so far (`pending` gates
+ * whether a later user turn sets `satisfied`), never on lines further ahead.
  */
-function scanTranscript(transcriptPath) {
-  let substantiveBefore = 0;
-  let pending = false;
-  let satisfied = false;
-  let text;
+function foldTranscriptLine(state, line) {
+  const trimmed = line.trim();
+  if (!trimmed) return state;
+  let entry;
   try {
-    text = fs.readFileSync(transcriptPath, "utf8");
+    entry = JSON.parse(trimmed);
   } catch {
-    return { substantiveBefore, pending, satisfied };
+    return state;
   }
-  for (const line of text.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    let entry;
-    try {
-      entry = JSON.parse(trimmed);
-    } catch {
-      continue;
-    }
-    if (entry?.type === "assistant") {
-      const content = entry?.message?.content;
-      if (Array.isArray(content)) {
-        for (const block of content) {
-          if (!block) continue;
-          if (
-            block.type === "text" &&
-            typeof block.text === "string" &&
-            MARKER_RE.test(block.text)
-          ) {
-            pending = true;
-          } else if (block.type === "tool_use" && SUBSTANTIVE_TOOLS.test(block.name || "")) {
-            substantiveBefore++;
-          }
+  if (entry?.type === "assistant") {
+    const content = entry?.message?.content;
+    if (Array.isArray(content)) {
+      for (const block of content) {
+        if (!block) continue;
+        if (block.type === "text" && typeof block.text === "string" && MARKER_RE.test(block.text)) {
+          state.pending = true;
+        } else if (block.type === "tool_use" && SUBSTANTIVE_TOOLS.test(block.name || "")) {
+          state.substantiveBefore++;
         }
       }
-    } else if (pending && isRealUserTurn(entry)) {
-      satisfied = true;
-      pending = false;
     }
+  } else if (state.pending && isRealUserTurn(entry)) {
+    state.satisfied = true;
+    state.pending = false;
   }
-  return { substantiveBefore, pending, satisfied };
+  return state;
+}
+
+/**
+ * Scan the JSONL transcript in order (walks each assistant turn's content blocks in array
+ * order — text marker before any later tool_use in the SAME prior turn still counts, since
+ * the call currently being gated is by definition not yet in this file; `satisfied` is
+ * monotonic, staying set for the rest of the scan once a real user turn follows a proposal).
+ * Computed incrementally via the shared sidecar cache (`_transcript-cache.mjs`) — resumes
+ * from the last-consumed byte offset when safe, full rescan otherwise. Never throws; returns
+ * the SAME shape a full rescan from byte 0 always did.
+ */
+export function scanTranscript(transcriptPath) {
+  return getIncrementalState(transcriptPath, "effort-gate", initialScanState, foldTranscriptLine);
 }
 
 function reason(lang, alreadyProposed) {
@@ -170,8 +181,15 @@ function main() {
   process.stdout.write(JSON.stringify(payload));
 }
 
-try {
-  main();
-} catch {
-  // Never let a bug in this hook block a legitimate tool call.
+// Only auto-run when executed directly (`node guard-effort-gate.mjs ...`), not when imported
+// — `scanTranscript` is exported above so tests can unit-test the caching behavior directly
+// (call counts, resumed-vs-full-scan byte counts) without a stdin read as an import side effect.
+const isMainModule =
+  process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
+if (isMainModule) {
+  try {
+    main();
+  } catch {
+    // Never let a bug in this hook block a legitimate tool call.
+  }
 }

@@ -31,8 +31,17 @@
  *  - To allow the stop, print nothing and exit 0.
  *  - Never throw: an unreadable/odd transcript must fall through to allowing the stop,
  *    not hang or break the session.
+ *
+ * Performance: re-parsing the WHOLE transcript on every Stop event gets slower as a session
+ * grows (measured ~75ms on a real 25.8MB transcript) — see `_transcript-cache.mjs` (installed
+ * alongside this file) for the sidecar-cache fix that makes each call only read the NEW
+ * suffix appended since the last one. Purely a performance change: `scanTranscript` below
+ * returns the identical shape/values a full rescan always did.
  */
 import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { getIncrementalState } from "./_transcript-cache.mjs";
 
 const SUBSTANTIVE_TOOLS = /^(Write|Edit|MultiEdit|NotebookEdit)$/;
 const VAULT_CLOSE_TOOLS =
@@ -48,34 +57,40 @@ function readStdin() {
   }
 }
 
-/** Best-effort scan of the JSONL transcript for assistant tool_use blocks. Never throws. */
-function scanTranscript(transcriptPath) {
-  let substantive = 0;
-  let vaultTouches = 0;
-  let text;
+function initialScanState() {
+  return { substantive: 0, vaultTouches: 0 };
+}
+
+/** Fold ONE raw JSONL line into `state` (mutate-and-return) — purely additive counters, so
+ * folding over just a transcript's NEW suffix gives the identical result as folding from
+ * byte 0, which is what makes incremental resumption (`_transcript-cache.mjs`) safe here. */
+function foldTranscriptLine(state, line) {
+  const trimmed = line.trim();
+  if (!trimmed) return state;
+  let entry;
   try {
-    text = fs.readFileSync(transcriptPath, "utf8");
+    entry = JSON.parse(trimmed);
   } catch {
-    return { substantive, vaultTouches };
+    return state;
   }
-  for (const line of text.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    let entry;
-    try {
-      entry = JSON.parse(trimmed);
-    } catch {
-      continue;
-    }
-    const content = entry?.message?.content;
-    if (!Array.isArray(content)) continue;
-    for (const block of content) {
-      if (!block || block.type !== "tool_use" || typeof block.name !== "string") continue;
-      if (VAULT_CLOSE_TOOLS.test(block.name)) vaultTouches++;
-      else if (SUBSTANTIVE_TOOLS.test(block.name)) substantive++;
-    }
+  const content = entry?.message?.content;
+  if (!Array.isArray(content)) return state;
+  for (const block of content) {
+    if (!block || block.type !== "tool_use" || typeof block.name !== "string") continue;
+    if (VAULT_CLOSE_TOOLS.test(block.name)) state.vaultTouches++;
+    else if (SUBSTANTIVE_TOOLS.test(block.name)) state.substantive++;
   }
-  return { substantive, vaultTouches };
+  return state;
+}
+
+/**
+ * Scan of the JSONL transcript for assistant tool_use blocks, computed incrementally via the
+ * shared sidecar cache (`_transcript-cache.mjs`) — resumes from the last-consumed byte offset
+ * when safe, full rescan otherwise. Never throws; returns the SAME shape a full rescan from
+ * byte 0 always did.
+ */
+export function scanTranscript(transcriptPath) {
+  return getIncrementalState(transcriptPath, "stop-reminder", initialScanState, foldTranscriptLine);
 }
 
 function reason(lang) {
@@ -120,8 +135,16 @@ function main() {
   process.stdout.write(JSON.stringify({ decision: "block", reason: reason(lang) }));
 }
 
-try {
-  main();
-} catch {
-  // Never let a bug in this hook hang or break the session's ability to stop.
+// Only auto-run when executed directly (`node stop-vault-close-reminder.mjs ...`), not when
+// imported — `scanTranscript` is exported above so tests can unit-test the caching behavior
+// directly (call counts, resumed-vs-full-scan byte counts) without a stdin read as an import
+// side effect.
+const isMainModule =
+  process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
+if (isMainModule) {
+  try {
+    main();
+  } catch {
+    // Never let a bug in this hook hang or break the session's ability to stop.
+  }
 }

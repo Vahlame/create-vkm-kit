@@ -6,6 +6,106 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+
+- **RAG-passthrough MCP tools no longer accept a caller-supplied `vault` path.**
+  `vault_hybrid_search`, `vault_fts_search`, `vault_fts_index`, `vault_complete`,
+  `vault_relations`, `vault_observations`, `vault_kg_suggest`,
+  `memory_extract_candidates`, `vault_audit`, and `vault_memory_report` exposed
+  an optional `vault` parameter with no validation against the configured
+  default — a prompt-injected note could coerce an agent into pointing one of
+  these tools at an arbitrary directory on disk, indexing and searching its
+  `.md` files (a cross-directory read oracle) and creating a
+  `.obsidian-memory-rag/` sidecar there. Removed the parameter from all 10
+  tool schemas, matching the posture the filesystem tools (`vault_read_file`,
+  `vault_write_file`, `vault_edit_file`, `vault_list_directory`) already had.
+  See ADR-0040.
+
+### Added
+
+- **Cross-process lock for the Go daemon's git-sync.** Two `obsidian-memoryd`
+  instances (or a daemon plus a manual `sync once`/git operation) pointed at
+  the same vault could previously race `add`/`commit`/`pull`/`push` against
+  the same working tree. See ADR-0040.
+- **`create-obsidian-memory --uninstall`.** Fully reverses this kit's
+  Claude Code integration (hook entries, `autoMemoryEnabled` override, and the
+  hook script files it owns) without touching a user's own unrelated hooks or
+  same-named files. Turning an enforcement flag off on a re-run
+  (`--no-effort-gate`, `--no-memory-enforcement`, `--no-native-memory-override`)
+  now also removes the corresponding previously-installed hook instead of
+  leaving it active. See ADR-0040.
+
+### Fixed
+
+- **Go daemon `doctor` could report healthy while actually blind.** A failed
+  `git add`/`commit`/`pull` (not just `push`) now feeds the same health state
+  `doctor` alarms on; a repeated `rebase --abort` now feeds the alarm too
+  (previously only displayed, never alarmed); a silently-failing filesystem
+  watcher startup (`fsnotify.NewWatcher`) now sets an immediate alarm instead
+  of leaving the daemon looking idle-but-fine with a heartbeat that never
+  starts; a sync aborted by intentional shutdown (Ctrl-C / service stop) no
+  longer counts toward the "vault not syncing" alarm; `doctor`'s unpushed-
+  commit git call now has a timeout like every other git call in the file,
+  instead of being able to hang forever.
+- **Go daemon push retries now re-pull first.** A push rejected because the
+  remote advanced was retried identically on every attempt with no chance of
+  succeeding; retries now re-pull/rebase before retrying the push.
+- **`doctor`'s exit code / output ordering under the shipped `-H windowsgui`
+  build.** Root-caused to PowerShell not waiting for a GUI-subsystem child
+  process unless its output is redirected (not fixable from inside the
+  process) — documented the correct invocation pattern
+  (`docs/en/troubleshooting.md`, `docs/es/troubleshooting.md`,
+  `docs/observability.md`) and added a defensive writer flush before `doctor`
+  returns.
+- **`obsidian-memoryd inspect --last -5` no longer panics** on a negative
+  line count.
+- **`vault_complete` and `memory_extract_candidates` results now carry the
+  same untrusted-data envelope as every other RAG tool** — both previously
+  returned vault-derived content (autocomplete matches, memory-dedup
+  snippets) with no `_trust`/injection-flagging, unlike `vault_hybrid_search`
+  and friends.
+- **No subprocess timeout on the MCP↔Python RAG bridge.** A hung/misbehaving
+  Python backend could previously block an MCP tool call (and leak the
+  process) indefinitely; configurable via `OBSIDIAN_MEMORY_RAG_TIMEOUT_MS`
+  (default 120s).
+- **Claude Code hook commands no longer corrupt on vault paths containing a
+  quote or a trailing backslash.** Switched from an interpolated shell string
+  to Claude Code's exec form (`command` + `args` array), which eliminates the
+  escaping bug class entirely rather than patching it.
+- **Hook transcript scans are now incremental.** `guard-effort-gate` and
+  `stop-vault-close-reminder` used to re-read and re-parse the entire session
+  transcript on every gated event (measured ~75ms on a 25MB transcript,
+  compounding across a long session); they now cache the last-scanned offset
+  and only read the new suffix, falling back to a full rescan on any doubt.
+- **Backup files (`.bak.*` of `settings.json`/`mcp.json`) are now actually
+  permission-restricted on Windows.** The existing `chmod 0600` protection was
+  unconditionally skipped on `win32` — the platform this repo is chiefly used
+  on — despite the code's own stated intent of protecting files that may
+  contain tokens. Now applies an equivalent `icacls` ACL restriction.
+- **`vault_complete`'s autocomplete no longer surfaces tags found inside
+  fenced code blocks.** A note documenting `#tag` syntax inside a code fence
+  polluted the autocomplete trie with the example text as if it were a real
+  tag.
+- **Usage-boost retrieval scoring no longer lets stale-but-in-window usage
+  permanently outrank a new note.** The `usage` lever (ADR-0038) counted a use
+  fully anywhere inside its 90-day window and not at all outside it; it now
+  weights each use by recency-decay before scoring, closer to the lever's
+  original "recent activity should matter more" intent.
+- **A vector index built with one embedder no longer silently grows a second,
+  redundant index under another.** Every RAG CLI call that didn't pass an
+  explicit `--embedder` resolved one independent of whatever embedder had
+  actually built the existing on-disk index; it now reuses the on-disk
+  identity when the caller passed no explicit override.
+- **`memory-report --duplicates`/`memory-reflect` no longer report "zero
+  near-duplicates" indistinguishably from "duplicate detection was skipped."**
+  Above the 1500-note pair-comparison cap, the scan now signals that it was
+  skipped instead of returning a bare empty result.
+
+See ADR-0040 for the design-level decisions in this pass (cross-process lock,
+MCP wire-schema lockdown, hook exec-form, installer uninstall symmetry,
+incremental transcript cache, Windows ACL backup protection, usage-decay
+scoring, embedder-identity reuse).
+
 ## [3.15.0] - 2026-07-08
 
 ### Added

@@ -87,3 +87,29 @@ def test_report_duplicates_opt_in(tmp_path: Path) -> None:
     paired = {tuple(sorted((d["a"], d["b"]))) for d in dupes}
     assert ("a.md", "b.md") in paired
     assert all("c.md" not in pair for pair in paired)
+
+
+def test_report_duplicates_truncated_signals_skip_not_silent_empty(tmp_path: Path) -> None:
+    """Above ``max_notes_for_pairs`` the O(n^2) scan is skipped — the report must
+    say so explicitly, not return a bare [] indistinguishable from "no dupes"."""
+    vault = tmp_path / "dup"
+    vault.mkdir()
+    body = "# {t}\n\nProduction deployment with zero downtime and rolling restarts.\n"
+    (vault / "a.md").write_text(body.format(t="Deploy A"), encoding="utf-8")
+    (vault / "b.md").write_text(body.format(t="Deploy B"), encoding="utf-8")
+    (vault / "c.md").write_text("# Cooking\n\nPancakes and bananas for breakfast.\n", encoding="utf-8")
+    index_vault(vault)
+    index_vectors(vault, HashingEmbedder(dim=256))
+
+    # Lower the cap (via the existing override) below the 3 indexed notes instead
+    # of constructing 1500 real notes.
+    rep = build_report(vault, duplicates=True, similarity=0.9, max_notes_for_pairs=2)
+    rc = rep["review_candidates"]
+    assert rc["near_duplicate_notes"] == []
+    assert "near_duplicate_notes_skipped_reason" in rc
+    assert "3" in rc["near_duplicate_notes_skipped_reason"]  # note count surfaced
+    assert any("skip" in s.lower() for s in rep["suggested_actions"])
+
+    # Below the cap, no skip signal at all — absence, not a false/empty flag.
+    rep_ok = build_report(vault, duplicates=True, similarity=0.9, max_notes_for_pairs=10)
+    assert "near_duplicate_notes_skipped_reason" not in rep_ok["review_candidates"]

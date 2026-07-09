@@ -197,6 +197,11 @@ func (execRunner) Output(ctx context.Context, name string, args ...string) ([]by
 
 var defaultRunner Runner = execRunner{}
 
+// newFSWatcher constructs the fsnotify watcher used by runWatchWith.
+// Overridable in tests to simulate a constructor failure (e.g. "too many
+// open files") without actually exhausting OS file-watch resources.
+var newFSWatcher = fsnotify.NewWatcher
+
 // exitCoder is satisfied by *exec.ExitError and by test fakes; lets us tell an
 // "empty commit" (exit 1) apart from a transport failure.
 type exitCoder interface{ ExitCode() int }
@@ -228,13 +233,34 @@ func gitSyncWith(parent context.Context, l *slog.Logger, dir string, r Runner) e
 	}
 	defer syncMu.Unlock()
 
+	// syncMu only guards this process. A second daemon instance, or a manual
+	// `sync once`/git operation pointed at the same vault, can still race the
+	// working tree — take a cross-process lock too. Fails fast (a single
+	// attempt, no blocking) so a busy vault never hangs a sync cycle.
+	release, lockErr := acquireGitSyncLock(dir)
+	if lockErr != nil {
+		l.Info("git sync skipped: cross-process lock busy", "err", lockErr)
+		return fmt.Errorf("%w: %w", ErrSyncBusy, lockErr)
+	}
+	defer release()
+
 	// Record the outcome of the WHOLE cycle (not just push). This is the fix for
 	// the health-blind spot: an add/commit/pull failure used to return an error
 	// that was only logged to JSONL, so `doctor` — keyed on push failures alone —
 	// reported healthy while the vault silently stopped syncing.
 	err := runSyncSteps(parent, l, dir, r)
 	if err != nil {
-		recordSyncFailure(err)
+		if parent.Err() != nil {
+			// The whole sync was aborted by shutdown (parent context canceled
+			// or expired — Stop()/Ctrl-C during an in-flight sync), not a real
+			// git failure. Counting it would trip the "vault not syncing"
+			// alarm on a normal restart. A per-step context.WithTimeout
+			// expiring on ITS OWN (parent still fine) is unaffected by this
+			// check and still records as a genuine failure below.
+			l.Info("git sync aborted: shutdown in progress", "err", err)
+		} else {
+			recordSyncFailure(err)
+		}
 	} else {
 		recordSyncSuccess()
 	}
@@ -364,6 +390,18 @@ func pushStep(parent context.Context, r Runner, to time.Duration, l *slog.Logger
 	var lastErr error
 	backoff := 500 * time.Millisecond
 	for attempt := 1; attempt <= pushMaxRetries; attempt++ {
+		if attempt > 1 {
+			// A prior push attempt failed — most likely the remote advanced
+			// underneath us (rejected / non-fast-forward), in which case
+			// retrying the bare push again fails identically forever. Re-pull
+			// first so the retry actually has a chance to succeed. Best
+			// effort: if the re-pull itself fails (conflict or transport), log
+			// it and still attempt the push — that push will simply fail and
+			// feed the normal retry/backoff/exhaustion path below.
+			if pullErr := pullRebaseStep(parent, r, stepTimeout, l, dir); pullErr != nil {
+				l.Warn("pull before push retry failed", "attempt", attempt, "err", pullErr)
+			}
+		}
 		ctx, cancel := context.WithTimeout(parent, to)
 		err := r.Run(ctx, "git", "-C", dir, "push")
 		cancel()
@@ -394,6 +432,12 @@ func truncate(b []byte, n int) string {
 	return string(b[:n]) + "..."
 }
 
+// flushableWriter is implemented by *os.File (including os.Stdout, doctor's
+// production writer) and by test doubles that want to observe the flush.
+type flushableWriter interface {
+	Sync() error
+}
+
 // doctor prints a human-readable health report (heartbeat age, last successful
 // push, last successful sync, unpushed commit count, recent rebase aborts, and
 // both the consecutive push-fail and consecutive sync-fail counters) and returns
@@ -403,6 +447,19 @@ func truncate(b []byte, n int) string {
 // runs hidden (Windows -H windowsgui) and the user wants to know "is it alive
 // and is it pushing?" without grepping JSONL logs.
 func doctor(out io.Writer, vault string, now time.Time) error {
+	// Best-effort flush of everything doctor writes before returning. This is
+	// belt-and-suspenders, NOT a fix for the documented Windows -H windowsgui
+	// issue (see docs/en/troubleshooting.md "doctor's exit code reads empty in
+	// PowerShell"): that root cause is PowerShell not waiting for a
+	// GUI-subsystem child process to exit unless its output is redirected, a
+	// shell-side behavior no amount of flushing inside this process can
+	// change. Sync() only guarantees OUR side has nothing left buffered.
+	defer func() {
+		if fw, ok := out.(flushableWriter); ok {
+			_ = fw.Sync()
+		}
+	}()
+
 	s := readState()
 	const heartbeatStale = 5 * time.Minute
 
@@ -425,6 +482,10 @@ func doctor(out io.Writer, vault string, now time.Time) error {
 	if !s.LastConflictFileAt.IsZero() {
 		fmt.Fprintf(out, "  syncthing conflict seen:  %s (%s) ⚠ resolve manually\n",
 			formatAgo(now, s.LastConflictFileAt), s.LastConflictFile)
+	}
+	if s.LastWatchStartError != "" {
+		fmt.Fprintf(out, "  watcher start failed:     %s (%s) ⚠\n",
+			s.LastWatchStartError, formatAgo(now, s.LastWatchStartErrorAt))
 	}
 	if s.ConsecutivePushFailures > 0 {
 		marker := ""
@@ -457,25 +518,44 @@ func doctor(out io.Writer, vault string, now time.Time) error {
 	// Unpushed commit count is best-effort: requires a configured upstream.
 	// Failure to compute is silent (no upstream, missing git, etc.).
 	if vault != "" {
-		if fi, err := os.Stat(filepath.Join(vault, ".git")); err == nil && fi.IsDir() {
-			cmd := exec.Command("git", "-C", vault, "rev-list", "@{u}..HEAD", "--count")
-			cmd.Env = append(cmd.Environ(), "GIT_TERMINAL_PROMPT=0")
-			hiddenCmd(cmd)
-			if outBytes, err := cmd.Output(); err == nil {
-				fmt.Fprintf(out, "  unpushed commits (vault): %s", string(outBytes))
-			}
+		if line := unpushedCommitsLine(vault, stepTimeout); line != "" {
+			fmt.Fprint(out, line)
 		}
 	}
 
 	alarm := staleHeartbeat(s, now, heartbeatStale) ||
 		s.ConsecutivePushFailures >= 3 ||
-		s.ConsecutiveSyncFailures >= 3
+		s.ConsecutiveSyncFailures >= 3 ||
+		!s.LastRebaseAbort.IsZero() ||
+		s.LastWatchStartError != ""
 	if alarm {
 		fmt.Fprintln(out, "")
 		fmt.Fprintln(out, "ALARM: one or more signals are unhealthy. See `obsidian-memoryd inspect --last 30` for details.")
 		return ErrDoctorAlarm
 	}
 	return nil
+}
+
+// unpushedCommitsLine returns the "unpushed commits" doctor line, or "" if it
+// cannot be computed (no `.git`, no upstream, missing git, or the command
+// exceeds timeout). Bounded by timeout — unlike every other git call in this
+// file, this one used to be a bare exec.Command with no timeout at all, so a
+// hung git process could hang `doctor` forever.
+func unpushedCommitsLine(vault string, timeout time.Duration) string {
+	fi, err := os.Stat(filepath.Join(vault, ".git"))
+	if err != nil || !fi.IsDir() {
+		return ""
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "git", "-C", vault, "rev-list", "@{u}..HEAD", "--count")
+	cmd.Env = append(cmd.Environ(), "GIT_TERMINAL_PROMPT=0")
+	hiddenCmd(cmd)
+	outBytes, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return fmt.Sprintf("  unpushed commits (vault): %s", string(outBytes))
 }
 
 func runWatch(ctx context.Context, l *slog.Logger, root string) error {
@@ -492,11 +572,19 @@ func runWatch(ctx context.Context, l *slog.Logger, root string) error {
 // the new-directory watching without shelling out to real git (production passes
 // a closure over gitSync).
 func runWatchWith(ctx context.Context, l *slog.Logger, root string, dur time.Duration, onSync func(context.Context)) error {
-	w, err := fsnotify.NewWatcher()
+	w, err := newFSWatcher()
 	if err != nil {
+		// Record this so `doctor` alarms immediately instead of relying on
+		// heartbeat staleness, which never arrives — the heartbeat only starts
+		// a few lines below, once the watcher exists. Without this, a daemon
+		// that dies here (e.g. "too many open files") looks idle-but-fine
+		// forever, especially running as an installed service where this
+		// error has no console to be logged to.
+		recordWatchStartFailure(err)
 		return err
 	}
 	defer w.Close()
+	clearWatchStartFailure()
 
 	// Heartbeat tick gives `obsidian-memoryd doctor` a way to detect
 	// "daemon silently died" (especially under -H windowsgui where there
@@ -764,8 +852,22 @@ func systemctlCmd(args ...string) *exec.Cmd {
 	return exec.Command(c[0], c[1:]...)
 }
 
+// logFileOverride lets tests redirect the JSONL log file inspectLogs() reads.
+// Mirrors stateDirOverride in state.go and for the same reason: xdg.StateFile
+// reads XDG_STATE_HOME at package init, so flipping the env var mid-test
+// doesn't take effect.
+var logFileOverride string
+
+// logFilePath returns the JSONL log file inspectLogs() reads from.
+func logFilePath() (string, error) {
+	if logFileOverride != "" {
+		return logFileOverride, nil
+	}
+	return xdg.StateFile(filepath.Join("obsidian-memory", "mcp.jsonl"))
+}
+
 func inspectLogs(l *slog.Logger, n int) error {
-	stateDir, err := xdg.StateFile(filepath.Join("obsidian-memory", "mcp.jsonl"))
+	stateDir, err := logFilePath()
 	if err != nil {
 		return err
 	}
@@ -785,6 +887,9 @@ func inspectLogs(l *slog.Logger, n int) error {
 }
 
 func tailLines(r io.Reader, n int) ([]string, error) {
+	if n <= 0 {
+		return nil, nil
+	}
 	var ring []string
 	sc := bufio.NewScanner(r)
 	for sc.Scan() {

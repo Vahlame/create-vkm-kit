@@ -21,6 +21,7 @@ from .store import (
 from .vector_store import (
     current_chunk_keys,
     delete_chunks_for_path,
+    dominant_embedder_name,
     has_any_chunks,
     init_chunks,
     upsert_chunk,
@@ -251,6 +252,17 @@ def ensure_fresh(
     via :func:`index_vectors` **only if** they already exist for this vault, or the
     caller explicitly asks with ``semantic=True``; this preserves the zero-dependency
     default so a user who never opted into embeddings is never forced to build them.
+
+    When the caller passes no explicit ``embedder`` and a vector index already
+    exists on disk, the embedder identity that actually built it is reused in
+    preference to the env/default resolution (:func:`embeddings.get_embedder`
+    with no override). Without this, most CLI subcommands call ``ensure_fresh``
+    bare — if the vault's index was built once with ``--embedder fastembed:...``
+    but ``OBSIDIAN_MEMORY_EMBEDDER`` was never exported, every later bare call
+    would silently resolve back to the ``hashing`` default and start building a
+    second, redundant vector index beside the real one with no warning. An
+    explicit ``embedder=`` argument always wins outright — this reuse only
+    engages for the "caller didn't say" case.
     """
     vault = vault.resolve()
     fts = index_vault(vault, max_file_bytes=max_file_bytes)
@@ -259,12 +271,27 @@ def ensure_fresh(
     if semantic or _vault_has_vectors(vault):
         if embedder is None:
             # Lazy import: keeps embeddings out of the dependency-free FTS path.
-            from .embeddings import get_embedder
+            from .embeddings import embedder_for_identity, get_embedder, resolve_embedder_name
 
-            embedder = get_embedder(None)
+            default_name = resolve_embedder_name(None)
+            existing_name = _existing_vector_embedder_name(vault)
+            embedder = None
+            if existing_name is not None and existing_name != default_name:
+                embedder = embedder_for_identity(existing_name)
+            if embedder is None:
+                embedder = get_embedder(None)
         vectors = index_vectors(vault, embedder, max_file_bytes=max_file_bytes)
 
     return FreshStats(fts=fts, vectors=vectors)
+
+
+def _existing_vector_embedder_name(vault: Path) -> str | None:
+    """The dominant embedder identity already stored in this vault's index, if any."""
+    conn = connect(index_db_path(vault))
+    try:
+        return dominant_embedder_name(conn)
+    finally:
+        conn.close()
 
 
 @dataclass

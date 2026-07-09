@@ -29,7 +29,11 @@ import {
   SEMANTIC_EMBEDDER
 } from "./mcp-merge.mjs";
 import { installRules } from "./rules-merge.mjs";
-import { configureClaudeNativeMemory } from "./claude-native-memory.mjs";
+import {
+  configureClaudeNativeMemory,
+  uninstallClaudeNativeMemory
+} from "./claude-native-memory.mjs";
+import { restrictFileToOwner } from "./file-perms.mjs";
 
 /** Cursor/VS Code workspace defaults: fewer `git` + `conhost` spikes on Windows (SCM polling). */
 const VAULT_VSCODE_GIT_SETTINGS = {
@@ -428,9 +432,10 @@ function stripLeadingUtf8Bom(text) {
 
 /**
  * Write JSON to `fp` atomically: stage at `<fp>.tmp.<pid>.<ts>`, fsync, rename.
- * Crash mid-write leaves the original `fp` intact rather than truncating it.
- * On Linux/macOS the final file is chmod 0o600 — `mcp.json` may carry env
- * blocks for other MCP servers (API tokens, etc.) that shouldn't be world-readable.
+ * Crash mid-write leaves the original `fp` intact rather than truncating it. The final file
+ * is restricted to the current user (POSIX chmod 0600; Windows icacls ACL reset — see
+ * {@link restrictFileToOwner}) — `mcp.json` may carry env blocks for other MCP servers (API
+ * tokens, etc.) that shouldn't be world-readable, on EITHER platform.
  * @param {string} fp - target path
  * @param {unknown} data - JSON-serializable payload
  */
@@ -438,13 +443,7 @@ async function atomicWriteJson(fp, data) {
   await fse.ensureDir(path.dirname(fp));
   const tmp = `${fp}.tmp.${process.pid}.${Date.now()}`;
   await fse.writeFile(tmp, `${JSON.stringify(data, null, 2)}\n`, "utf8");
-  if (process.platform !== "win32") {
-    try {
-      await fse.chmod(tmp, 0o600);
-    } catch {
-      /* best-effort: not all filesystems support chmod */
-    }
-  }
+  await restrictFileToOwner(tmp);
   await fse.rename(tmp, fp);
 }
 
@@ -502,13 +501,7 @@ async function writeCursorMcp(home, vaultAbs, dryRun, hybridOpts = {}) {
   if (priorBytes) {
     const bak = `${fp}.bak.${Date.now()}`;
     await fse.writeFile(bak, priorBytes);
-    if (process.platform !== "win32") {
-      try {
-        await fse.chmod(bak, 0o600);
-      } catch {
-        /* ignore */
-      }
-    }
+    await restrictFileToOwner(bak);
     console.log(pc.dim("Backed up previous mcp.json to"), bak);
   }
   await atomicWriteJson(fp, merged);
@@ -897,9 +890,13 @@ async function runNonInteractive(argv) {
   if (ides.includes("claude")) {
     await registerClaudeCodeMcp(vault, dryRun, hybridOpts);
   }
-  if (wantNativeOverride) {
+  // Always reconcile (not just install) whenever Claude Code is a wired target for this
+  // run: a symmetric call also STRIPS previously-installed pieces a `--no-X` flag now
+  // turns off, instead of only ever adding entries (see ADR-0030/0031 install/remove fix).
+  if (ides.includes("claude")) {
     await configureClaudeNativeMemory(home, vault, dryRun, {
       lang,
+      enable: wantNativeOverride,
       enforce: wantEnforce,
       effortGate: wantEffortGate
     });
@@ -977,6 +974,10 @@ async function runNonInteractive(argv) {
   if (wantNativeOverride) {
     console.log(
       "- Claude Code native memory: DISABLED (autoMemoryEnabled:false) + SessionStart vault hook → ~/.claude/settings.json"
+    );
+  } else if (ides.includes("claude")) {
+    console.log(
+      "- Claude Code native memory: left/reverted to Claude's own default (any prior override + hooks from this kit were removed if present)"
     );
   }
   if (wantEnforce) {
@@ -1104,7 +1105,29 @@ Claude Code native-memory override (when --ide includes claude):
   --no-effort-gate             Keep the override (+ enforcement, if on) without the
                                 effort-gate hook.
 
+  Uninstall: --no-native-memory-override / --no-memory-enforcement / --no-effort-gate on a
+  re-run now ACTIVELY REMOVE the matching pieces this kit previously installed (not just
+  skip adding them) — a symmetric install/remove path, so toggling a flag off actually
+  reverses a prior toggle-on. For a full teardown of everything this kit's Claude Code
+  integration installed in one shot, use:
+  --uninstall     Remove all 4 managed hook entries + the autoMemoryEnabled override from
+                  ~/.claude/settings.json, and delete the hook script files this kit
+                  installed under ~/.claude/hooks/ (the 4 hooks + a small shared helper
+                  module; each one only if a marker check confirms this kit wrote it —
+                  never a user's own same-named file). Does NOT touch MCP server
+                  registrations, the vault, or rules blocks — see docs/en/faq.md for those.
+                  Combine with --dry-run to preview. Exits immediately after (no other
+                  install steps run).
+
   --help          This message`);
+    return;
+  }
+
+  if (argv.includes("--uninstall")) {
+    const cwd = process.cwd();
+    const home = process.env.HOME || process.env.USERPROFILE || cwd;
+    const dryRun = dryRunFromArgs();
+    await uninstallClaudeNativeMemory(home, dryRun);
     return;
   }
 
@@ -1255,9 +1278,13 @@ Claude Code native-memory override (when --ide includes claude):
   // ADR-0031: effort-gate hook also rides along by default, independently of
   // --memory-enforcement; opt out with --no-effort-gate.
   const wantEffortGate = wantNativeOverride && !process.argv.includes("--no-effort-gate");
-  if (wantNativeOverride) {
+  // Always reconcile (not just install) whenever Claude Code was selected: a symmetric call
+  // also STRIPS previously-installed pieces `--no-native-memory-override`/`--no-memory-enforcement`/
+  // `--no-effort-gate` now turn off, instead of only ever adding entries.
+  if (ides?.includes("claude")) {
     await configureClaudeNativeMemory(home, vault, dryRun, {
       lang,
+      enable: wantNativeOverride,
       enforce: wantEnforce,
       effortGate: wantEffortGate
     });
@@ -1322,6 +1349,10 @@ Claude Code native-memory override (when --ide includes claude):
   if (wantNativeOverride) {
     console.log(
       "- Claude Code native memory: DISABLED (autoMemoryEnabled:false) + SessionStart vault hook → ~/.claude/settings.json"
+    );
+  } else if (ides?.includes("claude")) {
+    console.log(
+      "- Claude Code native memory: left/reverted to Claude's own default (any prior override + hooks from this kit were removed if present)"
     );
   }
   if (wantEnforce) {

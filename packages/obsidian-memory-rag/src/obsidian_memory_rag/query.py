@@ -201,6 +201,17 @@ FAILURE_CATEGORIES = ("failure", "gotcha")
 # monopolize ranking: 1 + weight × log1p(uses)/log1p(max_uses). Like recency/
 # importance it can only promote among already-matched candidates. Off by
 # default; an empty log makes it an exact no-op.
+#
+# ``uses`` is not a flat count of events inside the window — that would let a
+# note that racked up hits near the *start* of the 90-day window keep full
+# credit right up until it ages out (a cliff, not a taper), permanently
+# outranking a brand-new, equally-relevant note that starts at zero by
+# construction. That is the opposite of ADR-0038's stated goal ("a decision
+# recorded last week should outrank a year-old one") unless the independent
+# ``recency`` lever is also on. Instead each 'used' event is weighted by its
+# own recency (see :func:`recall_log.usage_counts_decayed`) before the
+# log1p — so an old note's boost genuinely fades once nobody has touched it
+# recently, even while it is still technically inside the window.
 USAGE_WEIGHT = 0.15
 USAGE_WINDOW_DAYS = 90.0
 
@@ -531,8 +542,9 @@ def hybrid_search(
       a ``[failure]``/``[gotcha]`` observation (ADR-0038), so recorded lessons edge
       out neutral notes of comparable relevance when a matching task returns.
     - ``usage=True`` multiplies by a bounded, log-damped boost from recall_log
-      'used' events (ADR-0038): memory that repeatedly helped ranks higher among
-      comparables; an empty log is an exact no-op.
+      'used' events (ADR-0038): memory that repeatedly and *recently* helped
+      ranks higher among comparables (each event's weight decays with its own
+      age, see ``USAGE_WEIGHT`` above); an empty log is an exact no-op.
     - ``mmr=True`` reorders the fused pool for diversity (Maximal Marginal Relevance)
       using the stored chunk vectors; ``mmr_lambda`` trades relevance vs. novelty.
     - ``reranker`` (an optional cross-encoder, ADR-0026) re-scores the fused pool's
@@ -603,14 +615,14 @@ def hybrid_search(
                 for p, s in fused
             ]
     if usage:
-        from .recall_log import usage_counts
+        from .recall_log import usage_counts_decayed
 
-        uses = usage_counts(vault, [p for p, _ in fused], window_days=usage_window_days)
-        max_uses = max(uses.values(), default=0)
+        uses = usage_counts_decayed(vault, [p for p, _ in fused], window_days=usage_window_days)
+        max_uses = max(uses.values(), default=0.0)
         if max_uses > 0:
             denom = math.log1p(max_uses)
             fused = [
-                (p, s * (1.0 + usage_weight * (math.log1p(uses.get(p, 0)) / denom)))
+                (p, s * (1.0 + usage_weight * (math.log1p(uses.get(p, 0.0)) / denom)))
                 for p, s in fused
             ]
     if recency or importance or usage:

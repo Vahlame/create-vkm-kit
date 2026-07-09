@@ -3,9 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 
 from obsidian_memory_rag.embeddings import (
+    _FASTEMBED_IDENTITY_RE,
     HashingEmbedder,
     _fastembed_cache_dir,
     _fastembed_identity,
+    embedder_for_identity,
     get_embedder,
     resolve_embedder_name,
 )
@@ -64,3 +66,26 @@ def test_resolve_embedder_name_rejects_unknown_choice() -> None:
         pass
     else:
         raise AssertionError("expected ValueError for an unknown embedder choice")
+
+
+def test_embedder_for_identity_reuses_hashing_identity() -> None:
+    # Round-trips through get_embedder(), no fastembed dependency needed.
+    original = HashingEmbedder(dim=64)
+    rebuilt = embedder_for_identity(original.name)
+    assert rebuilt is not None
+    assert rebuilt.name == original.name
+
+
+def test_embedder_for_identity_extracts_fastembed_model_from_version_tag() -> None:
+    # Same regex ensure_fresh relies on to recover the original model name from a
+    # stored identity like "fastembed:<model>@fe<major.minor>" — verified directly
+    # so this test never has to load a real ONNX model.
+    m = _FASTEMBED_IDENTITY_RE.match("fastembed:BAAI/bge-small-en-v1.5@fe0.4")
+    assert m is not None
+    assert m.group("model") == "BAAI/bge-small-en-v1.5"
+
+
+def test_embedder_for_identity_returns_none_for_unrecognized_identity() -> None:
+    # A future/unknown embedder kind must not be guessed at — ensure_fresh falls
+    # back to the normal env/default resolution instead.
+    assert embedder_for_identity("some-future-embedder:v2") is None

@@ -177,6 +177,46 @@ The repo includes `proc_windows.go`, which adds `CREATE_NO_WINDOW + HideWindow`
 to every `git` subprocess, removing the flash even when launched from a
 windowsgui executable. See the sync guide for details.
 
+### `doctor`'s exit code reads empty in PowerShell, or its output looks out of order
+
+**Cause (confirmed, not guessed — reproduced side by side).** The same
+`-H windowsgui` build from the entry above has a side effect for the CLI
+subcommands (`doctor`, `sync once`, `version`, `inspect`): PowerShell (and
+`cmd.exe`) does **not** wait for a GUI-subsystem child process to exit before
+returning control to the prompt, **unless** the process's output is
+redirected. Piping (or any redirection) forces PowerShell to keep reading
+until the child closes its output handle — i.e. until it exits — which is
+what makes it wait. Calling `.\obsidian-memoryd.exe doctor` bare races your
+next line against a process PowerShell has already stopped waiting for:
+`$LASTEXITCODE` reads stale or empty, and output can appear to land after
+commands that ran "after" it. This is Windows/PowerShell shell behavior keyed
+off the executable's PE subsystem bit — not a bug in the specific subcommand,
+and not fixable from inside the process (flushing or synchronizing writes
+before `doctor` returns, which the daemon already does, cannot make the
+_calling shell_ wait longer than it decided to).
+
+A console-subsystem build of the exact same code does **not** have this
+problem — `$LASTEXITCODE` and output ordering are reliable there even without
+redirection, which is how the cause above was isolated.
+
+**Fix.** Always redirect or explicitly wait when scripting `doctor` (a cron
+job, a shell alias, a health-check task) against a `-H windowsgui` build:
+
+```powershell
+# Piping forces PowerShell to wait for the process to exit.
+obsidian-memoryd.exe doctor | Out-Host
+if ($LASTEXITCODE -ne 0) { <# alarm #> }
+
+# Equivalent, and explicit about the wait:
+$p = Start-Process -FilePath obsidian-memoryd.exe -ArgumentList "doctor" `
+     -NoNewWindow -Wait -PassThru
+if ($p.ExitCode -ne 0) { <# alarm #> }
+```
+
+Running it interactively at a prompt without piping still prints the full
+report — only `$LASTEXITCODE` and strict ordering relative to whatever you
+run next are unreliable in that case.
+
 ### Many CMD windows / a black console when opening Cursor or refreshing MCP
 
 **Cause (common).** Cursor launches MCP processes defined with **`command`**

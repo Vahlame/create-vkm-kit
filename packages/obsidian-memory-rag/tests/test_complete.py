@@ -54,3 +54,18 @@ def test_complete_empty_when_unindexed(tmp_path: Path) -> None:
     vault = tmp_path / "vault"
     vault.mkdir()
     assert complete(vault, "any") == []
+
+
+def test_complete_ignores_tag_shaped_tokens_in_code_blocks(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    (vault / "STACKS").mkdir(parents=True)
+    (vault / "STACKS" / "config.md").write_text(
+        "# Config notes\n\n"
+        "Uses #realtag in prose.\n\n"
+        "```python\n# comment #define_leak\n```\n",
+        encoding="utf-8",
+    )
+    index_vault(vault)
+    matches = complete(vault, "define", limit=20)
+    assert "#define_leak" not in matches
+    assert "#realtag" in complete(vault, "real", limit=20)

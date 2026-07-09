@@ -91,3 +91,40 @@ def test_ensure_fresh_refreshes_existing_vectors(tmp_path: Path) -> None:
     res = ensure_fresh(vault, embedder=emb)
     assert res.vectors is not None
     assert res.vectors.embedded == 1  # the edited note was re-embedded
+
+
+def test_ensure_fresh_reuses_existing_embedder_identity_on_bare_call(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A bare ``ensure_fresh(vault)`` call (no explicit ``embedder=``, no env
+    override) — what every non-hybrid-search CLI subcommand does — must keep
+    refreshing whatever embedder identity already built the on-disk vector index,
+    not silently fall back to the env/default resolution and start a second,
+    redundant vector index beside it (embedder-identity drift)."""
+    monkeypatch.delenv("OBSIDIAN_MEMORY_EMBEDDER", raising=False)
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    (vault / "note.md").write_text("# Note\n\nfirst body\n", encoding="utf-8")
+
+    # Opt in once with a NON-default identity (hashing-64) — a bare call would
+    # otherwise resolve to the hashing-256 default via get_embedder(None).
+    index_vault(vault)
+    index_vectors(vault, HashingEmbedder(dim=64))
+
+    # A later edit, then the bare call under test.
+    (vault / "note.md").write_text("# Note\n\nsecond body changed\n", encoding="utf-8")
+    res = ensure_fresh(vault)
+    assert res.vectors is not None
+    assert res.vectors.embedded == 1  # the edited note was re-embedded under hashing-64
+
+    conn = connect(index_db_path(vault.resolve()))
+    try:
+        names = {
+            str(r["embedder"])
+            for r in conn.execute("SELECT DISTINCT embedder FROM note_chunks").fetchall()
+        }
+    finally:
+        conn.close()
+    # Only the original identity is present — no second "hashing-256" index was
+    # silently created alongside it.
+    assert names == {"hashing-64"}

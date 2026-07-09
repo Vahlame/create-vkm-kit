@@ -29,6 +29,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const MUTATING_TOOLS = /^(Write|Edit|MultiEdit|NotebookEdit)$/;
 
@@ -40,12 +41,26 @@ function readStdin() {
   }
 }
 
-/** True if `filePath` lives under `<claudeDir>/projects/<anything>/memory/...`. */
-function isNativeMemoryPath(filePath, claudeDir) {
+/**
+ * True if `filePath` lives under `<claudeDir>/projects/<anything>/memory/...`. Case-folds
+ * the comparison ONLY on platforms whose default filesystem is case-insensitive (`win32`) —
+ * everywhere else (Linux's default; `darwin`'s default APFS is usually case-insensitive too,
+ * but treating it as case-sensitive is the SAFE direction, i.e. never worse than before) an
+ * exact-case comparison is used, so a differently-cased-but-distinct directory that merely
+ * collides case-insensitively with the native-memory path is never over-matched (which would
+ * incorrectly deny a legitimate write on a case-sensitive filesystem).
+ * @param {string} filePath
+ * @param {string} claudeDir
+ * @param {string} [platform] - defaults to `process.platform`; overridable so tests can
+ *   simulate a non-Windows platform without actually running on one.
+ */
+export function isNativeMemoryPath(filePath, claudeDir, platform = process.platform) {
   if (!filePath || !claudeDir) return false;
   try {
-    const norm = path.resolve(filePath).replace(/\\/g, "/").toLowerCase();
-    const dirNorm = path.resolve(claudeDir).replace(/\\/g, "/").toLowerCase();
+    const caseInsensitive = platform === "win32";
+    const fold = (s) => (caseInsensitive ? s.toLowerCase() : s);
+    const norm = fold(path.resolve(filePath).replace(/\\/g, "/"));
+    const dirNorm = fold(path.resolve(claudeDir).replace(/\\/g, "/"));
     if (!norm.startsWith(`${dirNorm}/`)) return false;
     const rel = norm.slice(dirNorm.length + 1).split("/");
     return rel[0] === "projects" && rel.includes("memory");
@@ -100,8 +115,15 @@ function main() {
   process.stdout.write(JSON.stringify(payload));
 }
 
-try {
-  main();
-} catch {
-  // Never let a bug in this hook block a legitimate tool call.
+// Only auto-run when executed directly (`node guard-native-memory-write.mjs ...`), not when
+// imported — `isNativeMemoryPath` is exported above so tests can unit-test it directly
+// (e.g. with a platform override) without triggering a stdin read as a side effect of import.
+const isMainModule =
+  process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
+if (isMainModule) {
+  try {
+    main();
+  } catch {
+    // Never let a bug in this hook block a legitimate tool call.
+  }
 }
