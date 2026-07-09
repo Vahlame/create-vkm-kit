@@ -193,3 +193,38 @@ def get_embedder(name: str | None = None) -> Embedder:
     if choice.startswith("fastembed:"):
         return FastEmbedEmbedder(choice.split(":", 1)[1])
     raise ValueError(f"unknown embedder: {choice!r}")
+
+
+_FASTEMBED_IDENTITY_RE = re.compile(r"^fastembed:(?P<model>.+)@fe[^@]*$")
+
+
+def embedder_for_identity(identity: str) -> Embedder | None:
+    """Reconstruct the :class:`Embedder` that would produce ``identity`` again.
+
+    Used to recover from embedder-identity drift (see ``indexer.ensure_fresh``):
+    when a vector index already exists but the caller passed no explicit
+    ``--embedder``, we want to keep refreshing it with whatever embedder actually
+    built it instead of silently falling back to the env/default resolution and
+    starting a second, redundant index beside it. Returns ``None`` for an
+    identity this does not recognize (e.g. a future embedder kind) rather than
+    guessing — the caller then falls back to the normal env/default resolution.
+
+    Loads the real model for a ``fastembed:`` identity (the same cost
+    ``get_embedder`` would pay for an explicit ``--embedder fastembed:...``), so
+    only call this once a mismatch has actually been detected.
+    """
+    identity = identity.strip()
+    if identity == "hashing" or identity.startswith("hashing-"):
+        try:
+            return get_embedder(identity)
+        except ValueError:
+            return None
+    match = _FASTEMBED_IDENTITY_RE.match(identity)
+    if match:
+        # Strip the "@fe<major.minor>" version tag _fastembed_identity() folds in
+        # (see its docstring) — get_embedder()/FastEmbedEmbedder() re-derive the
+        # current tag themselves; a fastembed upgrade since the index was built is
+        # deliberately its own new identity (see _fastembed_identity), not
+        # something this reuse path should mask.
+        return get_embedder(f"fastembed:{match.group('model')}")
+    return None

@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/fsnotify/fsnotify"
 )
 
 func waitSync(t *testing.T, ch <-chan struct{}) {
@@ -94,6 +97,60 @@ func TestRunWatchRecordsConflictFile(t *testing.T) {
 	}
 	if s.LastConflictFileAt.IsZero() {
 		t.Error("LastConflictFileAt should be set")
+	}
+}
+
+// TestRunWatchRecordsStartFailure is the regression test for item 4: a failed
+// watcher constructor must both propagate its error AND record it in daemon
+// state, since the heartbeat (the usual "daemon died" signal) only starts a
+// few lines further down runWatchWith and so never arrives — a "never"
+// heartbeat is not treated as stale.
+func TestRunWatchRecordsStartFailure(t *testing.T) {
+	withTempStateDir(t)
+	orig := newFSWatcher
+	newFSWatcher = func() (*fsnotify.Watcher, error) {
+		return nil, errors.New("too many open files")
+	}
+	t.Cleanup(func() { newFSWatcher = orig })
+
+	err := runWatchWith(context.Background(), discardLogger(), t.TempDir(), 40*time.Millisecond, func(context.Context) {})
+	if err == nil {
+		t.Fatal("expected the watcher construction error to propagate")
+	}
+
+	s := readState()
+	if s.LastWatchStartError == "" {
+		t.Error("expected LastWatchStartError to be recorded")
+	}
+	if s.LastWatchStartErrorAt.IsZero() {
+		t.Error("expected LastWatchStartErrorAt to be recorded")
+	}
+	if !s.Heartbeat.IsZero() {
+		t.Error("a failed watcher must never have written a heartbeat")
+	}
+}
+
+// TestRunWatchClearsStartFailureOnSuccess proves a subsequent successful
+// start clears a previously recorded watch-start failure, so a transient
+// resource shortage that recovers doesn't keep alarming `doctor` forever.
+func TestRunWatchClearsStartFailureOnSuccess(t *testing.T) {
+	withTempStateDir(t)
+	recordWatchStartFailure(errors.New("boom"))
+
+	root := t.TempDir()
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		_ = runWatchWith(ctx, discardLogger(), root, 40*time.Millisecond, func(context.Context) {})
+		close(done)
+	}()
+	time.Sleep(150 * time.Millisecond)
+	cancel()
+	<-done
+
+	s := readState()
+	if s.LastWatchStartError != "" {
+		t.Errorf("expected the watch-start failure cleared after a successful start, got %q", s.LastWatchStartError)
 	}
 }
 

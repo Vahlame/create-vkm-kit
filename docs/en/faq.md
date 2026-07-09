@@ -67,6 +67,19 @@ You can, but you'd have to update your **User Rules** (and any scripts that hard
 
 ### How do I uninstall?
 
+**Claude Code integration** (native-memory override + its 4 managed hooks): run
+`npx @vkmikc/create-obsidian-memory --uninstall` (add `--dry-run` to preview first). This
+removes all 4 managed hook entries and the `autoMemoryEnabled` override from
+`~/.claude/settings.json`, and deletes the hook script files this kit installs under
+`~/.claude/hooks/` (the 4 hooks plus a small shared helper module) — but only each one a
+marker check confirms this kit actually wrote, so a same-named file you created yourself is
+never touched. It does **not** touch MCP registrations, the vault, or
+rules blocks; those are the manual steps below. (A per-flag re-run — e.g. re-running with
+`--no-native-memory-override`, `--no-memory-enforcement`, or `--no-effort-gate` — also
+actively removes just that piece instead of only skipping it on fresh installs.)
+
+For everything else:
+
 1. Remove the **`basic-memory`** entry (or rename the server) from your editor's MCP config: `%USERPROFILE%\.cursor\mcp.json`.
 2. Stop **`obsidian-memoryd`** if you installed it (kill the process / remove the Startup shortcut).
 3. Delete the local index data under **`<vault>/.obsidian-memory-rag/`** if you no longer want it.

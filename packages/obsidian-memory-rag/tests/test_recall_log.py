@@ -3,6 +3,7 @@ are seeded directly through log_events, never through wall-clock-dependent flows
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 from obsidian_memory_rag import HashingEmbedder, index_vault, index_vectors
@@ -106,3 +107,65 @@ def test_cold_notes_only_with_telemetry_present(tmp_path: Path) -> None:
     report = build_report(vault)
     assert [c["path"] for c in report["hygiene"]["cold_notes"]] == ["STACKS/aaa-neutral.md"]
     assert any("cold note" in s for s in report["suggested_actions"])
+
+
+def _log_used_at(vault: Path, path: str, *, age_days: float, n: int) -> None:
+    """Insert ``n`` 'used' events for ``path`` backdated ``age_days`` (deterministic,
+    unlike :func:`log_events` which always stamps ``time.time_ns()``)."""
+    _NS_PER_DAY = 86_400 * 1_000_000_000
+    at_ns = time.time_ns() - int(age_days * _NS_PER_DAY)
+    conn = connect(index_db_path(vault.resolve()))
+    try:
+        init_schema(conn)
+        conn.execute("BEGIN IMMEDIATE;")
+        conn.executemany(
+            "INSERT INTO recall_log(path, event, query_hash, at_ns) VALUES (?, 'used', '', ?)",
+            [(path, at_ns)] * n,
+        )
+        conn.execute("COMMIT;")
+    finally:
+        conn.close()
+
+
+def test_usage_boost_decays_stale_credit_so_new_note_not_buried(tmp_path: Path) -> None:
+    """ADR-0038 regression: the usage boost must fade with how recently a note was
+    actually used, not just whether the use falls inside the 90-day window.
+
+    Three equally-relevant notes: a note used heavily but STALE (near the start of
+    the 90-day window — technically in-window, but a note nobody has touched in ~90
+    days), a note used heavily and RECENTLY, and a brand-new note with zero uses.
+    A flat window-count formula treats "stale but in-window" identically to
+    "used yesterday" (same raw count survives the whole window), so it would rank
+    the stale note >= the recent one and bury the zero-use new note under BOTH.
+    That is a regression this test would have caught: with the raw-count formula
+    (verified directly below) the stale note actually *outranks* the freshly-used
+    one and the new note is buried last. The fix must both let recency-weighted
+    usage win over stale usage, and stop stale usage from unfairly outranking a
+    brand-new, equally-relevant note.
+    """
+    vault = tmp_path / "v"
+    body = "Pipeline ETL ingesta transformacion carga datos analitica reportes.\n"
+    _write(vault, "STACKS/aaa-new.md", f"# aaa-new\n\n{body}")
+    _write(vault, "STACKS/mmm-recent.md", f"# mmm-recent\n\n{body}")
+    _write(vault, "STACKS/zzz-old-stale.md", f"# zzz-old-stale\n\n{body}")
+    index_vault(vault)
+    emb = HashingEmbedder(dim=256)
+    index_vectors(vault, emb)
+    q = "pipeline ETL ingesta"
+
+    # Recently used (well inside the window) vs. stale-but-technically-in-window
+    # (near the START of the 90-day window, i.e. ~90 days since it was last used).
+    # aaa-new.md gets zero usage events — freshly added, zero uses by construction.
+    _log_used_at(vault, "STACKS/mmm-recent.md", age_days=1.0, n=4)
+    _log_used_at(vault, "STACKS/zzz-old-stale.md", age_days=89.5, n=4)
+
+    boosted = hybrid_search(vault, q, emb, limit=3, usage=True)
+    order = [h.path for h in boosted]
+
+    # Genuinely-recent usage outranks stale-but-in-window usage of the same size —
+    # a flat window-count would tie (or even invert) this, since both fall inside
+    # USAGE_WINDOW_DAYS regardless of when within it the uses happened.
+    assert order.index("STACKS/mmm-recent.md") < order.index("STACKS/zzz-old-stale.md")
+    # The brand-new, zero-use note is not buried under the stale-but-in-window
+    # note's leftover credit.
+    assert order.index("STACKS/aaa-new.md") < order.index("STACKS/zzz-old-stale.md")

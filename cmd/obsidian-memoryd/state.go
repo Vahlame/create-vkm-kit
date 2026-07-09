@@ -35,6 +35,16 @@ type DaemonState struct {
 	// warning living only in the JSONL log.
 	LastConflictFile   string    `json:"last_conflict_file,omitempty"`
 	LastConflictFileAt time.Time `json:"last_conflict_file_at,omitempty"`
+	// LastWatchStartError / LastWatchStartErrorAt record a failure to start the
+	// filesystem watcher (e.g. fsnotify.NewWatcher() erroring — too many open
+	// files, missing inotify support, etc). This must alarm `doctor`
+	// immediately: the heartbeat is only written AFTER the watcher starts
+	// successfully, so a "never" heartbeat is NOT treated as stale (expected on
+	// first install) and would otherwise leave the daemon looking idle-but-fine
+	// while actually dead — this bites hardest running as an installed service,
+	// where the Start() goroutine's error has nowhere else to surface.
+	LastWatchStartError   string    `json:"last_watch_start_error,omitempty"`
+	LastWatchStartErrorAt time.Time `json:"last_watch_start_error_at,omitempty"`
 }
 
 var (
@@ -171,13 +181,38 @@ func recordConflictFile(name string) {
 }
 
 // recordSyncSuccess marks a full add→commit→pull→push cycle as completed and
-// clears the consecutive sync-failure counter + last error.
+// clears the consecutive sync-failure counter + last error. It also clears
+// LastRebaseAbort: a completed cycle means the most recent pull --rebase
+// finished without conflict, so a historical abort is resolved and must not
+// keep alarming `doctor` forever after one bad rebase.
 func recordSyncSuccess() {
 	_ = updateState(func(s *DaemonState) {
 		s.LastSyncOK = time.Now().UTC()
 		s.ConsecutiveSyncFailures = 0
 		s.LastSyncError = ""
 		s.LastSyncErrorAt = time.Time{}
+		s.LastRebaseAbort = time.Time{}
+	})
+}
+
+// recordWatchStartFailure records a failure to start the filesystem watcher
+// so `doctor` can alarm immediately instead of waiting on heartbeat
+// staleness that will never arrive.
+func recordWatchStartFailure(err error) {
+	_ = updateState(func(s *DaemonState) {
+		s.LastWatchStartErrorAt = time.Now().UTC()
+		if err != nil {
+			s.LastWatchStartError = truncateString(err.Error(), 200)
+		}
+	})
+}
+
+// clearWatchStartFailure clears a previously recorded watch-start failure
+// once the watcher starts successfully (e.g. after a manual restart).
+func clearWatchStartFailure() {
+	_ = updateState(func(s *DaemonState) {
+		s.LastWatchStartError = ""
+		s.LastWatchStartErrorAt = time.Time{}
 	})
 }
 

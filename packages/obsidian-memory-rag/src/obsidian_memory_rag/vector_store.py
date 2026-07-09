@@ -107,6 +107,24 @@ def has_any_chunks(conn: sqlite3.Connection) -> bool:
     return row is not None
 
 
+def dominant_embedder_name(conn: sqlite3.Connection) -> str | None:
+    """The ``embedder`` identity with the most rows in ``note_chunks``, or ``None``.
+
+    Used by :func:`indexer.ensure_fresh` to detect embedder-identity drift: a
+    caller that passes no explicit ``--embedder`` should keep refreshing whatever
+    identity is *already on disk* rather than silently falling back to the
+    env/default resolution and building a second, redundant vector index beside
+    it. Almost always exactly one identity exists; if drift already happened
+    before this existed, the most-populated identity is the reasonable "real"
+    one to keep reusing (and this stops the drift from getting worse).
+    """
+    init_chunks(conn)
+    row = conn.execute(
+        "SELECT embedder, COUNT(*) AS n FROM note_chunks GROUP BY embedder ORDER BY n DESC LIMIT 1"
+    ).fetchone()
+    return str(row["embedder"]) if row is not None else None
+
+
 def current_chunk_keys(conn: sqlite3.Connection, embedder: str) -> dict[str, int]:
     """Map ``path -> mtime_ns`` for notes already chunked by ``embedder``.
 

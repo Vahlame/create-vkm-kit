@@ -26,6 +26,7 @@ opt-in. JSON-serializable verbatim so the Node MCP bridge forwards it untouched.
 from __future__ import annotations
 
 import time
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from .audit import audit_vault
@@ -144,16 +145,37 @@ def _note_vectors(conn, embedder_name: str) -> dict[str, list[float]]:
     return out
 
 
+@dataclass
+class NearDuplicateScan:
+    """Result of :func:`_near_duplicate_notes`.
+
+    ``pairs`` alone is ambiguous above the size cap: a bare ``[]`` could mean
+    "ran the scan, found nothing" or "skipped the scan entirely" and a caller
+    (or a human reading ``memory-report``/``memory-reflect`` output) cannot
+    tell those apart. ``truncated``/``note_count`` make the "skipped for size"
+    case an explicit, checkable signal instead.
+    """
+
+    pairs: list[dict] = field(default_factory=list)
+    truncated: bool = False
+    note_count: int = 0
+
+
 def _near_duplicate_notes(
     conn, embedder_name: str, *, similarity: float, max_pairs: int, max_notes: int
-) -> list[dict]:
-    """Note pairs whose mean-vector cosine >= ``similarity`` (best first)."""
+) -> NearDuplicateScan:
+    """Note pairs whose mean-vector cosine >= ``similarity`` (best first).
+
+    Above ``max_notes`` the O(n^2) pairwise cosine scan is skipped to keep this
+    cheap on large vaults; ``NearDuplicateScan.truncated`` signals that case
+    explicitly rather than returning an empty-looking result.
+    """
     import math
 
     vecs = _note_vectors(conn, embedder_name)
     paths = sorted(vecs)
     if len(paths) > max_notes:  # guard the O(n^2) scan on very large vaults
-        return []
+        return NearDuplicateScan(pairs=[], truncated=True, note_count=len(paths))
     pairs: list[dict] = []
     for i in range(len(paths)):
         vi = vecs[paths[i]]
@@ -165,7 +187,7 @@ def _near_duplicate_notes(
             if cos >= similarity:
                 pairs.append({"a": paths[i], "b": paths[j], "similarity": round(cos, 4)})
     pairs.sort(key=lambda d: -d["similarity"])
-    return pairs[:max_pairs]
+    return NearDuplicateScan(pairs=pairs[:max_pairs], truncated=False, note_count=len(paths))
 
 
 def build_report(
@@ -237,13 +259,19 @@ def build_report(
                 # moments earlier; instantiating a second one (e.g. loading fastembed's
                 # ONNX model again) just to read `.name` would be pure waste.
                 name = resolve_embedder_name(None)
-                review_candidates["near_duplicate_notes"] = _near_duplicate_notes(
+                dup_scan = _near_duplicate_notes(
                     conn,
                     name,
                     similarity=similarity,
                     max_pairs=max_pairs,
                     max_notes=max_notes_for_pairs,
                 )
+                review_candidates["near_duplicate_notes"] = dup_scan.pairs
+                if dup_scan.truncated:
+                    review_candidates["near_duplicate_notes_skipped_reason"] = (
+                        f"skipped: {dup_scan.note_count} notes exceed max_notes_for_pairs "
+                        f"({max_notes_for_pairs}); raise the cap or narrow the vault to scan"
+                    )
         finally:
             conn.close()
         # Cold notes (ADR-0038): indexed for a while, never returned by a search
@@ -318,6 +346,9 @@ def _suggestions(totals, hygiene, review_candidates) -> list[str]:
             f"{len(dupes)} near-duplicate note pair(s) — review for redundancy or contradiction "
             "(e.g. {} ↔ {}).".format(dupes[0]["a"], dupes[0]["b"])
         )
+    skipped_reason = review_candidates.get("near_duplicate_notes_skipped_reason")
+    if skipped_reason:
+        out.append(f"Near-duplicate scan {skipped_reason} — no duplicate signal for this run.")
     if not out:
         out.append("No hygiene issues found — the vault is in good shape.")
     return out

@@ -105,6 +105,55 @@ def usage_counts(vault: Path, paths: list[str], *, window_days: float = 90.0) ->
     return out
 
 
+def usage_counts_decayed(
+    vault: Path, paths: list[str], *, window_days: float = 90.0
+) -> dict[str, float]:
+    """Recency-weighted ``path -> effective 'used' count`` within the window.
+
+    :func:`usage_counts` is a flat count: every event inside ``window_days`` is
+    worth exactly 1, so a note used heavily near the *start* of the window (stale
+    but technically still in-window) keeps full credit right up to the moment it
+    ages out — a step function, not a taper. This variant weights each event by
+    its own recency instead: linear decay from 1.0 at age 0 down to 0.0 at
+    ``window_days`` old (``max(0.0, 1.0 - age_days / window_days)``). The usage
+    ranking boost (see ``query.py``) feeds the sum into its ``log1p`` multiplier
+    so an old note's boost genuinely fades once it stops being touched, rather
+    than only fading when the whole window finally rolls past it — this is what
+    lets a brand-new, equally-relevant note compete instead of losing every tie
+    to stale-but-in-window usage credit (ADR-0038's recency-of-memory intent).
+
+    Same zero-on-empty / no-op-on-failure contract as :func:`usage_counts`.
+    """
+    out: dict[str, float] = {p: 0.0 for p in paths}
+    if not paths:
+        return out
+    db_path = index_db_path(vault.resolve())
+    if not db_path.is_file():
+        return out
+    try:
+        conn = connect(db_path)
+        try:
+            init_schema(conn)
+            now_ns = time.time_ns()
+            cutoff = now_ns - int(window_days * _NS_PER_DAY)
+            placeholders = ",".join("?" * len(paths))
+            rows = conn.execute(
+                f"SELECT path, at_ns FROM recall_log "
+                f"WHERE event = 'used' AND at_ns >= ? AND path IN ({placeholders})",
+                [cutoff, *paths],
+            ).fetchall()
+        finally:
+            conn.close()
+    except Exception:
+        return out
+    for r in rows:
+        age_days = max(0.0, (now_ns - int(r["at_ns"])) / _NS_PER_DAY)
+        weight = max(0.0, 1.0 - (age_days / window_days)) if window_days > 0 else 1.0
+        path = str(r["path"])
+        out[path] = out.get(path, 0.0) + weight
+    return out
+
+
 def cold_notes(
     vault: Path, *, min_indexed_days: float = 30.0, limit: int = 20
 ) -> list[dict]:

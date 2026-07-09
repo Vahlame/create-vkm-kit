@@ -17,6 +17,7 @@ from pathlib import Path
 from .knowledge_graph import is_css_hex_color
 from .paths import index_db_path
 from .store import connect, init_schema
+from .text_scrub import strip_code_regions
 from .trie import Trie
 
 # Inline hashtag: a '#' at a word boundary followed by a tag char. The leading
@@ -63,7 +64,7 @@ def build_completion_trie(vault: Path) -> Trie:
             trie.insert(title.lower(), title)
         if stem:
             trie.insert(stem.lower(), stem)
-        for tag in extract_tags(str(r["body"] or "")):
+        for tag in extract_tags(strip_code_regions(str(r["body"] or ""))):
             trie.insert(tag.lower(), f"#{tag}")
     return trie
 

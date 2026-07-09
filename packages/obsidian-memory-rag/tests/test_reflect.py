@@ -84,6 +84,30 @@ def test_merge_candidates_from_near_duplicates(tmp_path: Path) -> None:
     assert all("c.md" not in p for pair in pairs for p in pair)
 
 
+def test_merges_truncated_signals_skip_not_silent_empty(tmp_path: Path) -> None:
+    """Above max_notes_for_pairs the near-dup scan is skipped — build_reflection
+    must say so (merges_skipped_reason), not just report an empty merges list
+    indistinguishable from "no duplicates found"."""
+    vault = tmp_path / "v"
+    body = "Pipeline ETL ingesta transformacion carga incremental.\n"
+    _write(vault / "a.md", f"# a\n\n{body}")
+    _write(vault / "b.md", f"# b\n\n{body}")
+    _write(vault / "c.md", "# c\n\nTema totalmente distinto: recetas de cocina.\n")
+    index_vault(vault)
+    index_vectors(vault, HashingEmbedder(dim=256))
+
+    data = build_reflection(vault, similarity=0.95, max_notes_for_pairs=2)
+    assert data["merges"] == []
+    assert data["merges_skipped_reason"] is not None
+    assert "3" in data["merges_skipped_reason"]
+    text = format_reflection(data)
+    assert "scan skipped" in text.lower() or "skipped" in text.lower()
+
+    # Below the cap, no skip — behaves like the existing merge-candidates test.
+    data_ok = build_reflection(vault, similarity=0.95, max_notes_for_pairs=10)
+    assert data_ok["merges_skipped_reason"] is None
+
+
 def test_recent_activity_digest_counts_tags_and_links(tmp_path: Path) -> None:
     vault = tmp_path / "v"
     _write(

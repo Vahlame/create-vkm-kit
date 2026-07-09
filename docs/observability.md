@@ -14,7 +14,9 @@ obsidian-memoryd doctor
   unpushed commits (vault): 0
 ```
 
-The daemon writes a heartbeat every 60 s and records the timestamp of every successful `git push`, the latest rebase abort, and the count of consecutive push failures. `doctor` exits **non-zero** if the heartbeat is older than 5 min or push has failed 3+ times in a row — wire it into a cron / shell alias so a silent failure on Windows (the daemon runs with `-H windowsgui`, no console) does not go unnoticed.
+The daemon writes a heartbeat every 60 s and records the timestamp of every successful `git push`, the latest rebase abort, and the count of consecutive push failures. `doctor` exits **non-zero** if the heartbeat is older than 5 min, push has failed 3+ times in a row, the vault has failed to sync 3+ times in a row, a rebase abort is on record, or the filesystem watcher failed to start — wire it into a cron / shell alias so a silent failure on Windows (the daemon runs with `-H windowsgui`, no console) does not go unnoticed.
+
+> ⚠️ **Windows/PowerShell gotcha:** a `-H windowsgui` build's `doctor` subcommand only gets a reliable `$LASTEXITCODE` and fully-ordered output when its output is redirected (piped) or you wait explicitly — PowerShell does not wait for a GUI-subsystem process otherwise. See `docs/en/troubleshooting.md` / `docs/es/troubleshooting.md` ("doctor's exit code reads empty in PowerShell") for the confirmed cause and the correct invocation pattern before wiring `doctor` into a cron job or alias.
 
 ## 2. Optional MCP-level traces (sidecar)
 

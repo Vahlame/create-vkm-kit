@@ -132,6 +132,7 @@ def build_reflection(
     promotions = _pending_promotions(vault, since_days=since_days, now=now)
 
     merges: list[dict] = []
+    merges_skipped_reason: str | None = None
     decay: list[dict] = []
     db_path = index_db_path(vault)
     if db_path.is_file():
@@ -141,7 +142,7 @@ def build_reflection(
             if has_any_chunks(conn):
                 from .embeddings import resolve_embedder_name
 
-                pairs = _near_duplicate_notes(
+                dup_scan = _near_duplicate_notes(
                     conn,
                     resolve_embedder_name(None),
                     similarity=similarity,
@@ -156,8 +157,13 @@ def build_reflection(
                             "[[wikilink]] stub (human confirms first)"
                         ),
                     }
-                    for pair in pairs
+                    for pair in dup_scan.pairs
                 ]
+                if dup_scan.truncated:
+                    merges_skipped_reason = (
+                        f"skipped: {dup_scan.note_count} notes exceed max_notes_for_pairs "
+                        f"({max_notes_for_pairs}); raise the cap or narrow the vault to scan"
+                    )
             stale = _stale_notes(conn, stale_days=stale_days)
             for item in stale:
                 if _is_hypothesis(vault, item["path"]):
@@ -189,6 +195,7 @@ def build_reflection(
         "stale_days": stale_days,
         "promotions": promotions,
         "merges": merges,
+        "merges_skipped_reason": merges_skipped_reason,
         "decay": decay,
         "recent_activity": _recent_activity(vault),
         "notice": (
@@ -216,11 +223,13 @@ def format_reflection(data: dict) -> str:
             lines.append(f"- ({p['age_days']}d) {p['line']}")
             lines.append(f"  - → {p['proposed_action']}")
         lines.append("")
-    if data["merges"]:
+    if data["merges"] or data.get("merges_skipped_reason"):
         lines.append("## Merge candidates (near-duplicates)")
         lines.append("")
         for m in data["merges"]:
             lines.append(f"- {m['a']} ↔ {m['b']} (cos {m['similarity']})")
+        if data.get("merges_skipped_reason"):
+            lines.append(f"- _scan {data['merges_skipped_reason']}_")
         lines.append("")
     if data["decay"]:
         lines.append("## Decay / archive candidates")
@@ -239,7 +248,9 @@ def format_reflection(data: dict) -> str:
         lines.append(
             "- top links: " + ", ".join(f"[[{t['target']}]]×{t['count']}" for t in ra["top_links"])
         )
-    if not (data["promotions"] or data["merges"] or data["decay"]):
+    if not (
+        data["promotions"] or data["merges"] or data["decay"] or data.get("merges_skipped_reason")
+    ):
         lines.append("")
         lines.append("Nothing to consolidate — the vault is in good shape.")
     lines.append("")

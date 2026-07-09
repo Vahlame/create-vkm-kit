@@ -180,6 +180,49 @@ El repo incluye `proc_windows.go`, que añade `CREATE_NO_WINDOW + HideWindow` a
 cada subproceso `git`, eliminando el parpadeo incluso al lanzarse desde un
 ejecutable windowsgui. Mira la guía de sincronización para más detalle.
 
+### El código de salida de `doctor` sale vacío en PowerShell, o su salida se ve desordenada
+
+**Causa (confirmada, no supuesta — reproducida en paralelo con dos builds).**
+El mismo build `-H windowsgui` de la entrada anterior tiene un efecto
+secundario para los subcomandos de CLI (`doctor`, `sync once`, `version`,
+`inspect`): PowerShell (y `cmd.exe`) **no** espera a que un proceso hijo de
+subsistema GUI termine antes de devolver el control al prompt, **salvo** que
+la salida de ese proceso esté redirigida. Redirigir (por ejemplo con una
+tubería) obliga a PowerShell a seguir leyendo hasta que el hijo cierre su
+handle de salida — es decir, hasta que termine — y eso es lo que lo hace
+esperar. Llamar a `.\obsidian-memoryd.exe doctor` a secas hace que tu
+siguiente línea corra contra un proceso que PowerShell ya dejó de esperar:
+`$LASTEXITCODE` sale vacío o desactualizado, y la salida puede aparecer
+después de comandos que "corrieron después" de él. Esto es comportamiento del
+shell de Windows/PowerShell, ligado al bit de subsistema del ejecutable — no
+un bug del subcomando en sí, y no se puede arreglar desde dentro del proceso
+(sincronizar o vaciar buffers antes de que `doctor` retorne, cosa que el
+daemon ya hace, no puede lograr que el _shell que llama_ espere más de lo que
+decidió esperar).
+
+Un build de subsistema consola del mismo código exacto **no** tiene este
+problema — `$LASTEXITCODE` y el orden de la salida son confiables ahí incluso
+sin redirigir, que es como se aisló la causa de arriba.
+
+**Solución.** Redirige o espera explícitamente siempre que uses `doctor` en
+un script (una tarea cron, un alias de shell, una verificación de salud)
+contra un build `-H windowsgui`:
+
+```powershell
+# Redirigir obliga a PowerShell a esperar a que el proceso termine.
+obsidian-memoryd.exe doctor | Out-Host
+if ($LASTEXITCODE -ne 0) { <# alarma #> }
+
+# Equivalente, y explícito sobre la espera:
+$p = Start-Process -FilePath obsidian-memoryd.exe -ArgumentList "doctor" `
+     -NoNewWindow -Wait -PassThru
+if ($p.ExitCode -ne 0) { <# alarma #> }
+```
+
+Ejecutarlo de forma interactiva en un prompt sin redirigir sigue mostrando el
+reporte completo — solo `$LASTEXITCODE` y el orden estricto respecto a lo que
+corras después son poco confiables en ese caso.
+
 ### Muchas ventanas de CMD / una consola negra al abrir Cursor o al refrescar MCP
 
 **Causa (frecuente).** Cursor lanza procesos MCP definidos con **`command`** (por

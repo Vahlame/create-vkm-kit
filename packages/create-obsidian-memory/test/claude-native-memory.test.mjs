@@ -7,13 +7,17 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   mergeClaudeSettings,
+  removeSessionStartHook,
   mergeEnforcementHooks,
+  removeEnforcementHooks,
   mergeEffortGateHook,
+  removeEffortGateHook,
   hookCommand,
   guardHookCommand,
   stopHookCommand,
   effortGateHookCommand,
   configureClaudeNativeMemory,
+  uninstallClaudeNativeMemory,
   HOOK_BASENAME,
   HOOK_STEM,
   GUARD_HOOK_BASENAME,
@@ -21,8 +25,10 @@ import {
   STOP_HOOK_BASENAME,
   STOP_HOOK_STEM,
   EFFORT_GATE_HOOK_BASENAME,
-  EFFORT_GATE_HOOK_STEM
+  EFFORT_GATE_HOOK_STEM,
+  TRANSCRIPT_CACHE_BASENAME
 } from "../src/claude-native-memory.mjs";
+import { isNativeMemoryPath } from "../src/hooks/guard-native-memory-write.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const bin = path.join(root, "src", "index.js");
@@ -90,12 +96,12 @@ function writeFakeEffortGateTranscript(filePath, entries) {
 // ---- pure merge -----------------------------------------------------------
 
 test("mergeClaudeSettings disables native auto-memory and adds the hook once", () => {
-  const cmd = hookCommand("/h/session-start-vault-context.mjs", "/v");
-  const out = mergeClaudeSettings({}, cmd);
+  const entry = hookCommand("/h/session-start-vault-context.mjs", "/v");
+  const out = mergeClaudeSettings({}, entry);
   assert.equal(out.autoMemoryEnabled, false);
   assert.ok(Array.isArray(out.hooks.SessionStart));
   assert.equal(out.hooks.SessionStart.length, 1);
-  assert.equal(out.hooks.SessionStart[0].hooks[0].command, cmd);
+  assert.deepEqual(out.hooks.SessionStart[0].hooks[0], { type: "command", ...entry });
   assert.equal(out.hooks.SessionStart[0].matcher, "*");
 });
 
@@ -108,29 +114,35 @@ test("mergeClaudeSettings preserves unrelated keys, hook events and SessionStart
       SessionStart: [{ matcher: "*", hooks: [{ type: "command", command: "echo unrelated" }] }]
     }
   };
-  const cmd = hookCommand("/h/session-start-vault-context.mjs", "/v");
-  const out = mergeClaudeSettings(existing, cmd);
+  const entry = hookCommand("/h/session-start-vault-context.mjs", "/v");
+  const out = mergeClaudeSettings(existing, entry);
   assert.equal(out.theme, "dark");
   assert.deepEqual(out.permissions, { allow: ["x"] });
   assert.equal(out.hooks.Stop[0].hooks[0].command, "echo stop");
   // unrelated SessionStart entry kept + ours appended
-  const cmds = out.hooks.SessionStart.flatMap((e) => e.hooks.map((h) => h.command));
-  assert.ok(cmds.includes("echo unrelated"), "unrelated SessionStart entry preserved");
-  assert.ok(cmds.includes(cmd), "managed entry added");
+  const inner = out.hooks.SessionStart.flatMap((e) => e.hooks);
+  assert.ok(
+    inner.some((h) => h.command === "echo unrelated"),
+    "unrelated SessionStart entry preserved"
+  );
+  assert.ok(
+    inner.some((h) => h.command === entry.command && h.args?.[0] === entry.args[0]),
+    "managed entry added"
+  );
   assert.equal(out.hooks.SessionStart.length, 2);
 });
 
 test("mergeClaudeSettings is idempotent (re-apply keeps exactly one managed entry)", () => {
-  const cmd = hookCommand("/h/session-start-vault-context.mjs", "/v");
-  const once = mergeClaudeSettings({}, cmd);
-  const twice = mergeClaudeSettings(once, cmd);
+  const entry = hookCommand("/h/session-start-vault-context.mjs", "/v");
+  const once = mergeClaudeSettings({}, entry);
+  const twice = mergeClaudeSettings(once, entry);
   const managed = twice.hooks.SessionStart.filter((e) =>
-    e.hooks.some((h) => h.command.includes(HOOK_STEM))
+    e.hooks.some((h) => Array.isArray(h.args) && h.args.some((a) => a.includes(HOOK_STEM)))
   );
   assert.equal(managed.length, 1, "no duplicate managed entry after re-apply");
 });
 
-test("mergeClaudeSettings replaces a legacy .ps1 hook (same filename stem)", () => {
+test("mergeClaudeSettings replaces a legacy .ps1 hook (same filename stem, legacy string form)", () => {
   const legacy = {
     hooks: {
       SessionStart: [
@@ -147,17 +159,96 @@ test("mergeClaudeSettings replaces a legacy .ps1 hook (same filename stem)", () 
       ]
     }
   };
-  const cmd = hookCommand("C:\\Users\\x\\.claude\\hooks\\session-start-vault-context.mjs", "C:\\v");
-  const out = mergeClaudeSettings(legacy, cmd);
-  const cmds = out.hooks.SessionStart.flatMap((e) => e.hooks.map((h) => h.command));
-  assert.ok(!cmds.some((c) => c.includes(".ps1")), "legacy ps1 entry dropped");
-  assert.ok(cmds.includes(cmd), "managed mjs entry present");
+  const entry = hookCommand(
+    "C:\\Users\\x\\.claude\\hooks\\session-start-vault-context.mjs",
+    "C:\\v"
+  );
+  const out = mergeClaudeSettings(legacy, entry);
+  const inner = out.hooks.SessionStart.flatMap((e) => e.hooks);
+  assert.ok(
+    !inner.some((h) => typeof h.command === "string" && h.command.includes(".ps1")),
+    "legacy ps1 entry dropped"
+  );
+  assert.ok(
+    inner.some((h) => Array.isArray(h.args) && h.args[0] === entry.args[0]),
+    "managed mjs entry present"
+  );
   assert.equal(out.hooks.SessionStart.length, 1, "no duplicate after replacing legacy");
 });
 
-test("hookCommand carries the vault path and language", () => {
-  assert.equal(hookCommand("/h/x.mjs", "/v"), 'node "/h/x.mjs" "/v" es');
-  assert.equal(hookCommand("/h/x.mjs", "/v", "en"), 'node "/h/x.mjs" "/v" en');
+test("removeSessionStartHook strips the managed entry and reverts autoMemoryEnabled:false", () => {
+  const entry = hookCommand("/h/session-start-vault-context.mjs", "/v");
+  const installed = mergeClaudeSettings({ theme: "dark" }, entry);
+  const out = removeSessionStartHook(installed);
+  assert.equal(out.theme, "dark", "unrelated key preserved");
+  assert.equal(out.autoMemoryEnabled, undefined, "override key removed, not just flipped");
+  assert.equal(out.hooks.SessionStart, undefined, "event key removed once empty");
+});
+
+test("removeSessionStartHook never flips autoMemoryEnabled:true — only reverses its OWN false", () => {
+  const out = removeSessionStartHook({ autoMemoryEnabled: true });
+  assert.equal(out.autoMemoryEnabled, true, "a true value is never touched by removal");
+});
+
+test("removeSessionStartHook preserves unrelated SessionStart entries", () => {
+  const existing = {
+    hooks: { SessionStart: [{ matcher: "*", hooks: [{ type: "command", command: "echo x" }] }] }
+  };
+  const out = removeSessionStartHook(existing);
+  assert.equal(out.hooks.SessionStart.length, 1, "unrelated entry kept");
+  assert.equal(out.hooks.SessionStart[0].hooks[0].command, "echo x");
+});
+
+test("removeSessionStartHook is a no-op on settings with nothing of ours", () => {
+  const existing = { theme: "dark" };
+  const out = removeSessionStartHook(existing);
+  assert.deepEqual(out, { theme: "dark" });
+});
+
+test("hookCommand carries the vault path and language as argv, exec form (no shell string)", () => {
+  assert.deepEqual(hookCommand("/h/x.mjs", "/v"), {
+    command: "node",
+    args: ["/h/x.mjs", "/v", "es"]
+  });
+  assert.deepEqual(hookCommand("/h/x.mjs", "/v", "en"), {
+    command: "node",
+    args: ["/h/x.mjs", "/v", "en"]
+  });
+});
+
+// ---- item 2: exec-form argv means no shell-escaping bug class -------------
+
+test("hookCommand round-trips a vault path containing a double quote, verbatim (no escaping)", () => {
+  const tricky = 'C:\\Users\\a "b" c';
+  const entry = hookCommand("/h/x.mjs", tricky);
+  assert.equal(
+    entry.args[1],
+    tricky,
+    "the quote-containing path is stored as ONE literal argv element"
+  );
+});
+
+test("hookCommand round-trips a vault path containing a backtick, verbatim", () => {
+  const tricky = "/home/user/vault`rm -rf`";
+  const entry = hookCommand("/h/x.mjs", tricky);
+  assert.equal(entry.args[1], tricky);
+});
+
+test("hookCommand round-trips a Windows path with a trailing backslash before where a closing quote would go", () => {
+  // The exact repro from the audit: a naive `"${vaultAbs}"` interpolation of `C:\\` turns
+  // into `"C:\"` — the trailing backslash escapes the closing quote in shell-string form.
+  // Exec form has no quoting step at all, so this can't happen: the value is one argv
+  // element, verified against the literal string with a single trailing backslash.
+  const tricky = "C:\\";
+  const entry = hookCommand("/h/x.mjs", tricky);
+  assert.equal(entry.args[1], tricky);
+  assert.equal(entry.args[1].length, 3, "backslash preserved, not swallowed");
+});
+
+test("guardHookCommand round-trips a claudeDir with quotes/backslashes verbatim", () => {
+  const tricky = 'C:\\Users\\"weird"\\.claude\\';
+  const entry = guardHookCommand("/h/guard.mjs", tricky);
+  assert.equal(entry.args[1], tricky);
 });
 
 // ---- functional install ---------------------------------------------------
@@ -174,16 +265,21 @@ test("configureClaudeNativeMemory writes settings + hook, idempotently", async (
 
   const j = JSON.parse(fs.readFileSync(settingsFp, "utf8"));
   assert.equal(j.autoMemoryEnabled, false);
-  const cmd = j.hooks.SessionStart[0].hooks[0].command;
-  assert.match(cmd, new RegExp(HOOK_STEM));
-  assert.ok(cmd.includes(vault), "hook command points at the vault");
-  assert.ok(cmd.includes(" en"), "language passed to the hook");
+  const h = j.hooks.SessionStart[0].hooks[0];
+  assert.equal(h.command, "node");
+  assert.match(h.args[0], new RegExp(HOOK_STEM));
+  assert.ok(
+    h.args[0].includes(hookFp) || h.args[0] === hookFp,
+    "hook entry points at the copied hook"
+  );
+  assert.equal(h.args[1], vault, "hook command points at the vault");
+  assert.equal(h.args[2], "en", "language passed to the hook");
 
   // idempotent: second run keeps exactly one managed entry
   await configureClaudeNativeMemory(home, vault, false, { lang: "en" });
   const j2 = JSON.parse(fs.readFileSync(settingsFp, "utf8"));
   const managed = j2.hooks.SessionStart.filter((e) =>
-    e.hooks.some((h) => h.command.includes(HOOK_STEM))
+    e.hooks.some((h2) => Array.isArray(h2.args) && h2.args.some((a) => a.includes(HOOK_STEM)))
   );
   assert.equal(managed.length, 1, "exactly one managed SessionStart entry after re-run");
 });
@@ -211,6 +307,244 @@ test("configureClaudeNativeMemory --dry-run writes nothing", async () => {
   await configureClaudeNativeMemory(home, path.join(home, "vault"), true, { lang: "es" });
   assert.ok(!fs.existsSync(path.join(home, ".claude", "settings.json")), "no settings written");
   assert.ok(!fs.existsSync(path.join(home, ".claude", "hooks")), "no hook written");
+});
+
+// ---- item 1: symmetric install/remove (--no-X actually reverses a prior --X) ----
+
+test("configureClaudeNativeMemory({ enable: false }) on a machine with nothing installed is a TRUE no-op", async () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-nm-noop-"));
+  await configureClaudeNativeMemory(home, path.join(home, "vault"), false, { enable: false });
+  assert.ok(
+    !fs.existsSync(path.join(home, ".claude")),
+    "nothing created at all — not even the dir"
+  );
+});
+
+test("configureClaudeNativeMemory({ enable: false }) after a prior install REMOVES the override", async () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-nm-revert-"));
+  const vault = path.join(home, "vault");
+  await configureClaudeNativeMemory(home, vault, false, { lang: "en" });
+  const settingsFp = path.join(home, ".claude", "settings.json");
+  let j = JSON.parse(fs.readFileSync(settingsFp, "utf8"));
+  assert.equal(j.autoMemoryEnabled, false, "sanity: override installed first");
+
+  await configureClaudeNativeMemory(home, vault, false, { lang: "en", enable: false });
+  j = JSON.parse(fs.readFileSync(settingsFp, "utf8"));
+  assert.equal(j.autoMemoryEnabled, undefined, "override reverted");
+  assert.equal(j.hooks?.SessionStart, undefined, "SessionStart hook entry removed");
+  assert.equal(
+    j.hooks?.PreToolUse,
+    undefined,
+    "enforcement + effort-gate also removed (enable implies both)"
+  );
+  assert.equal(j.hooks?.Stop, undefined);
+});
+
+test("re-run with enforce:false REMOVES a previously-installed guard+stop pair, keeps SessionStart + effort-gate", async () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-nm-noenf-revert-"));
+  const vault = path.join(home, "vault");
+  await configureClaudeNativeMemory(home, vault, false, { lang: "en" }); // enforce:true, effortGate:true by default
+  const settingsFp = path.join(home, ".claude", "settings.json");
+  let j = JSON.parse(fs.readFileSync(settingsFp, "utf8"));
+  assert.ok(
+    j.hooks.PreToolUse.some((e) =>
+      e.hooks.some((h) => h.args?.some((a) => a.includes(GUARD_HOOK_STEM)))
+    )
+  );
+
+  await configureClaudeNativeMemory(home, vault, false, { lang: "en", enforce: false });
+  j = JSON.parse(fs.readFileSync(settingsFp, "utf8"));
+  assert.equal(j.autoMemoryEnabled, false, "native-memory override untouched");
+  assert.ok(j.hooks.SessionStart, "SessionStart untouched");
+  const preCmds = (j.hooks.PreToolUse || []).flatMap((e) => e.hooks);
+  assert.ok(
+    !preCmds.some((h) => h.args?.some((a) => a.includes(GUARD_HOOK_STEM))),
+    "guard entry removed"
+  );
+  assert.ok(
+    preCmds.some((h) => h.args?.some((a) => a.includes(EFFORT_GATE_HOOK_STEM))),
+    "effort-gate entry untouched by enforce:false"
+  );
+  assert.equal(j.hooks.Stop, undefined, "stop entry removed");
+});
+
+test("re-run with effortGate:false REMOVES a previously-installed effort-gate hook only", async () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-nm-noeg-revert-"));
+  const vault = path.join(home, "vault");
+  await configureClaudeNativeMemory(home, vault, false, { lang: "en" });
+  const settingsFp = path.join(home, ".claude", "settings.json");
+
+  await configureClaudeNativeMemory(home, vault, false, { lang: "en", effortGate: false });
+  const j = JSON.parse(fs.readFileSync(settingsFp, "utf8"));
+  const preCmds = j.hooks.PreToolUse.flatMap((e) => e.hooks);
+  assert.ok(
+    !preCmds.some((h) => h.args?.some((a) => a.includes(EFFORT_GATE_HOOK_STEM))),
+    "effort-gate entry removed"
+  );
+  assert.ok(
+    preCmds.some((h) => h.args?.some((a) => a.includes(GUARD_HOOK_STEM))),
+    "guard entry untouched by effortGate:false"
+  );
+  assert.ok(j.hooks.Stop, "stop entry untouched");
+});
+
+test("a settings.json with unrelated user-authored hooks is never touched by install OR removal", async () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-nm-userhooks-"));
+  const claudeDir = path.join(home, ".claude");
+  fs.mkdirSync(claudeDir, { recursive: true });
+  const settingsFp = path.join(claudeDir, "settings.json");
+  const userSettings = {
+    theme: "dark",
+    hooks: {
+      PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "echo my-own-hook" }] }],
+      Stop: [{ matcher: "*", hooks: [{ type: "command", command: "echo my-stop" }] }],
+      SessionStart: [{ matcher: "*", hooks: [{ type: "command", command: "echo my-start" }] }]
+    }
+  };
+  fs.writeFileSync(settingsFp, JSON.stringify(userSettings, null, 2), "utf8");
+
+  // Install then fully remove — the user's own entries must survive both operations.
+  await configureClaudeNativeMemory(home, path.join(home, "vault"), false, { lang: "en" });
+  await configureClaudeNativeMemory(home, path.join(home, "vault"), false, {
+    lang: "en",
+    enable: false
+  });
+
+  const j = JSON.parse(fs.readFileSync(settingsFp, "utf8"));
+  assert.equal(j.theme, "dark");
+  assert.equal(j.hooks.PreToolUse.length, 1, "user's own PreToolUse hook survives");
+  assert.equal(j.hooks.PreToolUse[0].hooks[0].command, "echo my-own-hook");
+  assert.equal(j.hooks.Stop.length, 1, "user's own Stop hook survives");
+  assert.equal(j.hooks.Stop[0].hooks[0].command, "echo my-stop");
+  assert.equal(j.hooks.SessionStart.length, 1, "user's own SessionStart hook survives");
+  assert.equal(j.hooks.SessionStart[0].hooks[0].command, "echo my-start");
+});
+
+// ---- uninstallClaudeNativeMemory (item 1: --uninstall) ---------------------
+
+test("uninstallClaudeNativeMemory removes all 4 managed hook entries + autoMemoryEnabled, deletes kit-owned files", async () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-nm-uninstall-"));
+  const vault = path.join(home, "vault");
+  await configureClaudeNativeMemory(home, vault, false, { lang: "en" });
+
+  const settingsFp = path.join(home, ".claude", "settings.json");
+  const hooksDir = path.join(home, ".claude", "hooks");
+  const allBasenames = [
+    HOOK_BASENAME,
+    GUARD_HOOK_BASENAME,
+    STOP_HOOK_BASENAME,
+    EFFORT_GATE_HOOK_BASENAME,
+    TRANSCRIPT_CACHE_BASENAME
+  ];
+  for (const basename of allBasenames) {
+    assert.ok(fs.existsSync(path.join(hooksDir, basename)), `${basename} exists before uninstall`);
+  }
+
+  await uninstallClaudeNativeMemory(home, false);
+
+  const j = JSON.parse(fs.readFileSync(settingsFp, "utf8"));
+  assert.equal(j.autoMemoryEnabled, undefined, "override removed");
+  assert.equal(j.hooks?.SessionStart, undefined);
+  assert.equal(j.hooks?.PreToolUse, undefined);
+  assert.equal(j.hooks?.Stop, undefined);
+
+  for (const basename of allBasenames) {
+    assert.ok(!fs.existsSync(path.join(hooksDir, basename)), `${basename} deleted (kit-owned)`);
+  }
+});
+
+test("uninstallClaudeNativeMemory never deletes a same-named file that isn't this kit's (no marker)", async () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-nm-uninstall-nomark-"));
+  const hooksDir = path.join(home, ".claude", "hooks");
+  fs.mkdirSync(hooksDir, { recursive: true });
+  const impostor = path.join(hooksDir, HOOK_BASENAME);
+  fs.writeFileSync(
+    impostor,
+    "// a user's own unrelated script, not ours\nconsole.log('hi');\n",
+    "utf8"
+  );
+
+  await uninstallClaudeNativeMemory(home, false);
+
+  assert.ok(fs.existsSync(impostor), "same-named-but-foreign file survives uninstall");
+});
+
+test("uninstallClaudeNativeMemory --dry-run deletes nothing", async () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-nm-uninstall-dry-"));
+  const vault = path.join(home, "vault");
+  await configureClaudeNativeMemory(home, vault, false, { lang: "en" });
+
+  await uninstallClaudeNativeMemory(home, true);
+
+  const settingsFp = path.join(home, ".claude", "settings.json");
+  const j = JSON.parse(fs.readFileSync(settingsFp, "utf8"));
+  assert.equal(j.autoMemoryEnabled, false, "dry-run: settings.json untouched");
+  const hooksDir = path.join(home, ".claude", "hooks");
+  for (const basename of [
+    HOOK_BASENAME,
+    GUARD_HOOK_BASENAME,
+    STOP_HOOK_BASENAME,
+    EFFORT_GATE_HOOK_BASENAME
+  ]) {
+    assert.ok(
+      fs.existsSync(path.join(hooksDir, basename)),
+      `${basename}: dry-run leaves it in place`
+    );
+  }
+});
+
+test("CLI: --uninstall dry-run reports without writing (fresh machine, nothing installed)", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-nm-cli-uninstall-"));
+  const env = { ...process.env, USERPROFILE: home, HOME: home, NO_COLOR: "1" };
+  const r = spawnSync(process.execPath, [bin, "--uninstall", "--dry-run"], {
+    encoding: "utf8",
+    env
+  });
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.ok(!fs.existsSync(path.join(home, ".claude", "settings.json")), "nothing created");
+});
+
+test("CLI: --uninstall removes a real prior install end-to-end", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-nm-cli-uninstall2-"));
+  const vault = path.join(
+    fs.mkdtempSync(path.join(os.tmpdir(), "com-nm-cli-uninstall2-v-")),
+    "vault"
+  );
+  const env = { ...process.env, USERPROFILE: home, HOME: home, NO_COLOR: "1" };
+  const install = spawnSync(
+    process.execPath,
+    [
+      bin,
+      vault,
+      "-y",
+      "--ide",
+      "claude",
+      "--no-hybrid",
+      "--no-rules",
+      "--no-build-index",
+      "--no-install-backend",
+      "--no-git-init"
+    ],
+    { encoding: "utf8", env }
+  );
+  assert.equal(install.status, 0, install.stderr + install.stdout);
+  const settingsFp = path.join(home, ".claude", "settings.json");
+  assert.ok(fs.existsSync(settingsFp), "sanity: install actually wrote settings.json");
+
+  const uninstall = spawnSync(process.execPath, [bin, "--uninstall"], { encoding: "utf8", env });
+  assert.equal(uninstall.status, 0, uninstall.stderr + uninstall.stdout);
+
+  const j = JSON.parse(fs.readFileSync(settingsFp, "utf8"));
+  assert.equal(j.autoMemoryEnabled, undefined, "override removed by --uninstall");
+  assert.equal(j.hooks?.SessionStart, undefined);
+  assert.equal(j.hooks?.PreToolUse, undefined);
+  assert.equal(j.hooks?.Stop, undefined);
+});
+
+test("CLI: --help documents --uninstall", () => {
+  const r = spawnSync(process.execPath, [bin, "--help"], { encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /--uninstall/);
 });
 
 // ---- the hook script itself ----------------------------------------------
@@ -273,7 +607,7 @@ test("CLI: --ide claude wires the native-memory override by default (dry-run)", 
   assert.match(r.stdout, /would install SessionStart hook/, "announces the hook install");
 });
 
-test("CLI: --no-native-memory-override leaves Claude's native memory untouched (dry-run)", () => {
+test("CLI: --no-native-memory-override leaves Claude's native memory untouched (dry-run, fresh machine)", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-nm-cli-off-"));
   const vault = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "com-nm-cli-off-v-")), "vault");
   const env = { ...process.env, USERPROFILE: home, HOME: home, NO_COLOR: "1" };
@@ -299,18 +633,54 @@ test("CLI: --no-native-memory-override leaves Claude's native memory untouched (
   assert.doesNotMatch(r.stdout, /autoMemoryEnabled:false/, "override skipped");
 });
 
+test("CLI: re-run with --no-native-memory-override REMOVES a prior override (dry-run announces it)", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-nm-cli-revert-"));
+  const vault = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "com-nm-cli-revert-v-")), "vault");
+  const env = { ...process.env, USERPROFILE: home, HOME: home, NO_COLOR: "1" };
+  const baseArgs = [
+    vault,
+    "-y",
+    "--ide",
+    "claude",
+    "--no-hybrid",
+    "--no-rules",
+    "--no-build-index",
+    "--no-install-backend",
+    "--no-git-init"
+  ];
+  const install = spawnSync(process.execPath, [bin, ...baseArgs], { encoding: "utf8", env });
+  assert.equal(install.status, 0, install.stderr + install.stdout);
+
+  const r = spawnSync(
+    process.execPath,
+    [bin, ...baseArgs, "--no-native-memory-override", "--dry-run"],
+    { encoding: "utf8", env }
+  );
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.match(r.stdout, /would remove autoMemoryEnabled override/, "removal announced in dry-run");
+
+  // Now for real: actually removes it.
+  spawnSync(process.execPath, [bin, ...baseArgs, "--no-native-memory-override"], {
+    encoding: "utf8",
+    env
+  });
+  const settingsFp = path.join(home, ".claude", "settings.json");
+  const j = JSON.parse(fs.readFileSync(settingsFp, "utf8"));
+  assert.equal(j.autoMemoryEnabled, undefined, "override actually removed");
+});
+
 // ---- ADR-0030: deterministic enforcement hooks ----------------------------
 
 test("mergeEnforcementHooks adds PreToolUse guard + Stop nudge once, dedup by stem", () => {
-  const guardCmd = 'node "/h/guard-native-memory-write.mjs" "/h/.claude" en';
-  const stopCmd = 'node "/h/stop-vault-close-reminder.mjs" en';
+  const guardCmd = guardHookCommand("/h/guard-native-memory-write.mjs", "/h/.claude", "en");
+  const stopCmd = stopHookCommand("/h/stop-vault-close-reminder.mjs", "en");
   const out = mergeEnforcementHooks({}, { guardCommand: guardCmd, stopCommand: stopCmd });
   assert.equal(out.hooks.PreToolUse.length, 1);
   assert.equal(out.hooks.PreToolUse[0].matcher, "Write|Edit|MultiEdit|NotebookEdit");
-  assert.equal(out.hooks.PreToolUse[0].hooks[0].command, guardCmd);
+  assert.deepEqual(out.hooks.PreToolUse[0].hooks[0], { type: "command", ...guardCmd });
   assert.equal(out.hooks.Stop.length, 1);
   assert.equal(out.hooks.Stop[0].matcher, "*");
-  assert.equal(out.hooks.Stop[0].hooks[0].command, stopCmd);
+  assert.deepEqual(out.hooks.Stop[0].hooks[0], { type: "command", ...stopCmd });
 
   // idempotent re-apply
   const twice = mergeEnforcementHooks(out, { guardCommand: guardCmd, stopCommand: stopCmd });
@@ -327,35 +697,86 @@ test("mergeEnforcementHooks preserves unrelated hook entries and settings keys",
     }
   };
   const out = mergeEnforcementHooks(existing, {
-    guardCommand: "node guard.mjs",
-    stopCommand: "node stop.mjs"
+    guardCommand: { command: "node", args: ["guard.mjs"] },
+    stopCommand: { command: "node", args: ["stop.mjs"] }
   });
   assert.equal(out.theme, "dark");
-  const preCmds = out.hooks.PreToolUse.flatMap((e) => e.hooks.map((h) => h.command));
-  assert.ok(preCmds.includes("echo unrelated"), "unrelated PreToolUse entry kept");
-  assert.ok(preCmds.includes("node guard.mjs"), "guard entry added");
-  const stopCmds = out.hooks.Stop.flatMap((e) => e.hooks.map((h) => h.command));
-  assert.ok(stopCmds.includes("echo other-stop"), "unrelated Stop entry kept");
-  assert.ok(stopCmds.includes("node stop.mjs"), "stop entry added");
+  const preInner = out.hooks.PreToolUse.flatMap((e) => e.hooks);
+  assert.ok(
+    preInner.some((h) => h.command === "echo unrelated"),
+    "unrelated PreToolUse entry kept"
+  );
+  assert.ok(
+    preInner.some((h) => Array.isArray(h.args) && h.args[0] === "guard.mjs"),
+    "guard entry added"
+  );
+  const stopInner = out.hooks.Stop.flatMap((e) => e.hooks);
+  assert.ok(
+    stopInner.some((h) => h.command === "echo other-stop"),
+    "unrelated Stop entry kept"
+  );
+  assert.ok(
+    stopInner.some((h) => Array.isArray(h.args) && h.args[0] === "stop.mjs"),
+    "stop entry added"
+  );
 });
 
 test("mergeEnforcementHooks installs just one hook when the other command is omitted", () => {
-  const out = mergeEnforcementHooks({}, { guardCommand: "node guard.mjs", stopCommand: null });
+  const out = mergeEnforcementHooks(
+    {},
+    { guardCommand: { command: "node", args: ["guard.mjs"] }, stopCommand: null }
+  );
   assert.ok(Array.isArray(out.hooks.PreToolUse));
   assert.equal(out.hooks.Stop, undefined);
 });
 
-test("guardHookCommand / stopHookCommand carry the expected args", () => {
-  assert.equal(
-    guardHookCommand("/h/guard.mjs", "/h/.claude"),
-    'node "/h/guard.mjs" "/h/.claude" es'
+test("removeEnforcementHooks strips both guard and stop, leaves unrelated entries", () => {
+  const guardCmd = guardHookCommand("/h/guard-native-memory-write.mjs", "/h/.claude", "en");
+  const stopCmd = stopHookCommand("/h/stop-vault-close-reminder.mjs", "en");
+  const existing = {
+    hooks: {
+      PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "echo unrelated" }] }]
+    }
+  };
+  const installed = mergeEnforcementHooks(existing, {
+    guardCommand: guardCmd,
+    stopCommand: stopCmd
+  });
+  const out = removeEnforcementHooks(installed);
+  const preInner = (out.hooks.PreToolUse || []).flatMap((e) => e.hooks);
+  assert.ok(
+    !preInner.some((h) => Array.isArray(h.args) && h.args.some((a) => a.includes(GUARD_HOOK_STEM))),
+    "guard removed"
   );
-  assert.equal(
-    guardHookCommand("/h/guard.mjs", "/h/.claude", "en"),
-    'node "/h/guard.mjs" "/h/.claude" en'
+  assert.ok(
+    preInner.some((h) => h.command === "echo unrelated"),
+    "unrelated PreToolUse entry survives"
   );
-  assert.equal(stopHookCommand("/h/stop.mjs"), 'node "/h/stop.mjs" es');
-  assert.equal(stopHookCommand("/h/stop.mjs", "en"), 'node "/h/stop.mjs" en');
+  assert.equal(out.hooks.Stop, undefined, "Stop event key removed once empty");
+});
+
+test("removeEnforcementHooks is a no-op when neither hook is present", () => {
+  const existing = { theme: "dark" };
+  assert.deepEqual(removeEnforcementHooks(existing), { theme: "dark" });
+});
+
+test("guardHookCommand / stopHookCommand carry the expected argv", () => {
+  assert.deepEqual(guardHookCommand("/h/guard.mjs", "/h/.claude"), {
+    command: "node",
+    args: ["/h/guard.mjs", "/h/.claude", "es"]
+  });
+  assert.deepEqual(guardHookCommand("/h/guard.mjs", "/h/.claude", "en"), {
+    command: "node",
+    args: ["/h/guard.mjs", "/h/.claude", "en"]
+  });
+  assert.deepEqual(stopHookCommand("/h/stop.mjs"), {
+    command: "node",
+    args: ["/h/stop.mjs", "es"]
+  });
+  assert.deepEqual(stopHookCommand("/h/stop.mjs", "en"), {
+    command: "node",
+    args: ["/h/stop.mjs", "en"]
+  });
 });
 
 test("configureClaudeNativeMemory installs the enforcement hooks by default", async () => {
@@ -366,11 +787,15 @@ test("configureClaudeNativeMemory installs the enforcement hooks by default", as
   const stopFp = path.join(home, ".claude", "hooks", STOP_HOOK_BASENAME);
   assert.ok(fs.existsSync(guardFp), "guard hook copied");
   assert.ok(fs.existsSync(stopFp), "stop hook copied");
+  assert.ok(
+    fs.existsSync(path.join(home, ".claude", "hooks", TRANSCRIPT_CACHE_BASENAME)),
+    "shared transcript-cache module copied alongside the Stop hook"
+  );
 
   const j = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
   assert.equal(j.hooks.PreToolUse[0].matcher, "Write|Edit|MultiEdit|NotebookEdit");
-  assert.match(j.hooks.PreToolUse[0].hooks[0].command, new RegExp(GUARD_HOOK_STEM));
-  assert.match(j.hooks.Stop[0].hooks[0].command, new RegExp(STOP_HOOK_STEM));
+  assert.ok(j.hooks.PreToolUse[0].hooks[0].args.some((a) => a.includes(GUARD_HOOK_STEM)));
+  assert.ok(j.hooks.Stop[0].hooks[0].args.some((a) => a.includes(STOP_HOOK_STEM)));
 });
 
 test("configureClaudeNativeMemory({ enforce: false }) skips the enforcement hooks", async () => {
@@ -387,10 +812,15 @@ test("configureClaudeNativeMemory({ enforce: false }) skips the enforcement hook
   assert.ok(j.hooks.SessionStart, "SessionStart hook still installed");
   // `enforce: false` only controls the ADR-0030 guard/stop pair — the ADR-0031 effort-gate
   // hook is independently toggleable and defaults to true, so it's still expected here.
-  const preCmds = (j.hooks.PreToolUse || []).flatMap((e) => e.hooks.map((h) => h.command));
-  assert.ok(!preCmds.some((c) => c.includes(GUARD_HOOK_STEM)), "native-memory guard skipped");
+  const preInner = (j.hooks.PreToolUse || []).flatMap((e) => e.hooks);
   assert.ok(
-    preCmds.some((c) => c.includes(EFFORT_GATE_HOOK_STEM)),
+    !preInner.some((h) => Array.isArray(h.args) && h.args.some((a) => a.includes(GUARD_HOOK_STEM))),
+    "native-memory guard skipped"
+  );
+  assert.ok(
+    preInner.some(
+      (h) => Array.isArray(h.args) && h.args.some((a) => a.includes(EFFORT_GATE_HOOK_STEM))
+    ),
     "effort-gate hook unaffected by enforce:false"
   );
   assert.equal(j.hooks.Stop, undefined);
@@ -456,6 +886,37 @@ test("guard hook never crashes on a malformed stdin payload", () => {
   });
   assert.equal(r.status, 0, r.stderr);
   assert.equal(r.stdout, "");
+});
+
+// ---- item 5: isNativeMemoryPath case-folding is platform-conditional ------
+
+test("isNativeMemoryPath matches a differently-cased path on win32 (case-insensitive)", () => {
+  const claudeDir = "/h/.claude";
+  const filePath = "/h/.CLAUDE/PROJECTS/enc/MEMORY/MEMORY.md";
+  assert.equal(isNativeMemoryPath(filePath, claudeDir, "win32"), true);
+});
+
+test("isNativeMemoryPath does NOT match a differently-cased path on a simulated non-Windows platform", () => {
+  // The exact scenario the audit flagged: on a case-SENSITIVE filesystem, a directory that
+  // merely collides case-insensitively with the native-memory path is a DIFFERENT directory
+  // and must not be denied. Simulating "linux" here (without needing to actually run on one)
+  // is why isNativeMemoryPath takes an explicit, overridable platform parameter.
+  const claudeDir = "/h/.claude";
+  const filePath = "/h/.CLAUDE/PROJECTS/enc/MEMORY/MEMORY.md";
+  assert.equal(isNativeMemoryPath(filePath, claudeDir, "linux"), false);
+  assert.equal(isNativeMemoryPath(filePath, claudeDir, "darwin"), false);
+});
+
+test("isNativeMemoryPath still matches an EXACT-case path on a simulated non-Windows platform", () => {
+  const claudeDir = "/h/.claude";
+  const filePath = "/h/.claude/projects/enc/memory/MEMORY.md";
+  assert.equal(isNativeMemoryPath(filePath, claudeDir, "linux"), true);
+});
+
+test("isNativeMemoryPath defaults to process.platform when no override is given", () => {
+  const claudeDir = "/h/.claude";
+  const filePath = "/h/.claude/projects/enc/memory/MEMORY.md";
+  assert.equal(isNativeMemoryPath(filePath, claudeDir), true, "exact-case always matches");
 });
 
 // ---- the Stop hook script itself -------------------------------------------
@@ -554,8 +1015,12 @@ test("CLI: --no-memory-enforcement skips the enforcement hooks but keeps the ove
   assert.equal(r.status, 0, r.stderr + r.stdout);
   assert.match(r.stdout, /would set.*autoMemoryEnabled:false/s, "override still announced");
   assert.match(r.stdout, /would install SessionStart hook/, "SessionStart still announced");
-  assert.doesNotMatch(r.stdout, /PreToolUse native-memory guard/, "guard hook skipped");
-  assert.doesNotMatch(r.stdout, /Stop close-ritual reminder/, "stop hook skipped");
+  assert.doesNotMatch(
+    r.stdout,
+    /would install PreToolUse native-memory guard/,
+    "guard hook skipped"
+  );
+  assert.doesNotMatch(r.stdout, /would install Stop close-ritual reminder/, "stop hook skipped");
 });
 
 test("CLI: native-memory override on by default also enables enforcement hooks (dry-run)", () => {
@@ -580,21 +1045,21 @@ test("CLI: native-memory override on by default also enables enforcement hooks (
     { encoding: "utf8", env }
   );
   assert.equal(r.status, 0, r.stderr + r.stdout);
-  assert.match(r.stdout, /PreToolUse native-memory guard/, "guard hook announced");
-  assert.match(r.stdout, /Stop close-ritual reminder/, "stop hook announced");
+  assert.match(r.stdout, /would install PreToolUse native-memory guard/, "guard hook announced");
+  assert.match(r.stdout, /would install Stop close-ritual reminder/, "stop hook announced");
 });
 
 // ---- ADR-0031: effort-gate hook --------------------------------------------
 
 test("mergeEffortGateHook adds a PreToolUse entry once, dedup by stem", () => {
-  const cmd = 'node "/h/guard-effort-gate.mjs" en';
-  const out = mergeEffortGateHook({}, { effortGateCommand: cmd });
+  const entry = effortGateHookCommand("/h/guard-effort-gate.mjs", "en");
+  const out = mergeEffortGateHook({}, { effortGateCommand: entry });
   assert.equal(out.hooks.PreToolUse.length, 1);
   assert.equal(out.hooks.PreToolUse[0].matcher, "Write|Edit|MultiEdit|NotebookEdit");
-  assert.equal(out.hooks.PreToolUse[0].hooks[0].command, cmd);
+  assert.deepEqual(out.hooks.PreToolUse[0].hooks[0], { type: "command", ...entry });
 
   // idempotent re-apply
-  const twice = mergeEffortGateHook(out, { effortGateCommand: cmd });
+  const twice = mergeEffortGateHook(out, { effortGateCommand: entry });
   assert.equal(twice.hooks.PreToolUse.length, 1, "no duplicate PreToolUse entry after re-apply");
 });
 
@@ -605,40 +1070,70 @@ test("mergeEffortGateHook preserves unrelated keys and hook entries", () => {
       PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "echo unrelated" }] }]
     }
   };
-  const out = mergeEffortGateHook(existing, { effortGateCommand: "node effort-gate.mjs" });
+  const out = mergeEffortGateHook(existing, {
+    effortGateCommand: { command: "node", args: ["effort-gate.mjs"] }
+  });
   assert.equal(out.theme, "dark");
-  const cmds = out.hooks.PreToolUse.flatMap((e) => e.hooks.map((h) => h.command));
-  assert.ok(cmds.includes("echo unrelated"), "unrelated PreToolUse entry kept");
-  assert.ok(cmds.includes("node effort-gate.mjs"), "effort-gate entry added");
+  const inner = out.hooks.PreToolUse.flatMap((e) => e.hooks);
+  assert.ok(
+    inner.some((h) => h.command === "echo unrelated"),
+    "unrelated PreToolUse entry kept"
+  );
+  assert.ok(
+    inner.some((h) => Array.isArray(h.args) && h.args[0] === "effort-gate.mjs"),
+    "effort-gate entry added"
+  );
 });
 
 test("mergeEffortGateHook coexists with the native-memory guard as a separate PreToolUse entry", () => {
-  const guardCmd = 'node "/h/guard-native-memory-write.mjs" "/h/.claude" en';
+  const guardCmd = guardHookCommand("/h/guard-native-memory-write.mjs", "/h/.claude", "en");
   const withGuard = mergeEnforcementHooks({}, { guardCommand: guardCmd, stopCommand: null });
   const out = mergeEffortGateHook(withGuard, {
-    effortGateCommand: 'node "/h/guard-effort-gate.mjs" en'
+    effortGateCommand: effortGateHookCommand("/h/guard-effort-gate.mjs", "en")
   });
   assert.equal(out.hooks.PreToolUse.length, 2, "guard + effort-gate are separate entries");
-  const cmds = out.hooks.PreToolUse.flatMap((e) => e.hooks.map((h) => h.command));
+  const inner = out.hooks.PreToolUse.flatMap((e) => e.hooks);
   assert.ok(
-    cmds.some((c) => c.includes(GUARD_HOOK_STEM)),
+    inner.some((h) => Array.isArray(h.args) && h.args.some((a) => a.includes(GUARD_HOOK_STEM))),
     "guard entry present"
   );
   assert.ok(
-    cmds.some((c) => c.includes(EFFORT_GATE_HOOK_STEM)),
+    inner.some(
+      (h) => Array.isArray(h.args) && h.args.some((a) => a.includes(EFFORT_GATE_HOOK_STEM))
+    ),
     "effort-gate entry present"
   );
 });
 
-test("effortGateHookCommand carries the expected args", () => {
-  assert.equal(
-    effortGateHookCommand("/h/guard-effort-gate.mjs"),
-    'node "/h/guard-effort-gate.mjs" es'
+test("removeEffortGateHook strips the entry, leaves the guard entry alone", () => {
+  const guardCmd = guardHookCommand("/h/guard-native-memory-write.mjs", "/h/.claude", "en");
+  const withGuard = mergeEnforcementHooks({}, { guardCommand: guardCmd, stopCommand: null });
+  const withBoth = mergeEffortGateHook(withGuard, {
+    effortGateCommand: effortGateHookCommand("/h/guard-effort-gate.mjs", "en")
+  });
+  const out = removeEffortGateHook(withBoth);
+  const inner = out.hooks.PreToolUse.flatMap((e) => e.hooks);
+  assert.ok(
+    !inner.some(
+      (h) => Array.isArray(h.args) && h.args.some((a) => a.includes(EFFORT_GATE_HOOK_STEM))
+    ),
+    "effort-gate removed"
   );
-  assert.equal(
-    effortGateHookCommand("/h/guard-effort-gate.mjs", "en"),
-    'node "/h/guard-effort-gate.mjs" en'
+  assert.ok(
+    inner.some((h) => Array.isArray(h.args) && h.args.some((a) => a.includes(GUARD_HOOK_STEM))),
+    "guard entry survives"
   );
+});
+
+test("effortGateHookCommand carries the expected argv", () => {
+  assert.deepEqual(effortGateHookCommand("/h/guard-effort-gate.mjs"), {
+    command: "node",
+    args: ["/h/guard-effort-gate.mjs", "es"]
+  });
+  assert.deepEqual(effortGateHookCommand("/h/guard-effort-gate.mjs", "en"), {
+    command: "node",
+    args: ["/h/guard-effort-gate.mjs", "en"]
+  });
 });
 
 test("configureClaudeNativeMemory installs the effort-gate hook by default", async () => {
@@ -649,14 +1144,16 @@ test("configureClaudeNativeMemory installs the effort-gate hook by default", asy
   assert.ok(fs.existsSync(effortGateFp), "effort-gate hook copied");
 
   const j = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
-  const cmds = j.hooks.PreToolUse.flatMap((e) => e.hooks.map((h) => h.command));
+  const inner = j.hooks.PreToolUse.flatMap((e) => e.hooks);
   assert.ok(
-    cmds.some((c) => c.includes(EFFORT_GATE_HOOK_STEM)),
+    inner.some(
+      (h) => Array.isArray(h.args) && h.args.some((a) => a.includes(EFFORT_GATE_HOOK_STEM))
+    ),
     "effort-gate registered in PreToolUse"
   );
   // coexists with the ADR-0030 guard, which is also on by default
   assert.ok(
-    cmds.some((c) => c.includes(GUARD_HOOK_STEM)),
+    inner.some((h) => Array.isArray(h.args) && h.args.some((a) => a.includes(GUARD_HOOK_STEM))),
     "native-memory guard still present alongside it"
   );
 });
@@ -670,11 +1167,16 @@ test("configureClaudeNativeMemory({ effortGate: false }) skips the effort-gate h
 
   assert.ok(!fs.existsSync(path.join(home, ".claude", "hooks", EFFORT_GATE_HOOK_BASENAME)));
   const j = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
-  const cmds = (j.hooks.PreToolUse || []).flatMap((e) => e.hooks.map((h) => h.command));
-  assert.ok(!cmds.some((c) => c.includes(EFFORT_GATE_HOOK_STEM)), "effort-gate not registered");
+  const inner = (j.hooks.PreToolUse || []).flatMap((e) => e.hooks);
+  assert.ok(
+    !inner.some(
+      (h) => Array.isArray(h.args) && h.args.some((a) => a.includes(EFFORT_GATE_HOOK_STEM))
+    ),
+    "effort-gate not registered"
+  );
   // unrelated to enforce: the native-memory guard (also default-on) is unaffected
   assert.ok(
-    cmds.some((c) => c.includes(GUARD_HOOK_STEM)),
+    inner.some((h) => Array.isArray(h.args) && h.args.some((a) => a.includes(GUARD_HOOK_STEM))),
     "native-memory guard unaffected"
   );
 });
@@ -830,8 +1332,12 @@ test("CLI: --no-effort-gate skips the effort-gate hook but keeps the rest of the
   );
   assert.equal(r.status, 0, r.stderr + r.stdout);
   assert.match(r.stdout, /would set.*autoMemoryEnabled:false/s, "override still announced");
-  assert.match(r.stdout, /PreToolUse native-memory guard/, "enforcement guard still announced");
-  assert.doesNotMatch(r.stdout, /PreToolUse effort-gate hook/, "effort-gate skipped");
+  assert.match(
+    r.stdout,
+    /would install PreToolUse native-memory guard/,
+    "enforcement guard still announced"
+  );
+  assert.doesNotMatch(r.stdout, /would install PreToolUse effort-gate hook/, "effort-gate skipped");
 });
 
 test("CLI: native-memory override on by default also enables the effort-gate hook (dry-run)", () => {
@@ -856,5 +1362,5 @@ test("CLI: native-memory override on by default also enables the effort-gate hoo
     { encoding: "utf8", env }
   );
   assert.equal(r.status, 0, r.stderr + r.stdout);
-  assert.match(r.stdout, /PreToolUse effort-gate hook/, "effort-gate hook announced");
+  assert.match(r.stdout, /would install PreToolUse effort-gate hook/, "effort-gate hook announced");
 });

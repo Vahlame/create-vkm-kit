@@ -185,6 +185,101 @@ func TestDoctorSyncFailures(t *testing.T) {
 	}
 }
 
+// TestDoctorRebaseAbortAlarms is the regression test for the alarm blind spot:
+// LastRebaseAbort was recorded and displayed with a warning glyph, but never
+// fed into the `alarm` bool — a vault stuck on a stale rebase abort, with a
+// fresh heartbeat and zero failure counters, used to report perfectly
+// healthy.
+func TestDoctorRebaseAbortAlarms(t *testing.T) {
+	withTempStateDir(t)
+	now := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	_ = writeState(&DaemonState{
+		Heartbeat:       now.Add(-30 * time.Second), // fresh
+		LastRebaseAbort: now.Add(-2 * time.Minute),
+	})
+	var buf bytes.Buffer
+	err := doctor(&buf, "", now)
+	if !errors.Is(err, ErrDoctorAlarm) {
+		t.Fatalf("a recorded rebase abort should trigger alarm, got %v", err)
+	}
+	if !strings.Contains(buf.String(), "last rebase abort:") {
+		t.Errorf("output missing rebase abort line\n---\n%s", buf.String())
+	}
+}
+
+// TestRecordSyncSuccessClearsRebaseAbort proves a subsequent successful sync
+// clears a historical rebase abort, so it does not alarm forever after one
+// resolved divergence.
+func TestRecordSyncSuccessClearsRebaseAbort(t *testing.T) {
+	withTempStateDir(t)
+	_ = writeState(&DaemonState{LastRebaseAbort: time.Now().UTC()})
+	recordSyncSuccess()
+	s := readState()
+	if !s.LastRebaseAbort.IsZero() {
+		t.Errorf("expected LastRebaseAbort cleared after a successful sync, got %v", s.LastRebaseAbort)
+	}
+}
+
+// TestDoctorAlarmsOnWatchStartFailureEvenWithZeroHeartbeat is the regression
+// test for item 4: a watcher that fails to start never writes a heartbeat
+// (that happens later in runWatchWith), so a zero heartbeat alone is NOT
+// stale and used to leave `doctor` reporting healthy while the watch
+// goroutine was actually dead.
+func TestDoctorAlarmsOnWatchStartFailureEvenWithZeroHeartbeat(t *testing.T) {
+	withTempStateDir(t)
+	recordWatchStartFailure(errors.New("too many open files"))
+	var buf bytes.Buffer
+	err := doctor(&buf, "", time.Now().UTC())
+	if !errors.Is(err, ErrDoctorAlarm) {
+		t.Fatalf("a watch-start failure should alarm doctor even with a zero heartbeat, got %v", err)
+	}
+	out := buf.String()
+	for _, want := range []string{"watcher start failed:", "too many open files"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing %q\n---\n%s", want, out)
+		}
+	}
+}
+
+// syncTrackingWriter records writes and whether/when Sync() was called, so
+// tests can prove doctor flushes its writer before returning (item 5).
+type syncTrackingWriter struct {
+	buf              bytes.Buffer
+	syncCalled       bool
+	writesBeforeSync int
+}
+
+func (w *syncTrackingWriter) Write(p []byte) (int, error) {
+	if !w.syncCalled {
+		w.writesBeforeSync++
+	}
+	return w.buf.Write(p)
+}
+
+func (w *syncTrackingWriter) Sync() error {
+	w.syncCalled = true
+	return nil
+}
+
+// TestDoctorFlushesWriterBeforeReturning: doctor's real root-cause fix for the
+// broken -H windowsgui exit-code/output ordering is documented (PowerShell
+// does not wait for a GUI-subsystem child process unless output is
+// redirected — see docs/en/troubleshooting.md), since that is shell behavior
+// outside this process's control. This test covers the defensive code-side
+// half: whatever doctor writes to must be flushed before the function
+// returns.
+func TestDoctorFlushesWriterBeforeReturning(t *testing.T) {
+	withTempStateDir(t)
+	w := &syncTrackingWriter{}
+	_ = doctor(w, "", time.Now().UTC())
+	if !w.syncCalled {
+		t.Fatal("expected doctor to Sync() its writer before returning")
+	}
+	if w.writesBeforeSync == 0 {
+		t.Error("expected at least one write to have happened before Sync was called")
+	}
+}
+
 // TestRecordConflictFile: the watcher's sighting must round-trip through state
 // (basename only) and surface in doctor as a warning line — without alarming,
 // since a conflict file is a "human should look" signal, not a daemon failure.

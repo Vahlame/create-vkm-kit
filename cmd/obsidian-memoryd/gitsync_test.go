@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -482,5 +483,189 @@ func TestGitSync_DiffFailureStillCommits(t *testing.T) {
 		if r.calls[i] != v {
 			t.Errorf("call %d: want %q, got %q", i, v, r.calls[i])
 		}
+	}
+}
+
+// TestGitSync_PushRetryReRunsPullBeforeRetrying is the regression test for
+// item 3: a push rejected because the remote advanced must re-pull before the
+// next push attempt, otherwise every retry fails identically forever.
+func TestGitSync_PushRetryReRunsPullBeforeRetrying(t *testing.T) {
+	withTempStateDir(t)
+	dir := tempGitRepo(t)
+	r := &verbRunner{
+		responses: map[string][]fakeResp{
+			"push": {
+				{err: errors.New("! [rejected] main -> main (fetch first)")},
+				{err: nil},
+			},
+		},
+	}
+	if err := gitSyncWith(context.Background(), discardLogger(), dir, r); err != nil {
+		t.Fatalf("expected success on retry, got: %v", err)
+	}
+	wantVerbs := []string{"add", "diff", "commit", "pull", "push", "pull", "push"}
+	if len(r.calls) != len(wantVerbs) {
+		t.Fatalf("expected %d calls, got %d: %v", len(wantVerbs), len(r.calls), r.calls)
+	}
+	for i, v := range wantVerbs {
+		if r.calls[i] != v {
+			t.Errorf("call %d: want verb %q, got %q", i, v, r.calls[i])
+		}
+	}
+}
+
+// TestGitSync_PushRetryDoesNotRePullOnFirstAttempt guards against the retry
+// re-pull firing too early: the FIRST push attempt must not be preceded by an
+// extra pull beyond the one runSyncSteps already does.
+func TestGitSync_PushRetryDoesNotRePullOnFirstAttempt(t *testing.T) {
+	withTempStateDir(t)
+	dir := tempGitRepo(t)
+	r := newFakeRunner() // every step succeeds first try
+	if err := gitSyncWith(context.Background(), discardLogger(), dir, r); err != nil {
+		t.Fatalf("expected success, got: %v", err)
+	}
+	pullCount := 0
+	for _, c := range r.calls {
+		if strings.HasPrefix(c, "git pull --rebase") {
+			pullCount++
+		}
+	}
+	if pullCount != 1 {
+		t.Errorf("expected exactly 1 pull on the happy path, got %d (calls: %v)", pullCount, r.calls)
+	}
+}
+
+// TestGitSync_ShutdownDuringSyncDoesNotRecordFailure is the regression test
+// for item 6: an intentional shutdown (Stop()/Ctrl-C) canceling the parent
+// context mid-sync must not trip the "vault not syncing" alarm the way a real
+// git failure would.
+func TestGitSync_ShutdownDuringSyncDoesNotRecordFailure(t *testing.T) {
+	withTempStateDir(t)
+	dir := tempGitRepo(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // shutdown already in progress by the time the sync step runs
+	r := &verbRunner{
+		responses: map[string][]fakeResp{
+			"add": {{err: context.Canceled}},
+		},
+	}
+	err := gitSyncWith(ctx, discardLogger(), dir, r)
+	if err == nil {
+		t.Fatal("expected an error from the aborted sync")
+	}
+	if s := readState(); s.ConsecutiveSyncFailures != 0 {
+		t.Errorf("a shutdown-triggered abort must not count as a sync failure, got %d", s.ConsecutiveSyncFailures)
+	}
+}
+
+// TestGitSync_ShutdownDeadlineExceededDoesNotRecordFailure covers the
+// DeadlineExceeded variant (a shutdown timeout budget instead of an explicit
+// cancel): same neutral treatment.
+func TestGitSync_ShutdownDeadlineExceededDoesNotRecordFailure(t *testing.T) {
+	withTempStateDir(t)
+	dir := tempGitRepo(t)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
+	defer cancel()
+	time.Sleep(5 * time.Millisecond) // let the parent deadline actually expire
+	r := &verbRunner{
+		responses: map[string][]fakeResp{
+			"add": {{err: context.DeadlineExceeded}},
+		},
+	}
+	err := gitSyncWith(ctx, discardLogger(), dir, r)
+	if err == nil {
+		t.Fatal("expected an error from the expired sync")
+	}
+	if s := readState(); s.ConsecutiveSyncFailures != 0 {
+		t.Errorf("a parent deadline exceeded (shutdown) must not count as a sync failure, got %d", s.ConsecutiveSyncFailures)
+	}
+}
+
+// TestGitSync_StepTimeoutAloneStillRecordsFailure is the contrast case: a
+// step failing on ITS OWN derived timeout, with the parent context still
+// healthy, is a real failure and must still be recorded (guards against the
+// item-6 fix over-suppressing).
+func TestGitSync_StepTimeoutAloneStillRecordsFailure(t *testing.T) {
+	withTempStateDir(t)
+	dir := tempGitRepo(t)
+	r := &verbRunner{
+		responses: map[string][]fakeResp{
+			"add": {{err: context.DeadlineExceeded}},
+		},
+	}
+	err := gitSyncWith(context.Background(), discardLogger(), dir, r) // parent never canceled
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+	if s := readState(); s.ConsecutiveSyncFailures != 1 {
+		t.Errorf("a step timeout with a healthy parent context must record a sync failure, got %d", s.ConsecutiveSyncFailures)
+	}
+}
+
+// runGitReal shells out to the real git binary (not the fake Runner) — used
+// only to build fixtures (a bare "remote" repo + an ahead-by-one local repo)
+// for TestUnpushedCommitsLineCountsAheadCommits.
+func runGitReal(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+	cmd.Env = append(os.Environ(),
+		"GIT_TERMINAL_PROMPT=0",
+		"GIT_AUTHOR_NAME=test", "GIT_AUTHOR_EMAIL=test@example.com",
+		"GIT_COMMITTER_NAME=test", "GIT_COMMITTER_EMAIL=test@example.com",
+	)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git %v failed: %v\n%s", args, err, out)
+	}
+}
+
+// TestUnpushedCommitsLineCountsAheadCommits is the primary-path regression
+// test for item 7 (previously 0% covered): a repo with an upstream and one
+// unpushed commit must render "unpushed commits (vault): 1".
+func TestUnpushedCommitsLineCountsAheadCommits(t *testing.T) {
+	remote := t.TempDir()
+	runGitReal(t, remote, "init", "--bare", "-b", "main")
+
+	local := tempGitRepo(t)
+	runGitReal(t, local, "checkout", "-B", "main")
+	runGitReal(t, local, "remote", "add", "origin", remote)
+	if err := os.WriteFile(filepath.Join(local, "a.md"), []byte("hello"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGitReal(t, local, "add", "-A")
+	runGitReal(t, local, "commit", "-m", "first")
+	runGitReal(t, local, "push", "-u", "origin", "main")
+
+	if err := os.WriteFile(filepath.Join(local, "b.md"), []byte("world"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGitReal(t, local, "add", "-A")
+	runGitReal(t, local, "commit", "-m", "second")
+
+	line := unpushedCommitsLine(local, 5*time.Second)
+	if !strings.Contains(line, "unpushed commits (vault): 1") {
+		t.Errorf("expected 1 unpushed commit reported, got %q", line)
+	}
+}
+
+// TestUnpushedCommitsLineNoUpstreamReturnsEmpty guards the best-effort
+// contract: no upstream configured is a silent "" (matching the pre-fix
+// behavior), not an error, after the timeout refactor.
+func TestUnpushedCommitsLineNoUpstreamReturnsEmpty(t *testing.T) {
+	dir := tempGitRepo(t) // no remote configured
+	if line := unpushedCommitsLine(dir, 5*time.Second); line != "" {
+		t.Errorf("expected empty line with no upstream configured, got %q", line)
+	}
+}
+
+// TestUnpushedCommitsLineRespectsTimeout is the regression test for item 7:
+// before the fix this used a bare exec.Command with no way to bound it at
+// all. An already-expired context must abort promptly instead of the old
+// code's unbounded call being able to hang forever on a stuck git process.
+func TestUnpushedCommitsLineRespectsTimeout(t *testing.T) {
+	dir := tempGitRepo(t)
+	start := time.Now()
+	_ = unpushedCommitsLine(dir, 1*time.Nanosecond)
+	if elapsed := time.Since(start); elapsed > 2*time.Second {
+		t.Fatalf("expected the timeout to bound the git call promptly, took %v", elapsed)
 	}
 }

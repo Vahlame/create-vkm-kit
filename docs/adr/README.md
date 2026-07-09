@@ -42,6 +42,8 @@ Each file in this directory captures one design decision: what was chosen, what 
 | [ADR-0036](./0036-rules-block-diet-and-drift-gate.md)              | Rules-block diet (−18%, zero rules lost, two rescued) + sync turned into a build gate     | Accepted |
 | [ADR-0037](./0037-vault-vs-database-system-of-record.md)           | Vault = memory layer, not system of record: transactions/concurrency/auth/audit honestly  | Accepted |
 | [ADR-0038](./0038-evolutive-memory-loop.md)                        | Evolutive memory loop: learn from failures, reinforce what helps, decay what doesn't      | Accepted |
+| [ADR-0039](./0039-rules-contract.md)                               | RULES contract: dated, sourced, reasoned project rules                                    | Accepted |
+| [ADR-0040](./0040-reliability-isolation-hardening.md)              | Reliability + isolation hardening: cross-process lock, MCP wire lockdown, decay scoring   | Accepted |
 
 ## Template
 
