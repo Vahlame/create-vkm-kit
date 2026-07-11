@@ -14,7 +14,7 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import pc from "picocolors";
 import prompts from "prompts";
-import { requireVault } from "@vkmikc/obsidian-memory-mcp/src/rag-client.mjs";
+import { locateVault } from "./vault-locate.mjs";
 import { resolveProject } from "./project-resolve.mjs";
 import { buildSpec } from "./pipeline.mjs";
 import { copyToClipboard } from "./clipboard.mjs";
@@ -103,7 +103,7 @@ async function main() {
 
   let vault;
   try {
-    vault = requireVault(flagValue(argv, "--vault"));
+    vault = locateVault(flagValue(argv, "--vault"));
   } catch (e) {
     console.error(pc.red(e.message));
     process.exitCode = 1;
