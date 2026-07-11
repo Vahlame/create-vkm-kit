@@ -107,7 +107,7 @@ The wire benchmark covers the **per-call** cost. The kit's **fixed** per-session
 costs live under package test suites, same doctrine (measured, build-gated):
 `packages/obsidian-memory-mcp/test/schema-budget.test.mjs` (tool schemas ≤ 8,000
 chars, ADR-0035) and
-`packages/create-obsidian-memory/test/memory-rules-budget.test.mjs` (rules block
+`packages/create-vkm-kit/test/memory-rules-budget.test.mjs` (rules block
 budget + load-bearing phrases + docs drift, ADR-0036).
 
 ## 3. Adherence harness (smoke only)

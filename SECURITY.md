@@ -65,7 +65,7 @@ If the vault remote is shared (team, multi-machine), assume an attacker with wri
 
 ### 3. `basic-memory` is pinned
 
-`config/mcp/basic-memory.json` and the initializer use `uvx --from "basic-memory==0.21.4" basic-memory mcp`. Without the pin, `uvx` resolves PyPI latest on every start — a supply-chain RCE if the package is compromised. Upgrades are explicit (bump the constant in `packages/create-obsidian-memory/src/mcp-merge.mjs` and the templates) and reviewable via `CHANGELOG.md`.
+`config/mcp/basic-memory.json` and the initializer use `uvx --from "basic-memory==0.21.4" basic-memory mcp`. Without the pin, `uvx` resolves PyPI latest on every start — a supply-chain RCE if the package is compromised. Upgrades are explicit (bump the constant in `packages/create-vkm-kit/src/mcp-merge.mjs` and the templates) and reviewable via `CHANGELOG.md`.
 
 ### 4. There is no in-band authentication — the boundary is the filesystem and the git remote
 

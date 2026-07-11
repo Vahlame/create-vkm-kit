@@ -48,6 +48,7 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 import shutil
 import statistics
 import tempfile
@@ -91,6 +92,30 @@ _KG_TRUST_NOTICE = (
 # /decision/i in the .mjs: any category containing "decision" is a decision.
 _DECISION_RE = re.compile("decision", re.IGNORECASE)
 # ^---[\s\S]*?---\s* in the .mjs: strip a leading YAML frontmatter block.
+
+_ANCHOR_SPLIT_RE = re.compile(r"[^\w-]+", re.UNICODE)
+
+
+def _fold(text: str) -> str:
+    """Accent-insensitive lowercase fold (mirrors the .mjs)."""
+    norm = unicodedata.normalize("NFD", str(text or "").lower())
+    return "".join(ch for ch in norm if not unicodedata.combining(ch))
+
+
+def _anchor_terms(query: str) -> list[str]:
+    """Distinctive query words a relevant hit must contain (mirrors the .mjs):
+    terms >= 6 chars preferred, falling back to >= 4."""
+    terms = list(dict.fromkeys(w for w in _ANCHOR_SPLIT_RE.split(_fold(query)) if w))
+    strong = [t for t in terms if len(t) >= 6]
+    return strong if strong else [t for t in terms if len(t) >= 4]
+
+
+def _hit_matches_anchors(hit, anchors: list[str]) -> bool:
+    if not anchors:
+        return True
+    haystack = _fold(f"{hit.path} {getattr(hit, 'heading', '') or ''} {hit.snippet or ''}")
+    return any(a in haystack for a in anchors)
+
 _FRONTMATTER_RE = re.compile(r"^---[\s\S]*?---\s*")
 
 
@@ -198,7 +223,13 @@ def assemble_bundle(
         if project_note
         else []
     )
-    stack_obs = observations_query(vault, tag="stack", limit=STACK_OBSERVATIONS_LIMIT)
+    # Mirrors the .mjs: the #stack pass is vault-global, so it only runs when a
+    # project scopes the request — no project, no stack claims.
+    stack_obs = (
+        observations_query(vault, tag="stack", limit=STACK_OBSERVATIONS_LIMIT)
+        if project
+        else []
+    )
 
     decisions = [
         o.content for o in project_obs if _DECISION_RE.search(o.category) and o.content
@@ -213,8 +244,17 @@ def assemble_bundle(
         if not _DECISION_RE.search(o.category) and o.content:
             patterns.append(f"[{o.category}] {o.content}")
             pattern_sources.append(o.source_path)
+    # Lexical relevance gate (mirrors the .mjs): a hit must contain at least one
+    # anchor term of the (project-qualified) query — RRF scores rank, they don't
+    # certify relevance, so a vault that knows nothing about the query would
+    # otherwise pad the bundle with noise.
+    anchors = _anchor_terms(search_query)
     for h in hits:
-        if h.path != project_note and h.snippet:
+        if h.path == project_note:
+            continue
+        if not _hit_matches_anchors(h, anchors):
+            continue
+        if h.snippet:
             patterns.append(f"[{h.path}] {_truncate(h.snippet, SNIPPET_CHAR_BUDGET)}")
             pattern_sources.append(h.path)
 

@@ -57,19 +57,20 @@ def test_assemble_economy_floor() -> None:
 
 
 @needs_fixture
-def test_cross_cutting_counterpoint_is_reported_not_hidden() -> None:
-    # Without a project there is no whole-note read to replace, so the saving
-    # shrinks to what the snippet cap + single envelope buy (~45% measured).
-    # The benchmark must keep that bucket visible instead of averaging it away.
+def test_per_kind_buckets_are_reported_not_averaged_away() -> None:
+    # Both buckets stay individually visible. The savings MECHANISM differs by
+    # kind — project tasks replace a whole-note read; cross-cutting queries win
+    # via the relevance gate + no-project stack suppression (the naive arm still
+    # pays every unfiltered hit on the wire) — so no ordering between the two is
+    # guaranteed; what IS guaranteed is that each bucket clears a real floor.
+    # (The original assertion cross < project inverted when the relevance gate
+    # landed: dropping vault-global stack facts from no-project bundles was the
+    # fix for real-world context pollution, and it made those bundles leaner.)
     report = run_assemble_benchmark(CORPUS, QUERIES)
     assert "cross-cutting" in report.by_kind
     assert "project-task" in report.by_kind
-    assert (
-        report.by_kind["cross-cutting"]["median_savings"]
-        < report.by_kind["project-task"]["median_savings"]
-    )
-    # Still a win, just a smaller one — the bundle never costs more than the calls.
-    assert report.by_kind["cross-cutting"]["median_savings"] > 0.0
+    assert report.by_kind["cross-cutting"]["median_savings"] >= 0.5
+    assert report.by_kind["project-task"]["median_savings"] >= 0.5
 
 
 @needs_fixture
@@ -148,6 +149,22 @@ def _build_vault(tmp_path: Path) -> Path:
     )
     (vault / "STACKS" / "tool.md").write_text(
         "# tool\n\n- [fact] El modo WAL permite lectores concurrentes #stack\n",
+        encoding="utf-8",
+    )
+    # Two extra notes sharing the "webhook" anchor so the lexical relevance gate
+    # (mirrored from the .mjs) lets broader passages through — the budget-trim
+    # assertions below need MULTIPLE surviving passages to have anything to trim.
+    (vault / "PRACTICES.md").write_text(
+        "# practicas\n\nLeccion webhook: firmar cada webhook entrante y rechazar "
+        "timestamps viejos.\n\nReintentos de webhook: backoff exponencial con tope, "
+        "nunca reintentos infinitos.\n" + ("relleno de nota larga " * 60) + "\n",
+        encoding="utf-8",
+    )
+    (vault / "PROJECTS" / "sibling.md").write_text(
+        "# sibling\n\nEste proyecto hermano tambien consume el webhook de eventos y "
+        "documenta la clave compartida del webhook en su runbook.\n"
+        + ("mas relleno " * 80)
+        + "\n",
         encoding="utf-8",
     )
     emb = HashingEmbedder(dim=256)

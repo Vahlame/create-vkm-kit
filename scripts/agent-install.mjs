@@ -26,7 +26,7 @@ import os from "node:os";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const INSTALLER = path.join(ROOT, "packages", "create-obsidian-memory", "src", "index.js");
+const INSTALLER = path.join(ROOT, "packages", "create-vkm-kit", "src", "index.js");
 const WIN = process.platform === "win32";
 const HOME = process.env.HOME || process.env.USERPROFILE || os.homedir();
 
