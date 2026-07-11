@@ -13,10 +13,17 @@
  *    throws `OllamaUnavailableError` on ANY failure (unreachable, timeout, old version,
  *    missing model, bad JSON, schema reject).
  */
+import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { SpecSchema, SPEC_JSON_SCHEMA } from "./spec-schema.mjs";
 
 export const DEFAULT_OLLAMA_HOST = "http://127.0.0.1:11434";
 export const DEFAULT_MODEL = "phi4-mini:3.8b-q4_K_M";
+/** How long Ollama keeps the model in RAM after a draft (Ollama `keep_alive`). Short on
+ * purpose: on a CPU-only box the loaded model holds ~3GB — vkm-spec drafts are bursty, so
+ * paying a one-time reload beats squatting on RAM. Override: VKM_OLLAMA_KEEP_ALIVE. */
+export const DEFAULT_KEEP_ALIVE = "2m";
 /** Structured outputs via the `format` param stabilized around this release; older daemons
  * silently ignore it and free-form the answer, which then fails schema validation anyway —
  * so we refuse up front with a clear reason instead of a confusing downstream reject. */
@@ -138,6 +145,7 @@ export async function draftSpec({
   schema = SPEC_JSON_SCHEMA,
   model = DEFAULT_MODEL,
   host = DEFAULT_OLLAMA_HOST,
+  keepAlive = process.env.VKM_OLLAMA_KEEP_ALIVE || DEFAULT_KEEP_ALIVE,
   onProgress,
   signal,
   timeoutMs = 120_000
@@ -191,7 +199,9 @@ export async function draftSpec({
             { role: "user", content: buildUserPrompt(idea, context) }
           ],
           format: schema,
-          stream: true
+          stream: true,
+          // Free the ~3GB of RAM shortly after the draft instead of squatting on it.
+          keep_alive: keepAlive
         }),
         signal: controller.signal
       });
@@ -237,6 +247,56 @@ export async function draftSpec({
   } finally {
     cleanup();
   }
+}
+
+/** The winget/user-local install location on Windows (not on PATH in already-open shells);
+ * elsewhere we rely on PATH. */
+export function localOllamaBinary() {
+  if (process.platform === "win32" && process.env.LOCALAPPDATA) {
+    const candidate = path.join(process.env.LOCALAPPDATA, "Programs", "Ollama", "ollama.exe");
+    if (existsSync(candidate)) return candidate;
+  }
+  return "ollama";
+}
+
+/**
+ * Best-effort on-demand server start (resource policy: NO login autostart — the daemon runs
+ * only when a draft actually needs it, capped to one loaded model, and `keep_alive` returns
+ * the RAM shortly after). Only ever spawns for the DEFAULT localhost host — a custom host
+ * is user-managed and is never touched, which also keeps the degradation-gate test honest
+ * (closed-port host → no spawn → deterministic fallback). Never throws.
+ * @param {{ host?: string, waitMs?: number }} [opts]
+ * @returns {Promise<boolean>} true when a server is reachable by the time we return
+ */
+export async function ensureOllamaServer({ host = DEFAULT_OLLAMA_HOST, waitMs = 8000 } = {}) {
+  if (host !== DEFAULT_OLLAMA_HOST) return false;
+  if ((await checkOllama({ host })).version) return true;
+  let spawnFailed = false;
+  try {
+    const child = spawn(localOllamaBinary(), ["serve"], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+      env: {
+        ...process.env,
+        OLLAMA_MAX_LOADED_MODELS: process.env.OLLAMA_MAX_LOADED_MODELS || "1",
+        OLLAMA_KEEP_ALIVE: process.env.VKM_OLLAMA_KEEP_ALIVE || DEFAULT_KEEP_ALIVE
+      }
+    });
+    // Without a listener, an async ENOENT 'error' event would crash the process.
+    child.on("error", () => {
+      spawnFailed = true;
+    });
+    child.unref();
+  } catch {
+    return false;
+  }
+  const deadline = Date.now() + waitMs;
+  while (Date.now() < deadline && !spawnFailed) {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    if ((await checkOllama({ host })).version) return true;
+  }
+  return false;
 }
 
 /** Node's fetch wraps low-level socket errors in `cause`; surface the useful ones. */
