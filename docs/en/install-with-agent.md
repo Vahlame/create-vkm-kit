@@ -15,12 +15,16 @@ commands**. Works for both IDEs — no clone needed for the basic install.
 
 ---
 
-## ⚡ Simplest: hand the agent the repo and say "install it"
+## ⚡ Simplest: link the agent to the repo and say "install it"
 
 If you have (or let the agent clone) the repo, you don't need to paste a long prompt — there's a
-single **self-verifying entry point**. Just tell the agent:
+single **self-verifying entry point**. Just tell the agent exactly this:
 
-> “Clone <https://github.com/Vahlame/create-vkm-kit>, cd into it, and run `npm install` then `npm run setup`. I'll approve the commands.”
+> “Clone <https://github.com/Vahlame/create-vkm-kit> and **install it with all its tools and
+> capabilities**: cd into it and run `npm install` then `npm run setup`. I'll approve the
+> commands.”
+
+The agent should end up running exactly this (and nothing else — reject any other command):
 
 ```bash
 git clone https://github.com/Vahlame/create-vkm-kit
@@ -30,10 +34,44 @@ npm run setup            # options: npm run setup -- --vault "<PATH>" --ide code
 ```
 
 `npm run setup` **preflights** dependencies (`node`, `uv`, `git`, `python`/`pip`), **auto-detects**
-which agent CLIs are on PATH (`codex`, `claude`; falls back to Cursor), runs the **`--full`** install
-(hybrid + semantic + index + rules, or the basic stack if Python is absent), **verifies** (vault,
-index, `codex/claude mcp list`) and prints a status table. `npm run setup:dry` previews it with zero
+which agent CLIs are on PATH (`codex`, `claude`; falls back to Cursor), runs the **`--full`**
+install, **verifies** (vault on disk, index built, Python backend importable,
+`codex/claude mcp list`) and prints a status table. `npm run setup:dry` previews it with zero
 writes.
+
+```mermaid
+flowchart TD
+  P["You: “link the repo and install it with<br>all its tools and capabilities”"] --> C["Agent: git clone → npm install"]
+  C --> S["npm run setup"]
+  S --> PF{"Preflight<br>node · uv · git · python/pip"}
+  PF -- "python ≥ 3.11" --> F["--full: hybrid + semantic + index + rules<br>+ token-saver + telemetry + skills + spec"]
+  PF -- "no python" --> B["basic stack: basic-memory + rules<br>(install Python, re-run setup for the rest)"]
+  F --> V["Verify: vault ✓ · index ✓ ·<br>Python backend ✓ · mcp list ✓"]
+  B --> V
+  V --> R["Restart the IDE/CLI<br>(MCP tools don't hot-load)"]
+  R --> L["Next session: vault_hybrid_search ·<br>/vkm-spec · /vkm-discipline · vkm-doctor"]
+```
+
+### What "all its tools and capabilities" means
+
+With Python ≥ 3.11 present, `npm run setup` installs the complete 4.0 suite in one pass:
+
+| Piece                                                                                | What it gives you                                                                                                              |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Vault + `basic-memory` MCP**                                                       | Markdown memory that survives across chats (read/write/search), version-pinned                                                 |
+| **`obsidian-memory-hybrid` MCP**                                                     | passage-first search (BM25 + semantic + graph), typed knowledge graph, `vault_audit`, memory reports                           |
+| **FTS index + sqlite-vec**                                                           | search by meaning, accelerated — in `<VAULT>/.obsidian-memory-rag/`                                                            |
+| **Memory rules**                                                                     | the agent protocol as an idempotent marked block in `~/.claude/CLAUDE.md`, `AGENTS.md` and `.cursor/rules/`                    |
+| **token-saver** _(Claude Code)_                                                      | noisy-output compaction hooks + artifact deny rules + the `vkm-terse` output style (ADR-0043)                                  |
+| **Local telemetry + `vkm-doctor`** _(Claude Code)_                                   | OTLP sink at `127.0.0.1:4319`; `npm run doctor` reports tokens, cost and cache health — nothing leaves your machine (ADR-0044) |
+| **`/vkm-discipline` & `/vkm-spec` skills + `vkm-implementer` agent** _(Claude Code)_ | dense-code discipline + the idea→spec pipeline anchored to the vault (ADR-0049)                                                |
+| **vkm-spec GUI**                                                                     | idea to XML spec at `127.0.0.1:4923`, runs from the clone                                                                      |
+| **Ollama + `phi4-mini`** _(≈2.3 GB; best-effort)_                                    | local spec drafting; if it fails or you skip it with `--no-ollama`, vkm-spec uses its deterministic fallback (ADR-0047)        |
+| **Memory hooks** _(Claude Code)_                                                     | native auto-memory OFF + deterministic enforcement + effort-gate (ADR-0029/0030/0031)                                          |
+
+Pieces marked _(Claude Code)_ install only if the `claude` CLI is on PATH (or you pass
+`--ide claude`). Without a kit clone, the hybrid part degrades to `basic-memory` with a warning —
+it never aborts.
 
 > **Honest limit:** registering an MCP does **not** make its tools live in the current session — no
 > agent can hot-load its own MCP. After `npm run setup`, **restart** Claude Code / Codex (or reload
