@@ -292,7 +292,9 @@
             [frames, buffer] = drainSse(buffer);
             for (const frame of frames) {
               const payload = frame.data ? JSON.parse(frame.data) : {};
-              if (frame.event === "progress") {
+              if (frame.event === "status") {
+                setStatus(payload.message || "Preparando…");
+              } else if (frame.event === "progress") {
                 setStatus("Ollama draft… " + payload.tokens + " chunks");
               } else if (frame.event === "done") {
                 setXml(payload.xml);

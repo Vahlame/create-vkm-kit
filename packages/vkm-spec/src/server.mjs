@@ -206,6 +206,15 @@ async function handleDraft(req, res, { vaultPath, lang, ollamaHost, model }) {
   });
   const send = (event, data) => res.write(formatSseEvent(event, data));
 
+  // Immediate status frame: the first draft of the day loads the ~2.5GB model into RAM
+  // (30-60s on CPU) with zero token progress — without this the GUI looks frozen.
+  send("status", {
+    message:
+      lang === "en"
+        ? "Gathering context and warming up the model (first draft of the day can take ~1 min)…"
+        : "Buscando contexto y calentando el modelo (el primer draft del día puede tardar ~1 min)…"
+  });
+
   try {
     const result = await buildSpec({
       idea,
