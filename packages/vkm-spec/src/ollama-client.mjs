@@ -117,8 +117,14 @@ const SYSTEM_PROMPT = [
   "  the provided context. If the context is thin, keep requirements generic but testable.",
   "- systemRole: one or two sentences describing the engineer persona for this task.",
   "- userIntent: a sharpened, unambiguous restatement of the idea (not a verbatim copy).",
-  "- functionalRequirements: 3 to 7 concrete, testable requirements.",
-  "- constraints: hard limits / guardrails; empty array if none apply.",
+  "- functionalRequirements: 5 to 7 concrete, individually testable requirements. When the",
+  "  vault context is thin, COMPENSATE with well-established domain knowledge for the",
+  "  idea's domain (an online shop implies catalog, cart, checkout, order/shipping flow,",
+  "  admin of products; a CLI implies args/exit codes/errors; etc.) — domain knowledge is",
+  "  welcome, invented PROJECT facts are not.",
+  "- constraints: hard limits / guardrails. If the context provides none, add 2-3 sensible",
+  "  domain-standard ones (security, privacy, performance, accessibility) and phrase them",
+  "  as defaults the user may adjust.",
   "- currentStateSummary: <= 600 chars distilled from the provided context; empty if none.",
   "Respond ONLY with a JSON object matching the requested schema."
 ].join("\n");
