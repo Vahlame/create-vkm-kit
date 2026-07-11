@@ -7,7 +7,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Vahlame/create-vkm-kit.git",
-    "directory": "packages/create-obsidian-memory"
+    "directory": "packages/create-vkm-kit"
   },
   "keywords": [
     "mcp",

@@ -33,6 +33,34 @@ function truncate(text, max) {
   return `${text.slice(0, max).trimEnd()}…`;
 }
 
+/** Accent-insensitive lowercase fold (es/en vaults mix both). */
+function fold(text) {
+  return String(text ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+}
+
+/**
+ * Anchor terms of a query: the distinctive words a relevant hit should actually contain.
+ * Prefers terms ≥6 chars (common short words like "texto"/"tool" anchor nothing); falls
+ * back to ≥4 when the query has no long terms at all.
+ * @param {string} query
+ * @returns {string[]}
+ */
+export function anchorTerms(query) {
+  const terms = [...new Set(fold(query).split(/[^\p{L}\p{N}_-]+/u))].filter(Boolean);
+  const strong = terms.filter((t) => t.length >= 6);
+  return strong.length ? strong : terms.filter((t) => t.length >= 4);
+}
+
+/** True when any anchor appears in the hit's path, heading or snippet (folded). */
+export function hitMatchesAnchors(hit, anchors) {
+  if (!anchors.length) return true; // nothing to anchor on → don't drop
+  const haystack = fold(`${hit?.path ?? ""} ${hit?.heading ?? ""} ${hit?.snippet ?? ""}`);
+  return anchors.some((a) => haystack.includes(a));
+}
+
 /** Wraps a runRagJson call so a rejection becomes a tagged result instead of being lost. */
 async function attempt(promise) {
   try {
@@ -131,7 +159,12 @@ export async function assembleContext({
           )
         )
       : Promise.resolve({ ok: true, value: { observations: [] } }),
-    includeObservations
+    // The #stack pass is vault-GLOBAL (facts from every project), so it only runs when a
+    // project scopes the request. Without one, importing another project's stack into the
+    // bundle actively misleads the consumer (real-world failure: "Web3Forms" from an
+    // unrelated web project landed in a text-encryptor spec and steered the LLM to assume
+    // a web platform). No project → no stack claims.
+    projectName && includeObservations
       ? attempt(
           runRagJson(["json-observations", "--vault", v, "--tag", "stack", "--limit", "20"], ragSrc)
         )
@@ -161,9 +194,16 @@ export async function assembleContext({
     .map((o) => `[${o.category}] ${o.content}`)
     .filter(Boolean);
   // Exclude the project note itself from the broader pass — its content is already
-  // captured (more precisely) via the typed observations above.
+  // captured (more precisely) via the typed observations above. Relevance gate: ranked
+  // search ALWAYS returns something, even for a query the vault knows nothing about, and
+  // RRF scores measure rank, not match quality — so gating is LEXICAL: a hit must contain
+  // at least one anchor term of the (project-qualified) query, or it's noise dressed as
+  // context and gets dropped. An empty bundle is honest; a padded one misled a real spec
+  // into importing an unrelated project's stack (Web3Forms into a text encryptor).
+  const anchors = anchorTerms(searchQuery);
   const passages = (Array.isArray(hybridResult?.hits) ? hybridResult.hits : [])
     .filter((h) => h?.path !== projectNote)
+    .filter((h) => hitMatchesAnchors(h, anchors))
     .map((h) => (h?.snippet ? `[${h.path}] ${truncate(h.snippet, SNIPPET_CHAR_BUDGET)}` : ""))
     .filter(Boolean);
   const patterns = [...otherObservations, ...passages];

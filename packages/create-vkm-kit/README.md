@@ -50,10 +50,10 @@ way it writes the MCP config and scaffolds a starter vault (`START_HERE.md`, `ME
 ```bash
 # Codex CLI + Claude Code, hybrid search + multilingual embeddings, backend installed,
 # index built, rules written — everything, from a kit clone:
-node packages/create-obsidian-memory/src/index.js --full --vault "$HOME/my-vault" --repo-root .
+node packages/create-vkm-kit/src/index.js --full --vault "$HOME/my-vault" --repo-root .
 
 # …or spell it out (and add cursor) instead of --full:
-node packages/create-obsidian-memory/src/index.js --non-interactive \
+node packages/create-vkm-kit/src/index.js --non-interactive \
   --vault "$HOME/my-vault" --ide codex,claude,cursor \
   --with-hybrid --semantic --install-backend --build-index --rules all --repo-root .
 ```

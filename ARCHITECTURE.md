@@ -121,7 +121,7 @@ additive layer that preserves the zero-dependency default (ADR-0017).
 - **Structured knowledge graph (ADR-0023):** [`knowledge_graph.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/knowledge_graph.py) parses Basic-Memory-compatible **typed relations** (`- <verb> [[target]]`) and **categorized observations** (`- [category] content #tags`) from each note; the indexer persists them into `relations` / `observations` tables in the **same per-note pass** (no extra read), and a `schema_meta` version forces a one-time rebuild on upgrade (the backfill fix ADR-0019 deferred). The relation/observation and broken-`[[wikilink]]` scanners share one preprocessing pass ([`text_scrub.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/text_scrub.py)) that blanks fenced code blocks + inline code spans first, so a note _documenting_ the link syntax (e.g. `` `[[example]]` ``) never mints a bogus edge or a false "broken link" — offsets are preserved so line-based scans still line up. [`kg_query.py`](./packages/obsidian-memory-rag/src/obsidian_memory_rag/kg_query.py) answers `relations_for` (both directions, targets resolved at query time), `observations_query` (by category/tag/note) and the read-only `suggest_structure`. Purely additive — the lexical+semantic+graph **ranking** path is untouched.
 - **Layout:** the index lives beside the vault in `.obsidian-memory-rag/fts.sqlite` (git-ignored), so it never pollutes the synced notes (ADR-0014 / ADR-0017).
 
-### 4. `create-obsidian-memory` — initializer (Node)
+### 4. `create-vkm-kit` — initializer (Node)
 
 One `npx` command to wire an IDE to a vault, idempotently and safely.
 
