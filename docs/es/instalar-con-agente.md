@@ -9,8 +9,8 @@ comandos**. Funciona para ambos IDEs — la instalación básica no necesita clo
 > ## ⚠️ Antes de pegar esto — es una acción tipo `curl … | sh`
 >
 > El bloque autoriza a un agente a instalar un paquete npm, editar tu config MCP y tocar git.
-> Pégalo **solo desde este repo** (<https://github.com/Vahlame/obsidian-memory-kit>) y verifica que
-> el paquete que instala es **`@vkmikc/create-obsidian-memory`**. Si algo no cuadra, no pegues nada
+> Pégalo **solo desde este repo** (<https://github.com/Vahlame/create-vkm-kit>) y verifica que
+> el paquete que instala es **`@vkmikc/create-vkm-kit`**. Si algo no cuadra, no pegues nada
 > y abre un issue.
 
 ---
@@ -20,11 +20,11 @@ comandos**. Funciona para ambos IDEs — la instalación básica no necesita clo
 ¿Tienes (o el agente clona) el repo? Entonces no necesitas pegar ningún prompt largo — hay un
 **punto de entrada único y auto-verificante**. Dile al agente:
 
-> «Clona <https://github.com/Vahlame/obsidian-memory-kit>, entra a la carpeta y ejecuta `npm install` y luego `npm run setup`. Aprobaré los comandos.»
+> «Clona <https://github.com/Vahlame/create-vkm-kit>, entra a la carpeta y ejecuta `npm install` y luego `npm run setup`. Aprobaré los comandos.»
 
 ```bash
-git clone https://github.com/Vahlame/obsidian-memory-kit
-cd obsidian-memory-kit
+git clone https://github.com/Vahlame/create-vkm-kit
+cd create-vkm-kit
 npm install
 npm run setup            # opciones: npm run setup -- --vault "<RUTA>" --ide codex,claude
 ```
@@ -69,10 +69,10 @@ llámala `<VAULT>`. Ejecuta la línea del IDE en el que corres — pregúntame s
 
 ```bash
 # Cursor
-npx @vkmikc/create-obsidian-memory "<VAULT>" -y --rules all
+npx @vkmikc/create-vkm-kit "<VAULT>" -y --rules all
 
 # Claude Code  (registra vía `claude mcp add`, no mcp.json)
-npx @vkmikc/create-obsidian-memory "<VAULT>" -y --ide claude --rules all
+npx @vkmikc/create-vkm-kit "<VAULT>" -y --ide claude --rules all
 ```
 
 Un comando hace todo: crea el vault si no existe (`START_HERE.md`, `MEMORY.md`, `SESSION_LOG.md`,
@@ -83,7 +83,7 @@ salida y confirma que no hubo errores.
 
 **3 · User Rules globales de Cursor (solo Cursor).** El Paso 2 ya escribió la regla de _proyecto_
 (`.cursor/rules/obsidian-memory.mdc`). Para cobertura _global_, muéstrame el bloque marcado (entre
-los marcadores `obsidian-memory:start`/`end`) y dime que lo pegue en
+los marcadores `vkm-kit:start`/`end`) y dime que lo pegue en
 **Cursor → Settings → Rules → User Rules** — Cursor guarda las reglas globales fuera de cualquier
 archivo. **Claude Code: omite esto** — `~/.claude/CLAUDE.md` ya quedó hecho.
 
@@ -102,9 +102,9 @@ reglas instaladas ✓ · prueba de lectura ✓. Si falla, consulta
 necesita el kit **clonado** y Python ≥ 3.11. Pídeme una ruta de clon `<KIT>` y luego:
 
 ```bash
-git clone https://github.com/Vahlame/obsidian-memory-kit "<KIT>"
+git clone https://github.com/Vahlame/create-vkm-kit "<KIT>"
 pip install -e "<KIT>/packages/obsidian-memory-rag[semantic,vec]"
-node "<KIT>/packages/create-obsidian-memory/src/index.js" -y --vault "<VAULT>" --with-hybrid --semantic --vec --build-index --repo-root "<KIT>"
+node "<KIT>/packages/create-vkm-kit/src/index.js" -y --vault "<VAULT>" --with-hybrid --semantic --vec --build-index --repo-root "<KIT>"
 ```
 
 En Claude Code añade `--ide claude` a la última línea. Reinicia el IDE; entonces responden las

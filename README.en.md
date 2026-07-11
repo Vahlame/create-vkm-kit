@@ -12,8 +12,8 @@
 
 <p align="center">
   <a href="./LICENSE.md"><img src="https://img.shields.io/badge/license-MIT_%2B_attribution-blue.svg" alt="License"></a>
-  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v3.15.0-orange.svg" alt="Release"></a>
-  <a href="https://github.com/Vahlame/obsidian-memory-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/obsidian-memory-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v4.0.0-orange.svg" alt="Release"></a>
+  <a href="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
 
 <p align="center">
@@ -30,7 +30,7 @@
 
 ## What is this?
 
-A **cross-platform kit** that gives your AI (Cursor, Claude Code…) **memory that survives across
+**vkm-kit**: a **cross-platform kit** that gives your AI (Cursor, Claude Code…) **memory that survives across
 chats**: a folder of Markdown notes under git that the agent reads and writes through **MCP** (the
 bridge between the editor and your files). No cloud service. The only required piece is the MCP
 server; everything else (semantic search, sync daemon) is optional.
@@ -47,10 +47,12 @@ breaking other entries, makes a backup). No arguments = interactive wizard; with
 nothing:
 
 ```bash
-npx @vkmikc/create-obsidian-memory                 # interactive wizard (pre-selects Codex + Claude)
-npx @vkmikc/create-obsidian-memory -y              # no questions → ~/Documents/obsidian-memory-vault
-npx @vkmikc/create-obsidian-memory "<PATH>" -y     # no questions, at the path you choose
+npx @vkmikc/create-vkm-kit                 # interactive wizard (pre-selects Codex + Claude)
+npx @vkmikc/create-vkm-kit -y              # no questions → ~/Documents/obsidian-memory-vault
+npx @vkmikc/create-vkm-kit "<PATH>" -y     # no questions, at the path you choose
 ```
+
+The old npm name still works: `npx @vkmikc/create-obsidian-memory` is a shim that forwards to the new package.
 
 > ⚡ **The whole stack in one command — `--full`.**
 > Focused **on Codex and Claude Code first**, with **every feature on by default**: it registers
@@ -62,7 +64,7 @@ npx @vkmikc/create-obsidian-memory "<PATH>" -y     # no questions, at the path y
 > a clone of the kit (or pass it `--repo-root <clone>`):
 >
 > ```bash
-> npx @vkmikc/create-obsidian-memory --full          # = --ide codex,claude --with-hybrid --semantic --vec --build-index --install-backend --rules
+> npx @vkmikc/create-vkm-kit --full          # = --ide codex,claude --with-hybrid --semantic --vec --build-index --install-backend --rules
 > ```
 >
 > If no clone is at hand, `--full` **does not abort**: it falls back to `basic-memory` (no hybrid)
@@ -91,18 +93,22 @@ Then paste the **User Rules** and verify. The complete steps (and verification) 
 
 ## What's inside
 
-| Piece                                                                  | Language | Role                                                                                               |
-| ---------------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------- |
-| [`packages/create-obsidian-memory/`](packages/create-obsidian-memory/) | Node     | `npx` installer **(npm)**: merges the MCP and creates the vault.                                   |
-| [`packages/obsidian-memory-mcp/`](packages/obsidian-memory-mcp/)       | Node     | "Hybrid" MCP **(private; runs from the clone)**: vault tools + lexical/semantic search.            |
-| [`packages/obsidian-memory-rag/`](packages/obsidian-memory-rag/)       | Python   | FTS5/BM25 + vector search engine **(`pip install -e` from source)**; zero dependencies by default. |
-| [`cmd/obsidian-memoryd/`](cmd/obsidian-memoryd/)                       | Go       | Optional daemon: watches the vault and syncs git.                                                  |
+| Piece                                                            | Language | Role                                                                                                           |
+| ---------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------- |
+| [`packages/create-vkm-kit/`](packages/create-vkm-kit/)           | Node     | `npx` installer **(npm)**: memory + token-saver + telemetry + skills in one command.                           |
+| [`packages/obsidian-memory-mcp/`](packages/obsidian-memory-mcp/) | Node     | "Hybrid" MCP **(private; runs from the clone)**: vault tools + lexical/semantic search.                        |
+| [`packages/obsidian-memory-rag/`](packages/obsidian-memory-rag/) | Python   | FTS5/BM25 + vector search engine **(`pip install -e` from source)**; zero dependencies by default.             |
+| [`packages/vkm-doctor/`](packages/vkm-doctor/)                   | Node     | Local OTLP sink + usage/cache doctor: tokens, cost, and cache health — all on your machine.                    |
+| [`packages/vkm-spec/`](packages/vkm-spec/)                       | Node     | Idea → vault-grounded XML spec (GUI on `127.0.0.1:4923`; optional Ollama `phi4-mini`, deterministic fallback). |
+| [`cmd/obsidian-memoryd/`](cmd/obsidian-memoryd/)                 | Go       | Optional daemon: watches the vault and syncs git.                                                              |
 
 Full technical map and flow diagrams: [`ARCHITECTURE.md`](ARCHITECTURE.md). The _why_ behind each
 decision: [`docs/adr/`](docs/adr/).
 
 **Token economy, measured and CI-locked:** passage-first recall costs **−62%** vs whole-note reads
-(true wire cost, k=3) plus **≈ −1,300 tokens/session** of fixed rent (schemas + hook + rules
+(true wire cost, k=3), `assemble_context` **−68% median wire tokens** vs chaining searches
+(CI gate 0.60/0.90), the token-saver compacts noisy output **≥30% with zero diagnostic loss**
+(CI gate), plus **≈ −1,300 tokens/session** of fixed rent (schemas + hook + rules
 block) — every number has a gate that **breaks the build** if it regresses. Detail:
 [how it works](docs/en/how-it-works.md) · [`evals/`](evals/).
 
@@ -110,6 +116,7 @@ block) — every number has a gate that **breaks the build** if it regresses. De
 
 ## More
 
+- **Coming from 3.x?** [4.0 migration](docs/en/migration-4.0.md) ([🇪🇸 migración a 4.0](docs/es/migracion-4.0.md)).
 - **Security / trust:** [`SECURITY.md`](SECURITY.md) — the vault is **data**, not instructions.
 - **Fresh PC (Claude Code):** [fresh-PC install](docs/en/install-fresh-pc.md).
 - **Comparison with alternatives:** [FAQ](docs/en/faq.md).

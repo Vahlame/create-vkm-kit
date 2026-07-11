@@ -6,7 +6,7 @@ user-invocable: true
 
 # vkm-discipline — execution contract
 
-Installed by create-obsidian-memory (vkm-kit). Apply ALL of the following to the current
+Installed by create-vkm-kit (vkm-kit). Apply ALL of the following to the current
 task. These rules shape HOW you deliver — never how much you take on: the scope and
 quality bar of the deliverable are untouchable.
 

@@ -29,8 +29,8 @@ const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 /** A version marker: where it lives, how to read it, how to rewrite it. */
 const MARKERS = [
   {
-    name: "create-obsidian-memory/package.json",
-    file: "packages/create-obsidian-memory/package.json",
+    name: "create-vkm-kit/package.json",
+    file: "packages/create-vkm-kit/package.json",
     read: (s) => JSON.parse(s).version,
     write: (s, v) => s.replace(/("version":\s*")[^"]+(")/, `$1${v}$2`)
   },
@@ -51,6 +51,13 @@ const MARKERS = [
   {
     name: "vkm-spec/package.json",
     file: "packages/vkm-spec/package.json",
+    read: (s) => JSON.parse(s).version,
+    write: (s, v) => s.replace(/("version":\s*")[^"]+(")/, `$1${v}$2`)
+  },
+  {
+    // The forwarding shim published on the pre-rename npm name (ADR-0041/0050).
+    name: "create-obsidian-memory-shim/package.json",
+    file: "packages/create-obsidian-memory-shim/package.json",
     read: (s) => JSON.parse(s).version,
     write: (s, v) => s.replace(/("version":\s*")[^"]+(")/, `$1${v}$2`)
   },

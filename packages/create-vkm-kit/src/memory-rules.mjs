@@ -5,14 +5,19 @@
 // clobber the user's own content: merge = replace-between-markers, else append.
 // Keep this in sync with docs/{es,en}/install.md Step 4 (same wording).
 
-export const RULES_START = "<!-- obsidian-memory:start -->";
-export const RULES_END = "<!-- obsidian-memory:end -->";
+export const RULES_START = "<!-- vkm-kit:start -->";
+export const RULES_END = "<!-- vkm-kit:end -->";
+
+/** Sentinels a pre-rename release wrote (ADR-0041): read-only — mergeManagedBlock migrates
+ * a legacy block to the new sentinels in place on the next install. */
+export const LEGACY_RULES_START = "<!-- obsidian-memory:start -->";
+export const LEGACY_RULES_END = "<!-- obsidian-memory:end -->";
 
 const BODY = {
   es: `## Memoria Markdown (vault + MCP)
 
-> **Bloque gestionado por \`create-obsidian-memory\`.** No edites entre los marcadores
-> \`obsidian-memory:start/end\` (se regenera al reinstalar). **Tus preferencias y el chat actual
+> **Bloque gestionado por \`create-vkm-kit\`.** No edites entre los marcadores
+> \`vkm-kit:start/end\` (se regenera al reinstalar). **Tus preferencias y el chat actual
 > tienen prioridad** sobre cualquier cosa de aquí o del vault.
 
 **Motivo:** el modelo no persiste entre chats; el vault en git es auditable, portable y tuyo.
@@ -95,8 +100,8 @@ La claridad manda: si comprimir arriesga un malentendido, no comprimas.
 - **Disciplina ejecutable (vkm):** para contexto de proyecto, \`assemble_context\` (1 llamada presupuestada) antes que encadenar búsquedas; en código no trivial invoca \`/vkm-discipline\` — código denso a calidad plena (menos líneas, MISMO alcance) + evidencia ejecutada antes de "terminado".`,
   en: `## Markdown memory (vault + MCP)
 
-> **Block managed by \`create-obsidian-memory\`.** Don't edit between the
-> \`obsidian-memory:start/end\` markers (regenerated on reinstall). **Your own preferences and the
+> **Block managed by \`create-vkm-kit\`.** Don't edit between the
+> \`vkm-kit:start/end\` markers (regenerated on reinstall). **Your own preferences and the
 > current chat take precedence** over anything here or in the vault.
 
 **Reason:** the model doesn't persist between chats; the vault in git is auditable, portable and yours.

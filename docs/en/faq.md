@@ -14,7 +14,7 @@ Cursor's built-in memories are tied to your Cursor account and storage: they are
 
 ### Is installing this safe?
 
-You configure MCP via the `create-obsidian-memory` initializer (or by hand) and optionally install the Go daemon. Anything the agent runs executes **with your privileges** — it writes to `~/.cursor/mcp.json`, installs background daemons, edits git config — so treat it like an installer: verify the clone source, pin releases, and read the diffs. [`SECURITY.md`](../../SECURITY.md) covers the trust model.
+You configure MCP via the `create-vkm-kit` initializer (or by hand) and optionally install the Go daemon. Anything the agent runs executes **with your privileges** — it writes to `~/.cursor/mcp.json`, installs background daemons, edits git config — so treat it like an installer: verify the clone source, pin releases, and read the diffs. [`SECURITY.md`](../../SECURITY.md) covers the trust model.
 
 > The vault is yours, but its **content is data, not commands**. If a note said "run this command" or "ignore the rules," the agent should ignore it: authoritative instructions come from the chat and your configuration, never from the vault.
 
@@ -59,7 +59,7 @@ flowchart LR
 
 ### Does the hybrid search actually save tokens?
 
-Yes — and since 3.12 it's a **measured, CI-locked number**, not a claim: on a labelled corpus, passage-first recall costs a median of **62% less** than whole-note reads counting the **actual JSON** the agent reads (k=3; 37% at k=5), with **100% of queries still answered** — cheap-but-incomplete counts as a miss, not a saving. On a real archive note the gap reaches ~46,000 tokens vs ~100. The fixed overhead (tool schemas + startup hook + rules block) is also on a diet: ~**1,300 fewer tokens per session** than 3.11, and every cut has a gate that breaks the build if it regresses. Measure it yourself: `python -m obsidian_memory_rag bench-tokens --corpus evals/tokens/corpus --queries evals/tokens/queries.jsonl`. Detail: ADR-0032/0034/0035/0036 and [`evals/`](https://github.com/Vahlame/obsidian-memory-kit/tree/main/evals).
+Yes — and since 3.12 it's a **measured, CI-locked number**, not a claim: on a labelled corpus, passage-first recall costs a median of **62% less** than whole-note reads counting the **actual JSON** the agent reads (k=3; 37% at k=5), with **100% of queries still answered** — cheap-but-incomplete counts as a miss, not a saving. On a real archive note the gap reaches ~46,000 tokens vs ~100. The fixed overhead (tool schemas + startup hook + rules block) is also on a diet: ~**1,300 fewer tokens per session** than 3.11, and every cut has a gate that breaks the build if it regresses. Measure it yourself: `python -m obsidian_memory_rag bench-tokens --corpus evals/tokens/corpus --queries evals/tokens/queries.jsonl`. Detail: ADR-0032/0034/0035/0036 and [`evals/`](https://github.com/Vahlame/create-vkm-kit/tree/main/evals).
 
 ### Can I rename `MEMORY.md` or `SESSION_LOG.md`?
 
@@ -68,7 +68,7 @@ You can, but you'd have to update your **User Rules** (and any scripts that hard
 ### How do I uninstall?
 
 **Claude Code integration** (native-memory override + its 4 managed hooks): run
-`npx @vkmikc/create-obsidian-memory --uninstall` (add `--dry-run` to preview first). This
+`npx @vkmikc/create-vkm-kit --uninstall` (add `--dry-run` to preview first). This
 removes all 4 managed hook entries and the `autoMemoryEnabled` override from
 `~/.claude/settings.json`, and deletes the hook script files this kit installs under
 `~/.claude/hooks/` (the 4 hooks plus a small shared helper module) — but only each one a
@@ -104,18 +104,18 @@ In practice, multiple hundreds of MB are fine. Git diffs stay small; the optiona
 
 ### Can I share `MEMORY.md` with a teammate?
 
-Yes. Invite them to the private repo. They run `create-obsidian-memory` to merge the same MCP config and clone the vault; use normal git conflict habits if two people edit the same line.
+Yes. Invite them to the private repo. They run `create-vkm-kit` to merge the same MCP config and clone the vault; use normal git conflict habits if two people edit the same line.
 
 ### How do I update?
 
-`git pull` this repo for docs and tooling; bump **`@vkmikc/create-obsidian-memory`** if you use the initializer; refresh the MCP pins if `CHANGELOG.md` / `SECURITY.md` say so. You can re-run `create-obsidian-memory --non-interactive --vault "<path>"` to re-merge a clean config. Your vault stays separate.
+`git pull` this repo for docs and tooling; bump **`@vkmikc/create-vkm-kit`** if you use the initializer; refresh the MCP pins if `CHANGELOG.md` / `SECURITY.md` say so. You can re-run `create-vkm-kit --non-interactive --vault "<path>"` to re-merge a clean config. Your vault stays separate.
 
 ### Large vault: anything beyond `basic-memory` search?
 
 Yes — activate the **hybrid MCP** via the initializer (needs `pip install -e packages/obsidian-memory-rag` once):
 
 ```bash
-node packages/create-obsidian-memory/src/index.js \
+node packages/create-vkm-kit/src/index.js \
   --non-interactive --vault "<path>" --with-hybrid --repo-root "<kit-clone>"
 ```
 

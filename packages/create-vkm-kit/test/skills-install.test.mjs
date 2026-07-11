@@ -23,7 +23,7 @@ test("configureSkillAssets installs skills + agent template; idempotent", async 
     assert.ok(fs.existsSync(fp), `missing ${fp}`);
     const text = fs.readFileSync(fp, "utf8");
     assert.match(text, /^---\r?\nname: /, "frontmatter must open the file");
-    assert.match(text, /create-obsidian-memory/, "ownership marker must be present");
+    assert.match(text, /create-vkm-kit/, "ownership marker must be present");
   }
   assert.ok(fs.existsSync(path.join(home, ".claude", "agents", "vkm-implementer.md")));
 });

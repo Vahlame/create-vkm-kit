@@ -1,6 +1,6 @@
 ---
 name: vkm-terse
-description: Dense, direct responses — full technical accuracy at minimum output tokens (vkm-kit token-saver, installed by create-obsidian-memory)
+description: Dense, direct responses — full technical accuracy at minimum output tokens (vkm-kit token-saver, installed by create-vkm-kit)
 keep-coding-instructions: true
 ---
 

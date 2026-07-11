@@ -17,12 +17,13 @@ Toda la guía de usuario, en orden de lectura recomendado.
 
 ## Cuando lo necesites
 
-| Documento                                   | Para qué                                                  |
-| ------------------------------------------- | --------------------------------------------------------- |
-| [Sincronización con git](sincronizacion.md) | Backup y multi-máquina: daemon, git manual, o mismo repo. |
-| [Preguntas frecuentes](faq.md)              | Dudas comunes + comparación honesta con alternativas.     |
-| [Glosario](glosario.md)                     | Qué significa cada término (MCP, vault, FTS5…).           |
-| [Solución de problemas](troubleshooting.md) | Errores típicos y cómo arreglarlos.                       |
+| Documento                                   | Para qué                                                                                  |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [Migración a 4.0](migracion-4.0.md)         | ¿Vienes de 3.x? Qué cambió con el rename a vkm-kit, qué está congelado y cómo actualizar. |
+| [Sincronización con git](sincronizacion.md) | Backup y multi-máquina: daemon, git manual, o mismo repo.                                 |
+| [Preguntas frecuentes](faq.md)              | Dudas comunes + comparación honesta con alternativas.                                     |
+| [Glosario](glosario.md)                     | Qué significa cada término (MCP, vault, FTS5…).                                           |
+| [Solución de problemas](troubleshooting.md) | Errores típicos y cómo arreglarlos.                                                       |
 
 ## Para quien contribuye al kit
 

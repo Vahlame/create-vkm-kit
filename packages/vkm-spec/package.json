@@ -1,6 +1,6 @@
 {
   "name": "@vkmikc/vkm-spec",
-  "version": "3.15.0",
+  "version": "4.0.0",
   "private": true,
   "license": "SEE LICENSE IN LICENSE.md",
   "description": "Spec-builder pipeline of the vkm-kit suite: idea → vault-aware <orchestration_package> XML, with an optional local Ollama (phi4-mini) draft pass and a deterministic fallback that always works when Ollama is absent (ADR-0046/0047/0048).",

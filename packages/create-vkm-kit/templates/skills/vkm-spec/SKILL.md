@@ -7,7 +7,7 @@ argument-hint: "<idea>"
 
 # /vkm-spec — sharpen an idea into a spec, in-session
 
-Installed by create-obsidian-memory (vkm-kit). The user gave you a one-line idea
+Installed by create-vkm-kit (vkm-kit). The user gave you a one-line idea
 (`$ARGUMENTS`). Produce a precise spec BEFORE any implementation. Do NOT call any local
 LLM — you are the drafting model here (the desktop GUI variant uses Ollama; in-session
 that path is forbidden: it would block the conversation).

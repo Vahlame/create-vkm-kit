@@ -57,7 +57,7 @@ tenga efecto, y confirma que funciona:
 uv --version
 ```
 
-### `create-obsidian-memory` muestra `Invalid JSON in mcp.json` aunque el archivo se ve bien
+### `create-vkm-kit` muestra `Invalid JSON in mcp.json` aunque el archivo se ve bien
 
 **Causa.** Algunos editores (y `Set-Content -Encoding utf8` en versiones
 antiguas de PowerShell) escriben una marca invisible llamada **BOM de UTF-8** al
@@ -83,7 +83,7 @@ Para volver a fusionar una entrada `basic-memory` conocida buena, reemplazando
 `<path>` por la ruta completa a tu vault:
 
 ```powershell
-npx @vkmikc/create-obsidian-memory "<path>" -y
+npx @vkmikc/create-vkm-kit "<path>" -y
 ```
 
 ### `mcp.json` perdió mis entradas de Linear / Supabase
@@ -93,7 +93,7 @@ en vez de **fusionar** dentro de él. (Fusionar conserva tus entradas existentes
 y solo agrega o actualiza las del propio kit).
 
 **Solución.** Restaura desde la copia de seguridad automática `mcp.json.bak`. El
-inicializador actual (`create-obsidian-memory`) siempre hace esa copia primero y
+inicializador actual (`create-vkm-kit`) siempre hace esa copia primero y
 fusiona; solo guiones mucho más antiguos de la era v1 podían pisar el archivo.
 Mira la sección [Recuperación](#recuperación) para el reseteo completo.
 
@@ -249,7 +249,7 @@ problema, para ver exactamente qué programa abre las ventanas.
 **`.vscode/settings.json`** que desactiva `git.autorefresh` / `git.autofetch` y
 excluye carpetas del **watcher** de archivos (incluido `.obsidian/`). Cursor /
 VS Code aplican esos valores cuando abres la carpeta como workspace. El
-inicializador **`@vkmikc/create-obsidian-memory`** **crea o fusiona**
+inicializador **`@vkmikc/create-vkm-kit`** **crea o fusiona**
 `<vault>/.vscode/settings.json` cuando pasas `--vault` (las claves de Git/SCM del
 kit se actualizan; cualquier otra clave tuya se conserva).
 
@@ -287,7 +287,7 @@ Ajusta la ruta si tu Git es portable o está en otro disco — encuéntrala con:
 where.exe git
 ```
 
-El kit **fusiona** ambas claves cuando ejecutas `create-obsidian-memory` con
+El kit **fusiona** ambas claves cuando ejecutas `create-vkm-kit` con
 `--vault` en Windows, siempre que encuentre `cmd\git.exe`. Después, ejecuta
 **Developer: Reload Window**.
 
@@ -355,7 +355,7 @@ solo cableaste Cursor).
 **Solución.** Regístralo. El stack completo de un tiro, desde un clon del kit:
 
 ```bash
-npx @vkmikc/create-obsidian-memory --full --vault "<ruta-absoluta-del-vault>"
+npx @vkmikc/create-vkm-kit --full --vault "<ruta-absoluta-del-vault>"
 ```
 
 …o agrega solo el servidor híbrido a mano (ajusta las dos rutas a tu clon y tu
@@ -650,7 +650,7 @@ aquí elimina contenido del vault salvo que tú mismo borres carpetas.
    `<absolute-vault-path>` por la ruta completa de tu vault):
 
    ```powershell
-   npx @vkmikc/create-obsidian-memory "<absolute-vault-path>" -y
+   npx @vkmikc/create-vkm-kit "<absolute-vault-path>" -y
    ```
 
    El archivo del que hacer copia primero es `%USERPROFILE%\.cursor\mcp.json`.

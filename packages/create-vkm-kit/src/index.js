@@ -858,7 +858,7 @@ async function runNonInteractive(argv) {
       } else {
         console.error(
           pc.red(
-            "--with-hybrid: pass --repo-root <path-to-obsidian-memory-kit-clone> or run from that clone (cwd walk), and ensure the bridge + Python src exist."
+            "--with-hybrid: pass --repo-root <path-to-vkm-kit-clone> or run from that clone (cwd walk), and ensure the bridge + Python src exist."
           )
         );
         process.exit(2);
@@ -1075,7 +1075,7 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
   --no-git-init   Skip git init when .git is missing
                   (Merges kit Git/SCM keys into <vault>/.vscode/settings.json — creates or updates.)
   --with-hybrid   Also wire obsidian-memory-hybrid (needs kit clone; use --repo-root or cwd walk)
-  --repo-root <path>  Root of obsidian-memory-kit clone (hybrid bridge + Python src)
+  --repo-root <path>  Root of vkm-kit clone (hybrid bridge + Python src)
   --semantic      With --with-hybrid: neural embeddings (fastembed multilingual; needs the [semantic] extra)
   --vec           With --with-hybrid: sqlite-vec acceleration (needs the [vec] extra; sets
                   OBSIDIAN_MEMORY_SQLITE_VEC=1). Ranking-identical, safe fallback. On under --full.

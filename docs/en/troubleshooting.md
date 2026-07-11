@@ -55,7 +55,7 @@ confirm it worked:
 uv --version
 ```
 
-### `create-obsidian-memory` prints `Invalid JSON in mcp.json` even though the file looks fine
+### `create-vkm-kit` prints `Invalid JSON in mcp.json` even though the file looks fine
 
 **Cause.** Some editors (and `Set-Content -Encoding utf8` in older PowerShell)
 write an invisible marker called a **UTF-8 BOM** at the very start of
@@ -81,7 +81,7 @@ To re-merge a known-good `basic-memory` entry, replacing `<path>` with the full
 path to your vault:
 
 ```powershell
-npx @vkmikc/create-obsidian-memory "<path>" -y
+npx @vkmikc/create-vkm-kit "<path>" -y
 ```
 
 ### `mcp.json` lost my Linear / Supabase entries
@@ -91,7 +91,7 @@ into it. (Merging keeps your existing entries and only adds or updates the
 kit's own.)
 
 **Fix.** Restore from the automatic backup `mcp.json.bak`. The current
-initializer (`create-obsidian-memory`) always makes that backup first and
+initializer (`create-vkm-kit`) always makes that backup first and
 merges; only much older v1-era scripts could clobber the file. See the
 [Recovery](#recovery) section for the full reset.
 
@@ -243,7 +243,7 @@ exactly which program is opening the windows.
 **`.vscode/settings.json`** that turns off `git.autorefresh` / `git.autofetch`
 and excludes folders from the file **watcher** (including `.obsidian/`).
 Cursor / VS Code apply those settings when you open the folder as a workspace.
-The initializer **`@vkmikc/create-obsidian-memory`** **creates or merges**
+The initializer **`@vkmikc/create-vkm-kit`** **creates or merges**
 `<vault>/.vscode/settings.json` when you pass `--vault` (the kit's Git/SCM keys
 are updated; any other keys of yours are kept).
 
@@ -280,7 +280,7 @@ Adjust the path if your Git is portable or on another drive — find it with:
 where.exe git
 ```
 
-The kit **merges** both of these keys when you run `create-obsidian-memory` with
+The kit **merges** both of these keys when you run `create-vkm-kit` with
 `--vault` on Windows, provided it finds `cmd\git.exe`. Afterwards, run
 **Developer: Reload Window**.
 
@@ -346,7 +346,7 @@ or you only wired Cursor).
 **Fix.** Register it. The one-shot full stack, from a clone of the kit:
 
 ```bash
-npx @vkmikc/create-obsidian-memory --full --vault "<absolute-vault-path>"
+npx @vkmikc/create-vkm-kit --full --vault "<absolute-vault-path>"
 ```
 
 …or add just the hybrid server by hand (adjust the two paths to your clone and
@@ -628,7 +628,7 @@ removes vault content unless you explicitly delete folders yourself.
    entry (replace `<absolute-vault-path>` with your vault's full path):
 
    ```powershell
-   npx @vkmikc/create-obsidian-memory "<absolute-vault-path>" -y
+   npx @vkmikc/create-vkm-kit "<absolute-vault-path>" -y
    ```
 
    The file to back up first is `%USERPROFILE%\.cursor\mcp.json`. This restores a

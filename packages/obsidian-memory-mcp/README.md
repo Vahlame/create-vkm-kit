@@ -9,7 +9,7 @@ vault-locked file tools, `vault_audit`, `vault_memory_report` and
 [`obsidian-memory-rag`](../obsidian-memory-rag/).
 
 Private by design — it runs from the clone (`node src/hybrid-mcp.mjs`), wired
-by [`create-obsidian-memory`](../create-obsidian-memory/) (`--ide
+by [`create-vkm-kit`](../create-vkm-kit/) (`--ide
 codex,claude,cursor` or `--full`). Config example:
 [`config/mcp/obsidian-memory-hybrid.json`](../../config/mcp/obsidian-memory-hybrid.json).
 

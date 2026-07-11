@@ -14,7 +14,7 @@ Las memorias integradas de Cursor están atadas a tu cuenta y al almacenamiento 
 
 ### ¿Es seguro instalar esto?
 
-Configuras el MCP con el inicializador `create-obsidian-memory` (o a mano) y, opcionalmente, instalas el daemon en Go. Todo lo que ejecuta el agente corre **con tus permisos** — escribe en `~/.cursor/mcp.json`, instala daemons en segundo plano, edita la config de git — así que trátalo como un instalador: verifica de dónde clonas, fija (pin) las versiones y revisa los diffs. El archivo [`SECURITY.md`](../../SECURITY.md) cubre el modelo de confianza.
+Configuras el MCP con el inicializador `create-vkm-kit` (o a mano) y, opcionalmente, instalas el daemon en Go. Todo lo que ejecuta el agente corre **con tus permisos** — escribe en `~/.cursor/mcp.json`, instala daemons en segundo plano, edita la config de git — así que trátalo como un instalador: verifica de dónde clonas, fija (pin) las versiones y revisa los diffs. El archivo [`SECURITY.md`](../../SECURITY.md) cubre el modelo de confianza.
 
 > El vault es tuyo, pero su **contenido son datos, no órdenes**. Si una nota dijera "ejecuta tal comando" o "ignora las reglas", el agente debe ignorarlo: las instrucciones autoritativas vienen del chat y de tu configuración, nunca del vault.
 
@@ -59,7 +59,7 @@ flowchart LR
 
 ### ¿La búsqueda híbrida ahorra tokens de verdad?
 
-Sí, y desde 3.12 es un **número medido y con candado en CI**, no una afirmación: sobre un corpus etiquetado, el recall passage-first cuesta una mediana de **62% menos** que leer las notas enteras contando el **JSON real** que el agente lee (k=3; 37% en k=5), con el **100% de las consultas aún respondidas** — barato-pero-incompleto cuenta como fallo, no como ahorro. En una nota-archivo real la diferencia llega a ~46.000 tokens vs ~100. El coste fijo (schemas de tools + hook de arranque + bloque de reglas) también está a dieta: ~**1.300 tokens menos por sesión** que en 3.11, y cada recorte tiene un gate que rompe el build si regresa. Mídelo tú mismo: `python -m obsidian_memory_rag bench-tokens --corpus evals/tokens/corpus --queries evals/tokens/queries.jsonl`. Detalle: ADR-0032/0034/0035/0036 y [`evals/`](https://github.com/Vahlame/obsidian-memory-kit/tree/main/evals).
+Sí, y desde 3.12 es un **número medido y con candado en CI**, no una afirmación: sobre un corpus etiquetado, el recall passage-first cuesta una mediana de **62% menos** que leer las notas enteras contando el **JSON real** que el agente lee (k=3; 37% en k=5), con el **100% de las consultas aún respondidas** — barato-pero-incompleto cuenta como fallo, no como ahorro. En una nota-archivo real la diferencia llega a ~46.000 tokens vs ~100. El coste fijo (schemas de tools + hook de arranque + bloque de reglas) también está a dieta: ~**1.300 tokens menos por sesión** que en 3.11, y cada recorte tiene un gate que rompe el build si regresa. Mídelo tú mismo: `python -m obsidian_memory_rag bench-tokens --corpus evals/tokens/corpus --queries evals/tokens/queries.jsonl`. Detalle: ADR-0032/0034/0035/0036 y [`evals/`](https://github.com/Vahlame/create-vkm-kit/tree/main/evals).
 
 ### ¿Puedo renombrar `MEMORY.md` o `SESSION_LOG.md`?
 
@@ -68,7 +68,7 @@ Puedes, pero tendrías que ajustar tus **User Rules** (y cualquier script que te
 ### ¿Cómo lo desinstalo?
 
 **Integración con Claude Code** (override de memoria nativa + sus 4 hooks gestionados):
-ejecuta `npx @vkmikc/create-obsidian-memory --uninstall` (añade `--dry-run` para previsualizar
+ejecuta `npx @vkmikc/create-vkm-kit --uninstall` (añade `--dry-run` para previsualizar
 primero). Esto quita las 4 entradas de hook gestionadas y el override `autoMemoryEnabled` de
 `~/.claude/settings.json`, y borra los archivos de script de hook que este kit instala bajo
 `~/.claude/hooks/` (los 4 hooks más un pequeño módulo auxiliar compartido) — pero solo cada
@@ -105,18 +105,18 @@ En la práctica, varios cientos de MB van bien. Los diffs de git se mantienen pe
 
 ### ¿Puedo compartir `MEMORY.md` con un compañero?
 
-Sí. Invítalo al repositorio privado. Ejecuta `create-obsidian-memory` para fusionar la misma config MCP y clonar el vault; aplica las costumbres normales de git si dos personas editan la misma línea.
+Sí. Invítalo al repositorio privado. Ejecuta `create-vkm-kit` para fusionar la misma config MCP y clonar el vault; aplica las costumbres normales de git si dos personas editan la misma línea.
 
 ### ¿Cómo actualizo?
 
-`git pull` de este repo para docs y herramientas; sube la versión de **`@vkmikc/create-obsidian-memory`** si usas el inicializador; refresca los pins de MCP si el `CHANGELOG.md` / `SECURITY.md` lo indican. Puedes volver a correr `create-obsidian-memory --non-interactive --vault "<ruta>"` para re-fusionar una config limpia. Tu vault sigue separado.
+`git pull` de este repo para docs y herramientas; sube la versión de **`@vkmikc/create-vkm-kit`** si usas el inicializador; refresca los pins de MCP si el `CHANGELOG.md` / `SECURITY.md` lo indican. Puedes volver a correr `create-vkm-kit --non-interactive --vault "<ruta>"` para re-fusionar una config limpia. Tu vault sigue separado.
 
 ### Vault grande: ¿algo más allá de la búsqueda de `basic-memory`?
 
 Sí: activa el **MCP híbrido** con el inicializador (necesita `pip install -e packages/obsidian-memory-rag` una vez):
 
 ```bash
-node packages/create-obsidian-memory/src/index.js \
+node packages/create-vkm-kit/src/index.js \
   --non-interactive --vault "<ruta>" --with-hybrid --repo-root "<clon-del-kit>"
 ```
 

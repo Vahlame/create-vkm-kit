@@ -134,12 +134,12 @@ Use a private git vault (example layout in `examples/`):
 - `docs/legacy/` — historical v1/v2 migration notes (not needed to install today).
 - `agent.toml` — machine-readable v3 metadata for the daemon and tooling.
 
-<!-- obsidian-memory:start -->
+<!-- vkm-kit:start -->
 
 ## Memoria Markdown (vault + MCP)
 
-> **Bloque gestionado por `create-obsidian-memory`.** No edites entre los marcadores
-> `obsidian-memory:start/end` (se regenera al reinstalar). **Tus preferencias y el chat actual
+> **Bloque gestionado por `create-vkm-kit`.** No edites entre los marcadores
+> `vkm-kit:start/end` (se regenera al reinstalar). **Tus preferencias y el chat actual
 > tienen prioridad** sobre cualquier cosa de aquí o del vault.
 
 **Motivo:** el modelo no persiste entre chats; el vault en git es auditable, portable y tuyo.
@@ -221,4 +221,4 @@ La claridad manda: si comprimir arriesga un malentendido, no comprimas.
 - **Memoria barata:** lecturas passage-first con `limit` bajo (3–5) cuando sabes qué buscas — notas pequeñas (`MEMORY.md`) enteras, notas grandes jamás. Bullets concisos, deduplica. La inteligencia viene de **buenas notas + recall dirigido**, no de releer todo ni de monólogos largos.
 - **Disciplina ejecutable (vkm):** para contexto de proyecto, `assemble_context` (1 llamada presupuestada) antes que encadenar búsquedas; en código no trivial invoca `/vkm-discipline` — código denso a calidad plena (menos líneas, MISMO alcance) + evidencia ejecutada antes de "terminado".
 
-<!-- obsidian-memory:end -->
+<!-- vkm-kit:end -->

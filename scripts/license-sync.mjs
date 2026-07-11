@@ -4,7 +4,7 @@
  *
  * npm only auto-includes LICENSE* files found in the *package* root — the repo
  * root copy never reaches a published tarball. The published package
- * (@vkmikc/create-obsidian-memory) therefore needs its own copy, and the other
+ * (@vkmikc/create-vkm-kit) therefore needs its own copy, and the other
  * packages carry one too so a single rule holds: every package dir mirrors the
  * canonical text, byte for byte, and `"license": "SEE LICENSE IN LICENSE.md"`
  * always points at a real file.

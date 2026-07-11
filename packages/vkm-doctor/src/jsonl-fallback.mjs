@@ -10,7 +10,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { getIncrementalState } from "@vkmikc/create-obsidian-memory/src/hooks/_transcript-cache.mjs";
+import { getIncrementalState } from "@vkmikc/create-vkm-kit/src/hooks/_transcript-cache.mjs";
 
 const CACHE_KEY = "token-doctor";
 

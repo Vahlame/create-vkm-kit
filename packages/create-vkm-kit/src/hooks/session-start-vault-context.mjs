@@ -25,7 +25,12 @@ import path from "node:path";
 function resolveVault() {
   const fromArg = process.argv[2];
   if (fromArg && fromArg.trim()) return fromArg.trim();
-  return process.env.BASIC_MEMORY_HOME || process.env.OBSIDIAN_MEMORY_VAULT || "";
+  return (
+    process.env.VKM_VAULT ||
+    process.env.BASIC_MEMORY_HOME ||
+    process.env.OBSIDIAN_MEMORY_VAULT ||
+    ""
+  );
 }
 
 function stripBom(text) {

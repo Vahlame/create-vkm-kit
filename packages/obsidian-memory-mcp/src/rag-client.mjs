@@ -9,7 +9,7 @@
  * in this monorepo) should import THIS file, not hybrid-mcp.mjs.
  *
  * Env:
- * - BASIC_MEMORY_HOME or OBSIDIAN_MEMORY_VAULT — default vault when a caller omits one
+ * - VKM_VAULT, BASIC_MEMORY_HOME or OBSIDIAN_MEMORY_VAULT — default vault when a caller omits one
  * - OBSIDIAN_MEMORY_RAG_SRC — override path to .../obsidian-memory-rag/src
  * - OBSIDIAN_MEMORY_PYTHON — python executable (default: python3 non-Windows, python on Windows)
  * - OBSIDIAN_MEMORY_RAG_TIMEOUT_MS — subprocess timeout in ms (default 120000 / 2min)
@@ -31,7 +31,8 @@ export function defaultPython() {
 }
 
 export function defaultVaultFromEnv() {
-  const raw = process.env.BASIC_MEMORY_HOME || process.env.OBSIDIAN_MEMORY_VAULT;
+  const raw =
+    process.env.VKM_VAULT || process.env.BASIC_MEMORY_HOME || process.env.OBSIDIAN_MEMORY_VAULT;
   if (!raw) return null;
   return path.resolve(raw);
 }
@@ -47,7 +48,7 @@ export function requireVault(vaultArg) {
   const v = vaultArg ? path.resolve(vaultArg) : defaultVaultFromEnv();
   if (!v) {
     throw new Error(
-      "Missing vault: pass a vault path explicitly or set BASIC_MEMORY_HOME / OBSIDIAN_MEMORY_VAULT"
+      "Missing vault: pass a vault path explicitly or set VKM_VAULT / BASIC_MEMORY_HOME / OBSIDIAN_MEMORY_VAULT"
     );
   }
   return v;

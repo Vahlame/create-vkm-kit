@@ -22,7 +22,7 @@ async function main() {
   const vault = await mkdtemp(path.join(tmpdir(), "obs-mem-smoke-"));
   await writeFile(path.join(vault, "START_HERE.md"), "# smoke\n", "utf8");
 
-  // Pin must match BASIC_MEMORY_VERSION in packages/create-obsidian-memory/src/mcp-merge.mjs.
+  // Pin must match BASIC_MEMORY_VERSION in packages/create-vkm-kit/src/mcp-merge.mjs.
   // Keep both in sync; bumping one without the other lets CI pass with a different
   // server than users actually receive.
   const transport = new StdioClientTransport({
