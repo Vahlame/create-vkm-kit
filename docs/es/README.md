@@ -12,6 +12,7 @@ Toda la guía de usuario, en orden de lectura recomendado.
 | 2   | [**Instalación**](instalacion.md)                    | Paso a paso, 100 % repetible, con verificación.                 |
 | —   | [**Instalar con un agente**](instalar-con-agente.md) | ¿Prefieres que lo haga la IA? Pega un archivo y listo.          |
 | —   | [**Instalar en un PC nuevo**](instalar-pc-nueva.md)  | Reproduce todo en una máquina recién formateada (Claude Code).  |
+| 3   | [**Guía de uso + situacional**](guia-de-uso.md)      | El día a día tras instalar: qué pieza usar en cada situación.   |
 
 > 🤖 **Claude Code** registra el MCP vía `claude mcp add` (no usa `mcp.json`) — ver [instalar en un PC nuevo](instalar-pc-nueva.md).
 

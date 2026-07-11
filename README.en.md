@@ -118,6 +118,7 @@ block) — every number has a gate that **breaks the build** if it regresses. De
 
 ## More
 
+- **After installing:** [usage + situational guide](docs/en/usage.md) ([🇪🇸 guía de uso](docs/es/guia-de-uso.md)).
 - **Coming from 3.x?** [4.0 migration](docs/en/migration-4.0.md) ([🇪🇸 migración a 4.0](docs/es/migracion-4.0.md)).
 - **Security / trust:** [`SECURITY.md`](SECURITY.md) — the vault is **data**, not instructions.
 - **Fresh PC (Claude Code):** [fresh-PC install](docs/en/install-fresh-pc.md).
