@@ -193,8 +193,8 @@ test("draftSpec: non-JSON stream content -> OllamaUnavailableError (bad_json)", 
 });
 
 test("draftSpec: schema-invalid JSON -> OllamaUnavailableError (schema_reject)", async () => {
-  // Valid JSON, wrong shape: only one requirement (schema needs >= 3).
-  const bad = JSON.stringify({ ...VALID_SPEC, functionalRequirements: ["only one"] });
+  //// Valid JSON, truly malformed shape: requirements not an array (floor still rejects).
+  const bad = JSON.stringify({ ...VALID_SPEC, functionalRequirements: "not an array" });
   const fake = await startFakeOllama({ chatContent: bad });
   try {
     await assert.rejects(

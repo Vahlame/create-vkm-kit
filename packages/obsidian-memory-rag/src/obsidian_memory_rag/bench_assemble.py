@@ -102,19 +102,37 @@ def _fold(text: str) -> str:
     return "".join(ch for ch in norm if not unicodedata.combining(ch))
 
 
+def _stem(term: str) -> str:
+    """Light plural stem (mirrors the .mjs): 'codigos' anchors 'codigo'."""
+    return term[:-1] if len(term) > 4 and term.endswith("s") else term
+
+
 def _anchor_terms(query: str) -> list[str]:
     """Distinctive query words a relevant hit must contain (mirrors the .mjs):
-    terms >= 6 chars preferred, falling back to >= 4."""
+    terms >= 6 chars preferred, falling back to >= 4; plural-stemmed, deduped."""
     terms = list(dict.fromkeys(w for w in _ANCHOR_SPLIT_RE.split(_fold(query)) if w))
     strong = [t for t in terms if len(t) >= 6]
-    return strong if strong else [t for t in terms if len(t) >= 4]
+    chosen = strong if strong else [t for t in terms if len(t) >= 4]
+    return list(dict.fromkeys(_stem(t) for t in chosen))
 
 
-def _hit_matches_anchors(hit, anchors: list[str]) -> bool:
+def _hit_matches_anchors(hit, anchors: list[str], scoped: bool) -> bool:
+    """Mirrors the .mjs corroboration rule: >=2 anchors in one passage is signal;
+    a single anchor needs channel corroboration — BM25-or-semantic when the query
+    is project-scoped (recall-friendly), semantic-top-3 ONLY when unscoped (BM25
+    presence is tautological for a lone matched word)."""
     if not anchors:
         return True
     haystack = _fold(f"{hit.path} {getattr(hit, 'heading', '') or ''} {hit.snippet or ''}")
-    return any(a in haystack for a in anchors)
+    matches = sum(1 for a in anchors if a in haystack)
+    if matches >= min(2, len(anchors)):
+        return True
+    if matches >= 1:
+        bm25 = getattr(hit, "bm25_rank", None)
+        vec = getattr(hit, "vector_rank", None)
+        vec_top = isinstance(vec, int) and vec <= 3
+        return (bm25 is not None or vec_top) if scoped else vec_top
+    return False
 
 _FRONTMATTER_RE = re.compile(r"^---[\s\S]*?---\s*")
 
@@ -252,7 +270,7 @@ def assemble_bundle(
     for h in hits:
         if h.path == project_note:
             continue
-        if not _hit_matches_anchors(h, anchors):
+        if not _hit_matches_anchors(h, anchors, scoped=bool(project)):
             continue
         if h.snippet:
             patterns.append(f"[{h.path}] {_truncate(h.snippet, SNIPPET_CHAR_BUDGET)}")
