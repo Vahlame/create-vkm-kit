@@ -12,8 +12,8 @@
 
 <p align="center">
   <a href="./LICENSE.md"><img src="https://img.shields.io/badge/licencia-MIT_%2B_atribuci%C3%B3n-blue.svg" alt="Licencia"></a>
-  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v3.15.0-orange.svg" alt="Release"></a>
-  <a href="https://github.com/Vahlame/obsidian-memory-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/obsidian-memory-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v4.0.0-orange.svg" alt="Release"></a>
+  <a href="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
 
 <p align="center">
@@ -30,12 +30,12 @@
 
 ## ¿Qué es esto? · What is this?
 
-🇪🇸 Un **kit multiplataforma** que le da a la IA (Cursor, Claude Code…) una **memoria que
+🇪🇸 **vkm-kit**: un **kit multiplataforma** que le da a la IA (Cursor, Claude Code…) una **memoria que
 sobrevive entre chats**: una carpeta de notas Markdown bajo git que el agente lee y escribe a
 través de **MCP** (el puente entre el editor y tus archivos). Sin servicio en la nube. La pieza
 obligatoria es solo el servidor MCP; lo demás (búsqueda semántica, daemon de sync) es opcional.
 
-🇬🇧 A **cross-platform kit** that gives your AI (Cursor, Claude Code…) **memory that survives
+🇬🇧 **vkm-kit**: a **cross-platform kit** that gives your AI (Cursor, Claude Code…) **memory that survives
 across chats**: a folder of Markdown notes under git that the agent reads and writes through
 **MCP** (the bridge between the editor and your files). No cloud service. The only required piece
 is the MCP server; everything else (semantic search, sync daemon) is optional.
@@ -51,10 +51,12 @@ is the MCP server; everything else (semantic search, sync daemon) is optional.
 otras entradas, hace backup). Sin parámetros = asistente interactivo; con `-y` no pregunta nada:
 
 ```bash
-npx @vkmikc/create-obsidian-memory                 # asistente interactivo (pre-marca Codex + Claude)
-npx @vkmikc/create-obsidian-memory -y              # sin preguntas → ~/Documents/obsidian-memory-vault
-npx @vkmikc/create-obsidian-memory "<RUTA>" -y     # sin preguntas, en la ruta que elijas
+npx @vkmikc/create-vkm-kit                 # asistente interactivo (pre-marca Codex + Claude)
+npx @vkmikc/create-vkm-kit -y              # sin preguntas → ~/Documents/obsidian-memory-vault
+npx @vkmikc/create-vkm-kit "<RUTA>" -y     # sin preguntas, en la ruta que elijas
 ```
+
+El nombre npm antiguo sigue funcionando: `npx @vkmikc/create-obsidian-memory` es un shim que reenvía al paquete nuevo. · The old npm name still works: it forwards to the new package.
 
 > ⚡ **Todo su potencial, en un solo comando · the whole stack in one command — `--full`.**
 > Enfocado **primero en Codex y Claude Code**, con **todas las funciones activas por defecto ·
@@ -67,7 +69,7 @@ npx @vkmikc/create-obsidian-memory "<RUTA>" -y     # sin preguntas, en la ruta q
 > `--repo-root <clon>`):
 >
 > ```bash
-> npx @vkmikc/create-obsidian-memory --full          # = --ide codex,claude --with-hybrid --semantic --vec --build-index --install-backend --rules
+> npx @vkmikc/create-vkm-kit --full          # = --ide codex,claude --with-hybrid --semantic --vec --build-index --install-backend --rules
 > ```
 >
 > Si no hay clon a mano, `--full` **no aborta**: cae a `basic-memory` (sin híbrido) y avisa.
@@ -112,18 +114,22 @@ or let [**an agent install it**](docs/en/install-with-agent.md)
 
 ## Qué incluye · What's inside
 
-| Pieza · Piece                                                          | Lenguaje | Rol                                                                                                            |
-| ---------------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------- |
-| [`packages/create-obsidian-memory/`](packages/create-obsidian-memory/) | Node     | Instalador `npx` **(npm)**: fusiona el MCP y crea el vault.                                                    |
-| [`packages/obsidian-memory-mcp/`](packages/obsidian-memory-mcp/)       | Node     | MCP "híbrido" **(privado; corre desde el clon)**: tools del vault + búsqueda léxica/semántica.                 |
-| [`packages/obsidian-memory-rag/`](packages/obsidian-memory-rag/)       | Python   | Motor de búsqueda FTS5/BM25 + vectorial **(`pip install -e` desde el código)**; cero dependencias por defecto. |
-| [`cmd/obsidian-memoryd/`](cmd/obsidian-memoryd/)                       | Go       | Daemon opcional: vigila el vault y sincroniza git.                                                             |
+| Pieza · Piece                                                    | Lenguaje | Rol                                                                                                                |
+| ---------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------ |
+| [`packages/create-vkm-kit/`](packages/create-vkm-kit/)           | Node     | Instalador `npx` **(npm)**: memoria + token-saver + telemetría + skills en un comando.                             |
+| [`packages/obsidian-memory-mcp/`](packages/obsidian-memory-mcp/) | Node     | MCP "híbrido" **(privado; corre desde el clon)**: tools del vault + búsqueda léxica/semántica.                     |
+| [`packages/obsidian-memory-rag/`](packages/obsidian-memory-rag/) | Python   | Motor de búsqueda FTS5/BM25 + vectorial **(`pip install -e` desde el código)**; cero dependencias por defecto.     |
+| [`packages/vkm-doctor/`](packages/vkm-doctor/)                   | Node     | Sink OTLP local + doctor de uso/caché: tokens, coste y salud de la caché, todo en tu máquina.                      |
+| [`packages/vkm-spec/`](packages/vkm-spec/)                       | Node     | De idea a spec XML anclada al vault (GUI en `127.0.0.1:4923`; Ollama `phi4-mini` opcional, fallback determinista). |
+| [`cmd/obsidian-memoryd/`](cmd/obsidian-memoryd/)                 | Go       | Daemon opcional: vigila el vault y sincroniza git.                                                                 |
 
 Mapa técnico completo y diagramas de flujo: [`ARCHITECTURE.md`](ARCHITECTURE.md). El _porqué_ de
 cada decisión: [`docs/adr/`](docs/adr/).
 
 **Economía de tokens, medida y con candado en CI · Token economy, measured and CI-locked:** recall
-passage-first **−62%** vs leer notas enteras (coste real del wire, k=3) y **≈ −1.300 tokens/sesión**
+passage-first **−62%** vs leer notas enteras (coste real del wire, k=3), `assemble_context`
+**−68% de tokens de wire (mediana)** vs encadenar búsquedas (gate CI 0.60/0.90), token-saver
+**≥30% de compactación con cero pérdida de diagnóstico** (gate CI) y **≈ −1.300 tokens/sesión**
 de renta fija (schemas + hook + bloque de reglas) — cada número tiene un gate que **rompe el build**
 si regresa. Detalle · detail: [🇪🇸 cómo funciona](docs/es/como-funciona.md) ·
 [🇬🇧 how it works](docs/en/how-it-works.md) · [`evals/`](evals/).
@@ -132,6 +138,7 @@ si regresa. Detalle · detail: [🇪🇸 cómo funciona](docs/es/como-funciona.m
 
 ## Más · More
 
+- **¿Vienes de 3.x? · Coming from 3.x?** [🇪🇸 Migración a 4.0](docs/es/migracion-4.0.md) · [🇬🇧 4.0 migration](docs/en/migration-4.0.md).
 - **Seguridad / confianza:** [`SECURITY.md`](SECURITY.md) — el vault es **datos**, no instrucciones.
 - **PC nuevo · Fresh PC (Claude Code):** [🇪🇸 instalar en PC nueva](docs/es/instalar-pc-nueva.md) · [🇬🇧 fresh-PC install](docs/en/install-fresh-pc.md).
 - **Comparación con alternativas:** [FAQ 🇪🇸](docs/es/faq.md) · [FAQ 🇬🇧](docs/en/faq.md).

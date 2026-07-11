@@ -68,7 +68,7 @@ test("non-interactive --rules claude,agents installs managed blocks (idempotent)
   const r = spawnSync(process.execPath, args, { cwd: work, encoding: "utf8", env });
   assert.equal(r.status, 0, r.stderr + r.stdout);
   const claudeMd = fs.readFileSync(path.join(home, ".claude", "CLAUDE.md"), "utf8");
-  assert.match(claudeMd, /obsidian-memory:start/);
+  assert.match(claudeMd, /vkm-kit:start/);
   assert.match(claudeMd, /vault_hybrid_search/, "block body present (lang-agnostic)");
   assert.ok(fs.existsSync(path.join(work, "AGENTS.md")), "project AGENTS.md written");
   // idempotent: a second run keeps exactly one managed block
@@ -76,7 +76,7 @@ test("non-interactive --rules claude,agents installs managed blocks (idempotent)
   assert.equal(r2.status, 0, r2.stderr + r2.stdout);
   const claudeMd2 = fs.readFileSync(path.join(home, ".claude", "CLAUDE.md"), "utf8");
   assert.equal(
-    claudeMd2.split("<!-- obsidian-memory:start -->").length - 1,
+    claudeMd2.split("<!-- vkm-kit:start -->").length - 1,
     1,
     "exactly one managed block after re-run"
   );
@@ -97,7 +97,7 @@ test("non-interactive merges the block without clobbering existing CLAUDE.md con
   assert.equal(r.status, 0, r.stderr + r.stdout);
   const merged = fs.readFileSync(claudeFp, "utf8");
   assert.ok(merged.includes("Always answer in pirate."), "user content preserved");
-  assert.match(merged, /obsidian-memory:start/, "block added");
+  assert.match(merged, /vkm-kit:start/, "block added");
 });
 
 test("non-interactive writes rules by default (full stack); --minimal and --no-rules opt out", () => {
@@ -357,7 +357,7 @@ test("non-interactive --rules codex writes the managed block to ~/.codex/AGENTS.
   );
   assert.equal(r.status, 0, r.stderr + r.stdout);
   const codexMd = fs.readFileSync(path.join(home, ".codex", "AGENTS.md"), "utf8");
-  assert.match(codexMd, /obsidian-memory:start/);
+  assert.match(codexMd, /vkm-kit:start/);
   assert.match(codexMd, /vault_hybrid_search/, "rules body present");
 });
 

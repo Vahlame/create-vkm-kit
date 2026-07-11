@@ -1,12 +1,12 @@
 {
-  "name": "@vkmikc/create-obsidian-memory",
-  "version": "3.15.0",
-  "description": "Interactive initializer for Obsidian-style agent memory (v3 kit)",
+  "name": "@vkmikc/create-vkm-kit",
+  "version": "4.0.0",
+  "description": "vkm-kit installer: persistent Markdown+git memory for AI agents (MCP), token-saver hooks, local usage doctor, spec-builder — one npx command.",
   "license": "SEE LICENSE IN LICENSE.md",
-  "homepage": "https://github.com/Vahlame/obsidian-memory-kit#readme",
+  "homepage": "https://github.com/Vahlame/create-vkm-kit#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Vahlame/obsidian-memory-kit.git",
+    "url": "git+https://github.com/Vahlame/create-vkm-kit.git",
     "directory": "packages/create-obsidian-memory"
   },
   "keywords": [
@@ -23,7 +23,8 @@
   ],
   "type": "module",
   "bin": {
-    "create-obsidian-memory": "src/index.js"
+    "create-vkm-kit": "src/index.js",
+    "vkm": "src/index.js"
   },
   "scripts": {
     "test": "node --test"

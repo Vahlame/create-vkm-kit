@@ -9,7 +9,7 @@
 // `~/.vkm/telemetry/YYYY-MM-DD.ndjson`. Data never leaves the machine.
 //
 // Liveness model: a `SessionStart` hook (ensure-otel-sink.mjs, installed by
-// create-obsidian-memory) spawns this process detached when it isn't running — a lockfile
+// create-vkm-kit) spawns this process detached when it isn't running — a lockfile
 // (`~/.vkm/telemetry/sink.lock`, pid + port) makes it a singleton without any OS service.
 // Fail-open everywhere: a malformed export payload is answered 200 and archived raw, never
 // crashed on — losing one datapoint beats losing the sink.

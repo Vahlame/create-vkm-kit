@@ -173,7 +173,7 @@ más un set de consultas se puntúa en cada cambio (**recall@k / MRR / hit@1**),
 **rompe el build** en CI. Con el embedder sin dependencias el piso es **recall@5 = 1.000,
 MRR = 0.972, hit@1 = 0.944** (un embedder neuronal solo lo sube). La capa léxica además **cae de
 AND a OR** cuando una coincidencia estricta no encuentra nada, así una palabra ausente o mal
-escrita ya no tira una nota relevante. Detalle: [`evals/retrieval`](https://github.com/Vahlame/obsidian-memory-kit/tree/main/evals/retrieval) ·
+escrita ya no tira una nota relevante. Detalle: [`evals/retrieval`](https://github.com/Vahlame/create-vkm-kit/tree/main/evals/retrieval) ·
 [ADR-0020](../adr/0020-measured-retrieval-quality.md).
 
 ### Preguntarle al grafo — relaciones tipadas + observaciones (nuevo en 3.8)
@@ -361,7 +361,7 @@ flowchart LR
 
 La escalera del `limit` es tuya: **3–5** cuando sabes qué buscas (lo que recomiendan las reglas
 instaladas), 10 por defecto, más solo para barridos amplios. Números y metodología reproducibles en
-[`evals/README`](https://github.com/Vahlame/obsidian-memory-kit/tree/main/evals).
+[`evals/README`](https://github.com/Vahlame/create-vkm-kit/tree/main/evals).
 
 ### La renta fija, también a dieta — y con candado (nuevo en 3.12)
 

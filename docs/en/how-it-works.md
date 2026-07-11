@@ -172,7 +172,7 @@ plus query set is scored on every change (**recall@k / MRR / hit@1**), and a reg
 the build** in CI. On the dependency-free embedder the floor is **recall@5 = 1.000, MRR = 0.972,
 hit@1 = 0.944** (a neural embedder only raises it). The lexical layer also **falls back from AND
 to OR** when a strict match finds nothing, so one missing or mistyped word no longer drops a
-relevant note. Detail: [`evals/retrieval`](https://github.com/Vahlame/obsidian-memory-kit/tree/main/evals/retrieval) ·
+relevant note. Detail: [`evals/retrieval`](https://github.com/Vahlame/create-vkm-kit/tree/main/evals/retrieval) ·
 [ADR-0020](../adr/0020-measured-retrieval-quality.md).
 
 ### Asking the graph questions — typed relations + observations (new in 3.8)
@@ -357,7 +357,7 @@ flowchart LR
 
 The `limit` ladder is yours: **3–5** when you know what you're after (what the installed rules
 recommend), 10 by default, more only for broad surveys. Reproducible numbers and methodology in
-[`evals/README`](https://github.com/Vahlame/obsidian-memory-kit/tree/main/evals).
+[`evals/README`](https://github.com/Vahlame/create-vkm-kit/tree/main/evals).
 
 ### The fixed rent, also on a diet — and under lock (new in 3.12)
 

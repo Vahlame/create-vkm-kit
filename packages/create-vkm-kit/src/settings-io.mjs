@@ -19,12 +19,12 @@ import { restrictFileToOwner } from "./file-perms.mjs";
  * as a cheap-but-reliable ownership marker before `--uninstall` deletes a file by that name —
  * a user's own unrelated same-named script is exceedingly unlikely to contain this exact
  * npm package name in its source. */
-export const KIT_FILE_MARKER = "create-obsidian-memory";
+export const KIT_FILE_MARKER = "vkm-kit";
 
 /** Prior markers this kit shipped under other names. Ownership checks accept these too, so
  * files installed by an older release are still recognized as ours after a rename. Filled at
  * the 4.0.0 rename (ADR-0041); kept exported so reconcile paths can match both directions. */
-export const LEGACY_FILE_MARKERS = [];
+export const LEGACY_FILE_MARKERS = ["create-obsidian-memory"];
 
 /** Strip UTF-8 BOM so JSON.parse succeeds (common when a file was saved from PowerShell). */
 export function stripLeadingUtf8Bom(text) {

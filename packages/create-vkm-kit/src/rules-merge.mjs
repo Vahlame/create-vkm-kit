@@ -4,11 +4,19 @@
 import path from "node:path";
 import fse from "fs-extra";
 import pc from "picocolors";
-import { RULES_START, RULES_END, memoryRulesBlock } from "./memory-rules.mjs";
+import {
+  RULES_START,
+  RULES_END,
+  LEGACY_RULES_START,
+  LEGACY_RULES_END,
+  memoryRulesBlock
+} from "./memory-rules.mjs";
 
 /**
  * Merge a managed block into existing text.
  * - If both sentinels are present → replace everything between them (inclusive).
+ *   A block written by a pre-rename release (`obsidian-memory:start/end`, ADR-0041) is
+ *   recognized too and migrated in place — one reinstall converts it to the new sentinels.
  * - Else if the file is empty → just the block.
  * - Else → append the block after the existing content (preserving it verbatim).
  * @param {string} existing
@@ -18,11 +26,19 @@ import { RULES_START, RULES_END, memoryRulesBlock } from "./memory-rules.mjs";
 export function mergeManagedBlock(existing, block) {
   const blk = block.trim();
   const text = (existing || "").replace(/\s+$/, "");
-  const s = text.indexOf(RULES_START);
-  const e = text.indexOf(RULES_END);
+  let s = text.indexOf(RULES_START);
+  let e = text.indexOf(RULES_END);
+  let endLen = RULES_END.length;
+  if (s === -1 || e === -1) {
+    // Dual-read (ADR-0041): accept the legacy sentinels so the rename never strands an
+    // installed block — write-new happens implicitly (blk carries the new sentinels).
+    s = text.indexOf(LEGACY_RULES_START);
+    e = text.indexOf(LEGACY_RULES_END);
+    endLen = LEGACY_RULES_END.length;
+  }
   if (s !== -1 && e !== -1 && e > s) {
     const before = text.slice(0, s).replace(/\s+$/, "");
-    const after = text.slice(e + RULES_END.length).replace(/^\s+/, "");
+    const after = text.slice(e + endLen).replace(/^\s+/, "");
     return (
       [before, blk, after]
         .filter(Boolean)

@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-07-10
+
+The kit becomes **vkm-kit**: one plug-and-play efficiency suite for Claude Code —
+persistent vault memory + token-saver + local usage doctor + spec-builder. The
+repo is now `Vahlame/create-vkm-kit`; the installer package is
+`@vkmikc/create-vkm-kit` (bins `create-vkm-kit` and `vkm`), and the old
+`@vkmikc/create-obsidian-memory` name lives on as a forwarding shim — see the
+migration notes in ADR-0041/0050. Machine identifiers your installs depend on
+are FROZEN: the MCP server key `obsidian-memory-hybrid`, the `obsidian-memoryd`
+daemon, and `BASIC_MEMORY_HOME`. Managed blocks and hook files written by 3.x
+are recognized and migrated in place on the next install (dual-read markers,
+`vkm-kit:start/end` sentinels, `VKM_VAULT` env accepted alongside the legacy
+names).
+
+### Changed
+
+- **Rename (ADR-0041):** `packages/create-obsidian-memory` →
+  `packages/create-vkm-kit`; ownership marker `vkm-kit` (legacy
+  `create-obsidian-memory` still recognized); managed-block sentinels
+  `<!-- vkm-kit:start/end -->` with in-place migration of legacy blocks
+  (test-pinned); `VKM_VAULT` accepted before `BASIC_MEMORY_HOME` /
+  `OBSIDIAN_MEMORY_VAULT`; release workflow publishes the renamed installer
+  plus the shim.
+
 ### Security
 
 - **RAG-passthrough MCP tools no longer accept a caller-supplied `vault` path.**

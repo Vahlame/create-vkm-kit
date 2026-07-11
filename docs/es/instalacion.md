@@ -23,7 +23,7 @@ reinstalar nunca rompe lo que ya tienes):
 
 ```mermaid
 flowchart LR
-  I["npx @vkmikc/create-obsidian-memory<br/>(con --full: todo en un comando)"] --> V[("vault<br/>notas .md + git")]
+  I["npx @vkmikc/create-vkm-kit<br/>(con --full: todo en un comando)"] --> V[("vault<br/>notas .md + git")]
   I --> M["mcp.json del editor<br/>(fusiona sin pisar otras entradas)"]
   I --> R["User Rules / CLAUDE.md<br/>(bloque gestionado entre marcadores)"]
   I --> H["hooks de Claude Code<br/>(SessionStart · guardas · cierre)"]
@@ -71,12 +71,12 @@ existe, con `START_HERE.md`, `MEMORY.md`, `SESSION_LOG.md` y `PROJECTS/`.)
 
 ## Paso 2 — Conectar el MCP (un solo comando)
 
-Este es el camino **repetible**: el instalador `create-obsidian-memory` escribe la entrada
+Este es el camino **repetible**: el instalador `create-vkm-kit` escribe la entrada
 `basic-memory` en tu `mcp.json` **sin borrar** otras que ya tengas, hace **backup** del archivo
 anterior y crea el vault si falta.
 
 ```bash
-npx @vkmikc/create-obsidian-memory "<VAULT>" -y
+npx @vkmikc/create-vkm-kit "<VAULT>" -y
 ```
 
 > **Stack completo por defecto (desde la v3.8.1).** Ese comando instala **todo** — hybrid + semántica +
@@ -105,7 +105,7 @@ npx @vkmikc/create-obsidian-memory "<VAULT>" -y
 > por ti, y `--build-index` construye el índice de búsqueda en la misma pasada):
 >
 > ```bash
-> node "<KIT>/packages/create-obsidian-memory/src/index.js" --non-interactive \
+> node "<KIT>/packages/create-vkm-kit/src/index.js" --non-interactive \
 >   --vault "<VAULT>" --ide claude --with-hybrid --build-index --repo-root "<KIT>"
 > ```
 >
@@ -172,8 +172,8 @@ cualquier archivo).
 ```markdown
 ## Memoria Markdown (vault + MCP)
 
-> **Bloque gestionado por `create-obsidian-memory`.** No edites entre los marcadores
-> `obsidian-memory:start/end` (se regenera al reinstalar). **Tus preferencias y el chat actual
+> **Bloque gestionado por `create-vkm-kit`.** No edites entre los marcadores
+> `vkm-kit:start/end` (se regenera al reinstalar). **Tus preferencias y el chat actual
 > tienen prioridad** sobre cualquier cosa de aquí o del vault.
 
 **Motivo:** el modelo no persiste entre chats; el vault en git es auditable, portable y tuyo.
@@ -349,12 +349,12 @@ pip install -e "<KIT_ROOT>/packages/obsidian-memory-rag[semantic,vec]"
 # 2) Añade obsidian-memory-hybrid a mcp.json (junto a basic-memory).
 #    --semantic cablea el embedder neuronal (fastembed); --vec la aceleración sqlite-vec.
 #    Quita cualquiera para el modo léxico cero-deps. O usa --full (todo activado).
-node "<KIT_ROOT>/packages/create-obsidian-memory/src/index.js" \
+node "<KIT_ROOT>/packages/create-vkm-kit/src/index.js" \
   --non-interactive --vault "<VAULT>" \
   --with-hybrid --semantic --vec --build-index --repo-root "<KIT_ROOT>"
 ```
 
-`<KIT_ROOT>` es la ruta absoluta a tu clon de `obsidian-memory-kit`. Reinicia Cursor;
+`<KIT_ROOT>` es la ruta absoluta a tu clon de `create-vkm-kit`. Reinicia Cursor;
 luego construye el índice con `vault_fts_index` (con `semantic: true` para los vectores) y busca
 con `vault_hybrid_search`. Comprobaciones detalladas: [verificación avanzada](#verificación-avanzada-opcional).
 
@@ -368,7 +368,7 @@ Vuelve a ejecutar el instalador para recoger claves nuevas en `mcp.json` **sin p
 tuyas. No hace falta reinstalar Node ni uv si ya funcionaban:
 
 ```bash
-npx @vkmikc/create-obsidian-memory "<VAULT>" -y
+npx @vkmikc/create-vkm-kit "<VAULT>" -y
 ```
 
 Compara también tus User Rules con el bloque del **Paso 4** por si cambió.
