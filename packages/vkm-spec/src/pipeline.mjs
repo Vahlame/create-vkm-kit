@@ -11,7 +11,7 @@
 import { assembleContext } from "@vkmikc/obsidian-memory-mcp/src/context-assemble.mjs";
 import { compileOrchestrationPackage } from "./compile-xml.mjs";
 import { defaultSystemRole, thinContextNote, backendErrorNote } from "./prompt-defaults.mjs";
-import { draftSpec, OllamaUnavailableError } from "./ollama-client.mjs";
+import { draftSpec, ensureOllamaServer, OllamaUnavailableError } from "./ollama-client.mjs";
 
 const CURRENT_STATE_MAX = 600;
 
@@ -120,6 +120,10 @@ export async function buildSpec({
 
   if (llm) {
     try {
+      // On-demand server start (default-host only — resource policy: no login autostart,
+      // one loaded model, short keep_alive). Best-effort: if it can't come up, draftSpec's
+      // preflight throws conn_refused and we fall back.
+      await ensureOllamaServer({ host: ollamaHost });
       const { spec: drafted } = await draftSpec({
         idea,
         context: serializeContext(context),
