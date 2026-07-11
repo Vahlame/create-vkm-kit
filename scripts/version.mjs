@@ -41,6 +41,20 @@ const MARKERS = [
     write: (s, v) => s.replace(/("version":\s*")[^"]+(")/, `$1${v}$2`)
   },
   {
+    // vkm-kit efficiency-suite packages are version-locked to the kit (ADR-0042 — the
+    // opposite call to the old prompt-compiler precedent, per the 4.0.0 plan).
+    name: "vkm-doctor/package.json",
+    file: "packages/vkm-doctor/package.json",
+    read: (s) => JSON.parse(s).version,
+    write: (s, v) => s.replace(/("version":\s*")[^"]+(")/, `$1${v}$2`)
+  },
+  {
+    name: "vkm-spec/package.json",
+    file: "packages/vkm-spec/package.json",
+    read: (s) => JSON.parse(s).version,
+    write: (s, v) => s.replace(/("version":\s*")[^"]+(")/, `$1${v}$2`)
+  },
+  {
     name: "obsidian-memory-rag/pyproject.toml",
     file: "packages/obsidian-memory-rag/pyproject.toml",
     read: (s) => (s.match(/^version\s*=\s*"([^"]+)"/m) || [])[1],

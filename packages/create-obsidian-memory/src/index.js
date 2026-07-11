@@ -33,7 +33,12 @@ import {
   configureClaudeNativeMemory,
   uninstallClaudeNativeMemory
 } from "./claude-native-memory.mjs";
+import { configureTokenSaver, uninstallTokenSaver } from "./token-saver.mjs";
+import { configureTelemetry, uninstallTelemetry } from "./telemetry.mjs";
+import { configureSkillAssets, uninstallSkillAssets } from "./skills-install.mjs";
+import { maybeInstallOllama } from "./ollama-setup.mjs";
 import { restrictFileToOwner } from "./file-perms.mjs";
+import { atomicWriteJson, stripLeadingUtf8Bom } from "./settings-io.mjs";
 
 /** Cursor/VS Code workspace defaults: fewer `git` + `conhost` spikes on Windows (SCM polling). */
 const VAULT_VSCODE_GIT_SETTINGS = {
@@ -425,27 +430,8 @@ Formato: \`fecha · modelo · tipo de tarea · qué funcionó / qué evitar\`
   await writeVaultGitWorkspaceSettings(vault, dryRun);
 }
 
-/** Strip UTF-8 BOM so JSON.parse succeeds (common when mcp.json was saved from PowerShell). */
-function stripLeadingUtf8Bom(text) {
-  return typeof text === "string" && text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
-}
-
-/**
- * Write JSON to `fp` atomically: stage at `<fp>.tmp.<pid>.<ts>`, fsync, rename.
- * Crash mid-write leaves the original `fp` intact rather than truncating it. The final file
- * is restricted to the current user (POSIX chmod 0600; Windows icacls ACL reset — see
- * {@link restrictFileToOwner}) — `mcp.json` may carry env blocks for other MCP servers (API
- * tokens, etc.) that shouldn't be world-readable, on EITHER platform.
- * @param {string} fp - target path
- * @param {unknown} data - JSON-serializable payload
- */
-async function atomicWriteJson(fp, data) {
-  await fse.ensureDir(path.dirname(fp));
-  const tmp = `${fp}.tmp.${process.pid}.${Date.now()}`;
-  await fse.writeFile(tmp, `${JSON.stringify(data, null, 2)}\n`, "utf8");
-  await restrictFileToOwner(tmp);
-  await fse.rename(tmp, fp);
-}
+// `stripLeadingUtf8Bom` and `atomicWriteJson` moved to `settings-io.mjs` (Phase 0
+// groundwork) — imported above; same behavior, now shared with the other installer modules.
 
 /**
  * @param {string} home
@@ -818,6 +804,24 @@ async function runNonInteractive(argv) {
   // ADR-0031: effort-gate hook (PreToolUse) also rides along by default, independently of
   // --memory-enforcement; --no-effort-gate opts out of just this one.
   const wantEffortGate = wantNativeOverride && on("--effort-gate", "--no-effort-gate");
+  // vkm-kit token-saver (ADR-0043): PostToolUse compaction hooks (noisy Bash output; MCP
+  // JSON whitespace) + permissions.deny rules for token-hungry build artifacts + the
+  // vkm-terse output style. Claude Code-only; same default-on / --no-X idiom. The terse
+  // style gets its own toggle — changing Claude's voice is a preference, not pure noise
+  // removal — but ships ON with the rest.
+  const wantTokenSaver = ides.includes("claude") && on("--token-saver", "--no-token-saver");
+  const wantTerseStyle = wantTokenSaver && on("--terse-style", "--no-terse-style");
+  // vkm-kit local telemetry (ADR-0044): OTEL env → local sink (127.0.0.1:4319) so
+  // `vkm-doctor` can report real token/cache usage. Needs a kit clone (sink script);
+  // silently skipped without one. Data never leaves the machine.
+  const wantTelemetry = ides.includes("claude") && on("--telemetry", "--no-telemetry");
+  // vkm-kit skills + subagent template (ADR-0049): /vkm-discipline + /vkm-spec skills and
+  // the vkm-implementer agent. Pure files under ~/.claude/, hash-tracked.
+  const wantSkills = ides.includes("claude") && on("--skills", "--no-skills");
+  const wantAgents = ides.includes("claude") && on("--agents", "--no-agents");
+  // Ollama + phi4-mini (ADR-0047, ~2.3GB): gated to explicit --full or --ollama — a bare
+  // headless install must not surprise anyone with a multi-GB download. --no-ollama wins.
+  const wantOllama = (full || argv.includes("--ollama")) && !argv.includes("--no-ollama");
   let kitRoot = null;
 
   if (wantHybrid) {
@@ -900,6 +904,18 @@ async function runNonInteractive(argv) {
       enforce: wantEnforce,
       effortGate: wantEffortGate
     });
+    // Same symmetric-reconcile contract as above: `--no-token-saver` on a re-run strips a
+    // previously-installed token-saver instead of merely skipping it.
+    await configureTokenSaver(home, dryRun, {
+      hooks: wantTokenSaver,
+      terseStyle: wantTerseStyle,
+      denyRules: wantTokenSaver
+    });
+    await configureTelemetry(home, dryRun, { enable: wantTelemetry, kitRoot });
+    await configureSkillAssets(home, dryRun, { skills: wantSkills, agents: wantAgents });
+    if (wantOllama) {
+      await maybeInstallOllama(dryRun, { enable: true });
+    }
   }
   if (ides.includes("codex")) {
     await registerCodexMcp(vault, dryRun, hybridOpts);
@@ -988,6 +1004,13 @@ async function runNonInteractive(argv) {
   if (wantEffortGate) {
     console.log(
       "- Effort gate (ADR-0031): PreToolUse hook (denies the 2nd+ substantive edit until the model proposes an effort level and the user replies) → ~/.claude/settings.json"
+    );
+  }
+  if (wantTokenSaver) {
+    console.log(
+      "- Token-saver (ADR-0043): PostToolUse compaction hooks (Bash + mcp__.*) + permissions.deny noise rules" +
+        (wantTerseStyle ? " + vkm-terse output style" : "") +
+        " → ~/.claude/settings.json (kill switch: VKM_TOKEN_SAVER=0)"
     );
   }
   if (ides.includes("codex")) {
@@ -1105,6 +1128,32 @@ Claude Code native-memory override (when --ide includes claude):
   --no-effort-gate             Keep the override (+ enforcement, if on) without the
                                 effort-gate hook.
 
+  Token-saver (ADR-0043, on by default when --ide includes claude) — cuts token spend
+  with zero quality loss: two PostToolUse hooks compact noisy tool output before it
+  enters context (Bash: ANSI/progress/dup-line cleanup + head/tail windowing that HARD
+  preserves error/warn/fail lines; mcp__.*: whitespace-only JSON compaction), plus
+  permissions.deny rules for token-hungry artifacts (node_modules, dist, lockfiles) and
+  the vkm-terse output style (~/.claude/output-styles/vkm-terse.md, activated via the
+  outputStyle setting). Runtime kill switch without uninstalling: VKM_TOKEN_SAVER=0.
+  --token-saver                Force it on (even under --minimal).
+  --no-token-saver             Skip/remove hooks + deny rules + style.
+  --terse-style                Force just the output style on.
+  --no-terse-style             Keep the hooks + deny rules but not the output style.
+
+  Local telemetry + doctor (ADR-0044, on by default when --ide includes claude and a kit
+  clone is available) — wires Claude Code's OTEL metrics export to a LOCAL sink
+  (127.0.0.1:4319 → ~/.vkm/telemetry/, nothing leaves the machine) via a managed env
+  block + a SessionStart hook that spawns the sink. Run \`vkm-doctor\` for token usage,
+  cache-hit ratio and a broken-cache diagnosis.
+  --telemetry / --no-telemetry Force on / remove.
+
+  Skills + subagent (ADR-0049, on by default when --ide includes claude): /vkm-discipline
+  (dense minimal-line code at full quality + verification contract), /vkm-spec (idea →
+  precise spec via one assemble_context call), and the vkm-implementer agent template.
+  Hash-tracked files; uninstall never deletes one you edited.
+  --skills / --no-skills       Force on / remove the two skills.
+  --agents / --no-agents       Force on / remove the subagent template.
+
   Uninstall: --no-native-memory-override / --no-memory-enforcement / --no-effort-gate on a
   re-run now ACTIVELY REMOVE the matching pieces this kit previously installed (not just
   skip adding them) — a symmetric install/remove path, so toggling a flag off actually
@@ -1128,6 +1177,9 @@ Claude Code native-memory override (when --ide includes claude):
     const home = process.env.HOME || process.env.USERPROFILE || cwd;
     const dryRun = dryRunFromArgs();
     await uninstallClaudeNativeMemory(home, dryRun);
+    await uninstallTokenSaver(home, dryRun);
+    await uninstallTelemetry(home, dryRun);
+    await uninstallSkillAssets(home, dryRun);
     return;
   }
 
@@ -1281,12 +1333,30 @@ Claude Code native-memory override (when --ide includes claude):
   // Always reconcile (not just install) whenever Claude Code was selected: a symmetric call
   // also STRIPS previously-installed pieces `--no-native-memory-override`/`--no-memory-enforcement`/
   // `--no-effort-gate` now turn off, instead of only ever adding entries.
+  // vkm-kit token-saver (ADR-0043) rides along in the wizard too; opt out with
+  // --no-token-saver / --no-terse-style.
+  const wantTokenSaver =
+    Boolean(ides?.includes("claude")) && !process.argv.includes("--no-token-saver");
+  const wantTerseStyle = wantTokenSaver && !process.argv.includes("--no-terse-style");
   if (ides?.includes("claude")) {
     await configureClaudeNativeMemory(home, vault, dryRun, {
       lang,
       enable: wantNativeOverride,
       enforce: wantEnforce,
       effortGate: wantEffortGate
+    });
+    await configureTokenSaver(home, dryRun, {
+      hooks: wantTokenSaver,
+      terseStyle: wantTerseStyle,
+      denyRules: wantTokenSaver
+    });
+    await configureTelemetry(home, dryRun, {
+      enable: wantTokenSaver && !process.argv.includes("--no-telemetry"),
+      kitRoot: hybridOpts.repoRoot || null
+    });
+    await configureSkillAssets(home, dryRun, {
+      skills: !process.argv.includes("--no-skills"),
+      agents: !process.argv.includes("--no-agents")
     });
   }
   if (ides?.includes("codex")) {

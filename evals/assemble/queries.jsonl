@@ -1,0 +1,15 @@
+# Assemble-context golden set: each query is a task an agent would gather context
+# for. "project" scopes typed observations to PROJECTS/<project>.md and biases the
+# search (mirrors the assemble_context MCP tool). "relevant" lists the notes that
+# MUST appear among the sources the assembled bundle surfaces (completeness gate).
+# kind buckets: project-task (project-scoped) | cross-cutting (no project).
+{"query": "webhooks entrantes firma idempotencia reintentos duplicados", "project": "ticket-hub", "relevant": ["PROJECTS/ticket-hub.md"], "kind": "project-task"}
+{"query": "adjuntos antivirus cuarentena URL prefirmada expiracion", "project": "ticket-hub", "relevant": ["PROJECTS/ticket-hub.md"], "kind": "project-task"}
+{"query": "serializacion schema campo desaparece del JSON respuesta", "project": "ticket-hub", "relevant": ["PROJECTS/ticket-hub.md", "STACKS/fastify.md"], "kind": "project-task"}
+{"query": "alertas umbrales aviso critico guardia runbook", "project": "ticket-hub", "relevant": ["PROJECTS/ticket-hub.md", "PRACTICES/observability.md"], "kind": "project-task"}
+{"query": "sincronizacion offline conflictos reloj deltas cocina", "project": "menu-planner", "relevant": ["PROJECTS/menu-planner.md"], "kind": "project-task"}
+{"query": "escandallo costos precios congelados margen receta", "project": "menu-planner", "relevant": ["PROJECTS/menu-planner.md"], "kind": "project-task"}
+{"query": "WAL checkpoint bloqueo lectores transaccion abierta", "project": "menu-planner", "relevant": ["PROJECTS/menu-planner.md", "STACKS/sqlite.md"], "kind": "project-task"}
+{"query": "logs estructurados request-id trazabilidad extremo a extremo", "project": null, "relevant": ["PRACTICES/observability.md"], "kind": "cross-cutting"}
+{"query": "expand contract doble escritura backfill cursor lotes", "project": null, "relevant": ["PRACTICES/migrations.md"], "kind": "cross-cutting"}
+{"query": "preferencias commits convencionales rollback probado idioma", "project": null, "relevant": ["MEMORY.md"], "kind": "cross-cutting"}

@@ -11,6 +11,7 @@ import time
 from pathlib import Path
 
 from .audit import audit_vault
+from .bench_assemble import format_assemble_report, run_assemble_benchmark
 from .bench_recall import format_report, run_benchmark
 from .bench_tokens import format_token_report, run_token_benchmark
 from .complete import complete as complete_prefix
@@ -279,6 +280,45 @@ def main() -> None:
             default=None,
             help="Fail if median WIRE savings (compact JSON the agent reads, "
             "ADR-0034) falls below this",
+        )
+
+    for name, helptext in (
+        (
+            "bench-assemble",
+            "Measure assemble_context's one-call bundle vs the naive multi-call "
+            "pattern (completeness-gated)",
+        ),
+        (
+            "json-bench-assemble",
+            "Same as bench-assemble but print one JSON object (for scripting)",
+        ),
+    ):
+        ba = sub.add_parser(name, help=helptext)
+        ba.add_argument("--corpus", type=Path, required=True, help="Folder of Markdown notes")
+        ba.add_argument(
+            "--queries",
+            type=Path,
+            required=True,
+            help="JSONL: {query, project?, relevant, kind?}",
+        )
+        ba.add_argument("--embedder", default=None)
+        ba.add_argument(
+            "--in-place",
+            action="store_true",
+            help="Index the corpus where it lives (default: copy to a temp dir first)",
+        )
+        # Optional gates: exit non-zero if a metric falls below the threshold.
+        ba.add_argument(
+            "--assert-savings",
+            type=float,
+            default=None,
+            help="Fail if median savings over answered queries falls below this",
+        )
+        ba.add_argument(
+            "--assert-answered",
+            type=float,
+            default=None,
+            help="Fail if the completeness-gate pass rate falls below this",
         )
 
     js = sub.add_parser(
@@ -646,6 +686,30 @@ def main() -> None:
             )
         if failures:
             print("TOKEN GATE FAILED: " + "; ".join(failures), file=sys.stderr)
+            raise SystemExit(1)
+    elif args.cmd in ("bench-assemble", "json-bench-assemble"):
+        areport = run_assemble_benchmark(
+            args.corpus,
+            args.queries,
+            embedder_name=args.embedder,
+            in_place=args.in_place,
+        )
+        if args.cmd == "json-bench-assemble":
+            print(json.dumps(areport.to_dict(), ensure_ascii=False))
+        else:
+            print(format_assemble_report(areport))
+        # Optional gates (used by CI to fail on a context-assembly regression).
+        failures = []
+        if args.assert_savings is not None and areport.median_savings < args.assert_savings:
+            failures.append(
+                f"median savings {areport.median_savings:.3f} < {args.assert_savings}"
+            )
+        if args.assert_answered is not None and areport.answered_rate < args.assert_answered:
+            failures.append(
+                f"answered rate {areport.answered_rate:.3f} < {args.assert_answered}"
+            )
+        if failures:
+            print("ASSEMBLE GATE FAILED: " + "; ".join(failures), file=sys.stderr)
             raise SystemExit(1)
     elif args.cmd == "json-search":
         if not args.no_auto_index:

@@ -253,6 +253,7 @@ La claridad manda: si comprimir arriesga un malentendido, no comprimas.
 - **Código mínimo (escalera — párate en el primer peldaño que aguante):** ¿necesita existir? → ¿ya está en el codebase? → ¿stdlib? → ¿feature nativa de la plataforma? → ¿dependencia ya instalada? → ¿una línea? → solo entonces, el mínimo que funciona. Sin abstracciones no pedidas ni scaffolding "para después".
 - **Nunca simplifiques** validación de entrada, manejo de errores que evita pérdida de datos, ni seguridad; el fix barato correcto es causa raíz en la función compartida, no parche al síntoma. Lógica no trivial deja UN check ejecutable.
 - **Memoria barata:** lecturas passage-first con `limit` bajo (3–5) cuando sabes qué buscas — notas pequeñas (`MEMORY.md`) enteras, notas grandes jamás. Bullets concisos, deduplica. La inteligencia viene de **buenas notas + recall dirigido**, no de releer todo ni de monólogos largos.
+- **Disciplina ejecutable (vkm):** para contexto de proyecto, `assemble_context` (1 llamada presupuestada) antes que encadenar búsquedas; en código no trivial invoca `/vkm-discipline` — código denso a calidad plena (menos líneas, MISMO alcance) + evidencia ejecutada antes de "terminado".
 ```
 
 Guarda y haz **Developer: Reload Window** (o reinicia Cursor).
