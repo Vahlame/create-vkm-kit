@@ -148,6 +148,7 @@ export async function buildSpec({
         idea,
         context: serializeContext(context, { idea, project }),
         project,
+        lang,
         host: ollamaHost,
         model,
         onProgress,
