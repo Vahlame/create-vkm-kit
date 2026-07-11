@@ -6,12 +6,13 @@ The whole user guide, in the recommended reading order.
 
 ## Start here
 
-| #   | Document                                           | What for                                                            |
-| --- | -------------------------------------------------- | ------------------------------------------------------------------- |
-| 1   | [**How it works**](how-it-works.md)                | Understand the system in 5 min, with diagrams. No install required. |
-| 2   | [**Install**](install.md)                          | Step by step, 100% repeatable, with verification.                   |
-| —   | [**Install with an agent**](install-with-agent.md) | Prefer the AI to do it? Paste one file and you're done.             |
-| —   | [**Install on a fresh PC**](install-fresh-pc.md)   | Reproduce everything on a freshly wiped machine (Claude Code).      |
+| #   | Document                                           | What for                                                               |
+| --- | -------------------------------------------------- | ---------------------------------------------------------------------- |
+| 1   | [**How it works**](how-it-works.md)                | Understand the system in 5 min, with diagrams. No install required.    |
+| 2   | [**Install**](install.md)                          | Step by step, 100% repeatable, with verification.                      |
+| —   | [**Install with an agent**](install-with-agent.md) | Prefer the AI to do it? Paste one file and you're done.                |
+| —   | [**Install on a fresh PC**](install-fresh-pc.md)   | Reproduce everything on a freshly wiped machine (Claude Code).         |
+| 3   | [**Usage + situational guide**](usage.md)          | Day-to-day use after installing: which piece to use in each situation. |
 
 > 🤖 **Claude Code** registers MCP via `claude mcp add` (no `mcp.json`) — see [install on a fresh PC](install-fresh-pc.md).
 

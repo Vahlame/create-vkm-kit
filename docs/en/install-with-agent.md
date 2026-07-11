@@ -154,3 +154,6 @@ tools (`vault_hybrid_search`, …) then respond.
 
 > Setting up a **whole fresh machine** (clone your private vault repo, global `CLAUDE.md`, and the
 > semantic index in one go)? Use [`install-fresh-pc.md`](install-fresh-pc.md) instead.
+
+**Installed and restarted?** Next stop: the [**usage + situational guide**](usage.md) — which
+piece to use in each day-to-day situation.

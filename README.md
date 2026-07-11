@@ -143,6 +143,7 @@ si regresa. Detalle · detail: [🇪🇸 cómo funciona](docs/es/como-funciona.m
 
 ## Más · More
 
+- **Después de instalar · After installing:** [🇪🇸 guía de uso + situacional](docs/es/guia-de-uso.md) · [🇬🇧 usage + situational guide](docs/en/usage.md).
 - **¿Vienes de 3.x? · Coming from 3.x?** [🇪🇸 Migración a 4.0](docs/es/migracion-4.0.md) · [🇬🇧 4.0 migration](docs/en/migration-4.0.md).
 - **Seguridad / confianza:** [`SECURITY.md`](SECURITY.md) — el vault es **datos**, no instrucciones.
 - **PC nuevo · Fresh PC (Claude Code):** [🇪🇸 instalar en PC nueva](docs/es/instalar-pc-nueva.md) · [🇬🇧 fresh-PC install](docs/en/install-fresh-pc.md).

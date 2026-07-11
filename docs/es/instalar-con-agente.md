@@ -154,3 +154,6 @@ tools `obsidian-memory-hybrid` (`vault_hybrid_search`, …).
 
 > ¿Montas una **máquina nueva completa** (clonar tu repo privado del vault, `CLAUDE.md` global y el
 > índice semántico de una vez)? Usa [`instalar-pc-nueva.md`](instalar-pc-nueva.md) en su lugar.
+
+**¿Ya instalado y reiniciado?** Siguiente parada: la
+[**guía de uso + situacional**](guia-de-uso.md) — qué pieza usar en cada situación del día a día.
