@@ -25,7 +25,7 @@ import os from "node:os";
 import path from "node:path";
 import { exec } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { requireVault } from "@vkmikc/obsidian-memory-mcp/src/rag-client.mjs";
+import { locateVault } from "./vault-locate.mjs";
 import { assembleContext } from "@vkmikc/obsidian-memory-mcp/src/context-assemble.mjs";
 import { listProjectNames } from "./project-resolve.mjs";
 import { compileOrchestrationPackage } from "./compile-xml.mjs";
@@ -118,7 +118,7 @@ function serveStatic(req, res) {
 
 /** @param {{ vault?: string, lang?: "es"|"en", ollamaHost?: string, model?: string }} [opts] */
 export function createServer({ vault, lang = "es", ollamaHost, model } = {}) {
-  const vaultPath = requireVault(vault);
+  const vaultPath = locateVault(vault);
 
   return http.createServer(async (req, res) => {
     try {
@@ -257,7 +257,7 @@ export function installDesktopShortcut({ vault, lang, port, desktopDir } = {}) {
   }
   const desktop = desktopDir || path.join(os.homedir(), "Desktop");
   const serverScript = path.join(__dirname, "server.mjs");
-  const vaultArg = requireVault(vault); // fail loud now, not when the user double-clicks later
+  const vaultArg = locateVault(vault); // fail loud now, not when the user double-clicks later
   const args = [
     `"${serverScript}"`,
     "--vault",
