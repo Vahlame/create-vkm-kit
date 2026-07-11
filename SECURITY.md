@@ -61,7 +61,7 @@ If the vault remote is shared (team, multi-machine), assume an attacker with wri
 
 ### 2. Agent-driven setup runs with your privileges
 
-`AGENTS.md` and the `create-obsidian-memory` initializer drive an agent to write `~/.cursor/mcp.json`, install background daemons, and edit git config on your behalf. **Verify the source** (clone origin + latest commit) before letting an agent follow repo instructions. Treat an unverified clone the way you would treat `curl ... | sh`.
+`AGENTS.md` and the `create-vkm-kit` initializer drive an agent to write `~/.cursor/mcp.json`, install background daemons, and edit git config on your behalf. **Verify the source** (clone origin + latest commit) before letting an agent follow repo instructions. Treat an unverified clone the way you would treat `curl ... | sh`.
 
 ### 3. `basic-memory` is pinned
 
