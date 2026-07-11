@@ -44,18 +44,19 @@ flowchart LR
 
 ## Repository layout
 
-| Path                                 | Language       | Role                                                                                        |
-| ------------------------------------ | -------------- | ------------------------------------------------------------------------------------------- |
-| `cmd/obsidian-memoryd/`              | Go             | Daemon: filesystem watch → debounced git sync; `doctor` health report                       |
-| `packages/obsidian-memory-mcp/`      | Node (ESM)     | The "hybrid" MCP sidecar (stdio): vault-locked file + search tools                          |
-| `packages/obsidian-memory-rag/`      | Python         | FTS5 indexer + BM25 search (the search engine the sidecar bridges to)                       |
-| `packages/create-obsidian-memory/`   | Node           | `npx` initializer: merges MCP config, scaffolds a vault                                     |
-| `packages/obsidian-prompt-compiler/` | Node (ESM)     | `obsidian-prompt` CLI + optional GUI: vault context → `<orchestration_package>` XML, no LLM |
-| `scripts/`                           | TS / Node      | `sync-agents.ts` (rule generator), parity + MCP smoke checks                                |
-| `.agents/`, `.cursor/`, `.continue/` | Markdown       | Per-IDE rule files; `.agents/rules/*` is the source, the rest derived                       |
-| `evals/`                             | Node / Py / MD | Retrieval-quality + token-economy benchmarks (gated) + prompt-adherence smoke               |
-| `docs/`                              | Markdown       | ADRs (decisions), setup guides, troubleshooting (bilingual ES/EN)                           |
-| `examples/`                          | Markdown       | Anonymized sample vault layout                                                              |
+| Path                                 | Language       | Role                                                                                                                                      |
+| ------------------------------------ | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `cmd/obsidian-memoryd/`              | Go             | Daemon: filesystem watch → debounced git sync; `doctor` health report                                                                     |
+| `packages/obsidian-memory-mcp/`      | Node (ESM)     | The "hybrid" MCP sidecar (stdio): vault-locked file + search tools                                                                        |
+| `packages/obsidian-memory-rag/`      | Python         | FTS5 indexer + BM25 search (the search engine the sidecar bridges to)                                                                     |
+| `packages/create-obsidian-memory/`   | Node           | `npx` initializer: merges MCP config, scaffolds a vault                                                                                   |
+| `packages/vkm-spec/`                 | Node (ESM)     | `vkm-spec` CLI + GUI (4923): idea + vault context → editable `<orchestration_package>` XML; optional Ollama draft, deterministic fallback |
+| `packages/vkm-doctor/`               | Node (ESM)     | Local OTLP sink (4319 → `~/.vkm/telemetry/`) + `vkm-doctor` token/cache usage report                                                      |
+| `scripts/`                           | TS / Node      | `sync-agents.ts` (rule generator), parity + MCP smoke checks                                                                              |
+| `.agents/`, `.cursor/`, `.continue/` | Markdown       | Per-IDE rule files; `.agents/rules/*` is the source, the rest derived                                                                     |
+| `evals/`                             | Node / Py / MD | Retrieval-quality + token-economy benchmarks (gated) + prompt-adherence smoke                                                             |
+| `docs/`                              | Markdown       | ADRs (decisions), setup guides, troubleshooting (bilingual ES/EN)                                                                         |
+| `examples/`                          | Markdown       | Anonymized sample vault layout                                                                                                            |
 
 It is an npm **workspaces** monorepo (`packages/*`) for the Node side, a single
 Go module (`go.mod`) for the daemon, and a `pyproject.toml` package for the RAG
@@ -77,11 +78,16 @@ Keeps the vault's git history moving without the user thinking about it.
 ### 2. `obsidian-memory-mcp` — hybrid MCP sidecar (Node)
 
 The agent's authoritative window into the vault. Stdio MCP server exposing
-fourteen tools, split into small modules so the pure logic is unit-testable
+fifteen tools, split into small modules so the pure logic is unit-testable
 without spawning the transport.
 
 - **Entry point / wiring:** [`src/hybrid-mcp.mjs`](./packages/obsidian-memory-mcp/src/hybrid-mcp.mjs) — registers tools and connects `StdioServerTransport`. A `main()` entry-point guard prevents the server from spawning on `import` (so tests can import siblings safely).
-- **Tools (fourteen):**
+- **Tools (fifteen):**
+  - `assemble_context` — one-call, char-budgeted context bundle for a task
+    (typed decisions + patterns + stack facts + relevant passages via
+    [`src/context-assemble.mjs`](./packages/obsidian-memory-mcp/src/context-assemble.mjs));
+    replaces the 3-6 discrete search/read round-trips an agent would chain
+    (median 68% fewer wire tokens on the labelled bench, CI-gated — ADR-0045).
   - `vault_fts_search` / `vault_fts_index` — bridge to the Python RAG engine via `execa` (BM25 lexical search + incremental index).
   - `vault_hybrid_search` — BM25 + per-section vector cosine fused via weighted RRF; returns the **matching section**, not the whole note (the passage-first default — ADR-0017/0018). Optional `graph: true` fuses in a third ranking of `[[wikilink]]`-adjacent notes (ADR-0019/0021); optional `recency: true` biases toward recently-modified notes (ADR-0021).
   - `vault_complete` — prefix autocomplete over note titles, filename stems and inline `#tags` (Trie over the FTS index; ADR-0019).
@@ -127,37 +133,37 @@ One `npx` command to wire an IDE to a vault, idempotently and safely.
 - **Effort-gate hook (ADR-0031, on by default, independent of the pair above):** a `PreToolUse` gate ([`src/hooks/guard-effort-gate.mjs`](./packages/create-obsidian-memory/src/hooks/guard-effort-gate.mjs)) DENIES a session's 2nd+ substantive edit until the model proposes an effort level and gets a real reply from the user — making a pause enforced instead of just announced. `--no-effort-gate` opts out.
 - **Extras:** optional vault scaffold, `vault/.vscode/settings.json` Git-quieting on Windows, and a gitleaks pre-commit hook.
 
-### 5. `obsidian-prompt-compiler` — vault-aware prompt compiler (Node)
+### 5. `vkm-spec` — spec-builder pipeline (Node; absorbed the prompt compiler, ADR-0046)
 
-For pasting into AI tools that don't have the vault's MCP wired (a web chat, another
-editor's chat panel). Not needed when the target already has `vault_hybrid_search`
-available — that's cheaper and on-demand; this is for when it can't reach the vault at all.
+Turns a one-line idea into a reviewed, context-grounded `<orchestration_package>` XML
+prompt: vault context via `assembleContext` (one budgeted call, ADR-0045) → deterministic
+spec fields → an OPTIONAL local-LLM draft (Ollama `phi4-mini`, structured outputs,
+ADR-0047) → the human edits in the GUI or `$EDITOR` → copy/paste into Claude Code, Claude
+web or any other AI. The deterministic fallback is structural: `buildSpec` always compiles
+a working prompt, and the Ollama draft only overwrites fields on success — pinned by the
+degradation-gate test.
 
-- **Entry points:** [`src/cli.mjs`](./packages/obsidian-prompt-compiler/src/cli.mjs) (`obsidian-prompt` bin, terminal) and [`src/server.mjs`](./packages/obsidian-prompt-compiler/src/server.mjs) (`obsidian-prompt-gui` bin, optional — a localhost-only HTTP server + vanilla-JS page for a desktop-icon workflow, same core underneath).
-- **No LLM call:** context comes from `vault_observations` (already-distilled typed facts) and
-  `vault_hybrid_search`, via the same Python bridge `obsidian-memory-mcp` uses — see
-  [`rag-client.mjs`](./packages/obsidian-memory-mcp/src/rag-client.mjs), extracted out of
-  `hybrid-mcp.mjs` so both packages (and tests) can import the bridge without spawning the
-  full MCP stdio server.
-- **Module split:** `project-resolve.mjs` (capture — resolves/picks `PROJECTS/<name>.md`),
-  `context-search.mjs` (retrieval — splits observations into decisions vs. patterns; query
-  qualified by project name + `--graph` and snippets capped at 320 chars so a large real
-  vault's cross-project notes don't drown out the project's own context; falls back to a
-  capped raw excerpt of the project note itself when it has no formal observations yet),
-  `compile-xml.mjs` (pure compiler — CDATA-wrapped, no entity-escaping, so pasted
-  code/passages stay human-readable), `prompt-defaults.mjs` (copy shared between the CLI
-  and the GUI server), `clipboard.mjs` / `review.mjs` (CLI: copy + optional `$EDITOR`
-  review pass before copying), `server.mjs` + `public/index.html` (GUI: same retrieval +
-  compile pipeline behind `/api/compile`, live preview client-side, `navigator.clipboard`
-  for the copy step instead of a Node clipboard library) — the user always reviews before
-  pasting elsewhere, in either mode.
-- **XML schema:** a reduced `<orchestration_package>` (`system_role`, `project_environment`,
-  `knowledge_base_context`, `execution_spec`, `guardrails`, `output_format_instructions`),
-  trimmed from a generic ~35-tag prompt-engineering catalog down to the leaves that earn
-  their place for a coding task; self-check tags (`<thinking>`/`<reflect>`/`<verify>`/…)
-  were dropped as redundant boilerplate.
-- **Versioned independently** of the rest of the kit (not in `scripts/version.mjs`'s
-  `MARKERS`) — `private: true`, not published.
+- **Entry points:** [`src/cli.mjs`](./packages/vkm-spec/src/cli.mjs) (`vkm-spec` bin) and
+  [`src/server.mjs`](./packages/vkm-spec/src/server.mjs) (GUI on `127.0.0.1:4923` —
+  `VKM_SPEC_PORT`; the old 4317 collided with OTLP, ADR-0048): `/api/projects`,
+  `/api/assemble`, `/api/compile` (pure), `/api/draft` (SSE stream of the Ollama draft).
+- **Modules:** `pipeline.mjs` (`buildSpec` orchestration), `ollama-client.mjs`
+  (fetch-only client: `checkOllama` ≥0.5.13 + model presence, `draftSpec` via `/api/chat`
+  with `format=<JSON schema>` constrained decoding, typed `OllamaUnavailableError`),
+  `spec-schema.mjs` (zod schema + hand-written JSON-Schema literal), plus the modules
+  lifted verbatim from the retired `obsidian-prompt-compiler`: `compile-xml.mjs`
+  (CDATA-wrapped reduced XML schema), `prompt-defaults.mjs`, `project-resolve.mjs`,
+  `clipboard.mjs`, `review.mjs`.
+- **Version-locked** to the kit (in `scripts/version.mjs` `MARKERS`, ADR-0042) —
+  `private: true`, runs from the checkout like the MCP sidecar.
+
+### 5b. `vkm-doctor` — local usage telemetry (Node, zero deps; ADR-0044)
+
+A localhost-only OTLP/HTTP JSON sink (`vkm-otel-sink`, `127.0.0.1:4319` → NDJSON rollups
+in `~/.vkm/telemetry/`, 90-day prune, lockfile singleton, kept alive by a `SessionStart`
+hook) plus the `vkm-doctor` CLI: token usage per day/model/type, cache-hit ratio, cost,
+and a "broken cache" diagnosis. Transcript scanning exists only as a clearly-labeled
+`transcript-estimate` fallback. Nothing leaves the machine.
 
 ### 6. Agent-rule surface + maintainer tooling
 

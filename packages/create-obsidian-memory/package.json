@@ -18,7 +18,8 @@
     "basic-memory"
   ],
   "files": [
-    "src"
+    "src",
+    "templates"
   ],
   "type": "module",
   "bin": {

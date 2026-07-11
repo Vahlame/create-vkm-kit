@@ -91,7 +91,8 @@ La claridad manda: si comprimir arriesga un malentendido, no comprimas.
 - **Vuelve a prosa plena** en advertencias de seguridad, confirmaciones de acciones irreversibles y secuencias multi-paso donde el orden importa.
 - **Código mínimo (escalera — párate en el primer peldaño que aguante):** ¿necesita existir? → ¿ya está en el codebase? → ¿stdlib? → ¿feature nativa de la plataforma? → ¿dependencia ya instalada? → ¿una línea? → solo entonces, el mínimo que funciona. Sin abstracciones no pedidas ni scaffolding "para después".
 - **Nunca simplifiques** validación de entrada, manejo de errores que evita pérdida de datos, ni seguridad; el fix barato correcto es causa raíz en la función compartida, no parche al síntoma. Lógica no trivial deja UN check ejecutable.
-- **Memoria barata:** lecturas passage-first con \`limit\` bajo (3–5) cuando sabes qué buscas — notas pequeñas (\`MEMORY.md\`) enteras, notas grandes jamás. Bullets concisos, deduplica. La inteligencia viene de **buenas notas + recall dirigido**, no de releer todo ni de monólogos largos.`,
+- **Memoria barata:** lecturas passage-first con \`limit\` bajo (3–5) cuando sabes qué buscas — notas pequeñas (\`MEMORY.md\`) enteras, notas grandes jamás. Bullets concisos, deduplica. La inteligencia viene de **buenas notas + recall dirigido**, no de releer todo ni de monólogos largos.
+- **Disciplina ejecutable (vkm):** para contexto de proyecto, \`assemble_context\` (1 llamada presupuestada) antes que encadenar búsquedas; en código no trivial invoca \`/vkm-discipline\` — código denso a calidad plena (menos líneas, MISMO alcance) + evidencia ejecutada antes de "terminado".`,
   en: `## Markdown memory (vault + MCP)
 
 > **Block managed by \`create-obsidian-memory\`.** Don't edit between the
@@ -174,7 +175,8 @@ Clarity wins: when compression risks a misread, don't compress.
 - **Drop back to plain prose** for security warnings, irreversible-action confirmations, and multi-step sequences where order matters.
 - **Minimal code (a ladder — stop at the first rung that holds):** does it need to exist? → already in this codebase? → stdlib? → native platform feature? → an already-installed dependency? → one line? → only then, the minimum that works. No unrequested abstractions, no scaffolding "for later".
 - **Never simplify away** input validation, error handling that prevents data loss, or security; the correct lazy fix is the root cause in the shared function, not a patch on the symptom. Non-trivial logic leaves ONE runnable check behind.
-- **Cheap memory:** passage-first reads with a low \`limit\` (3–5) when you know what you're after — small notes (\`MEMORY.md\`) whole, big notes never. Terse bullets, dedup. Intelligence comes from **good notes + targeted recall**, not from re-reading everything or long monologues.`
+- **Cheap memory:** passage-first reads with a low \`limit\` (3–5) when you know what you're after — small notes (\`MEMORY.md\`) whole, big notes never. Terse bullets, dedup. Intelligence comes from **good notes + targeted recall**, not from re-reading everything or long monologues.
+- **Executable discipline (vkm):** for project context, \`assemble_context\` (1 budgeted call) beats chaining searches; on non-trivial code invoke \`/vkm-discipline\` — dense code at full quality (fewer lines, SAME scope) + executed evidence before "done".`
 };
 
 /**

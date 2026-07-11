@@ -44,6 +44,16 @@ Each file in this directory captures one design decision: what was chosen, what 
 | [ADR-0038](./0038-evolutive-memory-loop.md)                        | Evolutive memory loop: learn from failures, reinforce what helps, decay what doesn't      | Accepted |
 | [ADR-0039](./0039-rules-contract.md)                               | RULES contract: dated, sourced, reasoned project rules                                    | Accepted |
 | [ADR-0040](./0040-reliability-isolation-hardening.md)              | Reliability + isolation hardening: cross-process lock, MCP wire lockdown, decay scoring   | Accepted |
+| [ADR-0041](./0041-vkm-kit-rename-and-back-compat.md)               | vkm-kit rename: brand now, machine identifiers dual-read, wire contracts frozen           | Proposed |
+| [ADR-0042](./0042-version-locked-suite-packages.md)                | Version-lock every suite package to the kit version (reverses the compiler precedent)     | Accepted |
+| [ADR-0043](./0043-token-saver-posttooluse-compaction.md)           | Token-saver: conservative PostToolUse output compaction with a hard must-keep guarantee   | Accepted |
+| [ADR-0044](./0044-doctor-telemetry-local-otlp-sink.md)             | Doctor telemetry via a standalone local OTLP/HTTP JSON sink (port 4319, NDJSON, 90d)      | Accepted |
+| [ADR-0045](./0045-assemble-context-single-call.md)                 | `assemble_context`: single-call budgeted context assembly (median 68% wire savings)       | Accepted |
+| [ADR-0046](./0046-absorb-prompt-compiler-into-vkm-spec.md)         | Absorb `obsidian-prompt-compiler` into vkm-spec and delete the package                    | Accepted |
+| [ADR-0047](./0047-ollama-structured-outputs.md)                    | Local LLM drafting via Ollama structured outputs; deterministic fallback as invariant     | Accepted |
+| [ADR-0048](./0048-spec-gui-sse-and-ports.md)                       | vkm-spec GUI transport (SSE) + suite port allocation (4923 app / 4319 sink)               | Accepted |
+| [ADR-0049](./0049-discipline-doctrine-three-channels.md)           | Discipline doctrine in three channels: output style, managed-block bullet, skill          | Accepted |
+| [ADR-0050](./0050-release-train-and-npm-shim.md)                   | 4.0.0 release train: two additive minors, breaking changes last, npm shim forever         | Proposed |
 
 ## Template
 

@@ -23,6 +23,90 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **`vkm-spec` package (ADR-0046/0047/0048)** — the spec-builder pipeline: a one-line
+  idea + vault context (one `assembleContext` call) compiles into an editable
+  `<orchestration_package>` XML prompt, optionally enriched by a LOCAL Ollama
+  draft (`phi4-mini:3.8b-q4_K_M`, `/api/chat` with `format=<JSON schema>`
+  constrained decoding, fetch-only client, typed failures) — then reviewed by
+  the human (GUI on `127.0.0.1:4923` with an SSE draft stream and a visible
+  ollama/fallback source badge, or `vkm-spec` CLI with `$EDITOR` review) and
+  pasted into Claude Code / Claude web / any AI. The deterministic fallback is
+  structural: `buildSpec` always compiles a working prompt and the LLM draft
+  only overwrites fields on success — pinned by a degradation-gate test (Ollama
+  down → SSE `error` frame still carries a working XML). The installer can
+  auto-provision Ollama + the model under explicit `--full` or `--ollama`
+  (winget silent on Windows, ~2.3GB pull, best-effort — never `curl|sh`, never
+  a surprise download on a bare install; `--no-ollama` opts out).
+
+- **vkm skills + subagent template (ADR-0049)** — `/vkm-discipline` (execution
+  contract: same functionality and quality in fewer readable lines — density,
+  never reduced scope; vault-first context via one `assemble_context` call;
+  terse output; nothing is "done" without executed evidence) and `/vkm-spec`
+  (turn a one-line idea into a precise, context-grounded spec in-session — no
+  local LLM in the synchronous path) installed into `~/.claude/skills/`, plus
+  the `vkm-implementer` subagent template in `~/.claude/agents/`. All
+  hash-tracked (`--skills` / `--agents` toggles; user-modified files survive
+  uninstall), with a lint gate keeping every skill description ≤300 chars. The
+  managed rules block gains one "Executable discipline (vkm)" bullet (ES/EN,
+  within existing budgets; AGENTS.md + install docs re-synced — drift gates
+  green).
+- **`assemble_context` MCP tool (ADR-0045)** — one call returns a budgeted context
+  bundle for a task (typed `[decision]`s from the project note, non-decision
+  observations + relevant cross-note passages, `#stack` facts, and a raw-note
+  fallback excerpt when a project has no typed decisions yet), replacing the
+  3-6 discrete search/read round-trips an agent would otherwise chain. Engine
+  relocated from the prompt-compiler's `context-search.mjs` into
+  `obsidian-memory-mcp/src/context-assemble.mjs` (parallel `json-hybrid-search
+--graph` + two `json-observations` passes over the same Python bridge).
+  Honors the security posture of every RAG tool: no wire-level `vault` param
+  (env-resolved only, pinned by test), untrusted-data `_trust` envelope with
+  injection flagging, and a `budget_chars` cap (default 6000) that trims
+  passages-first so decisions survive longest. Measured and CI-locked by the
+  new `bench-assemble` gate (`--assert-savings 0.60 --assert-answered 0.90`):
+  on the labelled fixture, median 68% fewer wire tokens than the naive
+  multi-call pattern at 100% completeness (10,867 vs 30,816 tokens aggregate;
+  cross-cutting queries save an honest 45%, project tasks 68% — and the naive
+  arm pays no discovery cost, so these are floors).
+- **`vkm-doctor` package + local telemetry (ADR-0044)** — a zero-dependency local
+  OTLP/HTTP JSON sink (`vkm-otel-sink`, 127.0.0.1:4319 → NDJSON rollups in
+  `~/.vkm/telemetry/`, 90-day prune, lockfile singleton, tolerant parser that
+  archives unknown metric shapes instead of dropping them) plus a `vkm-doctor`
+  CLI that reports token usage per day/model/type, the cache-hit ratio, cost,
+  and a "broken cache" diagnosis (high input volume with near-zero cacheRead).
+  The installer wires Claude Code's OTEL export to the sink (managed `env`
+  block; `--no-telemetry` opts out) and a `SessionStart` hook spawns the sink
+  when it isn't running — no OS service. Local only: nothing leaves the
+  machine. Transcript scanning exists only as a clearly-labeled
+  `transcript-estimate` fallback (the JSONL format is officially unstable).
+- **Token-saver module (ADR-0043) in `create-obsidian-memory`** — on by default for
+  Claude Code installs (`--no-token-saver` / `--no-terse-style` opt out;
+  `VKM_TOKEN_SAVER=0` is a runtime kill switch). Three pieces, all reconciled
+  symmetrically and fully reversed by `--uninstall`: (1) a `PostToolUse` hook
+  (matcher `Bash`) that compacts noisy shell output before it enters context —
+  ANSI stripped, `\r` progress repaints reduced to their final frame, runs of
+  identical lines collapsed, >200-line logs windowed to head+tail — while a
+  hard, test-gated guarantee keeps every error/warn/fail/exit-code line and the
+  final lines verbatim (≥30% reduction on the noisy CI fixture, zero
+  diagnostic loss); (2) a `PostToolUse` hook (matcher `mcp__.*`) that
+  re-serializes pretty-printed JSON tool results into compact form
+  (whitespace-only — parsed data, including the `_trust` envelope, is
+  byte-identical after `JSON.parse`); (3) `permissions.deny` read rules for
+  token-hungry artifacts (`node_modules/**`, `**/dist/**`, lockfiles) plus the
+  `vkm-terse` output style (`keep-coding-instructions: true`), installed
+  hash-tracked and activated via the `outputStyle` setting.
+- **Shared settings-write infrastructure (`settings-io.mjs`, `settings-writers.mjs`,
+  `asset-install.mjs`) in `create-obsidian-memory`** — Phase 0 groundwork for the
+  vkm-kit efficiency-suite train. The safe `~/.claude/settings.json` idiom
+  (read→BOM-strip→parse with invalid-JSON backup, pure managed-hook merge/remove
+  deduped by filename stem, JSON sanity parse, restricted backups, atomic
+  tmp+rename writes, ownership-marker checks) is extracted out of
+  `claude-native-memory.mjs` into `settings-io.mjs` — behavior unchanged, existing
+  suite as the refactor guard — and joined by new pure writers for the sections
+  upcoming modules manage (`env`, `permissions.deny/allow`, `outputStyle`;
+  removal only reverses values still provably ours) plus a managed-asset
+  installer that tracks installed template files by SHA-256 in a
+  `~/.claude/vkm-kit.assets.json` sidecar so uninstall deletes only unmodified
+  files.
 - **Cross-process lock for the Go daemon's git-sync.** Two `obsidian-memoryd`
   instances (or a daemon plus a manual `sync once`/git operation) pointed at
   the same vault could previously race `add`/`commit`/`pull`/`push` against
@@ -34,6 +118,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   (`--no-effort-gate`, `--no-memory-enforcement`, `--no-native-memory-override`)
   now also removes the corresponding previously-installed hook instead of
   leaving it active. See ADR-0040.
+
+### Removed
+
+- **`obsidian-prompt-compiler` package (ADR-0046)** — absorbed into `vkm-spec`.
+  Its pure modules (`compile-xml`, `prompt-defaults`, `project-resolve`,
+  `clipboard`, `review`) moved verbatim; its retrieval was already relocated to
+  `obsidian-memory-mcp/src/context-assemble.mjs` (ADR-0045). The GUI moved off
+  port 4317 (OTLP collision) to 4923.
 
 ### Fixed
 

@@ -1,6 +1,12 @@
 """Optional hybrid RAG for Obsidian-style vaults."""
 
 from .audit import audit_vault
+from .bench_assemble import (
+    AssembleBenchReport,
+    AssembleQueryResult,
+    evaluate_assemble,
+    run_assemble_benchmark,
+)
 from .bench_recall import (
     BenchReport,
     QueryResult,
@@ -54,6 +60,8 @@ from .trie import Trie
 from .vector_store import ChunkHit
 
 __all__ = [
+    "AssembleBenchReport",
+    "AssembleQueryResult",
     "BenchReport",
     "ChunkHit",
     "Embedder",
@@ -81,6 +89,7 @@ __all__ = [
     "ensure_fresh",
     "estimate_tokens",
     "evaluate",
+    "evaluate_assemble",
     "evaluate_tokens",
     "get_embedder",
     "get_reranker",
@@ -94,6 +103,7 @@ __all__ = [
     "parse_relations",
     "relations_for",
     "rotate_session_log",
+    "run_assemble_benchmark",
     "run_benchmark",
     "run_token_benchmark",
     "search_vault",

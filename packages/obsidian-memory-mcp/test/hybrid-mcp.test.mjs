@@ -67,7 +67,8 @@ test("RAG-passthrough tools: no tool advertises a wire-level `vault` param", asy
       "vault_kg_suggest",
       "memory_extract_candidates",
       "vault_audit",
-      "vault_memory_report"
+      "vault_memory_report",
+      "assemble_context"
     ];
     for (const name of ragToolNames) {
       const tool = tools.find((t) => t.name === name);
@@ -229,6 +230,79 @@ test("memory_extract_candidates: an ordinary, non-injected existing snippet is n
     const [candidate] = data.candidates;
     assert.ok(candidate.existing);
     assert.equal(candidate.existing.injectionFlagged, undefined);
+  } finally {
+    await cleanup();
+    rmSync(vault, { recursive: true, force: true });
+  }
+});
+
+test("assemble_context: one call returns decisions + stack + passages, budgeted, with the trust envelope", async () => {
+  const vault = makeVault("hybrid-assemble-");
+  mkdirSync(join(vault, "PROJECTS"));
+  mkdirSync(join(vault, "STACKS"));
+  writeFileSync(
+    join(vault, "PROJECTS", "demo-app.md"),
+    [
+      "# demo-app",
+      "",
+      "- [decision] demo-app uses websocketstoken reconnect with exponential backoff #arch",
+      "- [gotcha] demo-app dev server drops idle connections after 60s #infra",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+  writeFileSync(
+    join(vault, "STACKS", "svelte.md"),
+    "# svelte\n\n- [fact] svelte 5 runes replace stores for local state #stack\n",
+    "utf8"
+  );
+  writeFileSync(
+    join(vault, "PRACTICES.md"),
+    "# practices\n\nwebsocketstoken lessons: always send a ping frame every 30s to keep proxies open.\n",
+    "utf8"
+  );
+
+  const { client, cleanup } = await connectedClient(vault);
+  try {
+    await client.callTool({ name: "vault_fts_index", arguments: {} });
+    const res = await client.callTool({
+      name: "assemble_context",
+      arguments: { query: "websocketstoken reconnect handling", project: "demo-app" }
+    });
+    const data = JSON.parse(textOf(res));
+    assert.match(data._trust, /untrusted DATA/);
+    assert.equal(data.backendError, null);
+    assert.ok(
+      data.historicalDecisions.some((d) => d.includes("websocketstoken reconnect")),
+      "typed [decision] must land in historicalDecisions"
+    );
+    assert.ok(
+      data.activePatterns.some((p) => p.includes("[gotcha]")),
+      "non-decision observations must land in activePatterns"
+    );
+    assert.ok(
+      data.techStack.some((s) => s.includes("svelte 5 runes")),
+      "#stack observations must land in techStack"
+    );
+    assert.equal(data.usedFallback, false);
+
+    // Budget clamp: a tiny budget must trim passages-first but keep decisions.
+    const tight = await client.callTool({
+      name: "assemble_context",
+      arguments: {
+        query: "websocketstoken reconnect handling",
+        project: "demo-app",
+        budget_chars: 500
+      }
+    });
+    const tightData = JSON.parse(textOf(tight));
+    assert.ok(tightData.historicalDecisions.length >= 1, "decisions survive the budget");
+    const total =
+      tightData.historicalDecisions.join("").length +
+      tightData.activePatterns.join("").length +
+      tightData.techStack.join("").length +
+      (tightData.currentState?.length ?? 0);
+    assert.ok(total <= 500, `budget exceeded: ${total} > 500`);
   } finally {
     await cleanup();
     rmSync(vault, { recursive: true, force: true });

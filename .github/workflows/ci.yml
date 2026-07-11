@@ -118,6 +118,12 @@ jobs:
             --queries evals/tokens/queries.jsonl \
             --assert-savings 0.40 --assert-answered 0.95 \
             --assert-wire-savings 0.30
+      - name: assemble-context gate (one-call bundle vs naive multi-call, completeness-gated, ADR-0045)
+        run: |
+          python -m obsidian_memory_rag bench-assemble \
+            --corpus evals/assemble/corpus \
+            --queries evals/assemble/queries.jsonl \
+            --assert-savings 0.60 --assert-answered 0.90
 
   links:
     runs-on: ubuntu-latest
