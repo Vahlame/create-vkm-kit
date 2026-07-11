@@ -24,11 +24,19 @@ import { z } from "zod";
  *    balloon into a note dump.
  */
 export const SpecSchema = z.object({
+  // Zod is the safety FLOOR, not the ask: the JSON-Schema literal below still requests
+  // 3-7 requirements from the model, but a draft with one useful requirement beats a
+  // total schema_reject → fallback (tier-2 finding, 2026-07-11). Overlong summaries are
+  // truncated and optional fields defaulted — only a truly malformed draft rejects.
   systemRole: z.string().min(1),
   userIntent: z.string().min(1),
-  functionalRequirements: z.array(z.string().min(1)).min(3).max(7),
-  constraints: z.array(z.string().min(1)),
-  currentStateSummary: z.string().max(600)
+  functionalRequirements: z.array(z.string().min(1)).min(1).max(12),
+  constraints: z.array(z.string().min(1)).optional().default([]),
+  currentStateSummary: z
+    .string()
+    .optional()
+    .default("")
+    .transform((s) => s.slice(0, 600))
 });
 
 /**

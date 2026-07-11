@@ -41,24 +41,59 @@ function fold(text) {
     .replace(/[̀-ͯ]/g, "");
 }
 
+/** Light plural stem so "códigos" anchors "código" and vice versa (es/en -s plurals). */
+function stem(term) {
+  return term.length > 4 && term.endsWith("s") ? term.slice(0, -1) : term;
+}
+
 /**
  * Anchor terms of a query: the distinctive words a relevant hit should actually contain.
  * Prefers terms ≥6 chars (common short words like "texto"/"tool" anchor nothing); falls
- * back to ≥4 when the query has no long terms at all.
+ * back to ≥4 when the query has no long terms at all. Plural-stemmed and deduped.
  * @param {string} query
  * @returns {string[]}
  */
 export function anchorTerms(query) {
   const terms = [...new Set(fold(query).split(/[^\p{L}\p{N}_-]+/u))].filter(Boolean);
   const strong = terms.filter((t) => t.length >= 6);
-  return strong.length ? strong : terms.filter((t) => t.length >= 4);
+  const chosen = strong.length ? strong : terms.filter((t) => t.length >= 4);
+  return [...new Set(chosen.map(stem))];
 }
 
-/** True when any anchor appears in the hit's path, heading or snippet (folded). */
+/**
+ * True when the hit is plausibly relevant. Measured on the real vault (tier-1 campaign,
+ * 22 scenarios), the reliable signals are:
+ *  - TWO anchors landing in the same passage (shared vocabulary is real, not coincidence);
+ *  - or ONE anchor CORROBORATED by a retrieval channel: the hit ranked in the lexical
+ *    BM25 channel at all, or in the semantic channel's top 3. A lone generic word on a
+ *    deep vector-only hit ("generador" matching an icon-design lesson for a QR query) is
+ *    exactly the noise this gate exists to kill — while a top-ranked hit with one anchor
+ *    ("taller" for a bike-shop query, bm25 #1) is the recall we must NOT lose.
+ * Requires `--explain` ranks on the hits; when absent (defensive), corroboration falls
+ * back to anchors only.
+ * @param {{ path?: string, heading?: string, snippet?: string,
+ *           bm25_rank?: number|null, vector_rank?: number|null }} hit
+ * @param {string[]} anchors
+ */
 export function hitMatchesAnchors(hit, anchors) {
   if (!anchors.length) return true; // nothing to anchor on → don't drop
   const haystack = fold(`${hit?.path ?? ""} ${hit?.heading ?? ""} ${hit?.snippet ?? ""}`);
-  return anchors.some((a) => haystack.includes(a));
+  let matches = 0;
+  for (const a of anchors) {
+    if (haystack.includes(a)) matches += 1;
+  }
+  if (matches >= Math.min(2, anchors.length)) return true;
+  if (matches >= 1) {
+    const bm25 = hit?.bm25_rank;
+    const vec = hit?.vector_rank;
+    const vecTop = typeof vec === "number" && vec <= 3;
+    // Without a project, BM25 presence is tautological for a single matched word (the
+    // word IS in the text) — only the semantic channel counts as independent
+    // corroboration. With a project, the query is already project-qualified, so the
+    // looser bar buys recall where it's safe.
+    return hit?._scoped ? (bm25 !== null && bm25 !== undefined) || vecTop : vecTop;
+  }
+  return false;
 }
 
 /** Wraps a runRagJson call so a rejection becomes a tagged result instead of being lost. */
@@ -136,6 +171,9 @@ export async function assembleContext({
           searchQuery,
           "--limit",
           String(HYBRID_LIMIT),
+          // Ranks feed the relevance gate (hitMatchesAnchors) — they never reach the
+          // consumer, so the extra diagnostic fields cost zero wire tokens downstream.
+          "--explain",
           // With a project known, --graph fuses in notes one [[wikilink]] hop from the
           // top hits, biasing toward what's actually connected to this project.
           ...(projectName ? ["--graph"] : [])
@@ -203,7 +241,7 @@ export async function assembleContext({
   const anchors = anchorTerms(searchQuery);
   const passages = (Array.isArray(hybridResult?.hits) ? hybridResult.hits : [])
     .filter((h) => h?.path !== projectNote)
-    .filter((h) => hitMatchesAnchors(h, anchors))
+    .filter((h) => hitMatchesAnchors({ ...h, _scoped: Boolean(projectName) }, anchors))
     .map((h) => (h?.snippet ? `[${h.path}] ${truncate(h.snippet, SNIPPET_CHAR_BUDGET)}` : ""))
     .filter(Boolean);
   const patterns = [...otherObservations, ...passages];

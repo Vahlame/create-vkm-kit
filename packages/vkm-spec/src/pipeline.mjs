@@ -8,7 +8,7 @@
  * used instead, and `source: "fallback"` is surfaced — never an exception to the caller.
  * The XML is the same shape either way; only the field CONTENT is richer when Ollama helps.
  */
-import { assembleContext } from "@vkmikc/obsidian-memory-mcp/src/context-assemble.mjs";
+import { assembleContext, anchorTerms } from "@vkmikc/obsidian-memory-mcp/src/context-assemble.mjs";
 import { compileOrchestrationPackage } from "./compile-xml.mjs";
 import { defaultSystemRole, thinContextNote, backendErrorNote } from "./prompt-defaults.mjs";
 import { draftSpec, ensureOllamaServer, OllamaUnavailableError } from "./ollama-client.mjs";
@@ -27,21 +27,41 @@ function truncate(text, max) {
  */
 export function deriveCurrentState(context) {
   if (context?.currentState) return truncate(context.currentState, CURRENT_STATE_MAX);
-  const parts = [
-    ...(context?.historicalDecisions ?? []).slice(0, 3),
-    ...(context?.activePatterns ?? []).slice(0, 2)
-  ].filter(Boolean);
+  // Decisions are project-scoped and safe to summarize. Broader passages are NOT folded
+  // in: they already travel in the XML's knowledge section, and for a topic the vault
+  // barely knows they'd smuggle tangential content into the spec (tier-2 finding: two
+  // polysemy passages became a legal-code "current state" for a QR-generator idea).
+  const parts = (context?.historicalDecisions ?? []).slice(0, 3).filter(Boolean);
   return truncate(parts.join(" · "), CURRENT_STATE_MAX);
 }
 
 /** Compact, LLM-facing serialization of the vault context — bounded, bulleted, no raw dump. */
-export function serializeContext(context) {
+export function serializeContext(context, { idea, project } = {}) {
   const blocks = [];
   if (context?.historicalDecisions?.length) {
     blocks.push("Decisions:\n" + context.historicalDecisions.map((d) => `- ${d}`).join("\n"));
   }
-  if (context?.activePatterns?.length) {
-    blocks.push("Patterns:\n" + context.activePatterns.map((p) => `- ${p}`).join("\n"));
+  // What the LLM is ALLOWED to see differs from what the human sees. The compiled XML
+  // always carries every budgeted passage, source-labeled, for the human to review. The
+  // 3.8B drafting model, however, demonstrably weaves in whatever it is shown (tier-2
+  // campaign: a legal-code passage — matched only through the polysemous word "código" —
+  // ended up inside a QR-generator spec despite relevance-first prompt rules). So on
+  // UNSCOPED requests only high-confidence passages (≥2 anchor terms of the idea in the
+  // passage text) reach the model; project-scoped bundles pass whole, they are already
+  // project-filtered. Don't give a filler-model ammunition to hallucinate with.
+  let patterns = context?.activePatterns ?? [];
+  if (!project && idea && patterns.length) {
+    const anchors = anchorTerms(idea);
+    const needed = Math.min(2, anchors.length || 1);
+    patterns = patterns.filter((p) => {
+      const hay = String(p).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+      let matches = 0;
+      for (const a of anchors) if (hay.includes(a) && ++matches >= needed) return true;
+      return false;
+    });
+  }
+  if (patterns.length) {
+    blocks.push("Patterns:\n" + patterns.map((p) => `- ${p}`).join("\n"));
   }
   if (context?.techStack?.length) {
     blocks.push("Tech stack:\n" + context.techStack.map((t) => `- ${t}`).join("\n"));
@@ -126,7 +146,8 @@ export async function buildSpec({
       await ensureOllamaServer({ host: ollamaHost });
       const { spec: drafted } = await draftSpec({
         idea,
-        context: serializeContext(context),
+        context: serializeContext(context, { idea, project }),
+        project,
         host: ollamaHost,
         model,
         onProgress,

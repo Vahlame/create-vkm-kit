@@ -28,31 +28,27 @@ test("SPEC_JSON_SCHEMA required list matches the zod object keys", () => {
   assert.deepEqual(jsonProps, zodKeys, "properties must cover every field");
 });
 
-test("functionalRequirements bounds mirror the JSON schema (min 3, max 7)", () => {
+test("functionalRequirements: JSON schema ASKS 3-7; zod floor accepts 1-12 (no reject-to-fallback)", () => {
   assert.equal(SPEC_JSON_SCHEMA.properties.functionalRequirements.minItems, 3);
   assert.equal(SPEC_JSON_SCHEMA.properties.functionalRequirements.maxItems, 7);
-  assert.throws(
-    () => SpecSchema.parse({ ...sample, functionalRequirements: ["only", "two"] }),
-    "fewer than 3 requirements must be rejected"
-  );
-  assert.throws(
-    () =>
-      SpecSchema.parse({
-        ...sample,
-        functionalRequirements: ["1", "2", "3", "4", "5", "6", "7", "8"]
-      }),
-    "more than 7 requirements must be rejected"
+  // Floor: one useful requirement beats a schema_reject -> deterministic fallback.
+  assert.doesNotThrow(() => SpecSchema.parse({ ...sample, functionalRequirements: ["only one"] }));
+  assert.throws(() => SpecSchema.parse({ ...sample, functionalRequirements: [] }));
+  assert.throws(() =>
+    SpecSchema.parse({
+      ...sample,
+      functionalRequirements: Array.from({ length: 13 }, (_, i) => String(i))
+    })
   );
 });
 
-test("currentStateSummary max length mirrors the JSON schema (600)", () => {
+test("currentStateSummary: JSON schema caps 600; zod TRUNCATES instead of rejecting", () => {
   assert.equal(SPEC_JSON_SCHEMA.properties.currentStateSummary.maxLength, 600);
-  assert.throws(
-    () => SpecSchema.parse({ ...sample, currentStateSummary: "x".repeat(601) }),
-    "over-length currentStateSummary must be rejected"
-  );
-  // exactly 600 is allowed
-  assert.doesNotThrow(() => SpecSchema.parse({ ...sample, currentStateSummary: "x".repeat(600) }));
+  const parsed = SpecSchema.parse({ ...sample, currentStateSummary: "x".repeat(700) });
+  assert.equal(parsed.currentStateSummary.length, 600);
+  // And a missing summary defaults to empty rather than rejecting the draft.
+  const { currentStateSummary, ...rest } = sample;
+  assert.equal(SpecSchema.parse(rest).currentStateSummary, "");
 });
 
 test("constraints may be empty (no minItems), matching the JSON schema", () => {
