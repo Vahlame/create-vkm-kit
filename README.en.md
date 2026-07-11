@@ -70,8 +70,10 @@ The old npm name still works: `npx @vkmikc/create-obsidian-memory` is a shim tha
 > If no clone is at hand, `--full` **does not abort**: it falls back to `basic-memory` (no hybrid)
 > and warns.
 
-Prefer an **agent to install it**? Clone it and tell it _"install it"_: have it run `npm install`
-then `npm run setup` — dependency preflight → `--full` install → verification → restart notice.
+Prefer an **agent to install it**? Tell it _"link the repo and install it with all its tools and
+capabilities"_: it clones and runs `npm install` then `npm run setup` — dependency preflight →
+`--full` install (hybrid memory + token-saver + vkm-doctor + vkm-spec + skills) → verification →
+restart notice. Step-by-step: [install with an agent](docs/en/install-with-agent.md).
 
 > 🤖 **Claude Code / Codex (fresh PC):** `--full` already registers the MCP via `claude mcp add` /
 > `codex mcp add` and builds the index in the same command. For Claude Code it also makes the vault

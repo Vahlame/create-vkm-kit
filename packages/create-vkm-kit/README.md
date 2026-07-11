@@ -1,4 +1,4 @@
-# @vkmikc/create-obsidian-memory
+# @vkmikc/create-vkm-kit
 
 Interactive initializer for **Obsidian-style, file-based agent memory** — a Markdown vault your
 AI coding agent reads and writes across sessions, wired to your IDE over **MCP**.
@@ -19,19 +19,21 @@ kit. Full docs (English + Spanish), architecture and ADRs live there.
 
 ```bash
 # Interactive wizard (pre-selects everything)
-npm create @vkmikc/obsidian-memory@latest
+npm create @vkmikc/vkm-kit@latest
 
 # ⚡ The whole stack, zero questions — vault defaults to ~/Documents/obsidian-memory-vault.
 # FULL by default (hybrid + semantic + sqlite-vec + index + rules). Run from a clone of
 # the kit (or add --repo-root <clone>) for the hybrid pieces; degrades to basic-memory otherwise.
-npx @vkmikc/create-obsidian-memory@latest -y
+npx @vkmikc/create-vkm-kit@latest -y
 
 # …or point it at any folder (created if it doesn't exist)
-npx @vkmikc/create-obsidian-memory@latest ./my-vault -y
+npx @vkmikc/create-vkm-kit@latest ./my-vault -y
 
 # Just plain basic-memory, nothing else:
-npx @vkmikc/create-obsidian-memory@latest ./my-vault -y --minimal
+npx @vkmikc/create-vkm-kit@latest ./my-vault -y --minimal
 ```
+
+The old npm name still works: `npx @vkmikc/create-obsidian-memory` is a shim that forwards to the new package.
 
 **The install is the full stack BY DEFAULT (default since v3.8.1)** — hybrid + semantic + sqlite-vec + index +
 rules, the same set `--full` ships. That wires the knowledge graph + memory reports (automatic once
@@ -99,7 +101,7 @@ found.
 The initializer can also drop the **memory-protocol rules** (how the agent should use the vault), not just the MCP wiring. Use `--rules all` for full coverage:
 
 ```bash
-npx @vkmikc/create-obsidian-memory@latest ./my-vault -y --ide cursor,claude --rules all
+npx @vkmikc/create-vkm-kit@latest ./my-vault -y --ide cursor,claude --rules all
 ```
 
 It writes an **idempotent marked block** (`<!-- obsidian-memory:start --> … <!-- obsidian-memory:end -->`) into `~/.claude/CLAUDE.md`, `./AGENTS.md` and `.cursor/rules/obsidian-memory.mdc`, merging in place — **your own content is never touched**, and re-runs just refresh the block. Cursor's _global_ User Rules can't be auto-written (not a file), so paste that one from the install guide.
