@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="./LICENSE.md"><img src="https://img.shields.io/badge/license-MIT_%2B_attribution-blue.svg" alt="License"></a>
-  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v4.1.0-orange.svg" alt="Release"></a>
+  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v4.2.0-orange.svg" alt="Release"></a>
   <a href="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
 
