@@ -282,7 +282,10 @@ export async function searchWeb(query, opts = {}, deps = {}) {
   if (!q) throw new Error("obscura_search: empty query.");
   const limit = Math.min(Math.max(Number(opts.limit) || 8, 1), 20);
   const stealth = opts.stealth;
-  const searxngUrl = opts.searxngUrl ?? process.env.OBSCURA_SEARXNG_URL;
+  // Auto-integrate a local SearXNG: default to 127.0.0.1:8888 so obscura_search uses it whenever it's
+  // up (structured, relevant), and falls through to scraping when it isn't (searxngSearch returns null
+  // on connection-refused). Set OBSCURA_SEARXNG_URL="" to disable, or to another URL to point elsewhere.
+  const searxngUrl = opts.searxngUrl ?? process.env.OBSCURA_SEARXNG_URL ?? "http://127.0.0.1:8888";
   const { fetchImpl = obscuraFetch, searxngImpl = searxngSearch, throttleImpl = throttle } = deps;
 
   const cached = cacheGet(q, limit);
