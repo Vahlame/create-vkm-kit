@@ -17,6 +17,11 @@ plus the tests and docs that ride with it. (Starting from a _failure_ instead? L
 6. **Errors propagate, are handled with a concrete action, or logged with context** — never swallowed
    (empty catch, ignored exit code, forced `any`) without a written reason.
 7. **Build/lint/tests run from the real repo state** (not the editor's memory); paste the decisive output.
+8. **Infer and enforce the implicit domain constraints.** When the spec names the domain ("non-negative
+   integer", "valid identifier", "ISO date"), reject everything outside it — validate the full shape,
+   not just that a delimiter is present. The example rarely lists the garbage you must reject; infer it
+   from the domain (a parser for non-negative integers rejects `-1` and `1.5`; it doesn't quietly accept them).
+   Parse strictly — `Number.isInteger`/a regex, not `parseInt` (which reads `"1.5"` as `1` and `"12abc"` as `12`).
 
 ## Edge cases to actually run (or mark "not covered", with a reason)
 

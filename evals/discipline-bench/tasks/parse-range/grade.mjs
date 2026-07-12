@@ -47,8 +47,11 @@ const cases = [
   ["overlap", () => expectEq("1-3,2-4", [1, 2, 3, 4])],
   ["dupes", () => expectEq("1,1,1", [1])],
   ["single-range", () => expectEq("10-10", [10])],
-  ["empty-throws", () => expectThrow("")],
-  ["ws-only-throws", () => expectThrow("   ")],
+  // Empty/whitespace-only input is genuinely under-specified: throwing OR returning [] are both
+  // defensible. Accept either — a grader must not penalize a reasonable reading (it must still reject
+  // garbage like [0], which neither branch produces).
+  ["empty-ok", () => expectThrow("") || expectEq("", [])],
+  ["ws-only-ok", () => expectThrow("   ") || expectEq("   ", [])],
   ["empty-token-throws", () => expectThrow("1,,2")],
   ["reversed-throws", () => expectThrow("5-1")],
   ["malformed-throws", () => expectThrow("1-2-3")],

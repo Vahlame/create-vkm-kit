@@ -35,7 +35,7 @@ A number is meaningless until the question is precise. Pin down, in writing, bef
 If every model scores ~100, the benchmark measures nothing. In this repo's `discipline-bench`, an
 **explicit** parse task (every rule spelled out) saturated at 100 across Haiku/Sonnet/Opus and both
 conditions — no signal. The **under-specified** variant of the _same_ task (rules must be inferred)
-separated them sharply (Haiku 31→87.5, Opus 40.5→84.5). The SOP-suite's own program found the same:
+separated them sharply (Haiku 31→87.5, Opus 53.5→91). The SOP-suite's own program found the same:
 model separation only appeared on hard/ambiguous tasks (its RUN10), while easy visible-contract tasks
 saturated (RUN9). **Design for the frontier of current capability**, or you get a flat line. SWE-bench
 is the canonical example: real GitHub issues so hard the best model at release solved **1.96%**
