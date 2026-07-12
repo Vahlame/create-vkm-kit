@@ -77,6 +77,24 @@ export function hybridServer(vaultAbs, kitRepoAbs, opts = {}) {
 }
 
 /**
+ * Canonical `obscura-web` stdio server object ({command, args, env}) — the MCP that exposes
+ * obscura_fetch / obscura_search, backed by the local obscura headless browser (ADR-0051).
+ * Shared by the Cursor merge and the Claude Code / Codex CLI paths.
+ * @param {string} kitRepoAbs absolute path to the kit clone (contains packages/)
+ * @param {{ binPath?: string|null, searxngUrl?: string|null }} [opts] - `binPath` wires
+ *   OBSCURA_BIN (the installer's ~/.vkm/obscura binary); when null, obscura-web uses
+ *   `obscura` on PATH. `searxngUrl` wires OBSCURA_SEARXNG_URL for the structured search layer.
+ */
+export function obscuraWebServer(kitRepoAbs, opts = {}) {
+  const { obscuraMcpJs } = obscuraWebMcpPathsFromKitRoot(kitRepoAbs);
+  /** @type {Record<string, string>} */
+  const env = {};
+  if (opts && opts.binPath) env.OBSCURA_BIN = opts.binPath;
+  if (opts && opts.searxngUrl) env.OBSCURA_SEARXNG_URL = opts.searxngUrl;
+  return { command: "node", args: [obscuraMcpJs], env };
+}
+
+/**
  * Build argv for `claude mcp add <name> -s <scope> -e K=V ... -- <command> <args...>`.
  * Claude Code registers MCP through its CLI (not an mcp.json file), so the
  * initializer shells out with this — reusing the same server objects as Cursor.
@@ -189,6 +207,22 @@ export function mergeObsidianHybridServer(merged, vaultAbs, kitRepoAbs, opts = {
   return base;
 }
 
+/**
+ * Add `obscura-web` MCP (stealth fetch + robust search via the local obscura browser).
+ * @param {Record<string, unknown>} merged - output of a prior merge (or compatible)
+ * @param {string} kitRepoAbs - absolute path to the kit clone (contains packages/)
+ * @param {{ binPath?: string|null, searxngUrl?: string|null }} [opts] - passed to obscuraWebServer
+ */
+export function mergeObscuraWebServer(merged, kitRepoAbs, opts = {}) {
+  const base = /** @type {Record<string, unknown>} */ (JSON.parse(JSON.stringify(merged)));
+  if (!base.mcpServers || typeof base.mcpServers !== "object" || Array.isArray(base.mcpServers)) {
+    base.mcpServers = {};
+  }
+  const mcpServers = /** @type {Record<string, unknown>} */ (base.mcpServers);
+  mcpServers["obscura-web"] = obscuraWebServer(path.resolve(kitRepoAbs), opts);
+  return base;
+}
+
 /** @param {string} dir */
 export function hybridMcpPathsFromKitRoot(dir) {
   const root = path.resolve(dir);
@@ -196,6 +230,15 @@ export function hybridMcpPathsFromKitRoot(dir) {
     root,
     hybridJs: path.join(root, "packages", "obsidian-memory-mcp", "src", "hybrid-mcp.mjs"),
     pythonSrc: path.join(root, "packages", "obsidian-memory-rag", "src")
+  };
+}
+
+/** @param {string} dir */
+export function obscuraWebMcpPathsFromKitRoot(dir) {
+  const root = path.resolve(dir);
+  return {
+    root,
+    obscuraMcpJs: path.join(root, "packages", "obscura-web", "src", "obscura-mcp.mjs")
   };
 }
 

@@ -1,0 +1,19 @@
+{
+  "name": "@vkmikc/obscura-web",
+  "version": "4.1.0",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "bin": {
+    "obscura-web-mcp": "./src/obscura-mcp.mjs"
+  },
+  "scripts": {
+    "test": "node --test",
+    "start": "node ./src/obscura-mcp.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "execa": "^9.5.2",
+    "zod": "^4.4.3"
+  }
+}

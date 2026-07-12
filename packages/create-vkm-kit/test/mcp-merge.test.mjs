@@ -8,8 +8,11 @@ import {
   SEMANTIC_EMBEDDER,
   mergeBasicMemoryServer,
   mergeObsidianHybridServer,
+  mergeObscuraWebServer,
   basicMemoryServer,
   hybridServer,
+  obscuraWebServer,
+  obscuraWebMcpPathsFromKitRoot,
   claudeAddArgv,
   codexAddArgv,
   codexRemoveArgv,
@@ -194,4 +197,41 @@ test("resolveKitRepoRoot finds repo from cwd walk", async () => {
         .catch(() => false)
   });
   assert.equal(path.resolve(found), path.resolve(repoRoot));
+});
+
+test("obscuraWebServer builds a node server pointing at the obscura-web bridge (empty env by default)", () => {
+  const s = obscuraWebServer(repoRoot);
+  assert.equal(s.command, "node");
+  assert.ok(
+    String(s.args[0]).endsWith(path.join("packages", "obscura-web", "src", "obscura-mcp.mjs"))
+  );
+  assert.deepEqual(s.env, {}, "no binPath/searxng → empty env; obscura-web falls back to PATH");
+});
+
+test("obscuraWebServer wires OBSCURA_BIN and OBSCURA_SEARXNG_URL when provided", () => {
+  const s = obscuraWebServer(repoRoot, {
+    binPath: "C:/vkm/obscura/obscura.exe",
+    searxngUrl: "http://127.0.0.1:8888"
+  });
+  assert.equal(s.env.OBSCURA_BIN, "C:/vkm/obscura/obscura.exe");
+  assert.equal(s.env.OBSCURA_SEARXNG_URL, "http://127.0.0.1:8888");
+});
+
+test("claudeAddArgv for obscura-web carries the OBSCURA_BIN env and node launcher", () => {
+  const argv = claudeAddArgv("obscura-web", obscuraWebServer(repoRoot, { binPath: "/x/obscura" }));
+  assert.ok(argv.includes("OBSCURA_BIN=/x/obscura"));
+  assert.equal(argv[argv.indexOf("--") + 1], "node");
+});
+
+test("mergeObscuraWebServer adds obscura-web alongside existing servers", () => {
+  const base = mergeBasicMemoryServer({}, "/vault");
+  const out = mergeObscuraWebServer(base, repoRoot, { searxngUrl: "http://127.0.0.1:8888" });
+  assert.ok(out.mcpServers["basic-memory"]);
+  assert.equal(out.mcpServers["obscura-web"].command, "node");
+  assert.equal(out.mcpServers["obscura-web"].env.OBSCURA_SEARXNG_URL, "http://127.0.0.1:8888");
+});
+
+test("obscuraWebMcpPathsFromKitRoot resolves the bridge path", () => {
+  const { obscuraMcpJs } = obscuraWebMcpPathsFromKitRoot(repoRoot);
+  assert.ok(obscuraMcpJs.endsWith(path.join("packages", "obscura-web", "src", "obscura-mcp.mjs")));
 });
