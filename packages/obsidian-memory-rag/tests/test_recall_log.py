@@ -9,7 +9,7 @@ from pathlib import Path
 from obsidian_memory_rag import HashingEmbedder, index_vault, index_vectors
 from obsidian_memory_rag.paths import index_db_path
 from obsidian_memory_rag.query import hybrid_search
-from obsidian_memory_rag.recall_log import cold_notes, log_events, usage_counts
+from obsidian_memory_rag.recall_log import cold_notes, log_events, usage_counts, usage_counts_decayed
 from obsidian_memory_rag.report import build_report
 from obsidian_memory_rag.store import connect, init_schema
 
@@ -169,3 +169,15 @@ def test_usage_boost_decays_stale_credit_so_new_note_not_buried(tmp_path: Path) 
     # The brand-new, zero-use note is not buried under the stale-but-in-window
     # note's leftover credit.
     assert order.index("STACKS/aaa-new.md") < order.index("STACKS/zzz-old-stale.md")
+
+
+def test_usage_counts_decayed_excludes_future_dated_events(tmp_path: Path) -> None:
+    # A future at_ns (clock skew / NTP backward jump) must be EXCLUDED, not
+    # clamped to age 0 — clamping gave it the maximum possible weight (1.0),
+    # letting a skewed timestamp transiently out-rank genuinely fresh usage.
+    vault = _seed_vault(tmp_path)
+    _log_used_at(vault, "STACKS/helpful.md", age_days=1.0, n=1)  # genuinely recent
+    _log_used_at(vault, "STACKS/aaa-neutral.md", age_days=-5.0, n=1)  # 5 days in the future
+    counts = usage_counts_decayed(vault, ["STACKS/helpful.md", "STACKS/aaa-neutral.md"])
+    assert counts["STACKS/aaa-neutral.md"] == 0.0
+    assert counts["STACKS/helpful.md"] > 0.0

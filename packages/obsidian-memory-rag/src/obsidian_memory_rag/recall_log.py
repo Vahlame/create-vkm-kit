@@ -147,8 +147,14 @@ def usage_counts_decayed(
     except Exception:
         return out
     for r in rows:
-        age_days = max(0.0, (now_ns - int(r["at_ns"])) / _NS_PER_DAY)
-        weight = max(0.0, 1.0 - (age_days / window_days)) if window_days > 0 else 1.0
+        raw_age_days = (now_ns - int(r["at_ns"])) / _NS_PER_DAY
+        if raw_age_days < 0:
+            # Future-dated event (clock skew / NTP backward jump) — excluded, not
+            # clamped to age 0: clamping gave it the MAXIMUM possible weight
+            # (1.0), letting a skewed timestamp transiently out-rank genuinely
+            # fresh usage instead of just being ignored until real time catches up.
+            continue
+        weight = max(0.0, 1.0 - (raw_age_days / window_days)) if window_days > 0 else 1.0
         path = str(r["path"])
         out[path] = out.get(path, 0.0) + weight
     return out

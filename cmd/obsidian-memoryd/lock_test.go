@@ -62,6 +62,35 @@ func TestAcquireGitSyncLock_HappyPathRoundTrip(t *testing.T) {
 	release2()
 }
 
+// TestAcquireGitSyncLock_ReleaseSkipsIfStolen verifies the corruption fix: a
+// holder whose lock was stolen as stale must NOT delete the new holder's live
+// lock when it later calls its own (stale) release closure.
+func TestAcquireGitSyncLock_ReleaseSkipsIfStolen(t *testing.T) {
+	dir := t.TempDir()
+	release, err := acquireGitSyncLock(dir)
+	if err != nil {
+		t.Fatalf("expected the first acquire to succeed, got %v", err)
+	}
+	lockPath := filepath.Join(dir, gitSyncLockDir, gitSyncLockName)
+
+	// Simulate another process stealing the (now-stale, in its view) lock.
+	writeGitSyncLock(t, dir, gitSyncLockInfo{
+		PID:        os.Getpid() + 1, // any PID distinct from ours
+		Hostname:   "someone-elses-lock-holder",
+		AcquiredAt: time.Now().UTC(),
+	})
+
+	release() // the ORIGINAL (now-stale) holder's release call
+
+	info, readErr := readGitSyncLockInfo(lockPath)
+	if readErr != nil {
+		t.Fatalf("expected the new holder's lock file to survive, got read err: %v", readErr)
+	}
+	if info.Hostname != "someone-elses-lock-holder" {
+		t.Errorf("release() deleted the new holder's lock; got %+v", info)
+	}
+}
+
 // TestAcquireGitSyncLock_BusyWhenHolderAlive is the fail-fast contract for
 // item 2: a live holder (our own real, alive PID) must be rejected
 // immediately, never blocked/waited on.

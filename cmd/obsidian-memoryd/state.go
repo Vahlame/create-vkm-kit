@@ -17,9 +17,14 @@ import (
 // signal of daemon health — the rotating JSONL log is human-readable but easy
 // to miss, especially on Windows where the daemon runs without a console.
 type DaemonState struct {
-	Heartbeat               time.Time `json:"heartbeat"`
-	LastPush                time.Time `json:"last_push,omitempty"`
-	LastRebaseAbort         time.Time `json:"last_rebase_abort,omitempty"`
+	Heartbeat       time.Time `json:"heartbeat"`
+	LastPush        time.Time `json:"last_push,omitempty"`
+	LastRebaseAbort time.Time `json:"last_rebase_abort,omitempty"`
+	// LastRebaseAbortFailedAt records when `git rebase --abort` was ATTEMPTED but
+	// itself failed — distinct from LastRebaseAbort (a successful abort): the
+	// worktree may still be sitting mid-rebase, which doctor must not describe
+	// as resolved just because SOME abort attempt was made.
+	LastRebaseAbortFailedAt time.Time `json:"last_rebase_abort_failed_at,omitempty"`
 	ConsecutivePushFailures int       `json:"consecutive_push_failures"`
 	// Sync-level health (any step: add/commit/pull/push). ConsecutivePushFailures
 	// alone left `doctor` falsely green when the vault stopped syncing for a
@@ -95,7 +100,10 @@ func writeState(s *DaemonState) error {
 		return err
 	}
 	tmp := fp + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+	// 0o600, not 0o644: sync-failure error text (LastSyncError) can include git's
+	// own output, which may embed a credential-carrying remote URL when the user
+	// hasn't configured a credential manager.
+	if err := os.WriteFile(tmp, data, 0o600); err != nil {
 		return err
 	}
 	return os.Rename(tmp, fp)
@@ -163,11 +171,21 @@ func recordPushFailure() {
 	})
 }
 
-// recordRebaseAbort timestamps the most recent rebase --abort so users can
-// notice that they're stuck in a divergence loop.
+// recordRebaseAbort timestamps the most recent SUCCESSFUL rebase --abort so
+// users can notice that they're stuck in a divergence loop.
 func recordRebaseAbort() {
 	_ = updateState(func(s *DaemonState) {
 		s.LastRebaseAbort = time.Now().UTC()
+		s.LastRebaseAbortFailedAt = time.Time{}
+	})
+}
+
+// recordRebaseAbortFailure timestamps a rebase --abort attempt that itself
+// failed. See LastRebaseAbortFailedAt's doc comment for why this must stay
+// distinct from recordRebaseAbort.
+func recordRebaseAbortFailure() {
+	_ = updateState(func(s *DaemonState) {
+		s.LastRebaseAbortFailedAt = time.Now().UTC()
 	})
 }
 
@@ -192,6 +210,7 @@ func recordSyncSuccess() {
 		s.LastSyncError = ""
 		s.LastSyncErrorAt = time.Time{}
 		s.LastRebaseAbort = time.Time{}
+		s.LastRebaseAbortFailedAt = time.Time{}
 	})
 }
 
@@ -230,13 +249,15 @@ func recordSyncFailure(err error) {
 	})
 }
 
-// truncateString caps a string at n runes-ish (bytes) with an ellipsis, keeping
-// the persisted error message bounded.
+// truncateString caps a string at n runes with an ellipsis, keeping the
+// persisted error message bounded. Rune-, not byte-, indexed: this vault's
+// own content (and therefore git error text/paths) is routinely non-ASCII.
 func truncateString(s string, n int) string {
-	if len(s) <= n {
+	r := []rune(s)
+	if len(r) <= n {
 		return s
 	}
-	return s[:n] + "..."
+	return string(r[:n]) + "..."
 }
 
 // formatAgo formats a duration since `t` as e.g. "2m30s ago", or "never" when

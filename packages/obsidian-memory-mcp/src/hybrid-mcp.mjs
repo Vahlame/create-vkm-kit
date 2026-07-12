@@ -765,6 +765,7 @@ export async function buildServer() {
         query: z.string().describe("The task/idea to gather context for (natural language)"),
         project: z
           .string()
+          .regex(/^[\w-]+$/, "bare project name only, no path separators or '..'")
           .optional()
           .describe("Bare project name (PROJECTS/<name>.md) to scope decisions and bias ranking"),
         budget_chars: z

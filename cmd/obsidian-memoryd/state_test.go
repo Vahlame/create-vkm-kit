@@ -159,6 +159,52 @@ func TestDoctorPushFailures(t *testing.T) {
 	}
 }
 
+// TestDoctorRebaseAbortFailed verifies a FAILED abort attempt alarms doctor
+// with a distinct message from a successful one — the worktree may still be
+// sitting mid-rebase, which must never be reported as resolved.
+func TestDoctorRebaseAbortFailed(t *testing.T) {
+	withTempStateDir(t)
+	now := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	_ = writeState(&DaemonState{
+		Heartbeat:               now.Add(-30 * time.Second),
+		LastRebaseAbortFailedAt: now.Add(-2 * time.Minute),
+	})
+	var buf bytes.Buffer
+	err := doctor(&buf, "", now)
+	if !errors.Is(err, ErrDoctorAlarm) {
+		t.Fatalf("a failed rebase abort should trigger alarm, got %v", err)
+	}
+	if !strings.Contains(buf.String(), "rebase abort FAILED") {
+		t.Errorf("output missing abort-failed marker\n---\n%s", buf.String())
+	}
+}
+
+// TestRecordRebaseAbortClearsFailureFlag verifies a later SUCCESSFUL abort
+// clears any earlier failure marker, and vice versa a failure never sets the
+// success timestamp — the two signals must stay mutually exclusive.
+func TestRecordRebaseAbortClearsFailureFlag(t *testing.T) {
+	withTempStateDir(t)
+	recordRebaseAbortFailure()
+	if s := readState(); s.LastRebaseAbortFailedAt.IsZero() {
+		t.Fatal("expected LastRebaseAbortFailedAt to be set")
+	}
+	recordRebaseAbort()
+	s := readState()
+	if s.LastRebaseAbort.IsZero() {
+		t.Error("expected LastRebaseAbort to be set after a successful abort")
+	}
+	if !s.LastRebaseAbortFailedAt.IsZero() {
+		t.Error("a successful abort must clear a prior failure marker")
+	}
+}
+
+func TestTruncateStringIsRuneSafe(t *testing.T) {
+	got := truncateString("código está OK", 5)
+	if r := []rune(strings.TrimSuffix(got, "...")); len(r) != 5 {
+		t.Errorf("expected exactly 5 runes before the ellipsis, got %d (%q)", len(r), got)
+	}
+}
+
 // TestDoctorSyncFailures is the health-fix regression test: a vault with a FRESH
 // heartbeat and ZERO push failures, but repeated sync failures (e.g. a stuck
 // pull), must alarm — before the fix this state reported perfectly healthy.

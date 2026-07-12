@@ -3,7 +3,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -185,7 +184,18 @@ func (execRunner) Run(ctx context.Context, name string, args ...string) error {
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Env = append(cmd.Environ(), "GIT_TERMINAL_PROMPT=0")
 	hiddenCmd(cmd)
-	return cmd.Run()
+	var stderr strings.Builder
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		// Previously discarded entirely: a push/add/rebase-abort failure was
+		// recorded as a bare exit code with no indication why. %w keeps the
+		// original error (incl. *exec.ExitError) unwrappable via errors.As.
+		if stderr.Len() > 0 {
+			return fmt.Errorf("%w: %s", err, truncate([]byte(strings.TrimSpace(stderr.String())), 400))
+		}
+		return err
+	}
+	return nil
 }
 
 func (execRunner) Output(ctx context.Context, name string, args ...string) ([]byte, error) {
@@ -351,17 +361,27 @@ func commitStep(parent context.Context, r Runner, to time.Duration, l *slog.Logg
 	if body != "" {
 		args = append(args, "-m", body)
 	}
-	err := r.Run(ctx, "git", args...)
+	out, err := r.Output(ctx, "git", args...)
 	if err == nil {
 		l.Info("git step ok", "step", "commit", "files", len(files))
 		return nil
 	}
 	var ce exitCoder
-	if errors.As(err, &ce) && ce.ExitCode() == 1 {
+	if errors.As(err, &ce) && ce.ExitCode() == 1 && isCommitNoop(out) {
 		l.Info("git commit noop (nothing to commit)")
 		return nil
 	}
-	return fmt.Errorf("git commit: %w", err)
+	return fmt.Errorf("git commit: %w; output=%s", err, truncate(out, 400))
+}
+
+// isCommitNoop reports whether `git commit`'s own output is its "nothing to
+// commit" message, as opposed to some other reason a commit exits 1 — most
+// plausibly a pre-commit/commit-msg hook rejecting staged content. The two
+// are indistinguishable by exit code alone; treating every exit-1 as a
+// benign noop silently discarded genuinely-rejected work.
+func isCommitNoop(out []byte) bool {
+	s := string(out)
+	return strings.Contains(s, "nothing to commit") || strings.Contains(s, "working tree clean")
 }
 
 func pullRebaseStep(parent context.Context, r Runner, to time.Duration, l *slog.Logger, dir string) error {
@@ -372,18 +392,35 @@ func pullRebaseStep(parent context.Context, r Runner, to time.Duration, l *slog.
 		l.Info("git step ok", "step", "pull --rebase")
 		return nil
 	}
-	if bytes.Contains(out, []byte("CONFLICT")) || bytes.Contains(out, []byte("needs merge")) {
+	// Abort trigger is the actual on-disk rebase state, not a substring match on
+	// the failure output — a context-timeout kill or a network drop mid-apply can
+	// leave a rebase in progress with output that never mentions CONFLICT/needs
+	// merge, and would otherwise skip cleanup and wedge `.git` forever.
+	if rebaseInProgress(dir) {
 		abortCtx, abortCancel := context.WithTimeout(parent, 10*time.Second)
 		defer abortCancel()
 		if abortErr := r.Run(abortCtx, "git", "-C", dir, "rebase", "--abort"); abortErr != nil {
 			l.Error("rebase abort failed", "err", abortErr)
-		} else {
-			l.Warn("rebase aborted due to conflicts; resolve manually then re-sync", "dir", dir)
+			recordRebaseAbortFailure()
+			return fmt.Errorf("git pull --rebase: conflict, abort FAILED (worktree may still be mid-rebase): %w", abortErr)
 		}
+		l.Warn("rebase aborted due to conflicts; resolve manually then re-sync", "dir", dir)
 		recordRebaseAbort()
 		return fmt.Errorf("git pull --rebase: conflict, aborted")
 	}
 	return fmt.Errorf("git pull --rebase: %w; output=%s", err, truncate(out, 400))
+}
+
+// rebaseInProgress reports whether dir's repo is currently mid-rebase, by
+// checking git's own on-disk state directories directly — independent of
+// whatever text a failed `pull --rebase` did or didn't produce.
+func rebaseInProgress(dir string) bool {
+	for _, name := range []string{"rebase-merge", "rebase-apply"} {
+		if fi, err := os.Stat(filepath.Join(dir, ".git", name)); err == nil && fi.IsDir() {
+			return true
+		}
+	}
+	return false
 }
 
 func pushStep(parent context.Context, r Runner, to time.Duration, l *slog.Logger, dir string) error {
@@ -425,11 +462,17 @@ func pushStep(parent context.Context, r Runner, to time.Duration, l *slog.Logger
 	return fmt.Errorf("git push (%d attempts): %w", pushMaxRetries, lastErr)
 }
 
+// truncate caps b at n runes (not bytes) with an ellipsis. Git output and
+// vault paths routinely contain non-ASCII (this vault's own content is
+// Spanish) — a raw byte cut can slice mid-rune, which encoding/json then
+// mangles into U+FFFD once persisted to state.json.
 func truncate(b []byte, n int) string {
-	if len(b) <= n {
-		return string(b)
+	s := string(b)
+	r := []rune(s)
+	if len(r) <= n {
+		return s
 	}
-	return string(b[:n]) + "..."
+	return string(r[:n]) + "..."
 }
 
 // flushableWriter is implemented by *os.File (including os.Stdout, doctor's
@@ -479,6 +522,10 @@ func doctor(out io.Writer, vault string, now time.Time) error {
 	if !s.LastRebaseAbort.IsZero() {
 		fmt.Fprintf(out, "  last rebase abort:        %s ⚠\n", formatAgo(now, s.LastRebaseAbort))
 	}
+	if !s.LastRebaseAbortFailedAt.IsZero() {
+		fmt.Fprintf(out, "  rebase abort FAILED:      %s ⚠ worktree may still be mid-rebase, resolve manually\n",
+			formatAgo(now, s.LastRebaseAbortFailedAt))
+	}
 	if !s.LastConflictFileAt.IsZero() {
 		fmt.Fprintf(out, "  syncthing conflict seen:  %s (%s) ⚠ resolve manually\n",
 			formatAgo(now, s.LastConflictFileAt), s.LastConflictFile)
@@ -527,6 +574,7 @@ func doctor(out io.Writer, vault string, now time.Time) error {
 		s.ConsecutivePushFailures >= 3 ||
 		s.ConsecutiveSyncFailures >= 3 ||
 		!s.LastRebaseAbort.IsZero() ||
+		!s.LastRebaseAbortFailedAt.IsZero() ||
 		s.LastWatchStartError != ""
 	if alarm {
 		fmt.Fprintln(out, "")

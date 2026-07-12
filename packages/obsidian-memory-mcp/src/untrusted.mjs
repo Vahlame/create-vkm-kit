@@ -164,7 +164,12 @@ export function scanInjection(text) {
  */
 export function wrapUntrusted(text, source) {
   const body = typeof text === "string" ? text : String(text ?? "");
-  const src = source == null ? "" : String(source);
+  // Escaped so a vault path/filename containing a quote or angle bracket (valid on POSIX)
+  // can't break out of the source="..." attribute or the delimiter tag itself.
+  const src = (source == null ? "" : String(source)).replace(
+    /[&<>"]/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]
+  );
   const flagged = scanInjection(body);
   const warn =
     flagged.length > 0

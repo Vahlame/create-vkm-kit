@@ -191,3 +191,9 @@ test("wrapUntrusted: tolerates non-string body and missing source", () => {
   assert.ok(wrapped.includes("42"));
   assert.ok(wrapped.includes(`source=""`));
 });
+
+test("wrapUntrusted: escapes a quote in source so it can't break out of the attribute", () => {
+  const wrapped = wrapUntrusted("body", `weird"note.md`);
+  assert.ok(!wrapped.includes(`source="weird"note.md"`));
+  assert.ok(wrapped.includes(`source="weird&quot;note.md"`));
+});

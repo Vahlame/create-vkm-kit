@@ -4,8 +4,8 @@
  * source of truth" reminders as `additionalContext`, so every session starts knowing
  * the native auto-memory is OFF and recall/close go through the Obsidian vault.
  *
- * Installed by `create-obsidian-memory` into `~/.claude/hooks/` and registered in
- * `~/.claude/settings.json` as: `node "<this file>" "<vault>" [lang]`.
+ * Installed by create-obsidian-memory — the vkm-kit installer — into `~/.claude/hooks/` and
+ * registered in `~/.claude/settings.json` as: `node "<this file>" "<vault>" [lang]`.
  *
  * Cross-platform on purpose (Node, not PowerShell/bash) so ONE script — and ONE copy
  * of the reminder text — serves Windows, macOS and Linux.

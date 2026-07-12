@@ -141,7 +141,10 @@ func TestGitSync_EmptyCommit(t *testing.T) {
 	dir := tempGitRepo(t)
 	r := &verbRunner{
 		responses: map[string][]fakeResp{
-			"commit": {{err: &fakeExitErr{code: 1}}},
+			"commit": {{
+				out: []byte("On branch main\nnothing to commit, working tree clean\n"),
+				err: &fakeExitErr{code: 1},
+			}},
 		},
 	}
 	if err := gitSyncWith(context.Background(), discardLogger(), dir, r); err != nil {
@@ -158,9 +161,38 @@ func TestGitSync_EmptyCommit(t *testing.T) {
 	}
 }
 
+// TestGitSync_RejectedCommitHookIsNotANoop verifies a pre-commit/commit-msg
+// hook rejecting staged content (also exit 1, but with NEITHER of git's own
+// noop phrases in its output) is surfaced as a real error instead of being
+// silently swallowed as "nothing to commit" — the exact bug that would have
+// discarded staged work while every health signal stayed green.
+func TestGitSync_RejectedCommitHookIsNotANoop(t *testing.T) {
+	withTempStateDir(t)
+	dir := tempGitRepo(t)
+	r := &verbRunner{
+		responses: map[string][]fakeResp{
+			"commit": {{
+				out: []byte("husky > pre-commit hook failed (add --no-verify to bypass)\n"),
+				err: &fakeExitErr{code: 1},
+			}},
+		},
+	}
+	err := gitSyncWith(context.Background(), discardLogger(), dir, r)
+	if err == nil || !strings.Contains(err.Error(), "git commit") {
+		t.Fatalf("expected a real commit error, got: %v", err)
+	}
+	if s := readState(); s.ConsecutiveSyncFailures == 0 {
+		t.Error("a rejected commit must count as a sync failure, not a silent success")
+	}
+}
+
 func TestGitSync_RebaseConflictAborts(t *testing.T) {
 	withTempStateDir(t)
 	dir := tempGitRepo(t)
+	// Real git creates .git/rebase-merge while a rebase is paused for conflict
+	// resolution — the abort trigger now checks THIS, not the failure text, so
+	// the fake must simulate the actual on-disk state.
+	mkdirRebaseMerge(t, dir)
 	r := &verbRunner{
 		responses: map[string][]fakeResp{
 			"pull": {{out: []byte("Auto-merging foo\nCONFLICT (content): Merge conflict in foo\n"), err: errors.New("rebase failed")}},
@@ -179,6 +211,69 @@ func TestGitSync_RebaseConflictAborts(t *testing.T) {
 		if r.calls[i] != v {
 			t.Errorf("call %d: want verb %q, got %q", i, v, r.calls[i])
 		}
+	}
+	if s := readState(); s.LastRebaseAbort.IsZero() {
+		t.Error("a successful abort must record LastRebaseAbort")
+	}
+}
+
+// TestGitSync_RebaseAbortTriggersWithoutConflictWording verifies the abort
+// fires purely off the on-disk rebase state — not off CONFLICT/needs-merge
+// text — so a failure mode like a context-timeout kill (which truncates
+// output before any such text is flushed) still gets cleaned up instead of
+// wedging `.git` forever.
+func TestGitSync_RebaseAbortTriggersWithoutConflictWording(t *testing.T) {
+	withTempStateDir(t)
+	dir := tempGitRepo(t)
+	mkdirRebaseMerge(t, dir)
+	r := &verbRunner{
+		responses: map[string][]fakeResp{
+			// No CONFLICT/needs-merge text anywhere — simulates a truncated/killed
+			// pull whose output never got that far.
+			"pull": {{out: []byte(""), err: errors.New("signal: killed")}},
+		},
+	}
+	err := gitSyncWith(context.Background(), discardLogger(), dir, r)
+	if err == nil || !strings.Contains(err.Error(), "aborted") {
+		t.Fatalf("expected an aborted-rebase error even without conflict wording, got: %v", err)
+	}
+	wantVerbs := []string{"add", "diff", "commit", "pull", "rebase"}
+	if len(r.calls) != len(wantVerbs) {
+		t.Fatalf("expected %d calls, got %d: %v", len(wantVerbs), len(r.calls), r.calls)
+	}
+}
+
+// TestGitSync_RebaseAbortFailureIsNotRecordedAsSuccess verifies that when the
+// abort attempt ITSELF fails, doctor's success signal (LastRebaseAbort) is
+// never set — only the distinct failure signal is — so a still-mid-rebase
+// worktree can never be reported as cleanly resolved.
+func TestGitSync_RebaseAbortFailureIsNotRecordedAsSuccess(t *testing.T) {
+	withTempStateDir(t)
+	dir := tempGitRepo(t)
+	mkdirRebaseMerge(t, dir)
+	r := &verbRunner{
+		responses: map[string][]fakeResp{
+			"pull":   {{out: []byte("CONFLICT"), err: errors.New("rebase failed")}},
+			"rebase": {{err: errors.New("could not abort: index locked")}},
+		},
+	}
+	err := gitSyncWith(context.Background(), discardLogger(), dir, r)
+	if err == nil || !strings.Contains(err.Error(), "abort FAILED") {
+		t.Fatalf("expected an abort-FAILED error, got: %v", err)
+	}
+	s := readState()
+	if !s.LastRebaseAbort.IsZero() {
+		t.Error("a FAILED abort must not set LastRebaseAbort (the success signal)")
+	}
+	if s.LastRebaseAbortFailedAt.IsZero() {
+		t.Error("a FAILED abort must set LastRebaseAbortFailedAt")
+	}
+}
+
+func mkdirRebaseMerge(t *testing.T, dir string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Join(dir, ".git", "rebase-merge"), 0o755); err != nil {
+		t.Fatalf("mkdirRebaseMerge: %v", err)
 	}
 }
 

@@ -11,6 +11,7 @@
  *
  * Routes:
  *  - GET  /                → the static GUI page
+ *  - GET  /api/health      → { version, startedAt } (used to detect a stale process on EADDRINUSE)
  *  - GET  /api/projects    → { vault, projects[] }
  *  - POST /api/assemble    → assembleContext(idea, project) result (retrieval only)
  *  - POST /api/compile     → { xml } from spec fields + context (pure, NO LLM)
@@ -34,6 +35,10 @@ import { defaultSystemRole, thinContextNote, backendErrorNote } from "./prompt-d
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.resolve(__dirname, "..", "public");
+const PKG_VERSION = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8")
+).version;
+const STARTED_AT = new Date().toISOString();
 /** 4923, overridable via VKM_SPEC_PORT. The donor obsidian-prompt-gui used 4317, which
  * collides with the OpenTelemetry OTLP/gRPC default — that collision is WHY this package
  * moved off it (the MCP sidecar's telemetry exporter can hold 4317). Keep away from it. */
@@ -122,6 +127,10 @@ export function createServer({ vault, lang = "es", ollamaHost, model } = {}) {
 
   return http.createServer(async (req, res) => {
     try {
+      if (req.method === "GET" && req.url.split("?")[0] === "/api/health") {
+        return sendJson(res, 200, { version: PKG_VERSION, startedAt: STARTED_AT });
+      }
+
       if (req.method === "GET" && req.url.split("?")[0] === "/api/projects") {
         return sendJson(res, 200, { vault: vaultPath, projects: listProjectNames(vaultPath) });
       }
@@ -198,13 +207,27 @@ async function handleDraft(req, res, { vaultPath, lang, ollamaHost, model }) {
   if (project && !VALID_PROJECT.test(project))
     return sendJson(res, 400, { error: "proyecto inválido" });
 
+  // A client that closes/refreshes the tab mid-draft (realistic — a first draft can take
+  // ~60s) must never crash the WHOLE server: writing to an already-destroyed socket emits
+  // an unhandled 'error' by default, which is fatal for every other open tab too.
+  res.on("error", () => {});
+  let aborted = false;
+  const controller = new AbortController();
+  req.on("close", () => {
+    aborted = true;
+    controller.abort();
+  });
+
   res.writeHead(200, {
     "Content-Type": "text/event-stream; charset=utf-8",
     "Cache-Control": "no-cache",
     Connection: "keep-alive",
     "X-Accel-Buffering": "no"
   });
-  const send = (event, data) => res.write(formatSseEvent(event, data));
+  const send = (event, data) => {
+    if (aborted) return; // client already gone — stop writing, don't just stop crashing
+    res.write(formatSseEvent(event, data));
+  };
 
   // Immediate status frame: the first draft of the day loads the ~2.5GB model into RAM
   // (30-60s on CPU) with zero token progress — without this the GUI looks frozen.
@@ -224,6 +247,7 @@ async function handleDraft(req, res, { vaultPath, lang, ollamaHost, model }) {
       llm: true,
       ollamaHost,
       model,
+      signal: controller.signal,
       onProgress: (tokens) => send("progress", { tokens })
     });
     if (result.source === "fallback") {
@@ -240,7 +264,7 @@ async function handleDraft(req, res, { vaultPath, lang, ollamaHost, model }) {
     // A non-degradation bug (not an Ollama failure) — there's no working xml to hand back.
     send("error", { message: e?.message || String(e), source: "fallback", spec: null, xml: null });
   } finally {
-    res.end();
+    if (!aborted) res.end();
   }
 }
 
@@ -303,6 +327,23 @@ function main() {
   server.on("error", (e) => {
     if (e.code === "EADDRINUSE") {
       console.log(`Ya hay una instancia corriendo en ${url} — abriendo el navegador ahí.`);
+      // Diagnostic, not a guarantee: a stale process from a prior version (e.g. left
+      // running after a `git pull`/package bump — the exact zombie-on-4923 incident this
+      // closes) silently keeps serving old code forever with no way for a typical user to
+      // notice. Can't fix that automatically without real process management (out of
+      // scope), but a version mismatch is at least now surfaced instead of invisible.
+      fetch(`${url}/api/health`)
+        .then((r) => r.json())
+        .then((health) => {
+          if (health?.version && health.version !== PKG_VERSION) {
+            console.warn(
+              `Aviso: la instancia en ${url} corre la versión ${health.version}, ` +
+                `pero este paquete es ${PKG_VERSION} — puede estar desactualizada. ` +
+                `Cerrala (Task Manager / kill del proceso node) y volvé a abrir.`
+            );
+          }
+        })
+        .catch(() => {}); // best-effort — a non-vkm-spec process on the port answers 404/refuses
       openBrowser(url);
       return;
     }

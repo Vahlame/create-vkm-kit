@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * @vkmikc/create-obsidian-memory — interactive initializer (v2 / v3).
+ * @vkmikc/create-vkm-kit — interactive initializer.
  * Spanish-first CLI; pass --lang en for English labels.
  *
  * Source-of-truth lives in this `src/` directory. There is no `dist/` build
@@ -71,7 +71,7 @@ const VAULT_VSCODE_GIT_SETTINGS = {
 
 const messages = {
   es: {
-    title: "create-obsidian-memory",
+    title: "create-vkm-kit",
     vaultQ: "Ruta del vault (debe contener .obsidian o crearemos uno)",
     createVault: "Crear un vault nuevo en ~/Documents/obsidian-memory-vault",
     ides: "IDEs a configurar (espacio para MCP)",
@@ -90,7 +90,7 @@ const messages = {
       "¿Instalar las reglas de memoria en CLAUDE.md / AGENTS.md / .cursor? (bloque marcado; no pisa tu contenido)"
   },
   en: {
-    title: "create-obsidian-memory",
+    title: "create-vkm-kit",
     vaultQ: "Vault path (must contain .obsidian or we create a sample)",
     createVault: "Create a new vault at ~/Documents/obsidian-memory-vault",
     ides: "IDEs to wire for MCP",
@@ -144,7 +144,7 @@ const VALUE_FLAGS = new Set(["--vault", "--ide", "--repo-root", "--lang", "--rul
 
 /**
  * First bare (non-flag) CLI argument = vault path shorthand, so you can write
- * `create-obsidian-memory ./my-vault` instead of `--vault ./my-vault`.
+ * `create-vkm-kit ./my-vault` instead of `--vault ./my-vault`.
  * @param {string[]} argv
  */
 function positionalVault(argv) {
@@ -1037,13 +1037,13 @@ async function runNonInteractive(argv) {
 async function main() {
   const argv = process.argv;
   if (argv.includes("--help")) {
-    console.log(`Usage: create-obsidian-memory [vault] [options]
+    console.log(`Usage: create-vkm-kit [vault] [options]
 
 Examples:
-  create-obsidian-memory                 # interactive wizard (pre-selects everything)
-  create-obsidian-memory ./my-vault -y   # headless, FULL stack by default, into ./my-vault
-  create-obsidian-memory -y              # headless, FULL stack, default vault path
-  create-obsidian-memory -y --minimal    # headless, plain basic-memory only
+  create-vkm-kit                 # interactive wizard (pre-selects everything)
+  create-vkm-kit ./my-vault -y   # headless, FULL stack by default, into ./my-vault
+  create-vkm-kit -y              # headless, FULL stack, default vault path
+  create-vkm-kit -y --minimal    # headless, plain basic-memory only
 
 The install is the FULL stack BY DEFAULT (hybrid + semantic + index + sqlite-vec +
 rules); run it from a clone of the kit (or pass --repo-root) for the hybrid pieces —
@@ -1351,7 +1351,11 @@ Claude Code native-memory override (when --ide includes claude):
       denyRules: wantTokenSaver
     });
     await configureTelemetry(home, dryRun, {
-      enable: wantTokenSaver && !process.argv.includes("--no-telemetry"),
+      // Independent of wantTokenSaver — telemetry is its own ADR-0044 toggle
+      // (matches the headless path's `wantTelemetry` below); coupling it to
+      // token-saver meant --no-token-saver on a rerun silently stripped a
+      // previously-installed telemetry sink the user never asked to touch.
+      enable: Boolean(ides?.includes("claude")) && !process.argv.includes("--no-telemetry"),
       kitRoot: hybridOpts.repoRoot || null
     });
     await configureSkillAssets(home, dryRun, {

@@ -53,6 +53,12 @@ export function aggregate({ dataDir = defaultDataDir(), days = 30 } = {}) {
       } catch {
         continue; // tolerate a torn write
       }
+      // A torn write or a future OTLP schema drift (otel-sink.mjs's own header flags this
+      // as a foreseen risk) can leave `value` malformed — unvalidated, it silently poisons
+      // the running sum to NaN (or string-concatenates), collapsing cacheHitRatio to null
+      // ("no data yet") and masking a real broken-cache diagnosis instead of just skipping
+      // the one bad line, mirroring parseOtlpJson's own Number.isNaN guard in otel-sink.mjs.
+      if (!Number.isFinite(p.value)) continue;
       if (p.metric === "claude_code.cost.usage") {
         costUSD += p.value;
         continue;

@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import obsidian_memory_rag.embeddings as embeddings_mod
 from obsidian_memory_rag.embeddings import (
     _FASTEMBED_IDENTITY_RE,
     HashingEmbedder,
     _fastembed_cache_dir,
     _fastembed_identity,
+    _tokenize,
     embedder_for_identity,
     get_embedder,
     resolve_embedder_name,
@@ -89,3 +91,34 @@ def test_embedder_for_identity_returns_none_for_unrecognized_identity() -> None:
     # A future/unknown embedder kind must not be guessed at — ensure_fresh falls
     # back to the normal env/default resolution instead.
     assert embedder_for_identity("some-future-embedder:v2") is None
+
+
+def test_embedder_for_identity_degrades_to_none_when_fastembed_unloadable(monkeypatch) -> None:
+    # "Recognized identity shape, but the model fails to load" (fastembed never
+    # installed, extra removed, or the on-disk index moved to a machine without
+    # it) must degrade to None like the hashing branch's ValueError case already
+    # does — not propagate an uncaught RuntimeError and crash every bare
+    # ensure_fresh() caller (search/complete/relations/memory-report/...).
+    def _boom(model: str = "BAAI/bge-small-en-v1.5"):
+        raise RuntimeError("fastembed is not installed. Install the semantic extra")
+
+    monkeypatch.setattr(embeddings_mod, "FastEmbedEmbedder", _boom)
+    assert embedder_for_identity("fastembed:BAAI/bge-small-en-v1.5@fe0.4") is None
+
+
+def test_tokenize_keeps_accented_words_whole() -> None:
+    # The old ASCII-only class fragmented "código"/"más" at every diacritic —
+    # this is the exact failure mode for a Spanish-language vault (this kit's
+    # primary language).
+    assert _tokenize("más información sobre código") == [
+        "más",
+        "información",
+        "sobre",
+        "código",
+    ]
+
+
+def test_tokenize_keeps_alnum_runs_together() -> None:
+    # Letters+digits in one contiguous run must stay ONE token (unchanged
+    # behavior from the original [a-z0-9]+ class), not split at the boundary.
+    assert _tokenize("html5 and gpt4") == ["html5", "and", "gpt4"]

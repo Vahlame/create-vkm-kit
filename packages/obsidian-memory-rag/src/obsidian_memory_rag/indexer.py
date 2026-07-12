@@ -223,6 +223,13 @@ class FreshStats:
 
     fts: IndexStats
     vectors: VectorStats | None = None  # None => semantic refresh was skipped
+    # The embedder identity actually used when vectors is not None — callers that
+    # need to filter/query note_chunks by embedder (report.py/reflect.py's
+    # duplicate scan, hybrid-search's query embedding) should use THIS instead of
+    # independently re-deriving via resolve_embedder_name(None): this is the
+    # identity ensure_fresh's own on-disk-preference logic actually settled on,
+    # which can differ from the env/default when no explicit --embedder was given.
+    embedder_name: str | None = None
 
 
 def _vault_has_vectors(vault: Path) -> bool:
@@ -268,6 +275,7 @@ def ensure_fresh(
     fts = index_vault(vault, max_file_bytes=max_file_bytes)
 
     vectors: VectorStats | None = None
+    embedder_name: str | None = None
     if semantic or _vault_has_vectors(vault):
         if embedder is None:
             # Lazy import: keeps embeddings out of the dependency-free FTS path.
@@ -281,8 +289,9 @@ def ensure_fresh(
             if embedder is None:
                 embedder = get_embedder(None)
         vectors = index_vectors(vault, embedder, max_file_bytes=max_file_bytes)
+        embedder_name = embedder.name
 
-    return FreshStats(fts=fts, vectors=vectors)
+    return FreshStats(fts=fts, vectors=vectors, embedder_name=embedder_name)
 
 
 def _existing_vector_embedder_name(vault: Path) -> str | None:

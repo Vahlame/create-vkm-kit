@@ -136,7 +136,11 @@ def _missing_frontmatter_keys(rel: str, text: str, config: dict) -> list[str]:
     """Required keys (per the note's top-level folder, '*' fallback) absent from
     the note's frontmatter block. Same line-regex contract as the Node side."""
     folder = rel.split("/", 1)[0] if "/" in rel else ""
-    rule = config["folders"].get(folder) or config["folders"].get("*")
+    folders = config["folders"]
+    # `in`/indexing, not `.get(...) or .get("*")`: an explicit {} rule for
+    # `folder` ("no required frontmatter here, override the wildcard") is
+    # falsy and a truthiness check would wrongly fall through to "*".
+    rule = folders[folder] if folder in folders else folders.get("*")
     required = rule.get("required") if isinstance(rule, dict) else None
     if not isinstance(required, list) or not required:
         return []

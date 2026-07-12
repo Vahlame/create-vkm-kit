@@ -155,6 +155,11 @@ export function createSink({ port = DEFAULT_PORT, dataDir = defaultDataDir() } =
       return;
     }
     const chunks = [];
+    // A mid-upload disconnect (client aborts, network blip) emits an 'error' on the
+    // request stream — Node's EventEmitter default for an unhandled 'error' is to
+    // CRASH THE PROCESS, directly contradicting this file's own fail-open invariant
+    // (see the header comment). Fail open here too: drop this one batch, keep serving.
+    req.on("error", () => {});
     req.on("data", (c) => chunks.push(c));
     req.on("end", () => {
       try {

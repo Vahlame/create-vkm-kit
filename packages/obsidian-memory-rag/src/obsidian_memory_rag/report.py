@@ -199,12 +199,17 @@ def build_report(
     duplicates: bool = False,
     max_pairs: int = 20,
     max_notes_for_pairs: int = 1500,
+    embedder_name: str | None = None,
 ) -> dict:
     """Build a read-only memory report. Returns a JSON-serializable dict.
 
     ``duplicates=True`` adds near-duplicate note pairs (needs embeddings; no-op
     without them). The note-pair scan is skipped above ``max_notes_for_pairs`` to
-    keep it cheap on large vaults.
+    keep it cheap on large vaults. Pass ``embedder_name`` (from a preceding
+    ``ensure_fresh(...).embedder_name``) to filter ``note_chunks`` by the
+    identity that ACTUALLY built the index — omitting it falls back to
+    ``resolve_embedder_name(None)``, which can silently disagree with a vault
+    indexed under a non-default embedder and see zero rows.
     """
     vault = vault.resolve()
     audit = audit_vault(vault, budget_tokens=budget_tokens)
@@ -252,13 +257,14 @@ def build_report(
             hygiene["stale_notes"] = _stale_notes(conn, stale_days=stale_days)
             hygiene["orphan_notes"] = _orphan_notes(conn, out_deg, in_deg)
             if duplicates and has_any_chunks(conn):
-                from .embeddings import resolve_embedder_name
+                if embedder_name is not None:
+                    name = embedder_name
+                else:
+                    # No identity threaded in from a preceding ensure_fresh() call
+                    # (e.g. called directly, as in tests) — best-effort fallback.
+                    from .embeddings import resolve_embedder_name
 
-                # Only the identity string is needed here (to filter note_chunks) —
-                # ensure_fresh already built/refreshed the actual embedder+vectors
-                # moments earlier; instantiating a second one (e.g. loading fastembed's
-                # ONNX model again) just to read `.name` would be pure waste.
-                name = resolve_embedder_name(None)
+                    name = resolve_embedder_name(None)
                 dup_scan = _near_duplicate_notes(
                     conn,
                     name,

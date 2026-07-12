@@ -89,6 +89,27 @@ test("getIncrementalState: a truncated/replaced transcript triggers a safe full 
   assert.equal(after.count, 2, "full rescan of the NEW content, not stale accumulated state");
 });
 
+test("getIncrementalState: a transcript truncated+replaced then grown PAST its original cached size still triggers a full rescan", () => {
+  // The gap size/mtime monotonicity alone cannot catch: a replacement transcript
+  // that ends up larger than the original cached offset looks like "just grew"
+  // by size/mtime alone — the content fingerprint is what catches it.
+  const fp = tmpTranscript("tc-truncate-regrow-");
+  const cacheKey = `test-truncate-regrow-${Date.now()}`;
+  fs.writeFileSync(fp, "a\nb\nc\nd\ne\n", "utf8"); // 10 bytes, 5 lines
+  const before = getIncrementalState(fp, cacheKey, countInitial, countFold);
+  assert.equal(before.count, 5);
+
+  // Replaced with UNRELATED content that is LARGER than the original (same-or-larger
+  // size, same-or-newer mtime — the exact case the old size/mtime-only check trusted).
+  fs.writeFileSync(fp, "x\ny\nz\nw\nv\nu\n", "utf8"); // 12 bytes, 6 lines
+  const after = getIncrementalState(fp, cacheKey, countInitial, countFold);
+  assert.equal(
+    after.count,
+    6,
+    "must full-rescan the replacement content, not resume from the stale offset into its middle"
+  );
+});
+
 test("getIncrementalState: a missing transcript returns the caller's initial state (fail open)", () => {
   const fp = path.join(os.tmpdir(), `does-not-exist-tc-${Date.now()}.jsonl`);
   const state = getIncrementalState(fp, "test-missing", countInitial, countFold);

@@ -24,7 +24,14 @@ from importlib.metadata import PackageNotFoundError, version as _pkg_version
 from pathlib import Path
 from typing import Protocol, Sequence
 
-_TOKEN_RE = re.compile(r"[a-z0-9]+", re.ASCII)
+# `[^\W_]` = word chars minus underscore = Unicode letters+digits, matching the
+# original [a-z0-9]+ alnum-run semantics but across any script — accented Latin
+# (á é í ó ú ñ, ordinary Spanish, this kit's primary vault language) tokenizes
+# as whole words instead of fragmenting at each diacritic (the old ASCII-only
+# class split "código" into "c" + "digo"). The parallel FTS5 BM25 channel
+# already handles this correctly via `unicode61 remove_diacritics 2` — this
+# brings the default vector embedder to parity.
+_TOKEN_RE = re.compile(r"[^\W_]+", re.UNICODE)
 _DEFAULT_DIM = 256
 
 
@@ -226,5 +233,12 @@ def embedder_for_identity(identity: str) -> Embedder | None:
         # current tag themselves; a fastembed upgrade since the index was built is
         # deliberately its own new identity (see _fastembed_identity), not
         # something this reuse path should mask.
-        return get_embedder(f"fastembed:{match.group('model')}")
+        try:
+            return get_embedder(f"fastembed:{match.group('model')}")
+        except RuntimeError:
+            # fastembed is a recognized identity shape but not importable here
+            # (never installed, extra removed, or the index moved to a machine
+            # without it) — same "can't verify, let the caller fall back"
+            # contract as the unrecognized-identity case below, not a crash.
+            return None
     return None
