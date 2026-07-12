@@ -1214,6 +1214,21 @@ test("effort-gate hook denies the 2nd substantive edit when no level was ever pr
   assert.match(parsed.hookSpecificOutput.permissionDecisionReason, /EFFORT RECOMMENDATION/);
 });
 
+test("effort-gate hook defers immediately when agent_id is present (sub-agent call) — same state that would otherwise deny", () => {
+  const transcript = path.join(os.tmpdir(), `fake-eg-transcript-${Date.now()}-2b.jsonl`);
+  writeFakeEffortGateTranscript(transcript, [{ tool: "Edit" }]); // identical to the denying case above
+  const r = spawnSync(process.execPath, [effortGateHookSrc, "en"], {
+    input: JSON.stringify({
+      tool_name: "Edit",
+      transcript_path: transcript,
+      agent_id: "agent-123"
+    }),
+    encoding: "utf8"
+  });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, "", "a sub-agent call is never gated, even mid-session");
+});
+
 test("effort-gate hook denies when a level was proposed but not yet confirmed", () => {
   const transcript = path.join(os.tmpdir(), `fake-eg-transcript-${Date.now()}-3.jsonl`);
   writeFakeEffortGateTranscript(transcript, [{ tool: "Edit" }, { marker: true }]);
