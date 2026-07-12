@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **`/vkm-discipline` skill rewritten as an executable contract (ADR-0049 channel).** The five
+  prose principles become a **Pre-flight** + **Done-gate** checklist, folding in three lessons the
+  principles omitted: verify third-party flags/versions/APIs against reality BEFORE designing on
+  them; match the repo's formatter + drift gates while building; and treat the FULL quality bar
+  (lint/format/drift/`linkcheck`/version, not just tests) as the evidence for "done". Two
+  micro-examples added; still a one-pager. The installed copy is re-synced via the asset installer.
+
 ## [4.1.0] - 2026-07-12
 
 ### Added
