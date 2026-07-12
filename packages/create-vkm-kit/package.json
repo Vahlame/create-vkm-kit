@@ -1,7 +1,7 @@
 {
   "name": "@vkmikc/create-vkm-kit",
   "version": "4.1.0",
-  "description": "vkm-kit installer: persistent Markdown+git memory for AI agents (MCP), token-saver hooks, local usage doctor, spec-builder — one npx command.",
+  "description": "vkm-kit installer: persistent Markdown+git memory for AI agents (MCP) with hybrid search, stealth web fetch/search (obscura + on-demand SearXNG), a cross-domain execution-discipline skill, token-saver hooks, a local usage doctor and a spec-builder — one npx command.",
   "license": "SEE LICENSE IN LICENSE.md",
   "homepage": "https://github.com/Vahlame/create-vkm-kit#readme",
   "repository": {
@@ -14,8 +14,21 @@
     "obsidian",
     "cursor",
     "claude-code",
+    "codex",
     "agent-memory",
-    "basic-memory"
+    "ai-memory",
+    "basic-memory",
+    "rag",
+    "semantic-search",
+    "hybrid-search",
+    "knowledge-graph",
+    "web-search",
+    "web-fetch",
+    "stealth-browser",
+    "obscura",
+    "searxng",
+    "token-efficiency",
+    "vkm"
   ],
   "files": [
     "src",

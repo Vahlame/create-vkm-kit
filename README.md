@@ -69,7 +69,7 @@ El nombre npm antiguo sigue funcionando: `npx @vkmikc/create-obsidian-memory` es
 > `--repo-root <clon>`):
 >
 > ```bash
-> npx @vkmikc/create-vkm-kit --full          # = --ide codex,claude --with-hybrid --semantic --vec --build-index --install-backend --rules
+> npx @vkmikc/create-vkm-kit --full          # = --ide codex,claude --with-hybrid --semantic --vec --build-index --install-backend --rules --obscura
 > ```
 >
 > Si no hay clon a mano, `--full` **no aborta**: cae a `basic-memory` (sin híbrido) y avisa.
@@ -129,7 +129,9 @@ or let [**an agent install it**](docs/en/install-with-agent.md)
 | [`packages/vkm-spec/`](packages/vkm-spec/)                       | Node     | De idea a spec XML anclada al vault (GUI en `127.0.0.1:4923`; Ollama `phi4-mini` opcional, fallback determinista).                                                                      |
 | [`cmd/obsidian-memoryd/`](cmd/obsidian-memoryd/)                 | Go       | Daemon opcional: vigila el vault y sincroniza git.                                                                                                                                      |
 
-> ℹ️ **obscura** es software de terceros bajo licencia **Apache-2.0** ([h4ckf0r0day/obscura](https://github.com/h4ckf0r0day/obscura)). El kit **lo descarga** del release oficial y lo verifica por SHA-256 — **no lo empaqueta ni redistribuye**.
+> ℹ️ **obscura** es software de terceros bajo licencia **Apache-2.0** ([h4ckf0r0day/obscura](https://github.com/h4ckf0r0day/obscura)). El kit **lo descarga** del release oficial y lo verifica por SHA-256 — **no lo empaqueta ni redistribuye**. Búsqueda estructurada vía **SearXNG on-demand** (se levanta solo al buscar, se apaga al terminar; monitor de escritorio opcional) — [ADR-0052](docs/adr/0052-searxng-on-demand-lifecycle.md).
+>
+> 🧭 **Skills que instala el kit** (además de los paquetes): **`/vkm-discipline`** — disciplina de ejecución cross-dominio (infiere la intención real, entrega más que lo literal, con evidencia ejecutada) que sube el rendimiento de **cualquier modelo**, Haiku a Opus — y **`/vkm-spec`** (idea → spec anclada al vault). Detalle: [ADR-0049](docs/adr/0049-discipline-doctrine-three-channels.md).
 
 Mapa técnico completo y diagramas de flujo: [`ARCHITECTURE.md`](ARCHITECTURE.md). El _porqué_ de
 cada decisión: [`docs/adr/`](docs/adr/).

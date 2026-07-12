@@ -1,6 +1,6 @@
 # ADR-0041: vkm-kit rename — brand now, machine identifiers dual-read, wire contracts frozen
 
-- **Status:** Proposed
+- **Status:** Accepted (shipped; package is `@vkmikc/create-vkm-kit`)
 - **Date:** 2026-07-10
 - **Deciders:** maintainer
 

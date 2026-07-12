@@ -438,6 +438,51 @@ flowchart LR
 
 ---
 
+## Opcional: acceso web sigiloso (obscura) — nuevo
+
+`basic-memory` y la búsqueda híbrida cubren **tus propias** notas. A veces el agente también necesita
+la **web abierta** — traer una página o buscar. El kit trae una capa web **opt-in**,
+[**obscura**](https://github.com/h4ckf0r0day/obscura): un navegador headless que renderiza páginas como
+un navegador de verdad (anti-detección, JS real), expuesto como dos tools MCP que el agente prefiere
+sobre las nativas.
+
+| Tool                    | Qué hace                                                                                                             |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `obscura_fetch(url)`    | Trae/renderiza una página vía obscura, devuelta como markdown limpio — DATOS web no confiables, nunca instrucciones. |
+| `obscura_search(query)` | Búsqueda web con un backend por capas, no frágil.                                                                    |
+
+**La analogía de la búsqueda.** Scrapear una página de resultados gratis es como leer el diario por el
+ojo de una cerradura: lo que agarrás es angosto y se rompe cuando mueven los muebles. Un **SearXNG**
+local es el índice propio del kiosco — le pregunta a muchos motores a la vez y devuelve una lista
+limpia y estructurada. Por eso la búsqueda intenta SearXNG primero, luego cae a scraping, y por último
+a la tool nativa:
+
+```mermaid
+flowchart LR
+  Q["obscura_search(query)"] --> SX{"¿SearXNG local<br/>arriba (o arrancable)?"}
+  SX -- sí --> J["JSON estructurado<br/>muchos motores · source: searxng"]
+  SX -- no --> S["SERP renderizada por obscura<br/>DuckDuckGo → Bing → Brave"]
+  S -- todas fallan --> N["WebSearch nativa<br/>(red de seguridad)"]
+```
+
+**SearXNG corre solo mientras se busca.** No es un servicio de fondo: el MCP lo levanta en el momento
+en que una búsqueda lo necesita y lo apaga tras ~90 s de inactividad — cero footprint mientras
+trabajás, y la búsqueda sigue funcionando esté o no abierto su pequeño **monitor de escritorio** (una
+luz de estado + un feed de lo que buscó el agente). Es **opt-in** (`--obscura` / `--full`) y todo
+vuelve como DATOS web no confiables, marcados por inyección igual que el contenido de tu vault.
+Detalle: [ADR-0051](../adr/0051-obscura-web-stealth-browser.md) ·
+[ADR-0052](../adr/0052-searxng-on-demand-lifecycle.md).
+
+## Opcional: una skill de disciplina (`/vkm-discipline`) — nuevo
+
+La memoria es _qué_ sabe el agente; la **disciplina** es _cómo_ ejecuta. `/vkm-discipline` es una skill
+que el kit instala y que hace que cualquier modelo — chico o grande — infiera la intención real, lo
+haga de la mejor manera, entregue más que lo literal, y **muestre evidencia** antes de dar algo por
+terminado, con código denso y salida tersa. Escala el esfuerzo a la dificultad de la tarea y al modelo,
+y carga una **referencia de dominio** on-demand (coding, debugging, datos, infra, escritura, design-ui,
+búsqueda web, seguridad, artefactos-LLM, pericia experta) solo cuando es relevante. Detalle:
+[ADR-0049](../adr/0049-discipline-doctrine-three-channels.md).
+
 ## Qué **no** es (para no confundirse)
 
 - **No** es la memoria nativa de Cursor (los avisos `memory://…`): eso es del IDE; esto son

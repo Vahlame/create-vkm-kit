@@ -8,6 +8,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **`obscura_search` gains a local SearXNG structured backend, started on demand (ADR-0052).** Free
+  SERP scraping can't be fast + high-volume + relevant at once; a local SearXNG (aggregated engines,
+  structured JSON, no anti-bot wall) can. `ensureSearxng()` starts SearXNG the moment `obscura_search`
+  needs it and stops it after an idle window (`OBSCURA_SEARXNG_IDLE_MS`, default 90 s) — nothing runs
+  in the background while idle — and falls back to the scrape chain when it's unavailable. `searchWeb`
+  now defaults to a local instance (`http://127.0.0.1:8888`; `OBSCURA_SEARXNG_URL=""` disables it).
+  A reproducible Windows setup (no Docker) ships under `packages/obscura-web/searxng/`
+  (`settings.template.yml`, a `pwd` shim, a README); paths are overridable via
+  `OBSCURA_SEARXNG_{PORT,PY,SRC,SETTINGS,IDLE_MS,AUTOSTART}`.
+- **Desktop monitor for SearXNG (`searxng-gui.pyw`).** A stdlib-only Tkinter app: live up/idle status
+  plus a feed of what the agent has searched (each search is appended to
+  `~/.vkm/searxng/searches.log`). It only monitors — the MCP owns the on-demand lifecycle, so closing
+  the window frees only the window.
 - **Domain reference system for `/vkm-discipline` + an `obscura` web-search domain.** Skills can now
   ship on-demand domain reference files: the installer copies a skill's whole directory (not just
   `SKILL.md`), loaded on demand (progressive disclosure). The first is
