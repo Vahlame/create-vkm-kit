@@ -25,12 +25,19 @@ test("configureSkillAssets installs skills + agent template; idempotent", async 
     assert.match(text, /^---\r?\nname: /, "frontmatter must open the file");
     assert.match(text, /create-vkm-kit/, "ownership marker must be present");
   }
+  assert.ok(
+    fs.existsSync(
+      path.join(home, ".claude", "skills", "vkm-discipline", "domains", "web-search.md")
+    ),
+    "domain reference files must install alongside SKILL.md"
+  );
   assert.ok(fs.existsSync(path.join(home, ".claude", "agents", "vkm-implementer.md")));
 });
 
 test("skill descriptions stay within Claude Code's always-in-context caps", async () => {
   // Descriptions are ALWAYS in context (hard cap 1536 chars; soft target ≤300).
   for (const { src } of skillAssetFiles(os.homedir(), { skills: true, agents: false })) {
+    if (path.basename(src) !== "SKILL.md") continue; // domain reference files carry no description
     const text = fs.readFileSync(src, "utf8");
     const description = text.match(/^description: (.+)$/m)?.[1] ?? "";
     assert.ok(description.length > 0, `${src}: description missing`);

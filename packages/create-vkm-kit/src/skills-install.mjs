@@ -5,6 +5,7 @@
 // their body only when invoked (Claude Code progressive disclosure); the always-in-context
 // cost is just each skill's frontmatter description.
 import path from "node:path";
+import { readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import pc from "picocolors";
 import {
@@ -21,16 +22,23 @@ function templatesDir() {
 }
 
 /** The {src,dest} pairs for each asset group under a given `home`. */
+/** Every file under a skill's template dir (SKILL.md + any domain/reference files), as {src,dest}. */
+function skillDirFiles(name, claudeDir) {
+  const root = path.join(templatesDir(), "skills", name);
+  const out = [];
+  for (const rel of readdirSync(root, { recursive: true })) {
+    const src = path.join(root, String(rel));
+    if (!statSync(src).isFile()) continue;
+    out.push({ src, dest: path.join(claudeDir, "skills", name, String(rel)) });
+  }
+  return out;
+}
+
 export function skillAssetFiles(home, { skills = true, agents = true } = {}) {
   const claudeDir = path.join(home, ".claude");
   const files = [];
   if (skills) {
-    for (const name of SKILL_NAMES) {
-      files.push({
-        src: path.join(templatesDir(), "skills", name, "SKILL.md"),
-        dest: path.join(claudeDir, "skills", name, "SKILL.md")
-      });
-    }
+    for (const name of SKILL_NAMES) files.push(...skillDirFiles(name, claudeDir));
   }
   if (agents) {
     for (const basename of AGENT_BASENAMES) {
