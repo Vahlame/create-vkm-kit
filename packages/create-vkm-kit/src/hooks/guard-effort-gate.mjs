@@ -16,6 +16,16 @@
  * the 2nd. Once the gate is satisfied once, it stays open for the rest of the session — this
  * is a one-time checkpoint per session, not a per-task interrogation.
  *
+ * Main agent only — never a sub-agent (ADR-0031 addendum): a Task-tool sub-agent (a fanned-out
+ * `vkm-implementer`, `Explore`, etc.) cannot ever satisfy this gate — a coordinator's relayed
+ * `SendMessage` confirmation and an `AskUserQuestion` answer both land in the transcript as
+ * content `isRealUserTurn()` deliberately excludes (see its own doc comment), so a sub-agent
+ * would be denied forever, wedging any multi-agent workflow. Claude Code populates `agent_id`
+ * on the hook's stdin payload only when the hook fires inside a sub-agent — its presence is
+ * the signal to defer immediately, no scan needed. The gate still applies in full to the main
+ * agent's own direct edits; this makes it neutral toward delegation, neither encouraging nor
+ * blocking it, rather than an obstacle a workflow has to route around.
+ *
  * Installed by create-obsidian-memory — the vkm-kit installer — into `~/.claude/hooks/` next
  * to the other managed hooks, registered in `~/.claude/settings.json` as:
  *   node "<this file>" [lang]
@@ -24,7 +34,8 @@
  * check here, just conversation history.
  *
  * Contract (Claude Code `PreToolUse` hooks):
- *  - Read the hook's JSON payload from stdin (`tool_name`, `transcript_path`, …).
+ *  - Read the hook's JSON payload from stdin (`tool_name`, `transcript_path`, `agent_id`, …
+ *    — `agent_id` is populated only inside a sub-agent call, see the main-agent-only note above).
  *  - To deny the call, print ONE JSON object to stdout:
  *      { "hookSpecificOutput": { "hookEventName": "PreToolUse",
  *          "permissionDecision": "deny", "permissionDecisionReason": "<text>" } }
@@ -163,6 +174,9 @@ function main() {
 
   const toolName = typeof input?.tool_name === "string" ? input.tool_name : "";
   if (!SUBSTANTIVE_TOOLS.test(toolName)) return;
+
+  // Sub-agent call — see the file header for why this can never be satisfied from in here.
+  if (typeof input?.agent_id === "string" && input.agent_id) return;
 
   const transcriptPath = typeof input?.transcript_path === "string" ? input.transcript_path : "";
   if (!transcriptPath) return; // no transcript to check against — fail open
