@@ -14,13 +14,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `skills/vkm-discipline/domains/web-search.md` — how to search/fetch well through obscura and hand
   back a verified, grounded result (cite only what you fetched, cross-check high-stakes facts,
   match freshness/cache to volatility).
-- **Discipline domains migrated from the SOP-suite (re-authored in the execution-first voice):**
-  `coding` (reproduce before fix, validate boundaries, root-cause not symptom, keep the diff tight),
-  `debugging` (bugs + live incidents: first-hypothesis-is-what-changed, capture before mitigate,
-  SEV cadence, revert-by-default, next-update-not-resolution comms), `writing` (every claim
-  traceable, run every instruction, recompute numbers, negation test), and `design-ui` (contrast
-  computed per theme, keyboard/focus, targets ≥24px, 200% zoom, the three screen states).
-  `data/SQL · infra/ops · expertise` land next.
+- **Full cross-domain reference set for `/vkm-discipline`, re-authored from the SOP-suite's
+  bench-refined annexes in the execution-first voice (deliver-a-better-result checklists + anti-patterns,
+  not bureaucratic gates):** `coding`, `debugging` (bugs + live incidents:
+  first-hypothesis-is-what-changed, capture before mitigate, SEV cadence, revert-by-default,
+  next-update-not-resolution comms), `data` (rehearse destructive DML with a SELECT-count + backup,
+  parameterize, validate with aggregates), `infra` (test-env-first, restorable backup, health-check
+  baseline, canonical mechanism), `writing` (every claim traceable, run every instruction, recompute
+  numbers), `design-ui` (contrast computed per theme, keyboard/focus, ≥24px targets, 200% zoom, the
+  three states), `web-search`, `security` (untrusted-input-at-the-boundary, rotate-don't-delete leaked
+  secrets, least-privilege, dependency vetting), `llm-artifacts` (model proposes, evidence decides;
+  plausibility raises the bar), and `expertise` (separate fact/inference/hypothesis, calibrate
+  confidence, steelman the alternative, say what would make you wrong). Ten domains cover the SOP-suite's
+  A1–A8 plus web-search and expert judgment — the kit now supersedes the SOP-suite's cross-domain role.
 
 ### Changed
 
