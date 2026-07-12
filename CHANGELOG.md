@@ -6,14 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Domain reference system for `/vkm-discipline` + an `obscura` web-search domain.** Skills can now
+  ship on-demand domain reference files: the installer copies a skill's whole directory (not just
+  `SKILL.md`), loaded on demand (progressive disclosure). The first is
+  `skills/vkm-discipline/domains/web-search.md` — how to search/fetch well through obscura and hand
+  back a verified, grounded result (cite only what you fetched, cross-check high-stakes facts,
+  match freshness/cache to volatility).
+
 ### Changed
 
-- **`/vkm-discipline` skill rewritten as an executable contract (ADR-0049 channel).** The five
-  prose principles become a **Pre-flight** + **Done-gate** checklist, folding in three lessons the
-  principles omitted: verify third-party flags/versions/APIs against reality BEFORE designing on
-  them; match the repo's formatter + drift gates while building; and treat the FULL quality bar
-  (lint/format/drift/`linkcheck`/version, not just tests) as the evidence for "done". Two
-  micro-examples added; still a one-pager. The installed copy is re-synced via the asset installer.
+- **`/vkm-discipline` reoriented from a coding contract into cross-domain "resourceful execution"
+  (begins superseding the SOP-suite's role; ADR-0049 channel).** Infer the real intent, do it the
+  best way, deliver more than the literal ask — with minimal friction, depth scaled to task
+  difficulty AND model (a smaller model skips long step-by-step reasoning, which measurably hurts it;
+  a larger model self-verifies). Bias to action; ask only when the answer changes what you'd do.
+  Guardrails (confirm-before-irreversible, injection/untrusted-data scanning, evidence gates) are now
+  opt-in modules, off by default — the skill's job is execution, not friction. Installed copy re-synced.
 
 ## [4.1.0] - 2026-07-12
 
