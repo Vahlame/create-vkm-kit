@@ -242,11 +242,17 @@ corpora [Contamination-Resistant Benchmarks, arXiv 2605.19999]. Defenses, in rou
 Practical overviews surfaced in the search (not deep-read here): Evidently AI's benchmark catalogue,
 BenchLM's "building a custom benchmark", Together AI and Databricks evaluation guides.
 
-> Research note: this was gathered **with obscura** (the kit's stealth browser). Two real findings for
-> the kit: (1) obscura's page-fetch of lightweight, content-rich sites (arXiv) is reliable with
-> `--wait-until domcontentloaded --timeout 60`; heavy JS marketing pages can exceed the default 30s
-> deadline. (2) obscura's SERP search is currently **DuckDuckGo-dependent in practice** — the Bing and
-> Brave parsers are fixture-tested but return 0 against live markup, and DuckDuckGo rate-limits rapid
-> queries — so multi-query research needs spacing or falls back to native search. Fixing the Bing/Brave
-> live parsers (and/or wiring the optional SearXNG layer) is the concrete next hardening for
-> `obscura_search`.
+> Research note: this was gathered **with obscura** (the kit's stealth browser), and investigating its
+> search fragility live produced a concrete engineering finding. **Obscura's page FETCH is the reliable
+> primitive** — light, content-rich sites like arXiv render cleanly with `--wait-until domcontentloaded
+--timeout 60` (heavy JS marketing pages can exceed the default 30s deadline; use `--dump original` for
+> structured feeds, since `--dump html` returns the browser-mangled DOM). **Search, by contrast, hits a
+> hard truth: free SERP scraping cannot be fast + high-volume + relevant at once.** DuckDuckGo HTML is
+> the only free source that returns relevant results for technical queries but rate-limits rapid bursts;
+> Bing's RSS feed (`?format=rss`, parsed from `--dump original`) is fast and never rate-limited but its
+> relevance on long/technical queries is poor ("SWE-bench"→package-tracking, "tau"→the Greek letter);
+> Bing HTML is relevant but base64-encodes result URLs behind `ck/a` redirects (high parser maintenance).
+> So `obscura_search` now defaults to DuckDuckGo (relevant) with a clean native fallback when it blocks,
+> keeps the others opt-in via `OBSCURA_SEARCH_ENGINES`, and drops the artificial throttle. **The real fix
+> for fast high-volume research is a SearXNG instance** (structured JSON, aggregates many engines, no
+> anti-bot wall) — already supported via `OBSCURA_SEARXNG_URL`.

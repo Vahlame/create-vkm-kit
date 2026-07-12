@@ -37,7 +37,11 @@ const DUMP_BY_FORMAT = {
   md: "markdown",
   text: "text",
   html: "html",
-  links: "links"
+  links: "links",
+  // `raw` = obscura's `--dump original`: the pristine response body, unparsed by the browser DOM.
+  // Needed for structured feeds (RSS/XML/JSON) — `--dump html` mangles them (voids <link>, drops items).
+  raw: "original",
+  original: "original"
 };
 
 /** True only for absolute http(s) URLs — blocks flag-injection and non-web schemes. */

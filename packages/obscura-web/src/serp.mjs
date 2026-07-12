@@ -1,22 +1,20 @@
 /**
- * Robust web search that "stops being fragile" by layering, in order:
- *  1. SearXNG JSON (opt-in, OBSCURA_SEARXNG_URL): a self-hosted metasearch instance
- *     returns STRUCTURED results — no HTML parsing, the #1 source of scraper breakage,
- *     and it aggregates/rotates many upstream engines. Queried directly over HTTP: a
- *     localhost instance needs no stealth (obscura's value is fetching the *upstream*
- *     engines, which SearXNG itself handles).
- *  2. Multi-engine SERP rendered THROUGH obscura (always-on default): obscura runs real
- *     JS with anti-detection, so a search-results page is far less likely to hit a bot
- *     wall/CAPTCHA than a bare HTTP client. Parsed with per-engine resilient extractors.
- *  3. Engine fallback chain (DuckDuckGo HTML → Bing → Brave): three independent providers,
- *     first with >=1 result wins, so one engine changing markup or blocking != total failure.
- *  + Per-query cache + a min-interval throttle to avoid tripping rate limits.
- *  If every layer fails, the caller is told to fall back to the native WebSearch tool
- *  (soft enforcement — obscura is preferred, native is the safety net).
+ * Web search, layered:
+ *  1. SearXNG JSON (opt-in, OBSCURA_SEARXNG_URL): a self-hosted metasearch instance returns
+ *     STRUCTURED results — no HTML parsing, aggregates many engines, no anti-bot wall. This is
+ *     the real answer for fast, high-volume, RELEVANT search; queried directly over HTTP.
+ *  2. An engine chain rendered THROUGH obscura (default: DuckDuckGo HTML — see DEFAULT_CHAIN).
+ *  3. If every source fails/returns nothing, the caller is told to fall back to the native
+ *     WebSearch tool (soft enforcement — obscura preferred, native is the safety net).
+ *  + Per-query cache. No artificial throttle (obscura is fast; set OBSCURA_SEARCH_MIN_INTERVAL_MS
+ *    only if you WANT to space out requests).
  *
- * HTML parsing is inherently best-effort: the parsers below are tuned to each engine's
- * known markup and unit-tested against fixtures, but real SERPs drift. Layers 1 and the
- * native fallback are what make the whole thing dependable, not any single parser.
+ * Honest constraint, verified live: free SERP scraping cannot be fast + high-volume + relevant at
+ * once. DuckDuckGo HTML is the only free source that returns relevant results for technical queries,
+ * but it rate-limits rapid bursts (→ clean native fallback). `bing-rss` is fast and never
+ * rate-limited but its relevance on long/technical queries is poor (it keyword-matches literally).
+ * For serious research volume, run SearXNG. Obscura's page FETCH, by contrast, is reliable and is the
+ * dependable primitive here.
  */
 import { obscuraFetch } from "./obscura-cli.mjs";
 
@@ -111,8 +109,38 @@ export function parseBrave(html) {
   return results;
 }
 
-/** Registry of scrape-able engines (each: a SERP URL builder + a parser). */
+/**
+ * Parse Bing's RSS feed (`?format=rss`) — STRUCTURED XML (title/link/description per <item>), far more
+ * stable and machine-friendly than scraping SERP HTML, and it doesn't trip the anti-bot walls that
+ * rate-limit HTML scraping. This is the fast, high-volume path obscura is meant for.
+ */
+export function parseBingRss(xml) {
+  const results = [];
+  const itemRe = /<item>([\s\S]*?)<\/item>/gi;
+  for (let m; (m = itemRe.exec(xml)); ) {
+    const item = m[1];
+    const title = stripTags(rssField(item, "title"));
+    const url = decodeEntities(rssField(item, "link").trim());
+    const snippet = stripTags(rssField(item, "description"));
+    if (/^https?:\/\//i.test(url) && title) results.push({ title, url, snippet });
+  }
+  return results;
+}
+
+/** Extract one RSS/XML field, unwrapping a CDATA section if present. */
+function rssField(block, tag) {
+  const m = block.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, "i"));
+  return m ? m[1].replace(/^\s*<!\[CDATA\[/, "").replace(/\]\]>\s*$/, "") : "";
+}
+
+/** Registry of engines. `bing-rss` returns STRUCTURED XML (stable); the others scrape SERP HTML. */
 export const ENGINES = {
+  "bing-rss": {
+    name: "bing-rss",
+    format: "raw",
+    buildUrl: (q) => `https://www.bing.com/search?format=rss&q=${encodeURIComponent(q)}`,
+    parse: parseBingRss
+  },
   duckduckgo: {
     name: "duckduckgo",
     buildUrl: (q) => `https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}`,
@@ -130,7 +158,16 @@ export const ENGINES = {
   }
 };
 
-export const DEFAULT_CHAIN = ["duckduckgo", "bing", "brave"];
+// Default = DuckDuckGo HTML: the only free SERP source that returns RELEVANT results for technical
+// queries when scraped. It rate-limits rapid bursts — when it blocks, the layered search returns the
+// native-fallback signal (relevant) rather than masking it with noise. The other engines are kept in
+// ENGINES for opt-in via OBSCURA_SEARCH_ENGINES: `bing-rss` is fast and never rate-limited but its
+// relevance on long/technical queries is poor (it keyword-matches literally: "tau"→the Greek letter,
+// "pass"→Xbox Game Pass); `bing`/`brave` HTML need live-markup parser maintenance. For genuinely fast,
+// high-volume, RELEVANT search, run a SearXNG instance and set OBSCURA_SEARXNG_URL — structured JSON,
+// aggregates many engines, no anti-bot wall. Free SERP scraping cannot be fast + high-volume + relevant
+// at once; SearXNG is the real answer.
+export const DEFAULT_CHAIN = ["duckduckgo"];
 
 /** Resolve the ordered engine chain from an override, OBSCURA_SEARCH_ENGINES, or the default. */
 function resolveChain(engines) {
@@ -211,7 +248,7 @@ export function _clearSearchCache() {
 
 async function throttle() {
   const min = Number(process.env.OBSCURA_SEARCH_MIN_INTERVAL_MS);
-  const gap = Number.isFinite(min) ? min : 800;
+  const gap = Number.isFinite(min) ? min : 0;
   const wait = lastCallAt + gap - Date.now();
   if (wait > 0) await new Promise((r) => setTimeout(r, wait));
   lastCallAt = Date.now();
@@ -265,7 +302,10 @@ export async function searchWeb(query, opts = {}, deps = {}) {
   const errors = [];
   for (const eng of resolveChain(opts.engines)) {
     try {
-      const { content } = await fetchImpl(eng.buildUrl(q), { format: "html", stealth });
+      const { content } = await fetchImpl(eng.buildUrl(q), {
+        format: eng.format || "html",
+        stealth
+      });
       const parsed = dedupe(eng.parse(content), limit);
       if (parsed.length) {
         const value = { source: eng.name, results: parsed };
