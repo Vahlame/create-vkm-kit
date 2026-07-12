@@ -4,6 +4,7 @@ import {
   parseDuckDuckGo,
   parseBing,
   parseBrave,
+  parseBingRss,
   stripTags,
   decodeEntities,
   searxngSearch,
@@ -57,6 +58,22 @@ test("parseBing extracts b_algo blocks with title/url/snippet", () => {
   assert.equal(r[0].snippet, "Snippet A here");
   assert.equal(r[1].url, "https://bing-b.com/");
   assert.equal(r[1].snippet, "Snippet B");
+});
+
+test("parseBingRss extracts title/link/snippet from RSS items (structured, CDATA-safe)", () => {
+  const xml =
+    `<rss version="2.0"><channel><title>Bing: q</title><link>https://www.bing.com/</link>` +
+    `<item><title>First &amp; Result</title><link>https://a.example/x</link>` +
+    `<description>A short snippet.</description></item>` +
+    `<item><title><![CDATA[Second]]></title><link>https://b.example/</link>` +
+    `<description>Another one</description></item></channel></rss>`;
+  const r = parseBingRss(xml);
+  assert.equal(r.length, 2, "channel title/link must not be mistaken for items");
+  assert.equal(r[0].url, "https://a.example/x");
+  assert.equal(r[0].title, "First & Result");
+  assert.equal(r[0].snippet, "A short snippet.");
+  assert.equal(r[1].title, "Second");
+  assert.equal(r[1].url, "https://b.example/");
 });
 
 test("parseBrave (best-effort) extracts result header + description", () => {
@@ -115,7 +132,11 @@ test("searchWeb falls through the engine chain: DDG empty → Bing wins", async 
     if (url.includes("bing")) return { content: BING_FIXTURE };
     throw new Error("brave down");
   };
-  const out = await searchWeb("hello world query two", {}, { fetchImpl, throttleImpl: noThrottle });
+  const out = await searchWeb(
+    "hello world query two",
+    { engines: ["duckduckgo", "bing"] },
+    { fetchImpl, throttleImpl: noThrottle }
+  );
   assert.equal(out.source, "bing");
   assert.equal(out.results.length, 2);
 });
