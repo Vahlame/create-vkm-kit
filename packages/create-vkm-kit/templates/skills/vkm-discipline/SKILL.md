@@ -47,10 +47,14 @@ vault is wired, read your row in `_meta/agent-profiles.md`.
 
 Route the task to its domain reference and read **only** the one that applies (progressive disclosure):
 
-| Task type                                                 | Reference                                        |
-| --------------------------------------------------------- | ------------------------------------------------ |
-| Search / research / fetch the web                         | [`domains/web-search.md`](domains/web-search.md) |
-| _coding · data · infra · writing · design/UI · expertise_ | _added in the next phase_                        |
+| Task type                                             | Reference                                        |
+| ----------------------------------------------------- | ------------------------------------------------ |
+| Change source code — feature, refactor, bug fix, deps | [`domains/coding.md`](domains/coding.md)         |
+| A failure observed — bug, incident, postmortem        | [`domains/debugging.md`](domains/debugging.md)   |
+| The deliverable is text — docs, report, README, spec  | [`domains/writing.md`](domains/writing.md)       |
+| A user interface — screen, component, form, web page  | [`domains/design-ui.md`](domains/design-ui.md)   |
+| Search / research / fetch the web                     | [`domains/web-search.md`](domains/web-search.md) |
+| _data/SQL · infra/ops · expertise — added next_       | —                                                |
 
 The core above still applies with no domain reference: a physical, organizational or planning task
 (an inventory, a migration, a plan) still gets real intent → best path → better result → shown to work.
