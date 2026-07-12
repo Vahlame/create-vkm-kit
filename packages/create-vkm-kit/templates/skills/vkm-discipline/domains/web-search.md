@@ -11,9 +11,10 @@ Load this when the task is to find, fetch, or research something on the web. The
 - **`obscura_search(query)`** — layered search: a SearXNG JSON instance if configured → DuckDuckGo
   (default; relevant) → native fallback. **`obscura_fetch` is the reliable primitive; search is the
   fragile part** — free SERP scraping can't be fast + high-volume + relevant at once. Keep search
-  queries **concise (keywords, not sentences)**; if a burst of queries starts returning the native
-  fallback, DuckDuckGo is rate-limiting — space them out, or (for real research volume) wire a SearXNG
-  instance via `OBSCURA_SEARXNG_URL`.
+  queries **concise (keywords, not sentences)**. **Best backend: a local SearXNG** (structured JSON,
+  aggregates many engines, no rate-limit) — when `OBSCURA_SEARXNG_URL` is set, `obscura_search` uses it
+  first and reports `source: "searxng"`. Setup: `packages/obscura-web/searxng/README.md`. Without it,
+  DuckDuckGo is the default and rate-limits rapid bursts → space them or expect the native fallback.
 - If obscura isn't installed, both tools say so and you fall back to native WebFetch/WebSearch — search
   still happens, just without the stealth layer.
 

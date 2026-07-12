@@ -199,7 +199,9 @@ export async function searxngSearch(query, { base, limit = 8 }, fetchImpl = glob
   try {
     const res = await fetchImpl(url, {
       signal: ctrl.signal,
-      headers: { Accept: "application/json" }
+      // X-Forwarded-For satisfies SearXNG's bot-detection when queried directly (not behind a proxy);
+      // without it a locked-down instance can intermittently reject the request.
+      headers: { Accept: "application/json", "X-Forwarded-For": "127.0.0.1" }
     });
     if (!res.ok) return null;
     const data = await res.json();

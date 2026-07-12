@@ -1,0 +1,21 @@
+# vkm SearXNG settings for obscura_search.
+# Copy to your instance's SEARXNG_SETTINGS_PATH and set a real secret_key:
+#   python -c "import secrets; print(secrets.token_hex(32))"
+use_default_settings: true
+general:
+  instance_name: "vkm-searxng"
+  debug: false
+server:
+  secret_key: "REPLACE_ME_WITH_secrets.token_hex(32)"
+  bind_address: "127.0.0.1" # localhost only — never expose a personal instance
+  port: 8888
+  limiter: false # a private localhost instance needs no valkey/redis rate-limiter
+  public_instance: false
+  image_proxy: false
+search:
+  safe_search: 0
+  formats:
+    - html
+    - json # REQUIRED: obscura_search uses the JSON API, which SearXNG disables by default
+ui:
+  static_use_hash: true
