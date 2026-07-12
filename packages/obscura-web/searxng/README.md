@@ -2,8 +2,14 @@
 
 `obscura_search` scrapes SERPs by default, and free scraping can't be fast + high-volume + relevant at
 once (see `../src/serp.mjs`). A local **SearXNG** instance fixes that: it aggregates many engines and
-returns **structured JSON** with no anti-bot wall. Point obscura at it with `OBSCURA_SEARXNG_URL` and
-`searchWeb` uses it first (`source: "searxng"`).
+returns **structured JSON** with no anti-bot wall, and `obscura_search` uses it first (`source:
+"searxng"`).
+
+**Lifecycle is on-demand** — you don't run SearXNG yourself. `ensureSearxng()` (`../src/ensure-searxng.mjs`)
+starts it the moment `obscura_search` needs it and stops it after `OBSCURA_SEARXNG_IDLE_MS` (default 90s)
+of no searches, so nothing sits in the background while you do other things. The **setup below is a
+one-time install** of the local files it launches; after that it just works. (An externally-run instance
+— `start.ps1` — is detected and used, but never auto-killed.)
 
 ## Set it up on Windows (no Docker — the exact steps this kit used)
 
@@ -38,26 +44,37 @@ Set-Location $HOME\.vkm\searxng-src
 The `checkout failed` warning on clone is only 4 deploy-template files whose names contain `:` (illegal
 on Windows) — harmless; the app runs without them.
 
-## Wire it into obscura
+## Paths (overridable via env)
 
-- One-off: set `OBSCURA_SEARXNG_URL=http://127.0.0.1:8888` in the environment.
-- Kit install: `npx @vkmikc/create-vkm-kit --obscura --searxng-url http://127.0.0.1:8888` wires it into
-  the obscura-web MCP's env.
+`ensureSearxng()` looks in `~/.vkm` by default; override any of these to point elsewhere:
+
+| env                         | default                                               |
+| --------------------------- | ----------------------------------------------------- |
+| `OBSCURA_SEARXNG_PORT`      | `8888`                                                |
+| `OBSCURA_SEARXNG_PY`        | `~/.vkm/searxng-venv/Scripts/python.exe`              |
+| `OBSCURA_SEARXNG_SRC`       | `~/.vkm/searxng-src`                                  |
+| `OBSCURA_SEARXNG_SETTINGS`  | `~/.vkm/searxng/settings.yml`                         |
+| `OBSCURA_SEARXNG_IDLE_MS`   | `90000`                                               |
+| `OBSCURA_SEARXNG_AUTOSTART` | on (`0` = never spawn, only use an external instance) |
+
+`OBSCURA_SEARXNG_URL` still works for pointing `searchWeb` at an instance directly (bypassing the
+on-demand manager) — e.g. a remote or Docker SearXNG.
 
 Verified: `obscura_search` via SearXNG returns aggregated, relevant results where raw scraping failed —
 e.g. "SWE-bench software engineering benchmark" → swebench.com / the SWE-bench GitHub / leaderboards
 (bing-rss returned package-tracking for the same query); 4 technical queries in ~7s, no rate-limiting.
 
-## Desktop app: on/off + live search monitor
+## Desktop monitor
 
-`searxng-gui.pyw` is a tiny Tkinter app (stdlib only, no deps) to run SearXNG from the desktop:
+`searxng-gui.pyw` is a tiny Tkinter app (stdlib only, no deps) — a **monitor**, not a controller (the
+MCP owns the on-demand lifecycle):
 
-- **On/off** button that starts/stops the local SearXNG process and shows its status.
-- **Live feed** of the queries flowing through SearXNG (parsed from its request log) — see, in real
-  time, exactly what the agent is searching.
-- A **search box** to try a query yourself and read the top results.
+- **Status** — whether SearXNG is up right now (it blinks on while the agent searches, off when idle).
+- **Live feed** — what the agent has searched, read from `~/.vkm/searxng/searches.log` (each
+  `obscura_search` appends `{ts, query, source, count}`; see `../src/search-log.mjs`).
 
-Install (copy it next to the config and drop a Desktop shortcut):
+Closing the window frees only the window — it never holds the server. Install (copy it next to the config
+and drop a Desktop shortcut):
 
 ```powershell
 Copy-Item .\searxng-gui.pyw $HOME\.vkm\searxng\searxng-gui.pyw
@@ -71,7 +88,7 @@ $sc.Save()
 ```
 
 Then double-click **vkm SearXNG** on the Desktop. Needs the system Python with Tkinter (the python.org
-installer includes it); it launches the venv Python for the server itself.
+installer includes it).
 
 ## Notes
 

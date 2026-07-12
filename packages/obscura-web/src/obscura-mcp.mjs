@@ -28,6 +28,8 @@ import { z } from "zod";
 import { toolHandler } from "./mcp-result.mjs";
 import { obscuraFetch } from "./obscura-cli.mjs";
 import { searchWeb } from "./serp.mjs";
+import { ensureSearxng } from "./ensure-searxng.mjs";
+import { logSearch } from "./search-log.mjs";
 import { wrapUntrustedWeb, flagResultInjection } from "./untrusted-web.mjs";
 
 const pkgVersion = (() => {
@@ -76,11 +78,17 @@ function capContent(text) {
  * Assemble the McpServer with both tools registered (no transport connected) so tests
  * can drive the real handlers over an in-memory transport. `deps` lets tests inject a
  * fake obscura/search without spawning a real binary.
- * @param {{ fetchImpl?: typeof obscuraFetch, searchImpl?: typeof searchWeb }} [deps]
+ * @param {{ fetchImpl?: typeof obscuraFetch, searchImpl?: typeof searchWeb,
+ *           ensureImpl?: typeof ensureSearxng, logImpl?: typeof logSearch }} [deps]
  * @returns {McpServer}
  */
 export function buildServer(deps = {}) {
-  const { fetchImpl = obscuraFetch, searchImpl = searchWeb } = deps;
+  const {
+    fetchImpl = obscuraFetch,
+    searchImpl = searchWeb,
+    ensureImpl = ensureSearxng,
+    logImpl = logSearch
+  } = deps;
 
   const server = new McpServer(
     { name: "obscura-web", version: pkgVersion },
@@ -161,12 +169,15 @@ export function buildServer(deps = {}) {
       annotations: { readOnlyHint: true }
     },
     toolHandler(async ({ query, limit, stealth }) => {
+      // On-demand: bring up the local SearXNG only while searching (null → fall back to scraping).
+      const searxngUrl = await ensureImpl();
       let out;
       try {
-        out = await searchImpl(query, { limit, stealth });
+        out = await searchImpl(query, { limit, stealth, searxngUrl: searxngUrl ?? "" });
       } catch (e) {
         throw new Error(nativeFallbackHint(e, "WebSearch"));
       }
+      logImpl(query, out.source, out.results.length);
       const { flaggedCount } = flagResultInjection(out.results);
       return {
         query,
