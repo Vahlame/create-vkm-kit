@@ -2,7 +2,9 @@
 
 Task: `parse-range` (a validating range parser). Grader: 16 hidden edge-case tests (`grade.mjs`),
 score = % passed. Grader self-test: a correct reference solution scores 100, a naive happy-path one
-scores 38 — the instrument discriminates. **1 replica per cell — directional, not definitive.**
+scores 38 — the instrument discriminates. **Explicit variant: 1 run/cell (saturates at 100).
+Under-specified variant: 2-3 runs/cell across Haiku, Sonnet and Opus; a cell is the mean.**
+Directional, not the SOP's full multi-judge program.
 
 Two prompt variants isolate WHERE discipline matters:
 
@@ -11,22 +13,28 @@ Two prompt variants isolate WHERE discipline matters:
   rules are NOT stated. Passing them requires INFERRING the implicit requirements — exactly what
   "deliver more than asked / validate the boundaries" produces.
 
-| Variant                             | Model | stock | +discipline | Δ       |
-| ----------------------------------- | ----- | ----- | ----------- | ------- |
-| explicit (contract visible)         | Haiku | 100   | 100         | 0       |
-| explicit (contract visible)         | Opus  | 100   | 100         | 0       |
-| under-specified (value not visible) | Haiku | 31    | **94**      | **+63** |
-| under-specified (value not visible) | Opus  | 50    | **81**      | **+31** |
+| Variant                             | Model  | stock | +discipline | Δ         |
+| ----------------------------------- | ------ | ----- | ----------- | --------- |
+| explicit (contract visible)         | Haiku  | 100   | 100         | 0         |
+| explicit (contract visible)         | Opus   | 100   | 100         | 0         |
+| under-specified (value not visible) | Haiku  | 31    | **87.5**    | **+56.5** |
+| under-specified (value not visible) | Sonnet | 31    | **94**      | **+63**   |
+| under-specified (value not visible) | Opus   | 40.5  | **84.5**    | **+44**   |
+
+Under-specified cells are means of the per-run scores (Haiku stock 31,31 · disc 94,81 · Opus stock
+50,31 · disc 81,88 · Sonnet 1 run each). The run-to-run spread — e.g. a disciplined Haiku scoring 94
+then 81, one replica forgetting to sort/dedup — is real; the deltas sit far clear of it.
 
 ## Findings
 
 1. **No harm.** With an explicit contract every cell saturates at 100 — discipline changes nothing
    (this replicates the SOP-suite's own RUN9/RUN10: visible-contract tasks don't separate). The risk
    we were checking for — heavy doctrine _costing_ the small model — does not appear.
-2. **Discipline lifts every model where it matters** (the not-visible case): +31 for Opus, +63 for Haiku.
-3. **The small model gains the most and closes the gap upward.** Haiku+discipline (94) beats
-   Opus+stock (50) _and_ Opus+discipline (81): a disciplined small model outperforms an undisciplined
-   large one. That is the goal — lift every model as far as possible, most the weakest, without leveling down.
+2. **Discipline lifts every model where it matters** (the not-visible case): +44 (Opus), +56.5 (Haiku),
+   +63 (Sonnet) — large and positive across all three models.
+3. **The small model closes the gap upward.** Haiku+discipline (87.5) beats Opus+stock (40.5): a
+   disciplined small model outperforms an undisciplined large one. That is the goal — lift every model
+   as far as possible, most the weakest, without leveling down.
 
 ## Verdict
 
@@ -37,7 +45,8 @@ supported by the numbers.
 
 ## Limitations (honest)
 
-- 1 replica per cell; LLMs are non-deterministic — treat ~±10 as noise; re-run for firmer numbers.
+- 2-3 runs per under-specified cell (Sonnet 1); LLMs are non-deterministic — the per-run spread is
+  ~±7-13, well below the deltas, but more runs would tighten it further.
 - 1 task, 1 domain (coding); other domains not yet measured here.
 - The +discipline condition injected the doctrine's operative core (the astucia loop + the coding
   domain), not the verbatim full `SKILL.md` — a small confound.
@@ -54,5 +63,5 @@ node tasks/parse-range/grade.mjs _selftest/naive.mjs   # 38
 node tasks/parse-range/grade.mjs solutions/<cell>.mjs  # per-subject score
 ```
 
-Subjects were spawned with the Agent tool (`model` = haiku/opus), stock vs the discipline doctrine
-prepended, returning the function as a code block saved under `solutions/`.
+Subjects were spawned with the Agent tool (`model` = haiku/sonnet/opus), stock vs the discipline
+doctrine prepended, returning the function as a code block saved under `solutions/`.
