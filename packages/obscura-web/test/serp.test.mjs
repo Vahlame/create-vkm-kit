@@ -135,7 +135,7 @@ test("searchWeb falls through the engine chain: DDG empty → Bing wins", async 
   const out = await searchWeb(
     "hello world query two",
     { engines: ["duckduckgo", "bing"] },
-    { fetchImpl, throttleImpl: noThrottle }
+    { fetchImpl, searxngImpl: async () => null, throttleImpl: noThrottle }
   );
   assert.equal(out.source, "bing");
   assert.equal(out.results.length, 2);
@@ -147,7 +147,12 @@ test("searchWeb throws a native-fallback message when every source fails", async
     throw new Error("blocked");
   };
   await assert.rejects(
-    () => searchWeb("hello world query three", {}, { fetchImpl, throttleImpl: noThrottle }),
+    () =>
+      searchWeb(
+        "hello world query three",
+        {},
+        { fetchImpl, searxngImpl: async () => null, throttleImpl: noThrottle }
+      ),
     /native WebSearch/
   );
 });
@@ -160,8 +165,16 @@ test("searchWeb caches by query+limit (second call does not re-fetch)", async ()
     return url.includes("duckduckgo") ? { content: DDG_FIXTURE } : { content: "" };
   };
   const q = "hello world query four";
-  const a = await searchWeb(q, {}, { fetchImpl, throttleImpl: noThrottle });
-  const b = await searchWeb(q, {}, { fetchImpl, throttleImpl: noThrottle });
+  const a = await searchWeb(
+    q,
+    {},
+    { fetchImpl, searxngImpl: async () => null, throttleImpl: noThrottle }
+  );
+  const b = await searchWeb(
+    q,
+    {},
+    { fetchImpl, searxngImpl: async () => null, throttleImpl: noThrottle }
+  );
   assert.equal(a.source, "duckduckgo");
   assert.equal(b.source, "duckduckgo");
   assert.equal(calls, 1, "second call served from cache");

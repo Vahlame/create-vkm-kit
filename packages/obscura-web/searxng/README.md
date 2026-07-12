@@ -48,6 +48,31 @@ Verified: `obscura_search` via SearXNG returns aggregated, relevant results wher
 e.g. "SWE-bench software engineering benchmark" → swebench.com / the SWE-bench GitHub / leaderboards
 (bing-rss returned package-tracking for the same query); 4 technical queries in ~7s, no rate-limiting.
 
+## Desktop app: on/off + live search monitor
+
+`searxng-gui.pyw` is a tiny Tkinter app (stdlib only, no deps) to run SearXNG from the desktop:
+
+- **On/off** button that starts/stops the local SearXNG process and shows its status.
+- **Live feed** of the queries flowing through SearXNG (parsed from its request log) — see, in real
+  time, exactly what the agent is searching.
+- A **search box** to try a query yourself and read the top results.
+
+Install (copy it next to the config and drop a Desktop shortcut):
+
+```powershell
+Copy-Item .\searxng-gui.pyw $HOME\.vkm\searxng\searxng-gui.pyw
+$pyw = (Get-Command pythonw.exe).Source
+$sc  = (New-Object -ComObject WScript.Shell).CreateShortcut(
+         (Join-Path ([Environment]::GetFolderPath('Desktop')) 'vkm SearXNG.lnk'))
+$sc.TargetPath = $pyw
+$sc.Arguments  = '"' + "$HOME\.vkm\searxng\searxng-gui.pyw" + '"'
+$sc.WorkingDirectory = "$HOME\.vkm\searxng"
+$sc.Save()
+```
+
+Then double-click **vkm SearXNG** on the Desktop. Needs the system Python with Tkinter (the python.org
+installer includes it); it launches the venv Python for the server itself.
+
 ## Notes
 
 - `limiter: false` avoids needing valkey/redis for a private localhost instance.
