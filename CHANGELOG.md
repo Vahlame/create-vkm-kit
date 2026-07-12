@@ -14,6 +14,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `skills/vkm-discipline/domains/web-search.md` — how to search/fetch well through obscura and hand
   back a verified, grounded result (cite only what you fetched, cross-check high-stakes facts,
   match freshness/cache to volatility).
+- **Discipline domains migrated from the SOP-suite (re-authored in the execution-first voice):**
+  `coding` (reproduce before fix, validate boundaries, root-cause not symptom, keep the diff tight),
+  `debugging` (bugs + live incidents: first-hypothesis-is-what-changed, capture before mitigate,
+  SEV cadence, revert-by-default, next-update-not-resolution comms), `writing` (every claim
+  traceable, run every instruction, recompute numbers, negation test), and `design-ui` (contrast
+  computed per theme, keyboard/focus, targets ≥24px, 200% zoom, the three screen states).
+  `data/SQL · infra/ops · expertise` land next.
 
 ### Changed
 
