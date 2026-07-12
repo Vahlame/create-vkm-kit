@@ -10,6 +10,13 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const bin = path.join(root, "src", "index.js");
 const kitRepo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
+test("--help prints the current bin name, not the pre-rename package name", () => {
+  const r = spawnSync(process.execPath, [bin, "--help"], { encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.ok(!r.stdout.includes("create-obsidian-memory"), r.stdout);
+  assert.match(r.stdout, /create-vkm-kit/);
+});
+
 test("non-interactive --dry-run exits 0 and prints dry-run", () => {
   const vault = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-"));
   fs.mkdirSync(path.join(vault, ".obsidian"));

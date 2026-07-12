@@ -15,7 +15,7 @@ from .bench_assemble import format_assemble_report, run_assemble_benchmark
 from .bench_recall import format_report, run_benchmark
 from .bench_tokens import format_token_report, run_token_benchmark
 from .complete import complete as complete_prefix
-from .embeddings import get_embedder
+from .embeddings import embedder_for_identity, get_embedder
 from .indexer import ensure_fresh, index_vault, index_vectors
 from .kg_query import observations_query, relations_for, suggest_structure
 from .query import hybrid_search, search_vault
@@ -133,6 +133,31 @@ def _hybrid_kwargs(args) -> dict:
         "reranker": get_reranker(args.rerank_model or ("1" if args.rerank else None)),
         "rerank_margin": args.rerank_margin,
     }
+
+
+def _resolve_hybrid_embedder(vault, explicit_name, *, no_auto_index: bool):
+    """The Embedder object hybrid-search/json-hybrid-search should query with.
+
+    When the caller passed no explicit ``--embedder``, eagerly resolving via
+    ``get_embedder(None)`` BEFORE calling ``ensure_fresh`` bypasses that
+    function's own on-disk-identity-preference logic entirely (it only
+    activates when its own ``embedder`` argument is ``None``) — this is the
+    real default path for the ``vault_hybrid_search`` MCP tool (it never sets
+    ``--embedder``), so it silently built/queried a throwaway hashing index
+    instead of a vault's real fastembed one. Fix: let ``ensure_fresh`` resolve
+    first, then reconstruct the identity it actually settled on.
+    """
+    if no_auto_index or explicit_name is not None:
+        embedder = get_embedder(explicit_name)
+        if not no_auto_index:
+            ensure_fresh(vault, embedder=embedder)
+        return embedder
+    fresh = ensure_fresh(vault, embedder=None)
+    if fresh.embedder_name:
+        resolved = embedder_for_identity(fresh.embedder_name)
+        if resolved is not None:
+            return resolved
+    return get_embedder(None)
 
 
 def main() -> None:
@@ -588,9 +613,9 @@ def main() -> None:
             print(f"{h.path}\tbm25={h.bm25:.4f}\t{h.title!r}")
             print(f"  {h.snippet}")
     elif args.cmd == "hybrid-search":
-        embedder = get_embedder(args.embedder)
-        if not args.no_auto_index:
-            ensure_fresh(args.vault, embedder=embedder)
+        embedder = _resolve_hybrid_embedder(
+            args.vault, args.embedder, no_auto_index=args.no_auto_index
+        )
         hits = hybrid_search(args.vault, args.query, embedder, **_hybrid_kwargs(args))
         if args.log_recall and hits:
             log_events(args.vault, "returned", [h.path for h in hits], query=args.query)
@@ -738,9 +763,9 @@ def main() -> None:
         }
         print(json.dumps(payload, ensure_ascii=False))
     elif args.cmd == "json-hybrid-search":
-        embedder = get_embedder(args.embedder)
-        if not args.no_auto_index:
-            ensure_fresh(args.vault, embedder=embedder)
+        embedder = _resolve_hybrid_embedder(
+            args.vault, args.embedder, no_auto_index=args.no_auto_index
+        )
         hits = hybrid_search(args.vault, args.query, embedder, **_hybrid_kwargs(args))
         if args.log_recall and hits:
             log_events(args.vault, "returned", [h.path for h in hits], query=args.query)
@@ -945,20 +970,23 @@ def main() -> None:
                 for c in result["observation_candidates"]:
                     print(f"    {c}")
     elif args.cmd in ("memory-report", "json-memory-report"):
+        embedder_name = None
         if not args.no_auto_index:
-            ensure_fresh(args.vault, semantic=args.duplicates)
+            embedder_name = ensure_fresh(args.vault, semantic=args.duplicates).embedder_name
         report = build_report(
             args.vault,
             budget_tokens=args.budget,
             stale_days=args.stale_days,
             similarity=args.similarity,
             duplicates=args.duplicates,
+            embedder_name=embedder_name,
         )
         if args.reflect:
             report["reflection"] = build_reflection(
                 args.vault,
                 stale_days=args.stale_days,
                 similarity=args.similarity,
+                embedder_name=embedder_name,
             )
         if args.cmd == "json-memory-report":
             print(json.dumps(report, ensure_ascii=False))
@@ -984,13 +1012,15 @@ def main() -> None:
         written = log_events(args.vault, "used", [args.path])
         print(json.dumps({"logged": written}))
     elif args.cmd in ("memory-reflect", "json-memory-reflect"):
+        embedder_name = None
         if not args.no_auto_index:
-            ensure_fresh(args.vault)
+            embedder_name = ensure_fresh(args.vault).embedder_name
         reflection = build_reflection(
             args.vault,
             since_days=args.since_days,
             stale_days=args.stale_days,
             similarity=args.similarity,
+            embedder_name=embedder_name,
         )
         if args.write_note:
             target = write_reflection_note(args.vault, reflection)

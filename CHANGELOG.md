@@ -6,6 +6,123 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+
+- **`assemble_context`'s `project` parameter allowed path traversal.** A caller-supplied
+  `project` value like `../../../etc/passwd` was joined into a file path with plain
+  `path.join` (not `safeVaultPath`, unlike every other tool) and read with no containment
+  check or untrusted-data wrapping — reading arbitrary `.md` files off the host. Routed
+  through `safeVaultPath` + `wrapUntrusted`; the wire schema also gained a
+  `/^[\w-]+$/` regex as defense-in-depth.
+- **`create-obsidian-memory-shim` forwarded argv through a shell.** `execa(..., {shell:
+process.platform === "win32"})` let cmd.exe interpret `&`/`|`/`>` in any forwarded CLI
+  argument — reproduced live (a crafted argument wrote an arbitrary file via an injected
+  `echo`). `shell: true` was unnecessary (execa's bundled cross-spawn already resolves
+  `npx.cmd` on Windows without one, verified directly) and is now removed.
+
+### Fixed
+
+- **`vault_hybrid_search`'s default path silently ignored the vault's real vector
+  index.** `hybrid-search`/`json-hybrid-search` pre-resolved an embedder via
+  `get_embedder(args.embedder)` before calling `ensure_fresh`, bypassing its
+  on-disk-identity-preference logic entirely — a vault indexed with a non-default
+  embedder (e.g. `fastembed:...`) was silently re-indexed and queried under the hashing
+  default instead. `memory-report --duplicates`/`memory-reflect` had the same
+  split-brain (independently re-deriving the embedder name instead of using what
+  `ensure_fresh` actually used, seeing zero rows). `ensure_fresh` now returns
+  `FreshStats.embedder_name`; all three call sites thread it through instead of
+  re-deriving.
+- **`embedder_for_identity` crashed instead of degrading when fastembed wasn't
+  loadable** (never installed, extra removed, index moved to a machine without it) —
+  every bare `ensure_fresh` caller (search/complete/relations/memory-report/...) would
+  crash. Now returns `None` like the hashing branch already did.
+- **Default `HashingEmbedder` tokenizer fragmented non-ASCII words** (`[a-z0-9]+,
+re.ASCII` split "código" into "c"+"digo") — broken for this kit's primary vault
+  language (Spanish). Broadened to Unicode letters+digits, matching the FTS5 channel's
+  existing diacritic handling.
+- **`guard-effort-gate`'s transcript cache could resume into unrelated bytes.**
+  `canResume` checked only size/mtime monotonicity — a transcript truncated and
+  replaced with unrelated content, then appended past its original cached size before
+  the next call, looked like "just grew" and resumed from the stale offset into the
+  middle of the new content. Added a content fingerprint (hash of the bytes just
+  before the cached offset), re-verified against the current file before trusting a
+  resume.
+- **Go daemon: a rejected pre-commit hook was misread as "nothing to commit."**
+  `commitStep` treated any `git commit` exit 1 as the benign noop case without
+  checking the actual output — a hook rejecting staged content (not an empty commit)
+  silently discarded the work while every health signal stayed green. Now checks for
+  git's actual noop message text.
+- **Go daemon: the cross-process git-sync lock could delete another process's live
+  lock.** `release()` removed the lockfile unconditionally; a holder whose lock was
+  stolen as stale (e.g. after a clock jump) could delete the NEW holder's lock on its
+  own release, opening a window for concurrent git operations against the same
+  worktree. `release()` now verifies pid+hostname before removing.
+- **Go daemon: rebase-abort only triggered on `CONFLICT`/`needs merge` text**, missing
+  failure modes (context-timeout kill, network drop) that leave `.git` mid-rebase with
+  no recovery. The trigger now checks the actual on-disk rebase state
+  (`.git/rebase-merge`/`rebase-apply`) instead of matching failure text; a FAILED abort
+  is recorded distinctly from a successful one (`LastRebaseAbortFailedAt`) so `doctor`
+  never reports a still-mid-rebase worktree as resolved.
+- **Go daemon: `execRunner.Run` discarded stderr entirely** — `add`/`commit`/push-retry
+  failures recorded as a bare exit code with no indication why. Now captured and
+  included in the returned error.
+- **`assemble_context`'s relevance gate disabled itself on short/vague queries.**
+  `anchorTerms` returned an empty list when every query token was under the length
+  floor (e.g. "fix bug"), and an empty anchor list was treated as "nothing to filter" —
+  admitting every hit unfiltered for exactly the queries most likely to need the gate.
+  Falls back to the raw query tokens instead of an empty list. The anchor match itself
+  is now word-boundary-aware (a stemmed "statu" no longer substring-matches
+  "statue"/"statutory").
+- **`vkm-doctor`'s `aggregate()` had no numeric validation** — one malformed NDJSON
+  line (torn write, future OTLP schema drift) silently poisoned the running sum to
+  `NaN`, collapsing `cacheHitRatio` to `null` ("no data yet") and masking a real
+  broken-cache diagnosis. Non-finite values are now skipped, not accumulated.
+- **`vkm-doctor`'s OTLP sink and `vkm-spec`'s SSE draft handler had no `'error'`
+  listener** on the request/response streams — an unhandled `'error'` event is fatal
+  by Node's default, crashing the whole process (every open GUI tab, in the spec-builder
+  case) on a single dropped connection. Both now handle the event defensively; the SSE
+  handler also stops writing once the client has disconnected instead of writing to a
+  dead socket.
+- Hook templates written by a fresh install (`_transcript-cache.mjs`,
+  `guard-effort-gate.mjs`, `guard-native-memory-write.mjs`,
+  `session-start-vault-context.mjs`, `stop-vault-close-reminder.mjs`) only carried the
+  legacy `create-obsidian-memory` ownership marker, not `vkm-kit` — a future trim of
+  `LEGACY_FILE_MARKERS` (per ADR-0041's own stated timeline) would have silently broken
+  `--uninstall` recognition for these exact files on every machine, old and new.
+- The interactive wizard coupled telemetry's enable state to the unrelated
+  `--no-token-saver` flag — running the wizard with `--no-token-saver` on a machine
+  with telemetry already installed silently stripped it. Now independent, matching the
+  headless path.
+- Stale `create-obsidian-memory` branding in `create-vkm-kit`'s `--help` output and
+  banner text (bins are `create-vkm-kit`/`vkm`).
+- Frontmatter self-paste guard (`vault_edit_file`) only caught an exact byte-duplicate
+  of the original block — a `newText` inserting a _different_ hallucinated frontmatter
+  block into the body wasn't caught. Generalized to compare frontmatter-shaped block
+  counts in the body, not just occurrences of the original bytes.
+- `wrapUntrusted`'s `source` attribute had no quote-escaping (inert on Windows/NTFS,
+  which forbids `"` in filenames; a real gap on POSIX).
+- `reflect.py`'s `_recent_activity`/`_pending_promotions` scanned raw note text without
+  the fence-aware `strip_code_regions` scrub already applied elsewhere — a fenced
+  example documenting the tag/wikilink/pending-observation syntax polluted the real
+  counts.
+- Usage-decay scoring (`usage_counts_decayed`) clamped a future-dated event (clock
+  skew) to age 0 — the _maximum_ possible weight — instead of excluding it.
+- `_missing_frontmatter_keys` used `a or b` instead of an explicit `in`/`is not None`
+  check, so an explicit empty-dict folder rule (`{}`, "no requirement here, override
+  the wildcard") was wrongly treated as falsy and fell through to the wildcard anyway.
+- Go daemon: `truncate`/`truncateString` sliced by byte index, which can cut mid-rune
+  on non-ASCII text (this vault's own content); now rune-safe. `state.json` is now
+  written `0o600`, not `0o644` (its error text can include git output, which may embed
+  a credential-bearing remote URL).
+- `vkm-spec`'s `reviewInEditor` naively split `$EDITOR`/`$VISUAL` on spaces, breaking a
+  quoted Windows path (`"C:\Program Files\...\code.exe"`) and silently swallowing the
+  resulting failure. Now parses a leading quoted command and surfaces a warning when
+  the editor can't be launched.
+- `vkm-spec`: an EADDRINUSE reuse of an already-running instance now checks a new
+  `GET /api/health` endpoint and warns on a version mismatch (the desktop-shortcut
+  zombie-process-after-update failure mode) instead of assuming the existing instance
+  is fine.
+
 ## [4.0.0] - 2026-07-10
 
 The kit becomes **vkm-kit**: one plug-and-play efficiency suite for Claude Code —

@@ -86,7 +86,8 @@ func acquireGitSyncLock(dir string) (release func(), err error) {
 				_ = os.Remove(lockPath)
 				return nil, fmt.Errorf("git sync lock: %w", errors.Join(writeErr, closeErr))
 			}
-			return func() { _ = os.Remove(lockPath) }, nil
+			pid, host := os.Getpid(), hostname
+			return func() { releaseGitSyncLock(lockPath, pid, host) }, nil
 		}
 		if !os.IsExist(createErr) {
 			return nil, fmt.Errorf("git sync lock: %w", createErr)
@@ -108,6 +109,23 @@ func acquireGitSyncLock(dir string) (release func(), err error) {
 			ErrGitSyncLocked, holder.PID, holder.Hostname, holder.AcquiredAt.Format(time.RFC3339))
 	}
 	return nil, fmt.Errorf("git sync lock: gave up after repeated stale-lock contention")
+}
+
+// releaseGitSyncLock removes lockPath only if it still names this holder
+// (pid+hostname). Without this check, a holder whose lock was stolen as
+// stale (see isLockStale) would unconditionally delete the NEW holder's live
+// lock on its own release — a real corruption vector, not just a lost lock.
+// acquired_at is deliberately not compared: clock skew between reading it
+// back and now must not cause a false ownership mismatch.
+func releaseGitSyncLock(lockPath string, pid int, hostname string) {
+	holder, err := readGitSyncLockInfo(lockPath)
+	if err != nil {
+		return // missing or corrupt — nothing of ours left to remove
+	}
+	if holder.PID != pid || holder.Hostname != hostname {
+		return // already replaced by another holder; not ours to delete
+	}
+	_ = os.Remove(lockPath)
 }
 
 func readGitSyncLockInfo(path string) (gitSyncLockInfo, error) {

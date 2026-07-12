@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * Shared incremental-scan engine for the transcript-reading hooks (`guard-effort-gate.mjs`,
- * `stop-vault-close-reminder.mjs`). Installed by `create-obsidian-memory` alongside them into
- * `~/.claude/hooks/` — NOT a hook itself (Claude Code never invokes this file directly), just
- * a sibling module the other two import.
+ * `stop-vault-close-reminder.mjs`). Installed by create-obsidian-memory — the vkm-kit
+ * installer — alongside them into `~/.claude/hooks/` — NOT a hook itself (Claude Code never
+ * invokes this file directly), just a sibling module the other two import.
  *
  * Why: both hooks re-read + re-parse the ENTIRE JSONL transcript on every single gated tool
  * call. Measured ~75ms on a real 25.8MB/1878-line transcript (41ms read + 34ms parse);
@@ -15,13 +15,19 @@
  * storing the last-consumed byte offset plus the caller's derived accumulator state — so a
  * later invocation only reads+parses the NEW suffix appended since the last call.
  *
- * Correctness over speed on any doubt: a missing, corrupt, or stale (transcript shrank or was
- * replaced — detected by comparing the cache's recorded size/mtime against the current stat)
- * cache always falls back to a full rescan from byte 0. A trailing PARTIAL line (the
- * transcript is being actively appended to mid-write) is never consumed — only complete lines
- * (ending in `"\n"`) advance the committed offset, so a line can never be parsed truncated or
- * silently dropped. This is a PERFORMANCE change only: the derived state for any given
- * transcript content is byte-for-byte identical to what a full rescan would produce.
+ * Correctness over speed on any doubt: a missing, corrupt, or stale (transcript shrank —
+ * detected by comparing the cache's recorded size/mtime against the current stat) cache always
+ * falls back to a full rescan from byte 0. Size/mtime monotonicity alone cannot catch a
+ * transcript that was TRUNCATED AND REPLACED with unrelated content, then appended-to past its
+ * original size before the next call — same-or-larger size, same-or-newer mtime, wrong bytes.
+ * A content fingerprint (hash of the bytes immediately before the cached offset) closes that
+ * gap: it is re-verified against the CURRENT file before trusting a resume, so replaced content
+ * always falls back to a full rescan instead of resuming into the middle of unrelated bytes. A
+ * trailing PARTIAL line (the transcript is being actively appended to mid-write) is never
+ * consumed — only complete lines (ending in `"\n"`) advance the committed offset, so a line can
+ * never be parsed truncated or silently dropped. This is a PERFORMANCE change only: the derived
+ * state for any given transcript content is byte-for-byte identical to what a full rescan would
+ * produce.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -49,6 +55,38 @@ function cacheFilePath(transcriptPath, cacheKey) {
   return path.join(cacheDir(), `${digest}.${cacheKey}.json`);
 }
 
+/** How many bytes immediately before the cached offset get hashed into the resume
+ * fingerprint. Small enough to be cheap on every gated call; large enough that a
+ * transcript replacement is astronomically unlikely to hash-collide by chance. */
+const FINGERPRINT_WINDOW = 64;
+
+/** Hash of the up-to-{@link FINGERPRINT_WINDOW} bytes immediately before `offset` in
+ * `transcriptPath`, as currently on disk. `null` if that region can't be read (missing
+ * file, offset beyond EOF, etc.) — treated as "can't verify, don't resume". Offset 0 has
+ * nothing before it to fingerprint, so it hashes the empty buffer (deterministic, always
+ * "matches" — resuming from byte 0 is always safe, there's nothing to have been replaced). */
+function fingerprintBefore(transcriptPath, offset) {
+  let fd;
+  try {
+    fd = fs.openSync(transcriptPath, "r");
+    const start = Math.max(0, offset - FINGERPRINT_WINDOW);
+    const length = offset - start;
+    const buf = Buffer.alloc(length);
+    if (length > 0) fs.readSync(fd, buf, 0, length, start);
+    return crypto.createHash("sha1").update(buf).digest("hex");
+  } catch {
+    return null;
+  } finally {
+    if (fd !== undefined) {
+      try {
+        fs.closeSync(fd);
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+}
+
 /** Load + validate a cache file. Returns `null` (triggering a full rescan) on anything that
  * doesn't look exactly like a cache we could have written for THIS transcript — missing
  * file, corrupt JSON, wrong shape, or a `transcriptPath` mismatch. Never throws. */
@@ -63,6 +101,7 @@ function readCache(cacheFp, transcriptPath) {
       typeof cache.offset === "number" &&
       typeof cache.size === "number" &&
       typeof cache.mtimeMs === "number" &&
+      typeof cache.fingerprint === "string" &&
       cache.state &&
       typeof cache.state === "object"
     ) {
@@ -128,9 +167,12 @@ function scanFromOffset(transcriptPath, fromOffset, state, foldLine) {
 
 /**
  * Get the up-to-date derived state for `transcriptPath`, resuming from the cached offset
- * when it's SAFE to (cache present, matches this transcript + hook, and the file has only
- * grown since — same-or-larger size, same-or-later mtime), otherwise doing a full rescan
- * from byte 0. Always persists the new offset + state for next time (best-effort, never
+ * when it's SAFE to (cache present, matches this transcript + hook, the file has only grown
+ * since — same-or-larger size, same-or-later mtime — AND the content fingerprint just before
+ * the cached offset still matches what's currently on disk), otherwise doing a full rescan
+ * from byte 0. The fingerprint check is what catches a transcript truncated and replaced with
+ * unrelated content that then grew past its original cached size — size/mtime alone cannot.
+ * Always persists the new offset + state + fingerprint for next time (best-effort, never
  * fatal). Missing transcript -> the caller's `initialState()`, matching the old
  * always-full-rescan behavior's fail-open result for that case.
  * @param {string} transcriptPath
@@ -155,18 +197,27 @@ export function getIncrementalState(transcriptPath, cacheKey, initialState, fold
 
   const cacheFp = cacheFilePath(transcriptPath, cacheKey);
   const cache = readCache(cacheFp, transcriptPath);
-  const canResume =
+  const sizeAndTimeOk =
     cache !== null &&
     cache.size <= stat.size &&
     cache.offset <= stat.size &&
     cache.mtimeMs <= stat.mtimeMs;
+  const canResume =
+    sizeAndTimeOk && fingerprintBefore(transcriptPath, cache.offset) === cache.fingerprint;
 
   const startState = canResume ? cache.state : initialState();
   const startOffset = canResume ? cache.offset : 0;
 
   const { offset, state } = scanFromOffset(transcriptPath, startOffset, startState, foldLine);
 
-  writeCache(cacheFp, { transcriptPath, size: stat.size, mtimeMs: stat.mtimeMs, offset, state });
+  writeCache(cacheFp, {
+    transcriptPath,
+    size: stat.size,
+    mtimeMs: stat.mtimeMs,
+    offset,
+    fingerprint: fingerprintBefore(transcriptPath, offset),
+    state
+  });
 
   return state;
 }

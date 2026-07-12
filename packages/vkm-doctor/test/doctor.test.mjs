@@ -103,6 +103,50 @@ test("aggregate flags a broken cache (high input, near-zero cacheRead)", () => {
   assert.match(renderReport(report), /LOW — the prompt cache looks broken/);
 });
 
+test("aggregate ignores a malformed/non-finite value instead of poisoning the whole sum", () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "vkm-doctor-test-"));
+  const day = new Date().toISOString().slice(0, 10);
+  const rows = [
+    {
+      ts: new Date().toISOString(),
+      metric: "claude_code.token.usage",
+      type: "input",
+      model: "m",
+      value: 10000
+    },
+    // A torn write or schema drift could leave `value` non-numeric — must be skipped,
+    // not accumulated (NaN would poison every downstream sum/ratio for the whole file).
+    {
+      ts: new Date().toISOString(),
+      metric: "claude_code.token.usage",
+      type: "input",
+      model: "m",
+      value: "not-a-number"
+    },
+    {
+      ts: new Date().toISOString(),
+      metric: "claude_code.token.usage",
+      type: "cacheRead",
+      model: "m",
+      value: 90000
+    },
+    { ts: new Date().toISOString(), metric: "claude_code.cost.usage", value: NaN }
+  ];
+  fs.mkdirSync(dataDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(dataDir, `${day}.ndjson`),
+    rows.map((r) => JSON.stringify(r)).join("\n") + "\n"
+  );
+  const report = aggregate({ dataDir });
+  assert.equal(report.totals.input, 10000, "the malformed row must be skipped, not poison the sum");
+  assert.equal(report.totals.cacheRead, 90000);
+  assert.ok(
+    Number.isFinite(report.cacheHitRatio),
+    "cacheHitRatio must stay a real number, not NaN"
+  );
+  assert.equal(report.costUSD, 0, "the NaN cost row must be skipped, not poison costUSD");
+});
+
 test("sink HTTP round-trip on an ephemeral port persists NDJSON and answers 200 {}", async () => {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "vkm-doctor-test-"));
   const server = createSink({ port: 0, dataDir });

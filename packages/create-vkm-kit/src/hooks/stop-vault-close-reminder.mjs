@@ -20,8 +20,8 @@
  * already continuing because of a prior Stop block. We check it and stand down, so this
  * fires at most once per turn-chain — never a loop.
  *
- * Installed by `create-obsidian-memory` into `~/.claude/hooks/` next to the SessionStart
- * and PreToolUse guard hooks, registered in `~/.claude/settings.json` as:
+ * Installed by create-obsidian-memory — the vkm-kit installer — into `~/.claude/hooks/` next
+ * to the SessionStart and PreToolUse guard hooks, registered in `~/.claude/settings.json` as:
  *   node "<this file>" [lang]
  *
  * Contract (Claude Code `Stop` hooks):

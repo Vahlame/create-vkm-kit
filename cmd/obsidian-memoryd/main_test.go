@@ -2,12 +2,71 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 )
+
+// --- truncate (rune-safe) ------------------------------------------------
+
+func TestTruncateIsRuneSafe(t *testing.T) {
+	// "código" — cutting at byte 5 would land mid-rune (the 'ó' is 2 bytes in
+	// UTF-8); cutting at rune 5 must not.
+	s := "código está OK"
+	got := truncate([]byte(s), 5)
+	if !strings.HasSuffix(got, "...") {
+		t.Fatalf("expected an ellipsis suffix, got %q", got)
+	}
+	if !utf8.ValidString(got) {
+		t.Errorf("truncate produced invalid UTF-8: %q", got)
+	}
+	if r := []rune(strings.TrimSuffix(got, "...")); len(r) != 5 {
+		t.Errorf("expected exactly 5 runes before the ellipsis, got %d (%q)", len(r), got)
+	}
+}
+
+func TestTruncateUnderLimitIsUnchanged(t *testing.T) {
+	if got := truncate([]byte("short"), 100); got != "short" {
+		t.Errorf("expected unchanged short input, got %q", got)
+	}
+}
+
+// --- execRunner (real subprocess) ----------------------------------------
+
+// TestExecRunnerRunCapturesStderr verifies Run() no longer discards stderr:
+// a failing command's stderr text must be findable in the returned error, not
+// just a bare "exit status N".
+func TestExecRunnerRunCapturesStderr(t *testing.T) {
+	err := defaultRunner.Run(context.Background(), "git", "this-is-not-a-git-command")
+	if err == nil {
+		t.Fatal("expected an error from an invalid git subcommand")
+	}
+	if !strings.Contains(err.Error(), "git") {
+		t.Errorf("expected stderr text to be included in the error, got: %v", err)
+	}
+}
+
+func TestExecRunnerRunSucceedsWithNoStderr(t *testing.T) {
+	if err := defaultRunner.Run(context.Background(), "git", "--version"); err != nil {
+		t.Fatalf("expected git --version to succeed, got %v", err)
+	}
+}
+
+// TestExecRunnerRunUnwrapsToExitError verifies fmt.Errorf("%w: ...", err) still
+// lets callers reach the underlying exitCoder via errors.As (commitStep and
+// other exit-code-sensitive callers depend on this).
+func TestExecRunnerRunUnwrapsToExitError(t *testing.T) {
+	err := defaultRunner.Run(context.Background(), "git", "this-is-not-a-git-command")
+	var ce exitCoder
+	if !errors.As(err, &ce) {
+		t.Fatalf("expected errors.As to find an exitCoder in %v", err)
+	}
+}
 
 // --- watchDebounce -----------------------------------------------------
 

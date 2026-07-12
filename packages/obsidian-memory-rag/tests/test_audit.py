@@ -268,6 +268,21 @@ def test_schema_violations_folder_rule_and_wildcard(tmp_path: Path) -> None:
     assert report["schema_violations_total"] == 2
 
 
+def test_schema_violations_explicit_empty_folder_rule_overrides_wildcard(tmp_path: Path) -> None:
+    # {} for a folder ("no required frontmatter here") is a legitimate override
+    # of "*" — a truthiness check on the rule wrongly fell through past an empty
+    # dict (falsy) to the wildcard instead of treating it as "no requirement".
+    vault = tmp_path / "vault"
+    _write(
+        vault / "memory-schema.json",
+        json.dumps({"folders": {"NOTES": {}, "*": {"required": ["date"]}}}),
+    )
+    _write(vault / "NOTES" / "a.md", "no frontmatter, no date\n")
+    report = audit_vault(vault)
+    assert report["schema_violations"] == []
+    assert report["schema_violations_total"] == 0
+
+
 def test_schema_violations_malformed_config_ignored(tmp_path: Path) -> None:
     vault = tmp_path / "vault"
     _write(vault / "memory-schema.json", "not json {{")

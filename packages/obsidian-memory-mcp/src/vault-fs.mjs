@@ -218,12 +218,27 @@ const FRONTMATTER_RE = /^---\r?\n[\s\S]*?\r?\n---\r?\n/;
  * @param {string} finalText file content after all edits in this call
  * @returns {boolean}
  */
+/** Any `---\n...\n---\n` block starting at a line boundary, anywhere in the text. */
+const FRONTMATTER_BLOCK_ANYWHERE_RE = /^---\r?\n[\s\S]*?\r?\n---\r?\n/gm;
+
+function countFrontmatterLike(text) {
+  return (text.match(FRONTMATTER_BLOCK_ANYWHERE_RE) || []).length;
+}
+
 function wouldSelfPasteFrontmatter(originalText, finalText) {
   const fm = originalText.match(FRONTMATTER_RE);
   if (!fm) return false;
   const block = fm[0];
   const countIn = (s) => s.split(block).length - 1;
-  return countIn(finalText) > countIn(originalText);
+  if (countIn(finalText) > countIn(originalText)) return true;
+  // Generalized beyond an exact-byte duplicate: a DIFFERENT frontmatter-shaped block
+  // (hallucinated/rebuilt YAML, not a copy) pasted into the body is the same corruption.
+  // Compare block counts in the body only (post leading-frontmatter), not the whole text,
+  // so a note that legitimately uses two "---" thematic breaks in its body isn't punished
+  // for edits that never touch that region.
+  const originalBody = originalText.slice(block.length);
+  const finalBody = finalText.slice((finalText.match(FRONTMATTER_RE)?.[0] ?? "").length);
+  return countFrontmatterLike(finalBody) > countFrontmatterLike(originalBody);
 }
 
 /**

@@ -16,8 +16,8 @@
  * the 2nd. Once the gate is satisfied once, it stays open for the rest of the session — this
  * is a one-time checkpoint per session, not a per-task interrogation.
  *
- * Installed by `create-obsidian-memory` into `~/.claude/hooks/` next to the other managed
- * hooks, registered in `~/.claude/settings.json` as:
+ * Installed by create-obsidian-memory — the vkm-kit installer — into `~/.claude/hooks/` next
+ * to the other managed hooks, registered in `~/.claude/settings.json` as:
  *   node "<this file>" [lang]
  * with matcher `"Write|Edit|MultiEdit|NotebookEdit"`. Reads `transcript_path` from the
  * hook's stdin payload (like the `Stop` hook), not from argv — there's no file path to

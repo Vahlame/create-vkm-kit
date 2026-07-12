@@ -14,11 +14,14 @@ console.error(
 console.error(pc.dim("  Update your scripts: npx @vkmikc/create-vkm-kit " + forwarded.join(" ")));
 
 try {
+  // No `shell: true`: execa's bundled cross-spawn already resolves npx.cmd on Windows
+  // without one (verified directly), and shell:true here was a real command-injection
+  // hole — `forwarded` is fully caller-controlled argv, and cmd.exe interprets
+  // `&`/`|`/`>` etc. in ANY array element passed through a shell, unlike a direct
+  // (non-shell) spawn where each element is one literal, un-interpreted argument.
   const res = await execa("npx", ["--yes", "@vkmikc/create-vkm-kit@latest", ...forwarded], {
     stdio: "inherit",
-    reject: false,
-    // npx is npm's own launcher; on Windows it's npx.cmd, which requires a shell.
-    shell: process.platform === "win32"
+    reject: false
   });
   process.exit(res.exitCode ?? 1);
 } catch (e) {

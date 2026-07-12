@@ -15,9 +15,10 @@
  * A `budgetChars` cap trims the assembled payload passages-first (decisions are the last
  * thing to go) so the wire cost stays bounded no matter how big the vault is.
  */
-import fs from "node:fs";
-import path from "node:path";
+import { readFile } from "node:fs/promises";
 import { defaultRagSrc, requireVault, runRagJson } from "./rag-client.mjs";
+import { safeVaultPath } from "./vault-fs.mjs";
+import { wrapUntrusted } from "./untrusted.mjs";
 
 const HYBRID_LIMIT = 6;
 const OBSERVATIONS_LIMIT = 50;
@@ -46,17 +47,30 @@ function stem(term) {
   return term.length > 4 && term.endsWith("s") ? term.slice(0, -1) : term;
 }
 
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Word-boundary match so a stemmed term (e.g. "statu" from "status") can't substring-match
+ * an unrelated word ("statue") — `s?` re-admits the plural the stem() call above removed. */
+function anchorMatches(haystack, anchor) {
+  return new RegExp(`\\b${escapeRegExp(anchor)}s?\\b`).test(haystack);
+}
+
 /**
  * Anchor terms of a query: the distinctive words a relevant hit should actually contain.
  * Prefers terms ≥6 chars (common short words like "texto"/"tool" anchor nothing); falls
- * back to ≥4 when the query has no long terms at all. Plural-stemmed and deduped.
+ * back to ≥4, then — for a fully short/vague query ("fix bug") — to every raw term, so the
+ * relevance gate below never sees an empty anchor list and silently admits everything.
+ * Plural-stemmed and deduped.
  * @param {string} query
  * @returns {string[]}
  */
 export function anchorTerms(query) {
   const terms = [...new Set(fold(query).split(/[^\p{L}\p{N}_-]+/u))].filter(Boolean);
   const strong = terms.filter((t) => t.length >= 6);
-  const chosen = strong.length ? strong : terms.filter((t) => t.length >= 4);
+  const medium = strong.length ? strong : terms.filter((t) => t.length >= 4);
+  const chosen = medium.length ? medium : terms;
   return [...new Set(chosen.map(stem))];
 }
 
@@ -76,11 +90,11 @@ export function anchorTerms(query) {
  * @param {string[]} anchors
  */
 export function hitMatchesAnchors(hit, anchors) {
-  if (!anchors.length) return true; // nothing to anchor on → don't drop
+  if (!anchors.length) return true; // empty query — genuinely nothing to anchor on
   const haystack = fold(`${hit?.path ?? ""} ${hit?.heading ?? ""} ${hit?.snippet ?? ""}`);
   let matches = 0;
   for (const a of anchors) {
-    if (haystack.includes(a)) matches += 1;
+    if (anchorMatches(haystack, a)) matches += 1;
   }
   if (matches >= Math.min(2, anchors.length)) return true;
   if (matches >= 1) {
@@ -258,9 +272,11 @@ export async function assembleContext({
   let currentState = null;
   if (projectNote && decisions.length === 0) {
     try {
-      const raw = fs.readFileSync(path.join(v, projectNote), "utf8");
+      const fp = await safeVaultPath(v, projectNote); // throws if projectNote escapes the vault
+      const raw = await readFile(fp, "utf8");
       const body = raw.replace(/^---[\s\S]*?---\s*/, ""); // strip YAML frontmatter, if any
-      currentState = truncate(body.trim(), RAW_NOTE_CHAR_BUDGET) || null;
+      const excerpt = truncate(body.trim(), RAW_NOTE_CHAR_BUDGET);
+      currentState = excerpt ? wrapUntrusted(excerpt, projectNote) : null;
     } catch {
       currentState = null;
     }

@@ -308,3 +308,19 @@ test("assemble_context: one call returns decisions + stack + passages, budgeted,
     rmSync(vault, { recursive: true, force: true });
   }
 });
+
+test("assemble_context: rejects a `project` value shaped like a path traversal (defense-in-depth)", async () => {
+  const vault = makeVault("hybrid-assemble-traversal-");
+  const { client, cleanup } = await connectedClient(vault);
+  try {
+    const res = await client.callTool({
+      name: "assemble_context",
+      arguments: { query: "x", project: "../../../etc/passwd" }
+    });
+    assert.equal(res.isError, true);
+    assert.match(textOf(res), /invalid/i);
+  } finally {
+    await cleanup();
+    rmSync(vault, { recursive: true, force: true });
+  }
+});

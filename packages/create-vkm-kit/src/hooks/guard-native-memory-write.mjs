@@ -12,8 +12,8 @@
  * loaded/read the rules) is blocked by the harness itself, independent of which model is
  * driving. See ADR-0030.
  *
- * Installed by `create-obsidian-memory` into `~/.claude/hooks/` next to the SessionStart
- * hook, registered in `~/.claude/settings.json` as:
+ * Installed by create-obsidian-memory — the vkm-kit installer — into `~/.claude/hooks/` next
+ * to the SessionStart hook, registered in `~/.claude/settings.json` as:
  *   node "<this file>" "<claudeDir>" [lang]
  * with matcher `"Write|Edit|MultiEdit|NotebookEdit"` so the harness only invokes it for
  * file-mutating tools. The script re-checks `tool_name` itself too, defensively.

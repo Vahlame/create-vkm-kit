@@ -89,6 +89,31 @@ def test_report_duplicates_opt_in(tmp_path: Path) -> None:
     assert all("c.md" not in pair for pair in paired)
 
 
+def test_report_duplicates_respects_explicit_embedder_name(tmp_path: Path) -> None:
+    # Threading the identity that actually built the index (as cli.py now does
+    # via ensure_fresh(...).embedder_name) must find the real duplicates; the
+    # bare env/default fallback silently sees zero rows when the vault's index
+    # was built under a non-default identity — the split-brain bug this closes.
+    vault = tmp_path / "dup"
+    vault.mkdir()
+    body = "# {t}\n\nProduction deployment with zero downtime and rolling restarts.\n"
+    (vault / "a.md").write_text(body.format(t="Deploy A"), encoding="utf-8")
+    (vault / "b.md").write_text(body.format(t="Deploy B"), encoding="utf-8")
+    index_vault(vault)
+    custom = HashingEmbedder(dim=64)  # non-default dim -> non-default identity
+    index_vectors(vault, custom)
+
+    with_identity = build_report(vault, duplicates=True, similarity=0.9, embedder_name=custom.name)
+    paired = {
+        tuple(sorted((d["a"], d["b"])))
+        for d in with_identity["review_candidates"]["near_duplicate_notes"]
+    }
+    assert ("a.md", "b.md") in paired
+
+    without_identity = build_report(vault, duplicates=True, similarity=0.9)
+    assert without_identity["review_candidates"]["near_duplicate_notes"] == []
+
+
 def test_report_duplicates_truncated_signals_skip_not_silent_empty(tmp_path: Path) -> None:
     """Above ``max_notes_for_pairs`` the O(n^2) scan is skipped — the report must
     say so explicitly, not return a bare [] indistinguishable from "no dupes"."""

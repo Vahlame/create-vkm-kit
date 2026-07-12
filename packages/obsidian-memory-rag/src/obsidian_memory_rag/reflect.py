@@ -37,6 +37,7 @@ from .paths import index_db_path
 from .report import _degree, _near_duplicate_notes, _orphan_notes, _stale_notes
 from .rotate import _split_sections
 from .store import connect, init_schema
+from .text_scrub import strip_code_regions
 from .vector_store import has_any_chunks
 
 _PENDING_RE = re.compile(
@@ -62,6 +63,10 @@ def _pending_promotions(vault: Path, *, since_days: float, now: float) -> list[d
         text = fp.read_text(encoding="utf-8-sig")
     except OSError:
         return []
+    # A fenced example of the "date · file:line · pattern · status: pending"
+    # format (documenting the syntax itself, e.g. in this note's own header)
+    # must not be proposed as a real promotion candidate.
+    text = strip_code_regions(text)
     out: list[dict] = []
     for m in _PENDING_RE.finditer(text):
         try:
@@ -107,8 +112,11 @@ def _recent_activity(vault: Path, *, sections: int = 15) -> dict:
     tags: Counter[str] = Counter()
     links: Counter[str] = Counter()
     for s in newest:
-        tags.update(t.lower() for t in _TAG_RE.findall(s))
-        links.update(t.strip().lower() for t in _WIKILINK_RE.findall(s))
+        # A section documenting the #tag/[[wikilink]] syntax in a fenced example
+        # must not pollute the real usage counts below.
+        scan = strip_code_regions(s)
+        tags.update(t.lower() for t in _TAG_RE.findall(scan))
+        links.update(t.strip().lower() for t in _WIKILINK_RE.findall(scan))
     return {
         "sections": len(newest),
         "top_tags": [{"tag": t, "count": n} for t, n in tags.most_common(8)],
@@ -124,8 +132,14 @@ def build_reflection(
     similarity: float = 0.92,
     max_pairs: int = 20,
     max_notes_for_pairs: int = 1500,
+    embedder_name: str | None = None,
 ) -> dict:
-    """Build the reflection proposal set. Read-only, JSON-serializable."""
+    """Build the reflection proposal set. Read-only, JSON-serializable.
+
+    Pass ``embedder_name`` (from a preceding ``ensure_fresh(...).embedder_name``)
+    so the merge scan filters ``note_chunks`` by the identity that actually built
+    the index — see :func:`report.build_report`'s matching parameter.
+    """
     vault = vault.resolve()
     now = time.time()
 
@@ -140,11 +154,15 @@ def build_reflection(
         try:
             init_schema(conn)
             if has_any_chunks(conn):
-                from .embeddings import resolve_embedder_name
+                if embedder_name is not None:
+                    name = embedder_name
+                else:
+                    from .embeddings import resolve_embedder_name
 
+                    name = resolve_embedder_name(None)
                 dup_scan = _near_duplicate_notes(
                     conn,
-                    resolve_embedder_name(None),
+                    name,
                     similarity=similarity,
                     max_pairs=max_pairs,
                     max_notes=max_notes_for_pairs,

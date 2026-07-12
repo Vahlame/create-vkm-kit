@@ -52,6 +52,21 @@ test("SSE frame round-trip: formatSseEvent -> parseSseFrames", () => {
   assert.deepEqual(JSON.parse(frames[1].data), { source: "ollama", xml: "<x/>" });
 });
 
+test("GET /api/health returns a version + startedAt (EADDRINUSE version-mismatch diagnostic)", async () => {
+  const vault = makeVault();
+  const { base, close } = await listen(createServer({ vault, lang: "en" }));
+  try {
+    const res = await fetch(`${base}/api/health`);
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.match(body.version, /^\d+\.\d+\.\d+/);
+    assert.ok(!Number.isNaN(Date.parse(body.startedAt)));
+  } finally {
+    await close();
+    rmSync(vault, { recursive: true, force: true });
+  }
+});
+
 test("GET /api/projects returns the vault path and an array", async () => {
   const vault = makeVault();
   const { base, close } = await listen(createServer({ vault }));
@@ -115,6 +130,32 @@ test("DEGRADATION GATE: POST /api/draft with Ollama down still yields fallback x
       "the error frame must STILL carry a working deterministic xml"
     );
     assert.ok(payload.xml.length > 0, "fallback xml must be non-empty");
+  } finally {
+    await close();
+    rmSync(vault, { recursive: true, force: true });
+  }
+});
+
+test("a client aborting mid-draft never crashes the server (other requests keep working)", async () => {
+  const vault = makeVault();
+  const ollamaHost = await closedPortHost();
+  const { base, close } = await listen(createServer({ vault, lang: "en", ollamaHost }));
+  try {
+    const controller = new AbortController();
+    const draftPromise = fetch(`${base}/api/draft`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idea: "add a websocket keepalive ping" }),
+      signal: controller.signal
+    }).catch(() => {}); // client-side abort is expected to reject; irrelevant to this test
+    controller.abort();
+    await draftPromise;
+
+    // The real assertion: the server process is still alive and serving other requests —
+    // before the fix, an unhandled 'error' on the aborted response socket would have
+    // crashed the whole process, taking down every other open tab too.
+    const res = await fetch(`${base}/api/projects`);
+    assert.equal(res.status, 200);
   } finally {
     await close();
     rmSync(vault, { recursive: true, force: true });

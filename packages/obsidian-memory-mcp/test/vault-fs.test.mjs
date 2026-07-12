@@ -248,6 +248,42 @@ test("vaultEditFile: rejects an edit that pastes the note's own frontmatter into
   }
 });
 
+test("vaultEditFile: rejects an edit that pastes a DIFFERENT frontmatter-shaped block into the body", async () => {
+  const vault = await setupVault();
+  try {
+    const fm = "---\ntype: project\npermalink: main/projects/x\n---\n";
+    await writeFile(join(vault, "self2.md"), `${fm}\n# x\n\nbody line\n`);
+    await assert.rejects(
+      () =>
+        vaultEditFile(vault, "self2.md", [
+          { oldText: "body line", newText: "body line\n\n---\ntype: fake\n---\n\nmore" }
+        ]),
+      /would duplicate the note inside itself/
+    );
+    const got = await readFile(join(vault, "self2.md"), "utf8");
+    assert.equal(got, `${fm}\n# x\n\nbody line\n`);
+  } finally {
+    await rm(vault, { recursive: true });
+  }
+});
+
+test("vaultEditFile: an edit is not punished for a pre-existing '---' thematic break in the body", async () => {
+  const vault = await setupVault();
+  try {
+    const fm = "---\ntype: project\n---\n";
+    await writeFile(
+      join(vault, "hr.md"),
+      `${fm}\nintro\n\n---\n\n## Section\n\ncontent\n\n---\n\nbody line\n`
+    );
+    const res = await vaultEditFile(vault, "hr.md", [
+      { oldText: "body line", newText: "body line (edited)" }
+    ]);
+    assert.equal(res.editsApplied, 1);
+  } finally {
+    await rm(vault, { recursive: true });
+  }
+});
+
 test("vaultEditFile: allows editing the frontmatter itself (no duplication)", async () => {
   const vault = await setupVault();
   try {
