@@ -16,11 +16,13 @@ import fse from "fs-extra";
 import {
   mergeBasicMemoryServer,
   mergeObsidianHybridServer,
+  mergeObscuraWebServer,
   resolveKitRepoRoot,
   hybridMcpPathsFromKitRoot,
   flagValue,
   basicMemoryServer,
   hybridServer,
+  obscuraWebServer,
   claudeAddArgv,
   claudeRemoveArgv,
   codexAddArgv,
@@ -37,6 +39,7 @@ import { configureTokenSaver, uninstallTokenSaver } from "./token-saver.mjs";
 import { configureTelemetry, uninstallTelemetry } from "./telemetry.mjs";
 import { configureSkillAssets, uninstallSkillAssets } from "./skills-install.mjs";
 import { maybeInstallOllama } from "./ollama-setup.mjs";
+import { maybeInstallObscura } from "./obscura-setup.mjs";
 import { restrictFileToOwner } from "./file-perms.mjs";
 import { atomicWriteJson, stripLeadingUtf8Bom } from "./settings-io.mjs";
 
@@ -464,7 +467,10 @@ async function writeCursorMcp(home, vaultAbs, dryRun, hybridOpts = {}) {
     vec = false,
     rerank = false,
     pinFailures = false,
-    usage = false
+    usage = false,
+    obscura = false,
+    obscuraBin = null,
+    searxngUrl = null
   } = hybridOpts;
   if (withHybrid && repoRoot) {
     merged = mergeObsidianHybridServer(merged, vaultAbs, path.resolve(repoRoot), {
@@ -473,6 +479,12 @@ async function writeCursorMcp(home, vaultAbs, dryRun, hybridOpts = {}) {
       rerank,
       pinFailures,
       usage
+    });
+  }
+  if (obscura && repoRoot) {
+    merged = mergeObscuraWebServer(merged, path.resolve(repoRoot), {
+      binPath: obscuraBin,
+      searxngUrl
     });
   }
   if (dryRun) {
@@ -572,7 +584,10 @@ async function registerClaudeCodeMcp(vaultAbs, dryRun, hybridOpts = {}) {
     vec = false,
     rerank = false,
     pinFailures = false,
-    usage = false
+    usage = false,
+    obscura = false,
+    obscuraBin = null,
+    searxngUrl = null
   } = hybridOpts;
   /** @type {Array<[string, object]>} */
   const servers = [["basic-memory", basicMemoryServer(vaultAbs)]];
@@ -580,6 +595,12 @@ async function registerClaudeCodeMcp(vaultAbs, dryRun, hybridOpts = {}) {
     servers.push([
       "obsidian-memory-hybrid",
       hybridServer(vaultAbs, path.resolve(repoRoot), { semantic, vec, rerank, pinFailures, usage })
+    ]);
+  }
+  if (obscura && repoRoot) {
+    servers.push([
+      "obscura-web",
+      obscuraWebServer(path.resolve(repoRoot), { binPath: obscuraBin, searxngUrl })
     ]);
   }
   for (const [name, server] of servers) {
@@ -621,7 +642,10 @@ async function registerCodexMcp(vaultAbs, dryRun, hybridOpts = {}) {
     vec = false,
     rerank = false,
     pinFailures = false,
-    usage = false
+    usage = false,
+    obscura = false,
+    obscuraBin = null,
+    searxngUrl = null
   } = hybridOpts;
   /** @type {Array<[string, object]>} */
   const servers = [["basic-memory", basicMemoryServer(vaultAbs)]];
@@ -629,6 +653,12 @@ async function registerCodexMcp(vaultAbs, dryRun, hybridOpts = {}) {
     servers.push([
       "obsidian-memory-hybrid",
       hybridServer(vaultAbs, path.resolve(repoRoot), { semantic, vec, rerank, pinFailures, usage })
+    ]);
+  }
+  if (obscura && repoRoot) {
+    servers.push([
+      "obscura-web",
+      obscuraWebServer(path.resolve(repoRoot), { binPath: obscuraBin, searxngUrl })
     ]);
   }
   for (const [name, server] of servers) {
@@ -822,6 +852,9 @@ async function runNonInteractive(argv) {
   // Ollama + phi4-mini (ADR-0047, ~2.3GB): gated to explicit --full or --ollama — a bare
   // headless install must not surprise anyone with a multi-GB download. --no-ollama wins.
   const wantOllama = (full || argv.includes("--ollama")) && !argv.includes("--no-ollama");
+  // obscura-web (ADR-0051): stealth web fetch + robust search via the local obscura browser.
+  // Gated to explicit --full or --obscura (downloads a ~40MB third-party binary); --no-obscura wins.
+  const wantObscura = (full || argv.includes("--obscura")) && !argv.includes("--no-obscura");
   let kitRoot = null;
 
   if (wantHybrid) {
@@ -866,6 +899,34 @@ async function runNonInteractive(argv) {
     }
   }
 
+  // obscura-web needs the kit clone for its MCP bridge path (same as hybrid); resolve it if
+  // the hybrid block above didn't, then best-effort install the pinned+verified obscura binary.
+  let obscuraBin = null;
+  let wantObscuraFinal = wantObscura;
+  const searxngUrl = flagValue(argv, "--searxng-url");
+  if (wantObscuraFinal && !kitRoot) {
+    kitRoot = await resolveKitRepoRoot({ cwd, argv, pathExists: (p) => fse.pathExists(p) });
+  }
+  if (wantObscuraFinal && !kitRoot) {
+    console.warn(
+      pc.yellow(
+        "No kit clone found — obscura-web is skipped (run from a clone or pass --repo-root)."
+      )
+    );
+    wantObscuraFinal = false;
+  }
+  if (wantObscuraFinal) {
+    const r = await maybeInstallObscura(dryRun, { enable: true });
+    obscuraBin = r.binPath;
+    if (r.status === "manual" || r.status === "failed") {
+      console.log(
+        pc.dim(
+          "  obscura-web MCP stays wired; its tools fall back to native WebFetch/WebSearch until obscura is installed."
+        )
+      );
+    }
+  }
+
   console.log(
     pc.cyan(t.title),
     pc.dim(full ? "full preset" : minimal ? "minimal" : "full stack (default)")
@@ -884,7 +945,10 @@ async function runNonInteractive(argv) {
     vec: wantVec,
     rerank: wantRerank,
     pinFailures: wantPinFailures,
-    usage: wantUsageBoost
+    usage: wantUsageBoost,
+    obscura: wantObscuraFinal,
+    obscuraBin,
+    searxngUrl
   };
   if (ides.includes("cursor") && !noCursorMcp) {
     await writeCursorMcp(home, vault, dryRun, hybridOpts);
@@ -1153,6 +1217,16 @@ Claude Code native-memory override (when --ide includes claude):
   Hash-tracked files; uninstall never deletes one you edited.
   --skills / --no-skills       Force on / remove the two skills.
   --agents / --no-agents       Force on / remove the subagent template.
+
+  Obscura web (ADR-0051, opt-in via --obscura or --full) — routes web access through the
+  local obscura headless browser (anti-detection) instead of the native tools: an MCP
+  (obscura-web) exposing obscura_fetch (stealth URL fetch) and obscura_search (SearXNG JSON →
+  obscura-rendered multi-engine SERP → native fallback). Soft enforcement — obscura is
+  preferred, native WebFetch/WebSearch stay as the fallback. The pinned obscura binary is
+  downloaded + SHA-256-verified into ~/.vkm/obscura/ (needs a kit clone for the MCP bridge).
+  --obscura / --no-obscura     Install + wire obscura-web (on under --full) / skip it.
+  --searxng-url <url>          Point obscura_search at a SearXNG JSON instance (e.g.
+                                http://127.0.0.1:8888) for the most robust, structured layer.
 
   Uninstall: --no-native-memory-override / --no-memory-enforcement / --no-effort-gate on a
   re-run now ACTIVELY REMOVE the matching pieces this kit previously installed (not just

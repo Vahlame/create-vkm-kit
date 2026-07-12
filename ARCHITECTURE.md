@@ -48,6 +48,7 @@ flowchart LR
 | ------------------------------------ | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `cmd/obsidian-memoryd/`              | Go             | Daemon: filesystem watch → debounced git sync; `doctor` health report                                                                     |
 | `packages/obsidian-memory-mcp/`      | Node (ESM)     | The "hybrid" MCP sidecar (stdio): vault-locked file + search tools                                                                        |
+| `packages/obscura-web/`              | Node (ESM)     | Stealth web MCP sidecar (stdio, opt-in): `obscura_fetch` + `obscura_search` via the local obscura headless browser                        |
 | `packages/obsidian-memory-rag/`      | Python         | FTS5 indexer + BM25 search (the search engine the sidecar bridges to)                                                                     |
 | `packages/create-vkm-kit/`           | Node           | `npx` initializer: merges MCP config, scaffolds a vault                                                                                   |
 | `packages/vkm-spec/`                 | Node (ESM)     | `vkm-spec` CLI + GUI (4923): idea + vault context → editable `<orchestration_package>` XML; optional Ollama draft, deterministic fallback |

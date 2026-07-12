@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="./LICENSE.md"><img src="https://img.shields.io/badge/licencia-MIT_%2B_atribuci%C3%B3n-blue.svg" alt="Licencia"></a>
-  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v4.0.0-orange.svg" alt="Release"></a>
+  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v4.1.0-orange.svg" alt="Release"></a>
   <a href="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
 
@@ -119,14 +119,17 @@ or let [**an agent install it**](docs/en/install-with-agent.md)
 
 ## Qué incluye · What's inside
 
-| Pieza · Piece                                                    | Lenguaje | Rol                                                                                                                |
-| ---------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------ |
-| [`packages/create-vkm-kit/`](packages/create-vkm-kit/)           | Node     | Instalador `npx` **(npm)**: memoria + token-saver + telemetría + skills en un comando.                             |
-| [`packages/obsidian-memory-mcp/`](packages/obsidian-memory-mcp/) | Node     | MCP "híbrido" **(privado; corre desde el clon)**: tools del vault + búsqueda léxica/semántica.                     |
-| [`packages/obsidian-memory-rag/`](packages/obsidian-memory-rag/) | Python   | Motor de búsqueda FTS5/BM25 + vectorial **(`pip install -e` desde el código)**; cero dependencias por defecto.     |
-| [`packages/vkm-doctor/`](packages/vkm-doctor/)                   | Node     | Sink OTLP local + doctor de uso/caché: tokens, coste y salud de la caché, todo en tu máquina.                      |
-| [`packages/vkm-spec/`](packages/vkm-spec/)                       | Node     | De idea a spec XML anclada al vault (GUI en `127.0.0.1:4923`; Ollama `phi4-mini` opcional, fallback determinista). |
-| [`cmd/obsidian-memoryd/`](cmd/obsidian-memoryd/)                 | Go       | Daemon opcional: vigila el vault y sincroniza git.                                                                 |
+| Pieza · Piece                                                    | Lenguaje | Rol                                                                                                                                                                                     |
+| ---------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`packages/create-vkm-kit/`](packages/create-vkm-kit/)           | Node     | Instalador `npx` **(npm)**: memoria + token-saver + telemetría + skills en un comando.                                                                                                  |
+| [`packages/obsidian-memory-mcp/`](packages/obsidian-memory-mcp/) | Node     | MCP "híbrido" **(privado; corre desde el clon)**: tools del vault + búsqueda léxica/semántica.                                                                                          |
+| [`packages/obscura-web/`](packages/obscura-web/)                 | Node     | MCP de web sigilosa **(opt-in `--obscura`; corre desde el clon)**: `obscura_fetch` + `obscura_search` (SearXNG → SERP multi-motor → fallback nativo) vía el navegador headless obscura. |
+| [`packages/obsidian-memory-rag/`](packages/obsidian-memory-rag/) | Python   | Motor de búsqueda FTS5/BM25 + vectorial **(`pip install -e` desde el código)**; cero dependencias por defecto.                                                                          |
+| [`packages/vkm-doctor/`](packages/vkm-doctor/)                   | Node     | Sink OTLP local + doctor de uso/caché: tokens, coste y salud de la caché, todo en tu máquina.                                                                                           |
+| [`packages/vkm-spec/`](packages/vkm-spec/)                       | Node     | De idea a spec XML anclada al vault (GUI en `127.0.0.1:4923`; Ollama `phi4-mini` opcional, fallback determinista).                                                                      |
+| [`cmd/obsidian-memoryd/`](cmd/obsidian-memoryd/)                 | Go       | Daemon opcional: vigila el vault y sincroniza git.                                                                                                                                      |
+
+> ℹ️ **obscura** es software de terceros bajo licencia **Apache-2.0** ([h4ckf0r0day/obscura](https://github.com/h4ckf0r0day/obscura)). El kit **lo descarga** del release oficial y lo verifica por SHA-256 — **no lo empaqueta ni redistribuye**.
 
 Mapa técnico completo y diagramas de flujo: [`ARCHITECTURE.md`](ARCHITECTURE.md). El _porqué_ de
 cada decisión: [`docs/adr/`](docs/adr/).

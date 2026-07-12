@@ -6,8 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-07-12
+
+### Added
+
+- **obscura-web: opt-in stealth web fetch + robust search via the local obscura headless
+  browser (ADR-0051).** New `packages/obscura-web/` MCP server exposes `obscura_fetch` (stealth
+  URL fetch/render) and `obscura_search` (SearXNG JSON → obscura-rendered DuckDuckGo/Bing/Brave
+  SERP → native fallback), preferred over the native WebFetch/WebSearch (soft enforcement —
+  native stays as the fallback). Wired for Claude Code, Codex and Cursor and gated to
+  `--obscura`/`--full`; the pinned obscura v0.1.10 binary is downloaded and SHA-256-verified
+  into `~/.vkm/obscura/` by `obscura-setup.mjs` (best-effort, opt-in). Fetched pages and result
+  snippets are wrapped as untrusted web DATA and injection-flagged.
+
 ### Security
 
+- **obscura is a third-party binary the kit runs but cannot audit.** `obscura-setup.mjs` pins
+  the version (v0.1.10) and verifies the download's SHA-256 against a baked-in digest (obscura
+  ships no checksum file, so the digests are computed by `scripts/obscura-checksums.mjs`); it
+  **refuses to run** a download whose hash is unset or mismatched. obscura-web uses per-request
+  `obscura fetch` (no persistent server, no open port), spawns with argv only (no shell), and
+  accepts only http(s) URLs. The residual supply-chain risk is accepted explicitly.
 - **`assemble_context`'s `project` parameter allowed path traversal.** A caller-supplied
   `project` value like `../../../etc/passwd` was joined into a file path with plain
   `path.join` (not `safeVaultPath`, unlike every other tool) and read with no containment

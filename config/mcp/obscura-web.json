@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "obscura-web": {
+      "command": "node",
+      "args": ["<REPO_ROOT>/packages/obscura-web/src/obscura-mcp.mjs"],
+      "env": {
+        "OBSCURA_BIN": "<OBSCURA_BIN_PATH>"
+      }
+    }
+  }
+}

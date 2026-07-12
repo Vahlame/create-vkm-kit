@@ -54,6 +54,7 @@ Each file in this directory captures one design decision: what was chosen, what 
 | [ADR-0048](./0048-spec-gui-sse-and-ports.md)                       | vkm-spec GUI transport (SSE) + suite port allocation (4923 app / 4319 sink)               | Accepted |
 | [ADR-0049](./0049-discipline-doctrine-three-channels.md)           | Discipline doctrine in three channels: output style, managed-block bullet, skill          | Accepted |
 | [ADR-0050](./0050-release-train-and-npm-shim.md)                   | 4.0.0 release train: two additive minors, breaking changes last, npm shim forever         | Proposed |
+| [ADR-0051](./0051-obscura-web-stealth-browser.md)                  | obscura-web: stealth web fetch + robust layered search via a local headless browser       | Proposed |
 
 ## Template
 

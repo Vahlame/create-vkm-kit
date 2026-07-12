@@ -1,6 +1,6 @@
 {
   "name": "@vkmikc/vkm-doctor",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "Local token/cache doctor for Claude Code: OTLP/HTTP JSON sink (localhost-only, NDJSON storage) + usage report CLI. Part of the vkm-kit efficiency suite.",
   "type": "module",
   "private": true,
