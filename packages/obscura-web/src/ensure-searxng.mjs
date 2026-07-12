@@ -98,14 +98,17 @@ function hookExit() {
   if (exitHooked) return;
   exitHooked = true;
   process.once("exit", stopSearxng);
-  process.once("SIGINT", () => {
-    stopSearxng();
-    process.exit(130);
-  });
-  process.once("SIGTERM", () => {
-    stopSearxng();
-    process.exit(143);
-  });
+  // Defer the hard exit one tick after kill(): on Windows, exiting in the same tick a child handle
+  // is closing trips a libuv assertion (UV_HANDLE_CLOSING). setImmediate lets the handle finish.
+  for (const [sig, code] of [
+    ["SIGINT", 130],
+    ["SIGTERM", 143]
+  ]) {
+    process.once(sig, () => {
+      stopSearxng();
+      setImmediate(() => process.exit(code));
+    });
+  }
 }
 
 /**
@@ -136,6 +139,7 @@ export async function ensureSearxng(deps = {}) {
     child.once("exit", () => {
       child = null;
     });
+    if (typeof child.unref === "function") child.unref(); // the server must not keep the MCP loop alive
     const deadline = Date.now() + 20000; // engines load a few seconds after the port opens
     while (Date.now() < deadline) {
       if (await isReady(c.base, fetchImpl)) {
