@@ -10,7 +10,8 @@ Treat issues with agent-facing instructions the same way you would treat issues 
 
 | Version | Supported                                                          |
 | ------- | ------------------------------------------------------------------ |
-| 3.x     | yes                                                                |
+| 4.x     | yes                                                                |
+| 3.x     | superseded; upgrade to 4.x                                         |
 | 2.x     | superseded docs model (pre–v3 kit scripts); upgrade to v3 guidance |
 | 1.x     | best-effort (legacy prompt only)                                   |
 | < 1.0   | no                                                                 |
@@ -39,6 +40,7 @@ You will get an acknowledgement within 72 hours. Expected timeline from report t
 - Any path that downloads or executes arbitrary code from a non-pinned source (`mcp-remote` must stay **>= 0.1.16**; see `docs/security/mcp-remote-rce.md`).
 - The Go daemon (`obsidian-memoryd`) if it can be tricked into writing outside the vault, leaking secrets, or escalating privileges.
 - Optional telemetry (`packages/obsidian-memory-mcp`) if it exfiltrates PII without redaction controls.
+- The obscura binary download/exec path (`packages/create-vkm-kit/src/obscura-setup.mjs`, opt-in via `--obscura`): it must stay version-pinned and SHA-256-verified and must refuse to run an unverified or mismatched binary (see Trust model §5).
 
 ## Out of scope
 
@@ -70,6 +72,10 @@ If the vault remote is shared (team, multi-machine), assume an attacker with wri
 ### 4. There is no in-band authentication — the boundary is the filesystem and the git remote
 
 The MCP sidecar is **local stdio serving one user**; it has no accounts, tokens, or per-note permissions, and adding them would be security theater for that topology. Anyone who can read the vault directory can read every note; anyone who can write it (or push to its remote) can write memory. The enforcement points are therefore **OS file permissions** on the vault and **git-remote access control** (private repo, 2FA, branch protection). Never expose the sidecar or a Streamable HTTP listener beyond localhost. If you need multi-user authorization over shared memory, that is a database/service problem (see `docs/adr/0037-vault-vs-database-system-of-record.md`) — not something to bolt onto a markdown folder. Git history is a **reviewable** audit trail (auto-commits list changed files and an optional `Agent:` label), but it is not tamper-evident: a writer with push access can rewrite unprotected history.
+
+### 5. obscura is a third-party binary the kit runs but cannot audit
+
+Opt-in (`--obscura` / `--full`). `obscura-setup.mjs` downloads a **version-pinned** obscura release and verifies its **SHA-256** against a baked-in digest, refusing to run an unverified or mismatched binary. The kit pins and hashes it but **cannot audit** the Rust binary from a pseudonymous author — a residual supply-chain risk the user accepts by opting in. obscura is invoked per-request with argv only (no shell, no open port), only http(s) URLs are accepted, and fetched pages / search snippets are wrapped as untrusted web DATA. See `docs/adr/0051-obscura-web-stealth-browser.md`.
 
 ## Hardening guidance for users
 

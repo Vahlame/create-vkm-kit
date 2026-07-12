@@ -176,6 +176,18 @@ each IDE's format.
 - **Version guard:** [`scripts/version.mjs`](./scripts/version.mjs) (`npm run version:check` / `version:set`) is the single source of truth for the kit version — it validates that **every** marker agrees (both `package.json`s, `pyproject.toml`, the README badge, `agent.toml`, and the Go daemon's `var version`) with the latest `CHANGELOG.md` section. CI's `lint` job runs `version check` (so badge/package/CHANGELOG drift fails the build) and the `release` workflow re-checks it before publishing.
 - **Quality gates:** `scripts/mcp-smoke.mjs`, the `evals/retrieval` recall benchmark (`bench-recall` — deterministic on the dependency-free embedder, gated in CI as `retrieval-bench`), and the `evals/` prompt-adherence smoke.
 
+### 7. `obscura-web` — stealth web MCP sidecar (Node, opt-in)
+
+The agent's window onto the **open web**, opt-in via `--obscura`/`--full` (ADR-0051/0052). Stdio MCP
+server exposing two tools, backed by the local
+[obscura](https://github.com/h4ckf0r0day/obscura) headless browser.
+
+- **Entry point:** [`src/obscura-mcp.mjs`](./packages/obscura-web/src/obscura-mcp.mjs) — registers `obscura_fetch` (stealth URL fetch/render) and `obscura_search`, with the same `main()` guard so importing for tests never spawns the transport.
+- **Fetch:** [`obscura-cli.mjs`](./packages/obscura-web/src/obscura-cli.mjs) invokes `obscura fetch` per request (argv only, no shell, no open port; only http(s) URLs accepted). Pages are size-capped and wrapped as untrusted web DATA + injection-flagged ([`untrusted-web.mjs`](./packages/obscura-web/src/untrusted-web.mjs)).
+- **Layered search:** [`serp.mjs`](./packages/obscura-web/src/serp.mjs) tries a structured SearXNG JSON backend first, then obscura-rendered DuckDuckGo/Bing/Brave SERPs (resilient per-engine parsers + per-query cache), then steers to the native `WebSearch`.
+- **On-demand SearXNG (ADR-0052):** [`ensure-searxng.mjs`](./packages/obscura-web/src/ensure-searxng.mjs) starts a local SearXNG only while searching and stops it after an idle window — it never keeps the MCP loop alive (`unref`), is killed on exit, and an externally-run instance is used but never killed. Each search is logged ([`search-log.mjs`](./packages/obscura-web/src/search-log.mjs)) for the stdlib-only desktop monitor ([`searxng/searxng-gui.pyw`](./packages/obscura-web/searxng/searxng-gui.pyw)).
+- **Third-party binary:** the pinned obscura release is downloaded + SHA-256-verified by `create-vkm-kit`'s [`obscura-setup.mjs`](./packages/create-vkm-kit/src/obscura-setup.mjs) into `~/.vkm/obscura/` (best-effort, opt-in; it refuses an unverified binary). See [`SECURITY.md`](./SECURITY.md) §5.
+
 ## Data flows
 
 ### Memory read / write
@@ -333,6 +345,19 @@ this architecture:
 - **ADR-0026** — optional cross-encoder reranker (final precision pass, `[rerank]` extra, off by default).
 - **ADR-0027** — type-weighted graph recall + importance (in-degree) bias (opt-in, deterministic).
 - **ADR-0028** — MMR diversification + passage-window expansion (opt-in); convex fusion deferred.
+- **ADR-0029/0030/0031** — Claude Code: disable native auto-memory + SessionStart vault hook, deterministic enforcement hooks, effort-gate pause-and-confirm.
+- **ADR-0034/0035/0036** — token economy under CI lock: compact search wire + default limit 10, tool-schema budget, rules-block diet.
+- **ADR-0037** — the vault is the memory layer, not the system of record (concurrency/auth/audit stated honestly).
+- **ADR-0038** — evolutive memory loop: learn from failures, reinforce what helps, decay what doesn't.
+- **ADR-0041/0042** — vkm-kit rename (identifiers dual-read, wire frozen) + version-locked suite packages.
+- **ADR-0043/0044** — token-saver PostToolUse compaction + local OTLP/HTTP doctor sink.
+- **ADR-0045** — `assemble_context`: single-call, budgeted context assembly (median 68% wire savings).
+- **ADR-0047/0048** — vkm-spec: Ollama structured drafting with a deterministic fallback + GUI/port allocation.
+- **ADR-0049** — discipline doctrine in three channels (output style, managed-block bullet, `/vkm-discipline` skill).
+- **ADR-0051** — obscura-web: stealth web fetch + layered search via a local headless browser.
+- **ADR-0052** — SearXNG search backend: on-demand lifecycle (MCP-owned) + desktop monitor.
+
+The full list (0001–0052) is the [ADR index](./docs/adr/README.md).
 
 Do not undo an accepted ADR without superseding it with a new one
 (see [`CONTRIBUTING.md`](./CONTRIBUTING.md)).

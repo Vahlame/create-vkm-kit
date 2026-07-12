@@ -1,6 +1,6 @@
 # ADR-0051: obscura-web — stealth web fetch + robust search via a local headless browser
 
-- **Status:** Proposed
+- **Status:** Accepted (shipped in 4.1.0; SearXNG layer refined by ADR-0052)
 - **Date:** 2026-07-12
 - **Deciders:** maintainer
 

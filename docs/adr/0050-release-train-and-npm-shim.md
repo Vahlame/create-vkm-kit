@@ -1,6 +1,6 @@
 # ADR-0050: the 4.0.0 release train — two additive minors first, breaking changes last, npm shim forever
 
-- **Status:** Proposed
+- **Status:** Accepted (4.x shipped; npm shim live)
 - **Date:** 2026-07-10
 - **Deciders:** maintainer
 

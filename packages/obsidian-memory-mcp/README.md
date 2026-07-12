@@ -1,8 +1,9 @@
 # obsidian-memory-mcp
 
-The **hybrid MCP sidecar** (Node, stdio): 14 vault tools for any MCP-capable
+The **hybrid MCP sidecar** (Node, stdio): 15 vault tools for any MCP-capable
 agent — `vault_hybrid_search` (BM25 + semantic via RRF, passage-first, compact
-wire — ADR-0034), `vault_fts_search`, `vault_complete`, the typed knowledge
+wire — ADR-0034), `assemble_context` (single-call budgeted context — ADR-0045),
+`vault_fts_search`, `vault_complete`, the typed knowledge
 graph (`vault_relations` / `vault_observations` / `vault_kg_suggest`),
 vault-locked file tools, `vault_audit`, `vault_memory_report` and
 `memory_extract_candidates`. Search/index/KG calls bridge to the Python engine
