@@ -43,6 +43,25 @@ hurt Haiku before retiring the SOP") is **met**: no harm on visible contracts, l
 not-visible ones. Retiring the SOP-suite's cross-domain role in favour of `/vkm-discipline` is
 supported by the numbers.
 
+## Cross-domain generalization + the continuous-improvement loop
+
+A second task in a **different domain** (`dedupe-emails`, data) tests whether the discipline
+generalizes beyond coding. It does — same under-specified design (normalize/validate/dedup rules must
+be inferred), same objective hidden grader (self-test: good=100, naive=25):
+
+| Task (domain)        | Model | stock | +discipline | Δ   |
+| -------------------- | ----- | ----- | ----------- | --- |
+| dedupe-emails (data) | Haiku | 25    | 58          | +33 |
+| dedupe-emails (data) | Opus  | 25    | 100         | +75 |
+
+**The loop that matters:** the bench didn't just score the skill — it **found a gap and drove a fix**.
+Baseline-doctrine Haiku scored 58 because it normalized values for comparison but **returned the raw
+original** (so case/whitespace duplicates emitted two different outputs) and validated shallowly (only
+checked for an `@`). That's a general data lesson, not a task quirk — so `domains/data.md` gained
+"**normalize consistently** — return the normalized form you deduped on" and "validate the full shape,
+not just a delimiter's presence." Re-benching Haiku with the improved doctrine: **58 → 100 (two
+replicas)**. Bench → gap → doctrine fix → re-bench confirms. This is how the skill improves from here.
+
 ## Limitations (honest)
 
 - 2-3 runs per under-specified cell (Sonnet 1); LLMs are non-deterministic — the per-run spread is

@@ -16,6 +16,10 @@ deduplication, analysis (relational or document stores).
 5. **Check the plan on big tables** (`EXPLAIN`/`EXPLAIN ANALYZE`) — an unjustified full scan needs an
    index or a rewrite. Test on real volume, not the dev sample.
 6. **Migrations are reversible** (a down script) or preceded by a verified restorable backup.
+7. **Normalize consistently:** if you normalize a value to compare, dedup, or key on it (case,
+   whitespace, unicode, trailing slash), return the **normalized** form — not the raw original.
+   Deduping on the normalized value but emitting the raw one is a latent bug: two "same" records,
+   two different outputs. Normalize once, at the boundary, and carry that form through.
 
 ## Edge cases (profile or test each)
 
