@@ -1,5 +1,91 @@
 # Results — design-bench
 
+## Run 6p · 2026-07-12 · kill the house style — the skill prescribes no aesthetic
+
+User's closing ask: make sure the skill doesn't suggest one specific style, so designs stop being
+repetitive. Right — the deepest convergence isn't a value in the code, it's the model drifting to a
+second-order comfort look (here: serif display + mono labels + warm-paper editorial, or its
+dark-luxe mirror) and reusing it across unrelated briefs. Banning indigo didn't fix that; nothing
+named it.
+
+Named and guarded it in the skill: `SKILL.md` now states up front the skill has **NO house style**
+— examples illustrate method, never a target look. `direction.md` adds "your OWN house style is the
+subtlest slop" to the fingerprint (with this model's specific comfort look spelled out), and the
+variety sampler now forces rotation on FIVE axes — hue, lineage (none = last build's; force a
+rarely-picked one if you keep repeating), type pairing, current, and layout topology — with the
+test "if all three candidate directions feel like _you_, you sampled your comfort zone, resample."
+
+31/31 tests, gates green, description 285/300, links resolve. Closes the arc: the skill now defends
+against colour-slop (indigo), structural-slop (reused skeleton), cropped-content, AND aesthetic
+self-repetition — variety is required on every axis, no default aesthetic anywhere.
+
+## Run 6o · 2026-07-12 · structural convergence + cropped images (two real skill gaps)
+
+User, comparing Lumen and Pluma: "same but different colours" and the images "aren't even shown
+complete". Both true, and both my fault. (1) The variety sampler varied colour/lineage/moves but I
+kept reusing ONE page skeleton — sticky header → hero-with-big-image → card grid → stats band →
+pricing tiers → giant cropped-wordmark footer. Re-tinting a skeleton is convergence. (2) I used
+`object-fit: cover` into fixed-height boxes, cropping the birds — fatal on a photography site.
+
+Fixed in the skill: `direction.md` now makes **layout topology a mandatory variety axis** (three
+directions must differ in ≥2 topologies, not just colour/lineage) and names that exact skeleton as
+the convergence to break out of; `foundations.md` adds **"when the image IS the content, show it
+WHOLE"** — natural aspect ratio / `object-fit: contain`, never a cover-crop grid.
+
+Rebuilt Pluma with a genuinely different topology — an **asymmetric photo-essay**: no hero image,
+no card grid, no pricing tiers, no giant wordmark; instead alternating full-plate spreads where
+each bird photo is shown **complete** at its natural ratio (`max-height:82vh; width/height:auto`),
+with a big index number and a field note. Statically verified: `object-fit:cover` absent, natural-
+ratio CSS present, and all four skeleton elements gone / all four essay elements present. Gates
+green (slop 0, TYPE/SPACE PASS), GSAP embedded (run-4 pattern). Runtime browser re-verification was
+blocked by a persistent tool-classifier outage this session; the "shown complete" claim is proven
+by CSS logic (no cover + natural ratio cannot crop).
+
+## Run 6n · 2026-07-12 · full skill run — "Pluma" bird-photography site
+
+Second real brief, testing the whole skill (and the "don't reflexively engrave" rule). A
+photography site's job is to show the PHOTOS — so the treatment choice was **full-colour photos,
+big**, not engravings. Direction from the sampler: **ALA** — a stark light gallery (warm near-white
+field, near-black ink, one petrol accent) so the colour comes only from the birds; chosen to
+differ from Lumen (dark) and the fish field-guide (warm-paper naturalist). Moves: full-colour
+photography as identity + typographic statement, with field-guide data captions (species, sci.
+name, place, date) as the naturalist touch. Techniques MIXED, per the standing rule: real
+full-colour photos (gallery) + a **traced silhouette** of the kingfisher as the logo mark + big
+Fraunces display.
+
+Content sourced resourcefully: four high-res CC bird photos (kingfisher, rainbow lorikeet, barn
+owl, Atlantic puffin) from Wikimedia, resized to 1500 px / q82 (~350–400 KB each), viewed before
+embedding (the kingfisher is razor-sharp). System verified: palette pre-checked (`contrast.mjs`:
+ink/paper 16.3:1, accent 5.33:1), type 1.333, spacing base-8 after fixing 3/10/11 px off-rhythm.
+Gates green (slop 0, TYPE/SPACE PASS). Browser-verified: Fraunces (roman+italic) + Space Mono live,
+0 overflow at 1280, headings H1→H2→H3 no skips, hero photo loaded (1439²), **GSAP live — 17
+ScrollTriggers mounted and the intro tweens progress under forced ticks**. Life: GSAP reveals +
+hero-photo parallax + image hover-zoom + a floating logo, all behind reduced-motion + a
+`gsap.from` pattern with no `opacity:0` in CSS (JS-off degrades to the full static page).
+
+Honest gaps this session: a mid-run tool-classifier outage blocked forcing the intro tween to its
+final frame and the 375 px mobile re-check — the identical GSAP embed was runtime-verified in run 4,
+and the layout uses the same responsive rules as the mobile-clean Lumen.
+
+## Run 6m · 2026-07-12 · bring it to life — GSAP animation + multi-technique principle
+
+User's directive: max out detail/DPI when engraving, but **never marry one technique** — use web
+photos, cutouts, drawings, simple silhouettes, stylization, and **animate to give it life with
+libraries**. Folded into `illustration.md` as two standing rules (max-out the stipple; be
+resourceful across the toolbox + animate with a real library). Demonstrated on Lumen: embedded
+**GSAP 3 + ScrollTrigger** (data-URI, the run-4 pattern) driving hero entrance, per-section
+scroll-reveals (steps/cards/tiers/headings), and a footer-wordmark parallax, plus a CSS "breathe"
+glow on the LED base — the page now feels alive. Techniques already mixed on the page: full-scene
+engraving (Matterhorn, Labrador), cutout (rose), typographic display, giant cropped wordmark.
+
+Safety: reveals use `gsap.from` (content is visible by default — no `opacity:0` in CSS), guarded by
+both a CSS `prefers-reduced-motion` block and a JS `matchMedia` early-return, so motion-off and
+JS-off both degrade to the full static page. Gates green (slop 0, TYPE/SPACE PASS). Static
+verification confirmed: both GSAP scripts embed and decode, `registerPlugin(ScrollTrigger)` +
+`gsap.from` present, no content-hiding opacity. Runtime GSAP tick/ScrollTrigger-count check was
+blocked by a temporary tool-classifier outage this session — the identical embed pattern was
+runtime-verified in run 4.
+
 ## Run 6l · 2026-07-12 · engraving detail needs internal contrast, not just DPI
 
 User: the dog engraving lacks detail/differentiation, "se ve muy mal". Diagnosed by looking: the

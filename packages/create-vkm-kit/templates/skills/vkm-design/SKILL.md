@@ -11,6 +11,14 @@ distinctive** — never the template every model ships by default, never precise
 any deliverable a human will look at: a screen, a component, a dashboard, a landing page, a desktop
 app, a chart, a logo, a slide.
 
+**This skill has NO house style.** It never prescribes one aesthetic — no default typeface, colour
+world, or layout. Its entire job is to pick the style THIS brief earns and to make consecutive
+builds NOT rhyme. Any example here (a serif on warm paper, a dark-luxe hero) illustrates the
+_method_, never a target look — copying the example's aesthetic is the failure it teaches against.
+If your output is starting to have a recognizable signature across unrelated briefs, that is slop
+(`references/direction.md` § your own house style); rotate lineage, type pairing, colour world and
+layout topology every time.
+
 ## The contract — every mode, every medium
 
 1. **Think like a designer first.** Read [`references/designer-mind.md`](references/designer-mind.md)

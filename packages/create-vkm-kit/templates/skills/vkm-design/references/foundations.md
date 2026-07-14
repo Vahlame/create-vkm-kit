@@ -33,6 +33,13 @@ _deliberately_ (per the committed direction), never by accident.
   alignment edges chosen once and kept — every "almost aligned" edge reads as a bug.
 - **Optical over metric:** icons next to text, triangles in play buttons, and glyphs in circles
   need manual nudging to _look_ centered. Metric centering is the starting point, not the answer.
+- **When the image IS the content, show it WHOLE.** For photography, product shots, artwork or any
+  image the visitor came to look at, respect its full frame — lay it out at its natural aspect
+  ratio (or `object-fit: contain`), never `object-fit: cover` into a fixed-height box that crops
+  the subject. A gallery of forced-height cover-crops amputates exactly what matters (the bird's
+  tail, the product's edge). `cover` is only for decorative/background/hero-texture imagery where
+  the crop is deliberate and the subject is centred with safe margins. Let portrait images be tall
+  and landscape images be wide — a masonry or natural-ratio column beats a uniform crop grid.
 - **Normalize mixed-ratio media in a set.** Logos, avatars, thumbnails, icons or illustrations of
   different native aspect ratios dropped into one grid/row render at different visual sizes and
   off-centre — a real misalignment ("desfase") even when each item is individually fine. Fit each
