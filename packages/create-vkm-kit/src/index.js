@@ -291,6 +291,14 @@ tags: [start]
 1. Read \`MEMORY.md\`.
 2. Then \`PROJECTS/<your-repo>.md\` (match your workspace folder name).
 3. Log decisions in \`SESSION_LOG.md\`.
+
+## Vault map
+
+Keeps every note reachable from a hub — link new notes here or from a project note so the graph (and recall) can find them.
+
+- Core: [[MEMORY]] · [[SESSION_LOG]]
+- Practices: [[PRACTICES/observations|observations]] · [[PRACTICES/confirmed-good|confirmed-good]] · [[PRACTICES/confirmed-bad|confirmed-bad]]
+- Rules & meta: [[RULES/TEMPLATE]] · [[_meta/agent-profiles]]
 `
       : `---
 type: index
@@ -302,6 +310,14 @@ tags: [start]
 1. Lee \`MEMORY.md\`.
 2. Luego \`PROJECTS/<tu-repo>.md\` (ajusta el nombre a tu carpeta de proyecto).
 3. Cierra tareas en \`SESSION_LOG.md\`.
+
+## Mapa del vault
+
+Mantiene toda nota alcanzable desde un hub — enlaza las notas nuevas aquí o desde una nota de proyecto para que el grafo (y el recall) las encuentre.
+
+- Núcleo: [[MEMORY]] · [[SESSION_LOG]]
+- Prácticas: [[PRACTICES/observations|observations]] · [[PRACTICES/confirmed-good|confirmed-good]] · [[PRACTICES/confirmed-bad|confirmed-bad]]
+- Reglas y meta: [[RULES/TEMPLATE]] · [[_meta/agent-profiles]]
 `;
   await fse.writeFile(path.join(vault, "START_HERE.md"), start, "utf8");
   await fse.writeFile(

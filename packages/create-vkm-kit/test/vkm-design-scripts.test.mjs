@@ -1,0 +1,381 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import {
+  parseHex,
+  parseColor,
+  oklchToRgb,
+  contrastRatio,
+  rate,
+  evaluatePair
+} from "../templates/skills/vkm-design/scripts/contrast.mjs";
+import {
+  checkTypeScale,
+  checkSpacing,
+  generateScale,
+  CANDIDATE_RATIOS
+} from "../templates/skills/vkm-design/scripts/scale.mjs";
+import {
+  buildNeutralRamp,
+  buildAccentRamp,
+  fitChroma,
+  keyPairs,
+  semanticTokens,
+  SEMANTIC_HUES
+} from "../templates/skills/vkm-design/scripts/palette.mjs";
+import {
+  extractCustomProps,
+  resolveVars,
+  extractPairs,
+  extractPx,
+  extractPropPx
+} from "../templates/skills/vkm-design/scripts/audit-css.mjs";
+import { scan } from "../templates/skills/vkm-design/scripts/slop-check.mjs";
+
+const scriptsDir = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "templates",
+  "skills",
+  "vkm-design",
+  "scripts"
+);
+const contrastCli = path.join(scriptsDir, "contrast.mjs");
+const scaleCli = path.join(scriptsDir, "scale.mjs");
+const paletteCli = path.join(scriptsDir, "palette.mjs");
+const auditCli = path.join(scriptsDir, "audit-css.mjs");
+const slopCli = path.join(scriptsDir, "slop-check.mjs");
+
+/** Run a CLI and return its exit code (execFileSync throws on non-zero). */
+function exitCode(script, args) {
+  try {
+    execFileSync(process.execPath, [script, ...args], { stdio: "pipe" });
+    return 0;
+  } catch (e) {
+    return e.status;
+  }
+}
+
+test("parseHex: 3/6-digit, case, optional #; rejects alpha and garbage", () => {
+  assert.deepEqual(parseHex("#fff"), [255, 255, 255]);
+  assert.deepEqual(parseHex("FFF"), [255, 255, 255]);
+  assert.deepEqual(parseHex("#0080ff"), [0, 128, 255]);
+  assert.throws(() => parseHex("#ffffffff"), /alpha/);
+  assert.throws(() => parseHex("#ffff"), /alpha/);
+  assert.throws(() => parseHex("red"), /not a/);
+  assert.throws(() => parseHex(42), TypeError);
+});
+
+test("contrastRatio: known WCAG values", () => {
+  assert.ok(Math.abs(contrastRatio("#000000", "#ffffff") - 21) < 1e-9, "black/white = 21:1");
+  assert.ok(Math.abs(contrastRatio("#fff", "#fff") - 1) < 1e-9, "same color = 1:1");
+  // #767676 on white is the canonical smallest AA-passing gray (~4.54:1)
+  const passing = contrastRatio("#767676", "#ffffff");
+  assert.ok(passing >= 4.5 && passing < 4.6, `got ${passing}`);
+  // one step lighter fails AA normal (~4.48:1)
+  const failing = contrastRatio("#777777", "#ffffff");
+  assert.ok(failing < 4.5 && failing > 4.4, `got ${failing}`);
+  // order independence
+  assert.equal(contrastRatio("#123456", "#abcdef"), contrastRatio("#abcdef", "#123456"));
+});
+
+test("rate: per-usage gates, AAA n/a for ui", () => {
+  const large = rate(contrastRatio("#949494", "#ffffff"), "large"); // ~3.03:1
+  assert.equal(large.aa, true);
+  const normal = rate(contrastRatio("#949494", "#ffffff"), "normal");
+  assert.equal(normal.aa, false);
+  assert.equal(rate(5, "ui").aaa, null);
+  assert.throws(() => rate(5, "huge"), /usage/);
+});
+
+test("evaluatePair carries name and usage through", () => {
+  const row = evaluatePair({ fg: "#000", bg: "#fff", usage: "normal", name: "body" });
+  assert.equal(row.name, "body");
+  assert.equal(row.aa, true);
+  assert.equal(row.aaa, true);
+});
+
+test("contrast CLI: exit 0 pass, 1 fail, 2 usage error; --pairs batch", () => {
+  assert.equal(exitCode(contrastCli, ["#000000", "#ffffff"]), 0);
+  assert.equal(exitCode(contrastCli, ["#777777", "#ffffff"]), 1);
+  assert.equal(exitCode(contrastCli, ["#949494", "#ffffff", "--large"]), 0);
+  assert.equal(exitCode(contrastCli, ["#nothex", "#ffffff"]), 2);
+  assert.equal(exitCode(contrastCli, ["#000000"]), 2);
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vkm-design-test-"));
+  const good = path.join(dir, "good.json");
+  fs.writeFileSync(
+    good,
+    JSON.stringify([
+      { name: "body", fg: "#111111", bg: "#ffffff" },
+      { name: "icon", fg: "#767676", bg: "#ffffff", usage: "ui" }
+    ])
+  );
+  assert.equal(exitCode(contrastCli, ["--pairs", good]), 0);
+  const bad = path.join(dir, "bad.json");
+  fs.writeFileSync(bad, JSON.stringify([{ fg: "#aaaaaa", bg: "#ffffff", usage: "normal" }]));
+  assert.equal(exitCode(contrastCli, ["--pairs", bad]), 1);
+  assert.equal(exitCode(contrastCli, ["--pairs", path.join(dir, "missing.json")]), 2);
+});
+
+test("parseColor: OKLCH per CSS Color 4", () => {
+  assert.deepEqual(parseColor("oklch(1 0 0)").rgb, [255, 255, 255]);
+  assert.deepEqual(parseColor("oklch(100% 0 0)").rgb, [255, 255, 255]);
+  assert.deepEqual(parseColor("oklch(0 0 0)").rgb, [0, 0, 0]);
+  // canonical sRGB red in OKLCH; every channel within rounding distance
+  const red = parseColor("oklch(0.62796 0.25768 29.234)").rgb;
+  for (const [i, c] of [255, 0, 0].entries()) {
+    assert.ok(Math.abs(red[i] - c) <= 3, `red ch${i}: ${red[i]}`);
+  }
+  assert.equal(parseColor("oklch(0.62796 0.25768 29.234deg)").clipped, false);
+  assert.equal(parseColor("oklch(0.6 0.4 145)").clipped, true, "impossible chroma must clip");
+  assert.equal(parseColor("#fff").clipped, false, "hex path still works");
+  assert.throws(() => parseColor("oklch(1 0)"), /not a/);
+  assert.throws(() => parseColor("oklch(1.5 0 0)"), /L must be/);
+  assert.throws(() => parseColor("oklch(50% -1 0)"), /C must be/);
+});
+
+test("contrastRatio accepts oklch and hex interchangeably", () => {
+  assert.ok(Math.abs(contrastRatio("oklch(0 0 0)", "#ffffff") - 21) < 1e-9);
+  const viaOklch = contrastRatio("oklch(0.62796 0.25768 29.234)", "#ffffff");
+  const viaHex = contrastRatio("#ff0000", "#ffffff");
+  assert.ok(Math.abs(viaOklch - viaHex) < 0.05, `${viaOklch} vs ${viaHex}`);
+  assert.equal(
+    evaluatePair({ fg: "oklch(0.6 0.4 145)", bg: "#ffffff" }).clipped,
+    true,
+    "evaluatePair must surface gamut clipping"
+  );
+  assert.equal(exitCode(contrastCli, ["oklch(0 0 0)", "#ffffff"]), 0);
+});
+
+test("checkTypeScale: explicit ratio flags off-scale values", () => {
+  const ok = checkTypeScale([16, 20, 25, 31.25], { ratio: 1.25 });
+  assert.equal(ok.offenders.length, 0);
+  assert.equal(ok.inferred, false);
+  const off = checkTypeScale([16, 20, 25, 30], { ratio: 1.25 });
+  assert.deepEqual(
+    off.offenders.map((o) => o.value),
+    [30]
+  );
+  assert.equal(off.offenders[0].nearest, 31.25);
+});
+
+test("checkTypeScale: infers the best ratio (ties break on mean error)", () => {
+  const res = checkTypeScale([16, 20, 25]);
+  assert.equal(res.inferred, true);
+  assert.equal(res.ratio, 1.25);
+  assert.equal(res.offenders.length, 0);
+  assert.ok(CANDIDATE_RATIOS.includes(res.ratio));
+});
+
+test("checkTypeScale: input validation", () => {
+  assert.throws(() => checkTypeScale([]), /non-empty/);
+  assert.throws(() => checkTypeScale([16, -1]), /positive/);
+  assert.throws(() => checkTypeScale([16], { ratio: 0.9 }), /ratio/);
+  assert.throws(() => checkTypeScale([16], { tolerance: 0 }), /tolerance/);
+});
+
+test("checkSpacing: base-unit rhythm", () => {
+  assert.deepEqual(checkSpacing([4, 8, 12, 16]).offenders, []);
+  assert.deepEqual(checkSpacing([4, 8, 10]).offenders, [10]);
+  assert.deepEqual(checkSpacing([6, 12], { base: 6 }).offenders, []);
+  assert.throws(() => checkSpacing([]), /non-empty/);
+  assert.throws(() => checkSpacing([4], { base: 0 }), /base/);
+});
+
+test("scale CLI: exit codes", () => {
+  assert.equal(exitCode(scaleCli, ["--type", "16,20,25", "--ratio", "1.25"]), 0);
+  assert.equal(exitCode(scaleCli, ["--type", "16,20,25,30", "--ratio", "1.25"]), 1);
+  assert.equal(exitCode(scaleCli, ["--space", "4,8,12"]), 0);
+  assert.equal(exitCode(scaleCli, ["--space", "4,8,10"]), 1);
+  assert.equal(exitCode(scaleCli, []), 2);
+  assert.equal(exitCode(scaleCli, ["--type", "abc"]), 2);
+});
+
+test("generateScale: emits base + steps, validated", () => {
+  assert.deepEqual(generateScale(16, 1.25, 4), [16, 20, 25, 31.25, 39.06]);
+  assert.throws(() => generateScale(0, 1.25, 4), /base/);
+  assert.throws(() => generateScale(16, 1, 4), /ratio/);
+  assert.throws(() => generateScale(16, 1.25, 0), /steps/);
+  assert.equal(exitCode(scaleCli, ["--gen", "16,1.25,6"]), 0);
+  assert.equal(exitCode(scaleCli, ["--gen", "16,1.25"]), 2);
+});
+
+test("palette: ramps are complete, in-gamut, monotonic, with a hue cast", () => {
+  const neutral = buildNeutralRamp(250);
+  const accent = buildAccentRamp(250, 0.12);
+  assert.equal(neutral.length, 11);
+  assert.equal(accent.length, 11);
+  for (const ramp of [neutral, accent]) {
+    for (let i = 1; i < ramp.length; i++) {
+      assert.ok(ramp[i].L < ramp[i - 1].L, "L must decrease down the ramp");
+    }
+    for (const s of ramp) {
+      assert.match(s.hex, /^#[0-9a-f]{6}$/);
+      assert.equal(oklchToRgb(s.L, s.C, s.H).clipped, false, `${s.css} must be in gamut`);
+      assert.ok(s.C >= 0 && s.C <= 0.12 + 1e-9);
+    }
+  }
+  assert.ok(
+    neutral.every((s) => s.C > 0),
+    "neutrals carry the brand-hue cast, never pure gray"
+  );
+});
+
+test("palette: fitChroma respects the cap and the gamut", () => {
+  assert.equal(fitChroma(0.5, 0.12, 250), 0.12, "mid-L blue holds full chroma");
+  const nearWhite = fitChroma(0.99, 0.3, 250);
+  assert.ok(nearWhite < 0.3, "near-white cannot hold high chroma");
+  assert.equal(oklchToRgb(0.99, nearWhite, 250).clipped, false);
+});
+
+test("palette: the text key pairs pass AA by construction", () => {
+  const neutral = buildNeutralRamp(145);
+  const pairs = keyPairs(neutral, buildAccentRamp(145, 0.12));
+  const text = pairs.filter((p) => p.name.startsWith("text/"));
+  assert.equal(text.length, 2);
+  for (const p of text) assert.ok(p.aa, `${p.name} ${p.ratio.toFixed(2)}:1 must pass`);
+});
+
+test("palette: semantic tokens pass AA on both surface extremes by construction", () => {
+  const neutral = buildNeutralRamp(250);
+  const sem = semanticTokens(neutral, 0.12);
+  assert.deepEqual(Object.keys(sem).sort(), Object.keys(SEMANTIC_HUES).sort());
+  const lightest = neutral[0].css;
+  const darkest = neutral[neutral.length - 1].css;
+  for (const [name, v] of Object.entries(sem)) {
+    assert.ok(contrastRatio(v.onLight.css, lightest) >= 4.5, `${name}/onLight`);
+    assert.ok(contrastRatio(v.onDark.css, darkest) >= 4.5, `${name}/onDark`);
+    assert.match(v.onLight.hex, /^#[0-9a-f]{6}$/);
+    assert.ok(v.onDark.ratio >= 4.5);
+  }
+});
+
+test("audit-css: custom props, var() resolution with fallback", () => {
+  const css = `/* c */ :root { --ink: oklch(0.2 0.01 270); --alias: var(--ink); }
+    .a { color: var(--alias); background: var(--missing, #ffffff); }`;
+  const props = extractCustomProps(css);
+  assert.equal(props.get("--ink"), "oklch(0.2 0.01 270)");
+  assert.equal(resolveVars("var(--alias)", props), "oklch(0.2 0.01 270)");
+  assert.equal(resolveVars("var(--missing, #fff)", props), "#fff");
+  const { pairs, skipped } = extractPairs(css, props);
+  assert.equal(skipped, 0);
+  assert.equal(pairs.length, 1);
+  assert.equal(pairs[0].fg, "oklch(0.2 0.01 270)");
+  assert.equal(pairs[0].bg, "#ffffff");
+});
+
+test("audit-css: skips unparseable values, extracts px/rem, hairlines exempt via CLI", () => {
+  const css = `.bad { color: rebeccapurple; background: linear-gradient(red, blue); }
+    .t1 { font-size: 16px; padding: 8px 12px; } .t2 { font-size: 1.25rem; margin: 10px; }
+    .hair { border-top: 1px solid; padding: 2px; }`;
+  const { pairs, skipped } = extractPairs(css, new Map());
+  assert.equal(pairs.length, 0);
+  assert.equal(skipped, 1);
+  assert.deepEqual(extractPx(css, "font-size"), [16, 20]);
+  assert.deepEqual(extractPx(css, "margin[\\w-]*|padding[\\w-]*|gap"), [2, 8, 10, 12]);
+});
+
+test("audit-css: sizes hidden in custom-prop tokens are seen (extractPropPx)", () => {
+  const css = `:root { --step-0: 14px; --step-1: 16.8px; --space-2: 0.5rem; --ink: #111; }`;
+  const props = extractCustomProps(css);
+  assert.deepEqual(extractPropPx(props, /^--step/).sort(), [14, 16.8]);
+  assert.deepEqual(extractPropPx(props, /^--space/), [8]);
+  assert.deepEqual(extractPropPx(props, /^--nope/), []);
+});
+
+test("audit-css: extractPx resolves var() and takes clamp() min/max only", () => {
+  const css = `:root { --t1: 1rem; --h1: clamp(2.81rem, 2rem + 2vw, 4rem); }
+    h1 { font-size: var(--h1); } p { font-size: var(--t1); } small { font-size: 14px; }`;
+  const props = extractCustomProps(css);
+  // clamp keeps 44.96 and 64 (min/max) but drops the fluid 2rem offset term
+  assert.deepEqual(extractPx(css, "font-size", props), [14, 16, 44.96, 64]);
+  // without props, var() declarations contribute nothing
+  assert.deepEqual(extractPx(css.split("\n")[1], "font-size"), [14]);
+});
+
+test("audit-css CLI: exit 1 on failing contrast, 0 on clean file, 2 on usage error", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vkm-audit-test-"));
+  const bad = path.join(dir, "bad.css");
+  fs.writeFileSync(
+    bad,
+    `:root { --fg: #aaaaaa; } .low { color: var(--fg); background-color: #ffffff; padding: 10px; }`
+  );
+  const good = path.join(dir, "good.css");
+  fs.writeFileSync(
+    good,
+    `.ok { color: #111111; background-color: #ffffff; font-size: 16px; padding: 8px; margin: 16px; }`
+  );
+  assert.equal(exitCode(auditCli, [bad]), 1);
+  assert.equal(exitCode(auditCli, [good]), 0);
+  assert.equal(exitCode(auditCli, []), 2);
+  assert.equal(exitCode(auditCli, [path.join(dir, "missing.css")]), 2);
+});
+
+test("slop-check: detects each fingerprint class with evidence", () => {
+  const slop = `<style>
+    h1 { font-family: "Inter", sans-serif; background: linear-gradient(90deg,#6366f1,#8b5cf6);
+         -webkit-background-clip: text; }
+    .card { backdrop-filter: blur(12px); background: rgba(255,255,255,0.1);
+            border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .a{border-radius:12px}.b{border-radius:24px}.c{border-radius:16px}
+    .violet { color: oklch(0.6 0.15 285); }
+  </style><span>✨ New</span><i>🚀</i><i>💡</i>`;
+  const ids = new Set(scan(slop).map((h) => h.id));
+  for (const expected of [
+    "font-default",
+    "indigo-family",
+    "gradient-text",
+    "glassmorphism",
+    "emoji-icons",
+    "radius-uniform",
+    "shadow-default",
+    "sparkle-badge"
+  ]) {
+    assert.ok(ids.has(expected), `missing ${expected} (got: ${[...ids].join(", ")})`);
+  }
+});
+
+test("slop-check: clean instrument-panel CSS produces zero hits", () => {
+  const clean = `<style>
+    :root { --surface: oklch(0.13 0.012 145); --text: oklch(0.87 0.02 145); }
+    body { font-family: "JetBrains Mono", monospace; color: var(--text);
+           background: var(--surface); }
+    .row { border-radius: 0; padding: 8px; border-top: 1px solid oklch(0.24 0.012 145); }
+    .accent { color: oklch(0.72 0.14 145); }
+  </style><span>Estado: OK</span>`;
+  assert.deepEqual(scan(clean), []);
+});
+
+test("slop-check: single emoji (content, not iconography) is tolerated", () => {
+  assert.ok(!scan("<p>Gracias 🙂</p>").some((h) => h.id === "emoji-icons"));
+});
+
+test("slop-check CLI: exit codes", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vkm-slop-test-"));
+  const dirty = path.join(dir, "dirty.html");
+  fs.writeFileSync(dirty, `<style>h1{font-family:Poppins;color:#6366f1}</style>`);
+  const clean = path.join(dir, "clean.html");
+  fs.writeFileSync(clean, `<style>h1{font-family:Georgia,serif;color:#1a1a1a}</style>`);
+  assert.equal(exitCode(slopCli, [dirty]), 1);
+  assert.equal(exitCode(slopCli, [clean]), 0);
+  assert.equal(exitCode(slopCli, []), 2);
+});
+
+test("palette CLI: table, --json, usage errors", () => {
+  assert.equal(exitCode(paletteCli, ["--hue", "250"]), 0);
+  assert.equal(exitCode(paletteCli, []), 2);
+  assert.equal(exitCode(paletteCli, ["--hue", "400"]), 2);
+  assert.equal(exitCode(paletteCli, ["--hue", "250", "--chroma", "9"]), 2);
+  const json = execFileSync(process.execPath, [paletteCli, "--hue", "250", "--json"], {
+    stdio: "pipe"
+  }).toString();
+  const tokens = JSON.parse(json);
+  assert.equal(tokens.color.neutral["99"].$type, "color");
+  assert.match(tokens.color.accent["48"].$value, /^oklch\(/);
+  assert.match(tokens.color.semantic.danger.onLight.$value, /^oklch\(/);
+});

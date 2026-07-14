@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Facturio — effortless invoicing for freelancers. Create polished invoices, automate reminders, and get paid faster.">
+<title>Facturio — Invoicing that pays for itself</title>
+<style>
+  /* ================= Design tokens ================= */
+  :root {
+    --ink:        #0f172a;
+    --ink-soft:   #475569;
+    --ink-faint:  #94a3b8;
+    --paper:      #ffffff;
+    --canvas:     #f8fafc;
+    --line:       #e2e8f0;
+    --brand:      #4f46e5;
+    --brand-deep: #4338ca;
+    --brand-soft: #eef2ff;
+    --brand-ring: rgba(79, 70, 229, 0.28);
+    --accent:     #0d9488;
+    --accent-soft:#f0fdfa;
+    --warn-soft:  #fffbeb;
+    --warn:       #b45309;
+    --radius-s:   8px;
+    --radius-m:   12px;
+    --radius-l:   20px;
+    --shadow-s:   0 1px 2px rgba(15, 23, 42, .06);
+    --shadow-m:   0 6px 24px -8px rgba(15, 23, 42, .12);
+    --shadow-l:   0 24px 60px -20px rgba(15, 23, 42, .25);
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  /* ================= Reset & base ================= */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--font);
+    color: var(--ink);
+    background: var(--paper);
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  img, svg { display: block; max-width: 100%; }
+  a { color: inherit; text-decoration: none; }
+  ul { list-style: none; }
+  :focus-visible { outline: 3px solid var(--brand-ring); outline-offset: 2px; border-radius: 4px; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+
+  .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+  /* ================= Buttons ================= */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font-weight: 600; font-size: 15px; line-height: 1;
+    padding: 13px 22px; border-radius: var(--radius-s);
+    border: 1px solid transparent; cursor: pointer; white-space: nowrap;
+    transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+  }
+  .btn-primary { background: var(--brand); color: #fff; box-shadow: var(--shadow-s); }
+  .btn-primary:hover { background: var(--brand-deep); transform: translateY(-1px); box-shadow: var(--shadow-m); }
+  .btn-ghost { border-color: var(--line); color: var(--ink); background: var(--paper); }
+  .btn-ghost:hover { border-color: var(--ink-faint); background: var(--canvas); }
+  .btn-lg { padding: 16px 28px; font-size: 16px; border-radius: 10px; }
+  .btn-block { width: 100%; }
+  .btn-invert { background: #fff; color: var(--brand-deep); }
+  .btn-invert:hover { background: var(--brand-soft); transform: translateY(-1px); }
+
+  /* ================= Header ================= */
+  .site-header {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(255, 255, 255, .86);
+    backdrop-filter: saturate(180%) blur(12px);
+    -webkit-backdrop-filter: saturate(180%) blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav { display: flex; align-items: center; justify-content: space-between; height: 68px; gap: 24px; }
+  .logo { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; letter-spacing: -.02em; }
+  .logo-mark {
+    width: 32px; height: 32px; border-radius: 9px; flex: none;
+    background: linear-gradient(135deg, var(--brand) 0%, #7c6ff0 100%);
+    display: grid; place-items: center; color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.25), var(--shadow-s);
+  }
+  .nav-links { display: flex; align-items: center; gap: 28px; font-size: 15px; font-weight: 500; color: var(--ink-soft); }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-cta { display: flex; align-items: center; gap: 12px; }
+  .nav-cta .signin { font-size: 15px; font-weight: 500; color: var(--ink-soft); }
+  .nav-cta .signin:hover { color: var(--ink); }
+  @media (max-width: 860px) {
+    .nav-links, .nav-cta .signin { display: none; }
+  }
+
+  /* ================= Hero ================= */
+  .hero {
+    position: relative; overflow: hidden;
+    background:
+      radial-gradient(1000px 480px at 80% -10%, var(--brand-soft) 0%, rgba(238, 242, 255, 0) 60%),
+      radial-gradient(700px 420px at 8% 110%, var(--accent-soft) 0%, rgba(240, 253, 250, 0) 55%),
+      var(--paper);
+    padding: 88px 0 96px;
+  }
+  .hero-grid {
+    display: grid; grid-template-columns: minmax(0, 11fr) minmax(0, 9fr);
+    gap: 64px; align-items: center;
+  }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--brand-soft); color: var(--brand-deep);
+    border: 1px solid #dfe3ff;
+    font-size: 13px; font-weight: 600; letter-spacing: .01em;
+    padding: 6px 14px; border-radius: 999px; margin-bottom: 22px;
+  }
+  .eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; }
+  .hero h1 {
+    font-size: clamp(38px, 5.2vw, 58px);
+    line-height: 1.06; letter-spacing: -.035em; font-weight: 800;
+    margin-bottom: 22px;
+  }
+  .hero h1 .underline {
+    position: relative; white-space: nowrap; color: var(--brand-deep);
+  }
+  .hero h1 .underline::after {
+    content: ""; position: absolute; left: 2%; right: 2%; bottom: .04em;
+    height: .16em; background: var(--brand-soft); border-radius: 3px; z-index: -1;
+  }
+  .hero .lede { font-size: 19px; color: var(--ink-soft); max-width: 52ch; margin-bottom: 34px; }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 22px; }
+  .hero-note { font-size: 14px; color: var(--ink-faint); display: flex; align-items: center; gap: 8px; }
+  .hero-note svg { flex: none; }
+
+  /* --- Invoice mockup card --- */
+  .mockup-wrap { position: relative; }
+  .invoice-card {
+    background: var(--paper); border: 1px solid var(--line);
+    border-radius: var(--radius-l); box-shadow: var(--shadow-l);
+    padding: 30px 30px 26px; max-width: 430px; margin-left: auto;
+    transform: rotate(.6deg);
+  }
+  .invoice-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 22px; }
+  .invoice-title { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); }
+  .invoice-num { font-family: var(--mono); font-size: 15px; font-weight: 600; margin-top: 2px; }
+  .badge-paid {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--accent-soft); color: var(--accent);
+    border: 1px solid #ccfbf1;
+    font-size: 12px; font-weight: 700; letter-spacing: .04em;
+    padding: 5px 12px; border-radius: 999px; text-transform: uppercase;
+  }
+  .invoice-rows { border-top: 1px solid var(--line); }
+  .invoice-row { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .invoice-row .desc { color: var(--ink-soft); }
+  .invoice-row .amt { font-family: var(--mono); font-weight: 600; }
+  .invoice-total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 16px; }
+  .invoice-total .label { font-size: 13px; font-weight: 600; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .07em; }
+  .invoice-total .sum { font-family: var(--mono); font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
+  .float-chip {
+    position: absolute; display: flex; align-items: center; gap: 10px;
+    background: var(--paper); border: 1px solid var(--line);
+    border-radius: var(--radius-m); box-shadow: var(--shadow-m);
+    padding: 12px 16px; font-size: 13px; font-weight: 600;
+  }
+  .float-chip .chip-icon {
+    width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; flex: none;
+  }
+  .chip-reminder { top: -22px; left: -14px; transform: rotate(-1.4deg); }
+  .chip-reminder .chip-icon { background: var(--warn-soft); color: var(--warn); }
+  .chip-paid { bottom: -20px; right: 8px; transform: rotate(1deg); }
+  .chip-paid .chip-icon { background: var(--accent-soft); color: var(--accent); }
+  .float-chip small { display: block; font-weight: 500; color: var(--ink-faint); font-size: 12px; line-height: 1.35; }
+
+  @media (max-width: 960px) {
+    .hero { padding: 64px 0 120px; }
+    .hero-grid { grid-template-columns: 1fr; gap: 72px; }
+    .invoice-card { margin: 0 auto; }
+    .chip-reminder { left: 0; }
+    .chip-paid { right: 0; }
+  }
+
+  /* ================= Trust strip ================= */
+  .trust { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--canvas); padding: 26px 0; }
+  .trust-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+  .trust p { font-size: 14px; color: var(--ink-faint); font-weight: 500; }
+  .trust-logos { display: flex; align-items: center; gap: 34px; flex-wrap: wrap; }
+  .trust-logos span {
+    font-weight: 700; font-size: 15px; letter-spacing: -.01em;
+    color: var(--ink-faint); opacity: .85;
+  }
+
+  /* ================= Sections ================= */
+  section { scroll-margin-top: 84px; }
+  .section-pad { padding: 96px 0; }
+  .section-head { max-width: 640px; margin: 0 auto 56px; text-align: center; }
+  .kicker {
+    display: inline-block; font-size: 13px; font-weight: 700;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--brand);
+    margin-bottom: 14px;
+  }
+  .section-head h2 { font-size: clamp(28px, 3.6vw, 40px); letter-spacing: -.03em; line-height: 1.15; font-weight: 800; margin-bottom: 16px; }
+  .section-head p { font-size: 17px; color: var(--ink-soft); }
+
+  /* ================= Features ================= */
+  .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .feature {
+    background: var(--paper); border: 1px solid var(--line);
+    border-radius: var(--radius-m); padding: 28px;
+    transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease;
+  }
+  .feature:hover { box-shadow: var(--shadow-m); transform: translateY(-3px); border-color: #d3daf9; }
+  .feature-icon {
+    width: 46px; height: 46px; border-radius: var(--radius-m);
+    background: var(--brand-soft); color: var(--brand);
+    display: grid; place-items: center; margin-bottom: 18px;
+  }
+  .feature:nth-child(3n+2) .feature-icon { background: var(--accent-soft); color: var(--accent); }
+  .feature:nth-child(3n) .feature-icon { background: var(--warn-soft); color: var(--warn); }
+  .feature h3 { font-size: 17px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 8px; }
+  .feature p { font-size: 15px; color: var(--ink-soft); }
+  @media (max-width: 960px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 620px) { .features-grid { grid-template-columns: 1fr; } }
+
+  /* ================= Stats band ================= */
+  .stats { background: var(--ink); color: #fff; padding: 64px 0; }
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; text-align: center; }
+  .stat b { display: block; font-size: clamp(32px, 4vw, 44px); font-weight: 800; letter-spacing: -.03em; line-height: 1.1; }
+  .stat b .accent { color: #a5b4fc; }
+  .stat span { display: block; margin-top: 8px; font-size: 15px; color: #94a3b8; }
+  @media (max-width: 620px) { .stats-grid { grid-template-columns: 1fr; gap: 36px; } }
+
+  /* ================= Pricing ================= */
+  .pricing { background: var(--canvas); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; align-items: stretch; }
+  .plan {
+    position: relative; display: flex; flex-direction: column;
+    background: var(--paper); border: 1px solid var(--line);
+    border-radius: var(--radius-l); padding: 34px 30px 30px;
+    box-shadow: var(--shadow-s);
+  }
+  .plan-featured {
+    border: 2px solid var(--brand);
+    box-shadow: var(--shadow-l);
+  }
+  .plan-flag {
+    position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%);
+    background: var(--brand); color: #fff;
+    font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    padding: 6px 16px; border-radius: 999px; white-space: nowrap;
+  }
+  .plan-name { font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
+  .plan-desc { font-size: 14px; color: var(--ink-soft); margin: 6px 0 22px; min-height: 2.6em; }
+  .plan-price { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
+  .plan-price .amount { font-size: 44px; font-weight: 800; letter-spacing: -.04em; line-height: 1; }
+  .plan-price .period { font-size: 15px; color: var(--ink-faint); font-weight: 500; }
+  .plan-billing { font-size: 13px; color: var(--ink-faint); margin-bottom: 26px; }
+  .plan-list { display: grid; gap: 12px; font-size: 15px; color: var(--ink-soft); margin-bottom: 30px; }
+  .plan-list li { display: flex; gap: 10px; align-items: flex-start; }
+  .plan-list svg { flex: none; margin-top: 4px; color: var(--accent); }
+  .plan-list .muted { color: var(--ink-faint); }
+  .plan-list .muted svg { color: var(--ink-faint); }
+  .plan .btn { margin-top: auto; }
+  .pricing-footnote { text-align: center; font-size: 14px; color: var(--ink-faint); margin-top: 32px; }
+  @media (max-width: 960px) {
+    .pricing-grid { grid-template-columns: 1fr; max-width: 460px; margin: 0 auto; }
+    .plan-featured { order: -1; }
+  }
+
+  /* ================= Testimonial ================= */
+  .testimonial { max-width: 760px; margin: 0 auto; text-align: center; }
+  .testimonial .stars { display: flex; justify-content: center; gap: 4px; margin-bottom: 26px; color: #f59e0b; }
+  .testimonial blockquote {
+    font-size: clamp(20px, 2.8vw, 27px); font-weight: 600;
+    letter-spacing: -.02em; line-height: 1.4; color: var(--ink);
+  }
+  .testimonial blockquote em { color: var(--brand-deep); font-style: normal; }
+  .testimonial figcaption { margin-top: 28px; display: flex; align-items: center; justify-content: center; gap: 14px; }
+  .avatar {
+    width: 46px; height: 46px; border-radius: 50%; flex: none;
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    color: #fff; font-weight: 700; font-size: 16px;
+    display: grid; place-items: center;
+  }
+  .testimonial .who { text-align: left; }
+  .testimonial .who b { display: block; font-size: 15px; }
+  .testimonial .who span { font-size: 14px; color: var(--ink-faint); }
+
+  /* ================= CTA band ================= */
+  .cta-band { padding: 0 0 96px; }
+  .cta-box {
+    position: relative; overflow: hidden;
+    background: linear-gradient(120deg, var(--brand-deep) 0%, var(--brand) 55%, #6d5ff0 100%);
+    border-radius: 24px; padding: 72px 32px; text-align: center; color: #fff;
+    box-shadow: var(--shadow-l);
+  }
+  .cta-box::before, .cta-box::after {
+    content: ""; position: absolute; border-radius: 50%; pointer-events: none;
+    background: rgba(255, 255, 255, .09);
+  }
+  .cta-box::before { width: 340px; height: 340px; top: -160px; right: -80px; }
+  .cta-box::after  { width: 260px; height: 260px; bottom: -140px; left: -60px; }
+  .cta-box h2 { font-size: clamp(28px, 3.6vw, 40px); font-weight: 800; letter-spacing: -.03em; margin-bottom: 14px; }
+  .cta-box p { font-size: 17px; color: #dfe3ff; max-width: 46ch; margin: 0 auto 34px; }
+  .cta-box .fine { font-size: 13px; color: #c3c9ff; margin-top: 18px; }
+
+  /* ================= Footer ================= */
+  .site-footer { background: var(--ink); color: #cbd5e1; padding: 72px 0 40px; }
+  .footer-grid { display: grid; grid-template-columns: 2.2fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 56px; }
+  .footer-brand .logo { color: #fff; margin-bottom: 16px; }
+  .footer-brand p { font-size: 14px; color: #94a3b8; max-width: 30ch; }
+  .footer-col h4 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: #64748b; margin-bottom: 18px; }
+  .footer-col ul { display: grid; gap: 12px; font-size: 14px; }
+  .footer-col a { color: #cbd5e1; }
+  .footer-col a:hover { color: #fff; }
+  .footer-bottom {
+    border-top: 1px solid #1e293b; padding-top: 28px;
+    display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
+    font-size: 13px; color: #64748b;
+  }
+  .footer-legal { display: flex; gap: 22px; }
+  .footer-legal a:hover { color: #cbd5e1; }
+  @media (max-width: 860px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 520px) { .footer-grid { grid-template-columns: 1fr; gap: 36px; } }
+
+  /* ================= Utilities ================= */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= Header ================= -->
+<header class="site-header">
+  <div class="container nav">
+    <a class="logo" href="#" aria-label="Facturio home">
+      <span class="logo-mark" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10a1 1 0 0 1 1 1v17l-3-2-3 2-3-2-3 2V4a1 1 0 0 1 1-1z"/><path d="M9 8h6M9 12h6"/></svg>
+      </span>
+      Facturio
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#testimonial">Customers</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="signin" href="#">Sign in</a>
+      <a class="btn btn-primary" href="#pricing">Start free</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- ================= Hero ================= -->
+  <section class="hero">
+    <div class="container hero-grid">
+      <div>
+        <span class="eyebrow"><span class="dot" aria-hidden="true"></span>Built for independent professionals</span>
+        <h1>Invoicing that <span class="underline">pays for itself</span></h1>
+        <p class="lede">Create polished invoices in seconds, automate the awkward payment reminders, and watch the money land — so you can spend your billable hours on billable work.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary btn-lg" href="#pricing">Start invoicing free</a>
+          <a class="btn btn-ghost btn-lg" href="#features">See how it works</a>
+        </div>
+        <p class="hero-note">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+          Free forever for up to 3 clients &middot; No credit card required
+        </p>
+      </div>
+
+      <div class="mockup-wrap" aria-hidden="true">
+        <div class="float-chip chip-reminder">
+          <span class="chip-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+          </span>
+          <span>Reminder sent<small>Invoice #2041 &middot; 3 days overdue</small></span>
+        </div>
+
+        <div class="invoice-card">
+          <div class="invoice-top">
+            <div>
+              <div class="invoice-title">Invoice</div>
+              <div class="invoice-num">#2041 &middot; Meridian Studio</div>
+            </div>
+            <span class="badge-paid">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              Paid
+            </span>
+          </div>
+          <div class="invoice-rows">
+            <div class="invoice-row"><span class="desc">Brand identity design</span><span class="amt">$2,400.00</span></div>
+            <div class="invoice-row"><span class="desc">Website — 4 templates</span><span class="amt">$1,850.00</span></div>
+            <div class="invoice-row"><span class="desc">Art direction (6 h)</span><span class="amt">$540.00</span></div>
+          </div>
+          <div class="invoice-total">
+            <span class="label">Total due</span>
+            <span class="sum">$4,790.00</span>
+          </div>
+        </div>
+
+        <div class="float-chip chip-paid">
+          <span class="chip-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </span>
+          <span>Payment received<small>$4,790.00 &middot; 2 minutes ago</small></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= Trust strip ================= -->
+  <div class="trust">
+    <div class="container trust-inner">
+      <p>Trusted by 40,000+ freelancers and studios</p>
+      <div class="trust-logos" aria-label="Customer companies">
+        <span>Northwind&nbsp;Co.</span>
+        <span>Pixelforge</span>
+        <span>Ledger&amp;Lane</span>
+        <span>Atelier&nbsp;9</span>
+        <span>Draftline</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Features ================= -->
+  <section id="features" class="section-pad">
+    <div class="container">
+      <div class="section-head">
+        <span class="kicker">Features</span>
+        <h2>Everything between "job done" and "money in the bank"</h2>
+        <p>Facturio handles the paperwork of getting paid, end to end — no spreadsheets, no chasing, no accountant required.</p>
+      </div>
+
+      <div class="features-grid">
+        <article class="feature">
+          <div class="feature-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+          </div>
+          <h3>Invoices in seconds</h3>
+          <p>Pick a client, add line items, hit send. Your branding, your currency, your payment terms — saved once, reused forever.</p>
+        </article>
+
+        <article class="feature">
+          <div class="feature-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+          </div>
+          <h3>Automatic reminders</h3>
+          <p>Polite, well-timed nudges go out on your behalf until the invoice is settled. You never have to write "just following up…" again.</p>
+        </article>
+
+        <article class="feature">
+          <div class="feature-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2v4M7 2v4M3 9h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="M9 15l2 2 4-4"/></svg>
+          </div>
+          <h3>Recurring billing</h3>
+          <p>Retainers and subscriptions bill themselves on schedule. Set it up once and every month the invoice goes out without you.</p>
+        </article>
+
+        <article class="feature">
+          <div class="feature-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </div>
+          <h3>Multi-currency &amp; tax</h3>
+          <p>Bill in 135+ currencies with automatic exchange rates, and let Facturio apply the right VAT, GST, or sales tax per client.</p>
+        </article>
+
+        <article class="feature">
+          <div class="feature-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 13l3-3 4 4 5-6"/></svg>
+          </div>
+          <h3>Cash-flow insights</h3>
+          <p>See what's paid, what's pending, and what's overdue at a glance — plus a live forecast of the months ahead.</p>
+        </article>
+
+        <article class="feature">
+          <div class="feature-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <h3>Client portal &amp; payments</h3>
+          <p>Clients get a secure link to view, download, and pay by card or bank transfer — no account needed on their side.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= Stats band ================= -->
+  <section class="stats" aria-label="Facturio by the numbers">
+    <div class="container stats-grid">
+      <div class="stat">
+        <b><span class="accent">9</span> days</b>
+        <span>faster average payment vs. manual invoicing</span>
+      </div>
+      <div class="stat">
+        <b><span class="accent">$1.2</span>B+</b>
+        <span>invoiced through Facturio last year</span>
+      </div>
+      <div class="stat">
+        <b><span class="accent">4.8</span>/5</b>
+        <span>average rating from 6,000+ reviews</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= Pricing ================= -->
+  <section id="pricing" class="pricing section-pad">
+    <div class="container">
+      <div class="section-head">
+        <span class="kicker">Pricing</span>
+        <h2>Simple plans that scale with your client list</h2>
+        <p>Start free, upgrade when the work picks up. Every paid plan comes with a 14-day trial — no credit card up front.</p>
+      </div>
+
+      <div class="pricing-grid">
+        <!-- Starter -->
+        <article class="plan">
+          <h3 class="plan-name">Starter</h3>
+          <p class="plan-desc">For side projects and your first few clients.</p>
+          <div class="plan-price"><span class="amount">$0</span><span class="period">/ month</span></div>
+          <p class="plan-billing">Free forever</p>
+          <ul class="plan-list">
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Up to 3 active clients</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Unlimited invoices &amp; estimates</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Card &amp; bank transfer payments</li>
+            <li class="muted"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Facturio badge on invoices</li>
+          </ul>
+          <a class="btn btn-ghost btn-block" href="#">Get started</a>
+        </article>
+
+        <!-- Pro (featured) -->
+        <article class="plan plan-featured" aria-label="Pro plan, most popular">
+          <span class="plan-flag">Most popular</span>
+          <h3 class="plan-name">Pro</h3>
+          <p class="plan-desc">For full-time freelancers who bill every week.</p>
+          <div class="plan-price"><span class="amount">$12</span><span class="period">/ month</span></div>
+          <p class="plan-billing">Billed annually, or $15 month-to-month</p>
+          <ul class="plan-list">
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Unlimited clients</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Automatic payment reminders</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Recurring invoices &amp; retainers</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Multi-currency &amp; tax handling</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Your branding, no badge</li>
+          </ul>
+          <a class="btn btn-primary btn-block" href="#">Start 14-day trial</a>
+        </article>
+
+        <!-- Studio -->
+        <article class="plan">
+          <h3 class="plan-name">Studio</h3>
+          <p class="plan-desc">For small teams and busy independent studios.</p>
+          <div class="plan-price"><span class="amount">$29</span><span class="period">/ month</span></div>
+          <p class="plan-billing">Billed annually, up to 5 seats included</p>
+          <ul class="plan-list">
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Everything in Pro</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Team roles &amp; approvals</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Cash-flow forecasting &amp; reports</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Accountant access &amp; exports</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Priority support</li>
+          </ul>
+          <a class="btn btn-ghost btn-block" href="#">Start 14-day trial</a>
+        </article>
+      </div>
+
+      <p class="pricing-footnote">Prices in USD, excluding applicable taxes. Cancel anytime — your data exports with one click.</p>
+    </div>
+  </section>
+
+  <!-- ================= Testimonial ================= -->
+  <section id="testimonial" class="section-pad">
+    <div class="container">
+      <figure class="testimonial">
+        <div class="stars" aria-label="Rated 5 out of 5 stars">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </div>
+        <blockquote>
+          &ldquo;I used to spend Friday afternoons chasing invoices. Now Facturio does the chasing, and my average payment time went from 34 days to <em>11</em>. It's the only subscription I'd call self-funding.&rdquo;
+        </blockquote>
+        <figcaption>
+          <span class="avatar" aria-hidden="true">MK</span>
+          <span class="who">
+            <b>Marta Kowalski</b>
+            <span>Independent brand designer, Rotterdam</span>
+          </span>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ================= CTA band ================= -->
+  <section class="cta-band">
+    <div class="container">
+      <div class="cta-box">
+        <h2>Send your first invoice in the next five minutes</h2>
+        <p>Join 40,000+ freelancers who stopped chasing payments and started expecting them.</p>
+        <a class="btn btn-invert btn-lg" href="#pricing">Start free — no card required</a>
+        <p class="fine">Free plan forever &middot; Upgrade or cancel anytime</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ================= Footer ================= -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="logo" href="#" aria-label="Facturio home">
+          <span class="logo-mark" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10a1 1 0 0 1 1 1v17l-3-2-3 2-3-2-3 2V4a1 1 0 0 1 1-1z"/><path d="M9 8h6M9 12h6"/></svg>
+          </span>
+          Facturio
+        </a>
+        <p>Effortless invoicing for freelancers and independent studios. Get paid faster, with less friction.</p>
+      </div>
+
+      <nav class="footer-col" aria-label="Product">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#">Integrations</a></li>
+          <li><a href="#">Changelog</a></li>
+        </ul>
+      </nav>
+
+      <nav class="footer-col" aria-label="Resources">
+        <h4>Resources</h4>
+        <ul>
+          <li><a href="#">Help center</a></li>
+          <li><a href="#">Invoice templates</a></li>
+          <li><a href="#">Freelance tax guide</a></li>
+          <li><a href="#">API docs</a></li>
+        </ul>
+      </nav>
+
+      <nav class="footer-col" aria-label="Company">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="#">About</a></li>
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <div class="footer-bottom">
+      <span>&copy; 2026 Facturio Labs, Inc. All rights reserved.</span>
+      <div class="footer-legal">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Security</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

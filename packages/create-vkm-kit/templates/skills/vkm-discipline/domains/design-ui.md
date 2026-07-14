@@ -3,6 +3,10 @@
 Load this when the deliverable is something a user sees and interacts with — a screen, component,
 form, dashboard, or web page. Accessibility is part of the definition of done, not a later coat.
 
+> This domain is the **acceptance gate**. For the full generative method — design direction,
+> foundations, real libraries, visual self-critique loop — invoke the `vkm-design` skill if
+> installed; it treats this gate as its definition of done.
+
 ## Deliver a better result
 
 1. **Contrast is COMPUTED, never eyeballed** (WCAG formula or a tool): normal text ≥ 4.5:1; large

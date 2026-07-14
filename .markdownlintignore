@@ -3,3 +3,6 @@ node_modules
 CLAUDE.md
 .clinerules
 .github/copilot-instructions.md
+# Captured model-output deliverables (design-bench eval evidence) — not hand-authored prose,
+# never rewritten for style so the sample stays an exact record of what was generated.
+evals/design-bench/samples/**
