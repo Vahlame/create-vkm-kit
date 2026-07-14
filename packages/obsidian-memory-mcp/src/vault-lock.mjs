@@ -35,6 +35,16 @@ const RETRY_START_MS = 25;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/** Already gone (ENOENT) is the expected race-loser outcome everywhere we unlink a lockfile.
+ * On Windows, a concurrent contender's readFile()/writeFile() on the same path can also make
+ * unlink transiently fail EPERM/EBUSY (mandatory file locking; POSIX has no equivalent, which
+ * is why this only ever surfaced in Windows CI) — harmless here since correctness never
+ * depends on the unlink succeeding: a lock this code fails to clear is still reclaimed by the
+ * next acquirer's dead-PID/TTL check. */
+function isBenignUnlinkError(err) {
+  return err.code === "ENOENT" || err.code === "EPERM" || err.code === "EBUSY";
+}
+
 /** True when `pid` is a live process on THIS host. EPERM means "alive but not
  * ours"; only ESRCH (and bogus input) count as dead. */
 function pidAlive(pid) {
@@ -83,7 +93,7 @@ export async function acquireVaultLock(vaultAbs, opts = {}) {
         try {
           await unlink(lockPath);
         } catch (err) {
-          if (err.code !== "ENOENT") throw err;
+          if (!isBenignUnlinkError(err)) throw err;
         }
       };
     } catch (err) {
@@ -97,7 +107,7 @@ export async function acquireVaultLock(vaultAbs, opts = {}) {
       try {
         await unlink(lockPath);
       } catch (unlinkErr) {
-        if (unlinkErr.code !== "ENOENT") throw unlinkErr;
+        if (!isBenignUnlinkError(unlinkErr)) throw unlinkErr;
       }
       continue;
     }
