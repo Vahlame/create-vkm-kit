@@ -138,8 +138,14 @@ GENERAL]`, `[regla]` — invisible to `vault_observations(category:'decision')`)
   catalog quadrupled (8 → 16 executable capsules: naturalist/field-guide, heritage/workwear, Y2K
   chrome, groovy 70s, sci-fi HUD, Scandinavian folk, collage/zine, soft-dimensional/clay) and the
   contemporary currents grew 10 → 14 (image-treatment-as-identity, sticker/badge layer, giant
-  cropped wordmark, custom cursor/selection). `vkm-discipline`'s `domains/design-ui.md` stays the
-  acceptance gate and now points to the skill.
+  cropped wordmark, custom cursor/selection). Final polish from live A/B feedback: the skill
+  declares **no house style** (a model's second-order comfort look — one favourite type pairing/
+  colour world reused across briefs — is named in the slop fingerprint), the variety sampler
+  forces rotation on five axes (hue, lineage ≠ last build, type pairing, current, **layout
+  topology** — the reused header→hero→grid→pricing→giant-wordmark skeleton is called out as
+  structural convergence), and `foundations.md` adds "when the image IS the content, show it
+  WHOLE" (natural ratio / `contain`, never a cover-crop gallery). `vkm-discipline`'s
+  `domains/design-ui.md` stays the acceptance gate and now points to the skill.
 
 - **`vault_delete_file` + `vault_move_file`: note lifecycle lands in the hybrid MCP (17 tools).**
   Until now the vault surface could create and edit notes but never retire or reorganize them —
