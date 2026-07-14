@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/hero.svg" alt="Your agent talks to MCP servers, which read and write Markdown notes in your git vault; an optional daemon syncs to a remote" width="840">
+  <img src="docs/assets/hero.svg" alt="Your agent talks to MCP servers, which read and write Markdown notes in your git vault; an optional daemon syncs to a remote; below, the vkm-kit efficiency suite: token-saver, vkm-doctor, vkm-spec, skills and obscura-web" width="840">
 </p>
 
 <h1 align="center">🧠 Persistent memory for your AI agent</h1>
