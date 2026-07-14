@@ -49,25 +49,25 @@ flowchart TD
   F --> V["Verificación: vault ✓ · índice ✓ ·<br>backend Python ✓ · mcp list ✓"]
   B --> V
   V --> R["Reinicia el IDE/CLI<br>(los MCP no se cargan en caliente)"]
-  R --> L["Siguiente sesión: vault_hybrid_search ·<br>/vkm-spec · /vkm-discipline · vkm-doctor"]
+  R --> L["Siguiente sesión: vault_hybrid_search ·<br>/vkm-spec · /vkm-discipline · /vkm-design · vkm-doctor"]
 ```
 
 ### Qué significa «todas sus herramientas y capacidades»
 
 Con Python ≥ 3.11 presente, `npm run setup` instala la suite 4.0 completa en un solo pase:
 
-| Pieza                                                                                 | Qué te da                                                                                                                   |
-| ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **Vault + MCP `basic-memory`**                                                        | memoria Markdown que sobrevive entre chats (leer/escribir/buscar), con versión fijada                                       |
-| **MCP `obsidian-memory-hybrid`**                                                      | búsqueda passage-first (BM25 + semántica + grafo), knowledge graph tipado, `vault_audit`, memory reports                    |
-| **Índice FTS + sqlite-vec**                                                           | búsqueda por significado, acelerada — en `<VAULT>/.obsidian-memory-rag/`                                                    |
-| **Reglas de memoria**                                                                 | protocolo del agente como bloque marcado idempotente en `~/.claude/CLAUDE.md`, `AGENTS.md` y `.cursor/rules/`               |
-| **token-saver** _(Claude Code)_                                                       | hooks de compactación de salida ruidosa + deny rules de artefactos + estilo `vkm-terse` (ADR-0043)                          |
-| **Telemetría local + `vkm-doctor`** _(Claude Code)_                                   | sink OTLP en `127.0.0.1:4319`; `npm run doctor` reporta tokens, coste y salud de caché — nada sale de tu máquina (ADR-0044) |
-| **Skills `/vkm-discipline` y `/vkm-spec` + agente `vkm-implementer`** _(Claude Code)_ | disciplina de código denso + pipeline idea→spec anclada al vault (ADR-0049)                                                 |
-| **vkm-spec GUI**                                                                      | de idea a spec XML en `127.0.0.1:4923`, corre desde el clon                                                                 |
-| **Ollama + `phi4-mini`** _(≈2,3 GB; best-effort)_                                     | redacción local de specs; si falla o lo evitas con `--no-ollama`, vkm-spec usa su fallback determinista (ADR-0047)          |
-| **Hooks de memoria** _(Claude Code)_                                                  | auto-memoria nativa OFF + enforcement determinista + effort-gate (ADR-0029/0030/0031)                                       |
+| Pieza                                                                                                | Qué te da                                                                                                                   |
+| ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **Vault + MCP `basic-memory`**                                                                       | memoria Markdown que sobrevive entre chats (leer/escribir/buscar), con versión fijada                                       |
+| **MCP `obsidian-memory-hybrid`**                                                                     | búsqueda passage-first (BM25 + semántica + grafo), knowledge graph tipado, `vault_audit`, memory reports                    |
+| **Índice FTS + sqlite-vec**                                                                          | búsqueda por significado, acelerada — en `<VAULT>/.obsidian-memory-rag/`                                                    |
+| **Reglas de memoria**                                                                                | protocolo del agente como bloque marcado idempotente en `~/.claude/CLAUDE.md`, `AGENTS.md` y `.cursor/rules/`               |
+| **token-saver** _(Claude Code)_                                                                      | hooks de compactación de salida ruidosa + deny rules de artefactos + estilo `vkm-terse` (ADR-0043)                          |
+| **Telemetría local + `vkm-doctor`** _(Claude Code)_                                                  | sink OTLP en `127.0.0.1:4319`; `npm run doctor` reporta tokens, coste y salud de caché — nada sale de tu máquina (ADR-0044) |
+| **Skills `/vkm-discipline`, `/vkm-spec` y `/vkm-design` + agente `vkm-implementer`** _(Claude Code)_ | disciplina de código denso + pipeline idea→spec anclada al vault + método de diseño anti-genérico (ADR-0049, ADR-0053)      |
+| **vkm-spec GUI**                                                                                     | de idea a spec XML en `127.0.0.1:4923`, corre desde el clon                                                                 |
+| **Ollama + `phi4-mini`** _(≈2,3 GB; best-effort)_                                                    | redacción local de specs; si falla o lo evitas con `--no-ollama`, vkm-spec usa su fallback determinista (ADR-0047)          |
+| **Hooks de memoria** _(Claude Code)_                                                                 | auto-memoria nativa OFF + enforcement determinista + effort-gate (ADR-0029/0030/0031)                                       |
 
 Las piezas marcadas _(Claude Code)_ se instalan solo si el CLI `claude` está en PATH (o pasas
 `--ide claude`). Sin clon del kit, la parte híbrida degrada a `basic-memory` con aviso — nunca
