@@ -1,6 +1,6 @@
 # Observability
 
-The kit has two observability surfaces. Both are local.
+The kit has three observability surfaces. All of them are local — nothing leaves your machine.
 
 ## 1. Daemon health: `obsidian-memoryd doctor`
 
@@ -18,7 +18,24 @@ The daemon writes a heartbeat every 60 s and records the timestamp of every succ
 
 > ⚠️ **Windows/PowerShell gotcha:** a `-H windowsgui` build's `doctor` subcommand only gets a reliable `$LASTEXITCODE` and fully-ordered output when its output is redirected (piped) or you wait explicitly — PowerShell does not wait for a GUI-subsystem process otherwise. See `docs/en/troubleshooting.md` / `docs/es/troubleshooting.md` ("doctor's exit code reads empty in PowerShell") for the confirmed cause and the correct invocation pattern before wiring `doctor` into a cron job or alias.
 
-## 2. Optional MCP-level traces (sidecar)
+## 2. Token & cache usage: `vkm-doctor` (local OTLP sink, ADR-0044)
+
+When the installer wires Claude Code (and a kit clone is available), it also points Claude Code's OTEL metrics export at a **local** sink: a managed env block plus a `SessionStart` hook (`ensure-otel-sink.mjs`) that spawns `vkm-otel-sink` on **`127.0.0.1:4319`** (localhost-only, lockfile singleton). Metrics land as NDJSON under `~/.vkm/telemetry/` with a 90-day prune. No cloud collector, no accounts — the data never leaves the machine.
+
+Read it with the CLI:
+
+```bash
+vkm-doctor                        # last 30 days: tokens, cost, cache-hit ratio + broken-cache diagnosis
+vkm-doctor --days 7               # narrower window
+vkm-doctor --json                 # machine-readable output
+vkm-doctor --include-transcripts  # adds a clearly-labelled transcript-derived section
+```
+
+The cache-hit ratio ships with a diagnosis: a consistently low ratio usually means a broken prompt cache (something mutating the system prompt every turn) — the single biggest silent cost multiplier. `--include-transcripts` parses local session transcripts as a **labelled fallback** (Claude Code's JSONL transcript format is internal and unstable — the official docs discourage parsing it); it is reported in its own section, never mixed with the OTEL numbers.
+
+Remove the whole surface with `--no-telemetry` on an installer re-run, or as part of `--uninstall`.
+
+## 3. Optional MCP-level traces (sidecar)
 
 `packages/obsidian-memory-mcp` emits Pino JSON logs. If you want structured traces:
 
@@ -51,12 +68,13 @@ same `vector_store` interface when brute-force cosine stops being fast enough (A
 `rotate-log` archives old `SESSION_LOG.md` sections to `SESSION_LOG/archive.md`, keeping the most
 recent in place (non-destructive). Together they keep retrieval cheap as the vault grows.
 
-| Surface          | Command / tool                              | Signals                                                        |
-| ---------------- | ------------------------------------------- | -------------------------------------------------------------- |
-| Daemon health    | `obsidian-memoryd doctor`                   | heartbeat age, last successful push, consecutive push failures |
-| MCP-level traces | Pino JSON + OTLP exporter (sidecar)         | operation names, durations, W3C `traceparent` propagation      |
-| Vault health     | `obsidian-memory-rag audit` / `vault_audit` | oversized notes, broken `[[wikilinks]]`, `SESSION_LOG.md` size |
-| Log rotation     | `obsidian-memory-rag rotate-log`            | archives old `SESSION_LOG.md` sections (non-destructive)       |
+| Surface           | Command / tool                              | Signals                                                        |
+| ----------------- | ------------------------------------------- | -------------------------------------------------------------- |
+| Daemon health     | `obsidian-memoryd doctor`                   | heartbeat age, last successful push, consecutive push failures |
+| Token/cache usage | `vkm-doctor` (sink on `127.0.0.1:4319`)     | tokens, cost, cache-hit ratio, broken-cache diagnosis          |
+| MCP-level traces  | Pino JSON + OTLP exporter (sidecar)         | operation names, durations, W3C `traceparent` propagation      |
+| Vault health      | `obsidian-memory-rag audit` / `vault_audit` | oversized notes, broken `[[wikilinks]]`, `SESSION_LOG.md` size |
+| Log rotation      | `obsidian-memory-rag rotate-log`            | archives old `SESSION_LOG.md` sections (non-destructive)       |
 
 ## What this repo deliberately does not ship
 

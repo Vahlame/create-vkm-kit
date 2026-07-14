@@ -194,6 +194,23 @@ GENERAL]`, `[regla]` — invisible to `vault_observations(category:'decision')`)
   - Schema budget: 9,200 → 10,800 chars (measured 10,622) — five tools at ~320 chars each, already
     trimmed to the load-bearing contract.
 
+### Changed
+
+- **Docs refresh + restyle across the repo (docs + `--help` text only, no runtime change).**
+  Root `README.md`/`README.en.md`: npm / node / platform badges + an at-a-glance suite strip.
+  `docs/{es,en}` glossaries: the ten missing 4.x terms added (`vkm-kit`, token-saver,
+  `vkm-doctor`, `vkm-spec`, skills, `assemble_context`, knowledge graph, memory report,
+  `obscura-web`, SearXNG). `docs/observability.md`: the `vkm-doctor` surface (local OTLP sink on
+  `127.0.0.1:4319` → `~/.vkm/telemetry/`, labelled `--include-transcripts` fallback) was entirely
+  undocumented — now surface #2, summary table included. `packages/create-vkm-kit/README.md`:
+  stale `Vahlame/obsidian-memory-kit` repo URLs fixed, suite paragraph added, Options table
+  completed with the twelve missing flags (`--minimal`, `--pin-failures`/`--usage-boost`,
+  `--memory-enforcement`, `--effort-gate`, `--token-saver`/`--terse-style`, `--telemetry`,
+  `--skills`/`--agents`, `--ollama`, `--uninstall`). New `packages/vkm-doctor/README.md` and
+  `packages/vkm-spec/README.md` (neither had one). `docs/README.md` hub: usage / migration /
+  glossary links. `--help` drift fixed: the skills paragraph now lists `/vkm-design` (ADR-0053)
+  and says "the three skills" (was "the two").
+
 ## [4.2.0] - 2026-07-12
 
 ### Added
