@@ -3,10 +3,30 @@ import assert from "node:assert/strict";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
-import { acquireVaultLock, withVaultLock } from "../src/vault-lock.mjs";
+import {
+  acquireVaultLock,
+  withVaultLock,
+  isBenignUnlinkError,
+  isLockContentionError
+} from "../src/vault-lock.mjs";
 import { vaultEditFile, vaultWriteFile } from "../src/vault-fs.mjs";
 
 const LOCK_REL = join(".obsidian-memory-rag", "write.lock");
+
+test("isLockContentionError/isBenignUnlinkError classify Windows lockfile races correctly", () => {
+  // The exact codes a concurrent create/read/unlink of the same mid-delete path can surface on
+  // Windows (see the module doc) — pinned down as a deterministic unit test since the real race
+  // that produces them is inherently non-deterministic (test-node windows-2022 CI failures).
+  assert.equal(isLockContentionError({ code: "EPERM" }), true);
+  assert.equal(isLockContentionError({ code: "EBUSY" }), true);
+  assert.equal(isLockContentionError({ code: "ENOENT" }), false);
+  assert.equal(isLockContentionError({ code: "EACCES" }), false);
+
+  assert.equal(isBenignUnlinkError({ code: "ENOENT" }), true);
+  assert.equal(isBenignUnlinkError({ code: "EPERM" }), true);
+  assert.equal(isBenignUnlinkError({ code: "EBUSY" }), true);
+  assert.equal(isBenignUnlinkError({ code: "EACCES" }), false);
+});
 
 async function setupVault() {
   const root = await mkdtemp(join(tmpdir(), "vault-lock-"));
