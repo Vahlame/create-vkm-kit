@@ -125,7 +125,16 @@ const CURATION_JSON_SCHEMA = {
  *           userContent: string, jsonSchema: object, signal?: AbortSignal, timeoutMs: number }} opts
  * @returns {Promise<unknown>}
  */
-async function chatJSON({ host, model, keepAlive, systemPrompt, userContent, jsonSchema, signal, timeoutMs }) {
+async function chatJSON({
+  host,
+  model,
+  keepAlive,
+  systemPrompt,
+  userContent,
+  jsonSchema,
+  signal,
+  timeoutMs
+}) {
   const controller = new AbortController();
   const onExternalAbort = () => controller.abort(signal?.reason ?? new Error("aborted"));
   if (signal) {

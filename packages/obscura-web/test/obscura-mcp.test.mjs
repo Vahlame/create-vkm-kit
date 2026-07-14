@@ -140,6 +140,102 @@ test("obscura_research: a total failure steers to native WebSearch (isError)", a
   assert.match(textOf(res), /native WebSearch/);
 });
 
+test("obscura_consolidate is registered alongside the three obscura tools", async () => {
+  const client = await connect({});
+  const { tools } = await client.listTools();
+  assert.ok(tools.map((t) => t.name).includes("obscura_consolidate"));
+});
+
+test("obscura_research: persist absent (default false) is byte-identical to the pre-persistence response", async () => {
+  const researchImpl = async () => ({
+    source: "searxng",
+    scanned: 1,
+    fetched: 1,
+    results: [{ title: "T", url: "https://a", score: 1, snippet: "s" }]
+  });
+  let persistCalled = false;
+  const persistImpl = async () => {
+    persistCalled = true;
+    return {};
+  };
+  const client = await connect({
+    researchImpl,
+    persistImpl,
+    ensureImpl: async () => null,
+    logImpl: () => {}
+  });
+  const res = await client.callTool({ name: "obscura_research", arguments: { query: "q" } });
+  const data = JSON.parse(textOf(res));
+  assert.equal(data.persisted, undefined);
+  assert.equal(persistCalled, false, "persistImpl must never be invoked when persist is omitted");
+});
+
+test("obscura_research: persist:true without topic -> typed error, persistImpl never called", async () => {
+  const researchImpl = async () => ({ source: "searxng", scanned: 1, fetched: 1, results: [] });
+  let persistCalled = false;
+  const persistImpl = async () => {
+    persistCalled = true;
+    return {};
+  };
+  const client = await connect({
+    researchImpl,
+    persistImpl,
+    ensureImpl: async () => null,
+    logImpl: () => {}
+  });
+  const res = await client.callTool({
+    name: "obscura_research",
+    arguments: { query: "q", persist: true }
+  });
+  assert.equal(res.isError, true);
+  assert.match(textOf(res), /requires a topic/);
+  assert.equal(persistCalled, false);
+});
+
+test("obscura_research: persist:true + topic calls persistImpl and surfaces its receipt", async () => {
+  const results = [{ title: "T", url: "https://a", score: 1, snippet: "s" }];
+  const researchImpl = async () => ({ source: "searxng", scanned: 1, fetched: 1, results });
+  const persistImpl = async (args) => {
+    assert.equal(args.topic, "cats");
+    assert.equal(args.query, "q");
+    assert.deepEqual(args.results, results);
+    return { topic: "cats", written: 1, updated: 0, dir: "/fake/cats" };
+  };
+  const client = await connect({
+    researchImpl,
+    persistImpl,
+    ensureImpl: async () => null,
+    logImpl: () => {}
+  });
+  const res = await client.callTool({
+    name: "obscura_research",
+    arguments: { query: "q", persist: true, topic: "cats" }
+  });
+  const data = JSON.parse(textOf(res));
+  assert.deepEqual(data.persisted, { topic: "cats", written: 1, updated: 0, dir: "/fake/cats" });
+});
+
+test("obscura_consolidate forwards topic/force to consolidateImpl and returns its receipt", async () => {
+  const consolidateImpl = async ({ topic, force }) => {
+    assert.equal(topic, "cats");
+    assert.equal(force, true);
+    return {
+      sources_read: 3,
+      truncated: false,
+      model: "phi4-mini:3.8b-q4_K_M",
+      wrote: "/fake/summary.md"
+    };
+  };
+  const client = await connect({ consolidateImpl });
+  const res = await client.callTool({
+    name: "obscura_consolidate",
+    arguments: { topic: "cats", force: true }
+  });
+  const data = JSON.parse(textOf(res));
+  assert.equal(data.sources_read, 3);
+  assert.equal(data.wrote, "/fake/summary.md");
+});
+
 test("obscura_fetch caps an oversized page so it cannot flood the context", async () => {
   const prev = process.env.OBSCURA_FETCH_MAX_CHARS;
   process.env.OBSCURA_FETCH_MAX_CHARS = "50";

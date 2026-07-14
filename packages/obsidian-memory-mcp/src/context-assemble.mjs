@@ -155,6 +155,8 @@ export function applyBudget(ctx, budgetChars) {
  *   PROJECTS/<name>.md and biases the search toward notes about THIS project
  * @param {number} [opts.budgetChars] - total content-char cap (default 6000)
  * @param {boolean} [opts.includeObservations] - skip the typed-observation passes (default true)
+ * @param {boolean} [opts.includeResearch] - include RESEARCH/** passages (default false,
+ *   i.e. the hybrid-search pass is scoped to section:"memory" — spec vkm-research R4)
  * @returns {Promise<{
  *   historicalDecisions: string[], activePatterns: string[], techStack: string[],
  *   currentState: string|null, usedFallback: boolean, backendError: string|null
@@ -165,7 +167,8 @@ export async function assembleContext({
   query,
   projectName,
   budgetChars = DEFAULT_BUDGET_CHARS,
-  includeObservations = true
+  includeObservations = true,
+  includeResearch = false
 } = {}) {
   const v = requireVault(vault);
   const ragSrc = defaultRagSrc();
@@ -190,7 +193,11 @@ export async function assembleContext({
           "--explain",
           // With a project known, --graph fuses in notes one [[wikilink]] hop from the
           // top hits, biasing toward what's actually connected to this project.
-          ...(projectName ? ["--graph"] : [])
+          ...(projectName ? ["--graph"] : []),
+          // Default excludes RESEARCH/** from the broader passage pass (R4): web
+          // research is curated-but-unverified data, and mixing it unasked into a
+          // spec/decision context is exactly the contamination R4 exists to prevent.
+          ...(includeResearch ? [] : ["--section", "memory"])
         ],
         ragSrc
       )

@@ -4,6 +4,7 @@ import http from "node:http";
 import {
   checkOllama,
   curatePage,
+  summarizeNotes,
   compareVersions,
   ensureOllamaServer,
   OllamaUnavailableError,
@@ -202,6 +203,42 @@ test("curatePage: HTTP error status -> OllamaUnavailableError (http_error)", asy
   } finally {
     await fake.close();
   }
+});
+
+test("summarizeNotes: happy path returns the model's synthesized summary", async () => {
+  const fake = await startFakeOllama({
+    chatContent: JSON.stringify({ summary: "cats are great" })
+  });
+  try {
+    const out = await summarizeNotes({
+      topic: "cats",
+      notesText: "note A\n\nnote B",
+      host: fake.host
+    });
+    assert.equal(out.summary, "cats are great");
+  } finally {
+    await fake.close();
+  }
+});
+
+test("summarizeNotes: wrong shape -> OllamaUnavailableError (schema_reject)", async () => {
+  const fake = await startFakeOllama({ chatContent: JSON.stringify({ foo: "bar" }) });
+  try {
+    await assert.rejects(
+      summarizeNotes({ topic: "cats", notesText: "x", host: fake.host }),
+      (e) => e instanceof OllamaUnavailableError && e.reason === "schema_reject"
+    );
+  } finally {
+    await fake.close();
+  }
+});
+
+test("summarizeNotes: closed port -> OllamaUnavailableError (conn_refused), same as curatePage", async () => {
+  const host = await closedPortHost();
+  await assert.rejects(
+    summarizeNotes({ topic: "cats", notesText: "x", host, timeoutMs: 5000 }),
+    (e) => e instanceof OllamaUnavailableError && e.reason === "conn_refused"
+  );
 });
 
 test("ensureOllamaServer never spawns for a custom (user-managed) host — closed port", async () => {
