@@ -49,12 +49,19 @@ test("a live same-host holder makes the second acquire fail with vault busy", as
 
 test("waiter succeeds once the holder releases", async () => {
   const vault = await setupVault();
+  // Track the holder's async release instead of firing it and forgetting it — otherwise a
+  // real error from release() (or rm() below racing its still-pending unlink) becomes an
+  // unhandled rejection blamed on whichever test happens to be running when it lands.
+  let holderReleased = Promise.resolve();
   try {
     const release = await acquireVaultLock(vault);
-    setTimeout(() => release(), 80);
+    holderReleased = new Promise((resolve, reject) => {
+      setTimeout(() => release().then(resolve, reject), 80);
+    });
     const release2 = await acquireVaultLock(vault, { waitMs: 2000 });
     await release2();
   } finally {
+    await holderReleased;
     await rm(vault, { recursive: true });
   }
 });
