@@ -21,11 +21,13 @@ Thanks for considering a contribution. This repository ships **cross-platform** 
 npm ci
 npm run sync-agents:check
 
-# Markdown lint
-npx markdownlint-cli "**/*.md" --ignore-path .markdownlintignore
+# Markdown lint (version pinned to match .github/workflows/ci.yml exactly — an
+# unpinned `npx markdownlint-cli` can silently resolve a newer release with different
+# formatting rules than CI enforces, passing locally and failing in CI)
+npx markdownlint-cli@0.49.0 "**/*.md" --ignore-path .markdownlintignore
 
-# Formatting
-npx prettier --check "**/*.{json,yml,yaml,md,mjs,js,cjs,ts}"
+# Formatting (version pinned for the same reason)
+npx prettier@3.8.4 --check "**/*.{json,yml,yaml,md,mjs,js,cjs,ts}"
 
 # Link check
 npx lychee --no-progress .

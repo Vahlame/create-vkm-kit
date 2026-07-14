@@ -60,7 +60,7 @@ export function parseDuckDuckGo(html) {
   const results = [];
   const snippets = [];
   const snipRe = /<a[^>]+class="[^"]*\bresult__snippet\b[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
-  for (let sm; (sm = snipRe.exec(html));) snippets.push(stripTags(sm[1]));
+  for (let sm; (sm = snipRe.exec(html)); ) snippets.push(stripTags(sm[1]));
   const linkRe = /<a[^>]+class="[^"]*\bresult__a\b[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
   let i = 0;
   for (let lm; (lm = linkRe.exec(html)); i++) {
@@ -75,7 +75,7 @@ export function parseDuckDuckGo(html) {
 export function parseBing(html) {
   const results = [];
   const liRe = /<li[^>]+class="[^"]*\bb_algo\b[^"]*"[^>]*>([\s\S]*?)<\/li>/gi;
-  for (let m; (m = liRe.exec(html));) {
+  for (let m; (m = liRe.exec(html)); ) {
     const block = m[1];
     const a = block.match(/<h2>\s*<a [^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
     if (!a) continue;
@@ -97,7 +97,7 @@ export function parseBrave(html) {
   const seen = new Set();
   const aRe =
     /<a[^>]+href="(https?:\/\/[^"]+)"[^>]*class="[^"]*\b(?:result-header|snippet-title|h)\b[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
-  for (let m; (m = aRe.exec(html));) {
+  for (let m; (m = aRe.exec(html)); ) {
     const url = decodeEntities(m[1]);
     const title = stripTags(m[2]);
     if (!title || seen.has(url)) continue;
@@ -117,7 +117,7 @@ export function parseBrave(html) {
 export function parseBingRss(xml) {
   const results = [];
   const itemRe = /<item>([\s\S]*?)<\/item>/gi;
-  for (let m; (m = itemRe.exec(xml));) {
+  for (let m; (m = itemRe.exec(xml)); ) {
     const item = m[1];
     const title = stripTags(rssField(item, "title"));
     const url = decodeEntities(rssField(item, "link").trim());
