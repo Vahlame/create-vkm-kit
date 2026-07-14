@@ -13,3 +13,8 @@ https://github\.com/Vahlame/obsidian-memory-kit/blob/main/docs/adr/.*
 
 # Placeholder used by the prompt.
 .*<REPO_URL_PRIVADO>.*
+
+# npmjs.com serves 403 to link-checker bots (Cloudflare), so the npm-badge link in
+# the README can't be machine-verified. The badge itself (img.shields.io/npm/v/…)
+# rendering a version number next to it is the living proof the package exists.
+https://www\.npmjs\.com/package/.*
