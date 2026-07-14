@@ -12,6 +12,7 @@
     "license:sync": "node scripts/license-sync.mjs",
     "license:sync:check": "node scripts/license-sync.mjs --check",
     "linkcheck": "node scripts/linkcheck.mjs .",
+    "preview:assets": "node scripts/preview-assets.mjs",
     "eval:adherence": "node evals/run-adherence-ci.mjs",
     "version:check": "node scripts/version.mjs check",
     "version:set": "node scripts/version.mjs set",

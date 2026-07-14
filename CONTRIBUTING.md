@@ -43,6 +43,19 @@ pytest packages/obsidian-memory-rag/tests
 
 All must pass. CI mirrors these in `.github/workflows/ci.yml`.
 
+## Previewing visual assets (SVG diagrams)
+
+`docs/assets/*.svg` are theme-aware (`prefers-color-scheme`), and browser panes in
+agent tooling commonly block `file://` navigation. To check them in a live browser:
+
+```bash
+npm run preview:assets   # http://127.0.0.1:4180/ → docs/assets/ listing
+```
+
+Read-only, localhost-only, traversal-safe. For the dark variant, flip your OS theme
+or use DevTools → Rendering → "Emulate CSS prefers-color-scheme: dark". Verify both
+themes before shipping an asset change.
+
 ## Types of changes
 
 | Change                                   | Where it goes                  | Needs an ADR? |

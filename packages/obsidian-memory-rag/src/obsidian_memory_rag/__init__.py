@@ -44,6 +44,7 @@ from .knowledge_graph import (
     parse_observations,
     parse_relations,
 )
+from .paths import RESEARCH_PREFIX
 from .query import (
     HybridHit,
     SearchHit,
@@ -73,6 +74,7 @@ __all__ = [
     "Observation",
     "ObservationHit",
     "QueryResult",
+    "RESEARCH_PREFIX",
     "Relation",
     "RelationHit",
     "Reranker",

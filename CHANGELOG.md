@@ -194,6 +194,13 @@ GENERAL]`, `[regla]` — invisible to `vault_observations(category:'decision')`)
   - Schema budget: 9,200 → 10,800 chars (measured 10,622) — five tools at ~320 chars each, already
     trimmed to the load-bearing contract.
 
+- **`npm run preview:assets` — local preview server for theme-aware SVG assets.** Tiny
+  dependency-free static server (`scripts/preview-assets.mjs`, `127.0.0.1:4180`) for visually
+  verifying `docs/assets/*.svg` in a live browser, where GitHub's `prefers-color-scheme` theming
+  actually applies. Exists because agent browser panes commonly block `file://` navigation (hit
+  live while QA-ing the hero update). Read-only, GET/HEAD only, localhost-only, traversal-safe,
+  never serves dotfiles. Documented in `CONTRIBUTING.md`.
+
 ### Changed
 
 - **Docs refresh + restyle across the repo (docs + `--help` text only, no runtime change).**

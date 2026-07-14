@@ -116,24 +116,16 @@ const CURATION_JSON_SCHEMA = {
 };
 
 /**
- * Curate ONE fetched page against a query via the local model: real understanding instead of
- * keyword overlap. Stateless (one page in, one verdict out — no accumulated context across
- * calls). Throws {@link OllamaUnavailableError} on ANY failure; the caller degrades to the
- * local heuristic extractor.
- * @param {{ markdown: string, query: string, model?: string, host?: string, keepAlive?: string,
- *           maxInputChars?: number, signal?: AbortSignal, timeoutMs?: number }} opts
- * @returns {Promise<{ relevant: boolean, excerpt: string, truncated: boolean }>}
+ * Shared "one structured JSON call to /api/chat" plumbing behind both {@link curatePage}
+ * (ADR-0055) and {@link summarizeNotes} (ADR-0056 local consolidation) — health-check, POST,
+ * HTTP/JSON/abort error handling all collapse into the single {@link OllamaUnavailableError}
+ * every caller degrades on. Returns the raw parsed JSON payload; the caller validates its own
+ * schema (curation vs. summary shapes differ).
+ * @param {{ host: string, model: string, keepAlive: string, systemPrompt: string,
+ *           userContent: string, jsonSchema: object, signal?: AbortSignal, timeoutMs: number }} opts
+ * @returns {Promise<unknown>}
  */
-export async function curatePage({
-  markdown,
-  query,
-  model = DEFAULT_MODEL,
-  host = DEFAULT_OLLAMA_HOST,
-  keepAlive = DEFAULT_KEEP_ALIVE,
-  maxInputChars = DEFAULT_MAX_INPUT_CHARS,
-  signal,
-  timeoutMs = 30_000
-}) {
+async function chatJSON({ host, model, keepAlive, systemPrompt, userContent, jsonSchema, signal, timeoutMs }) {
   const controller = new AbortController();
   const onExternalAbort = () => controller.abort(signal?.reason ?? new Error("aborted"));
   if (signal) {
@@ -167,10 +159,6 @@ export async function curatePage({
       );
     }
 
-    const text = String(markdown ?? "");
-    const truncated = text.length > maxInputChars;
-    const pageText = truncated ? text.slice(0, maxInputChars) : text;
-
     let res;
     try {
       res = await fetch(`${host}/api/chat`, {
@@ -179,10 +167,10 @@ export async function curatePage({
         body: JSON.stringify({
           model,
           messages: [
-            { role: "system", content: CURATE_SYSTEM_PROMPT },
-            { role: "user", content: `QUERY: ${query}\n\nPAGE TEXT:\n${pageText}` }
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userContent }
           ],
-          format: CURATION_JSON_SCHEMA,
+          format: jsonSchema,
           stream: false,
           keep_alive: keepAlive
         }),
@@ -221,26 +209,126 @@ export async function curatePage({
       throw new OllamaUnavailableError(`Ollama request timed out after ${timeoutMs}ms`, "timeout");
     }
 
-    let parsed;
     try {
-      parsed = JSON.parse(body?.message?.content ?? "");
+      return JSON.parse(body?.message?.content ?? "");
     } catch (e) {
       throw new OllamaUnavailableError(
         `Ollama returned non-JSON content: ${e?.message || e}`,
         "bad_json"
       );
     }
-    const validated = CurationSchema.safeParse(parsed);
-    if (!validated.success) {
-      throw new OllamaUnavailableError(
-        `Ollama curation output failed schema validation: ${validated.error.message}`,
-        "schema_reject"
-      );
-    }
-    return { ...validated.data, truncated };
   } finally {
     cleanup();
   }
+}
+
+/**
+ * Curate ONE fetched page against a query via the local model: real understanding instead of
+ * keyword overlap. Stateless (one page in, one verdict out — no accumulated context across
+ * calls). Throws {@link OllamaUnavailableError} on ANY failure; the caller degrades to the
+ * local heuristic extractor.
+ * @param {{ markdown: string, query: string, model?: string, host?: string, keepAlive?: string,
+ *           maxInputChars?: number, signal?: AbortSignal, timeoutMs?: number }} opts
+ * @returns {Promise<{ relevant: boolean, excerpt: string, truncated: boolean }>}
+ */
+export async function curatePage({
+  markdown,
+  query,
+  model = DEFAULT_MODEL,
+  host = DEFAULT_OLLAMA_HOST,
+  keepAlive = DEFAULT_KEEP_ALIVE,
+  maxInputChars = DEFAULT_MAX_INPUT_CHARS,
+  signal,
+  timeoutMs = 30_000
+}) {
+  const text = String(markdown ?? "");
+  const truncated = text.length > maxInputChars;
+  const pageText = truncated ? text.slice(0, maxInputChars) : text;
+  const parsed = await chatJSON({
+    host,
+    model,
+    keepAlive,
+    systemPrompt: CURATE_SYSTEM_PROMPT,
+    userContent: `QUERY: ${query}\n\nPAGE TEXT:\n${pageText}`,
+    jsonSchema: CURATION_JSON_SCHEMA,
+    signal,
+    timeoutMs
+  });
+  const validated = CurationSchema.safeParse(parsed);
+  if (!validated.success) {
+    throw new OllamaUnavailableError(
+      `Ollama curation output failed schema validation: ${validated.error.message}`,
+      "schema_reject"
+    );
+  }
+  return { ...validated.data, truncated };
+}
+
+const SUMMARIZE_SYSTEM_PROMPT = [
+  "You are a careful research librarian. You are shown research notes — verbatim excerpts from",
+  "web pages — about a TOPIC, and must write (or extend) a synthesized draft summary.",
+  "Cite verbatim as much as possible rather than paraphrasing; never invent content that is not",
+  "present in the notes. If an EXISTING DRAFT SUMMARY is given, integrate the new notes into it",
+  "rather than discarding what it already covers.",
+  "Respond ONLY with a JSON object matching the requested schema."
+].join("\n");
+
+const SummarySchema = z.object({ summary: z.string() });
+
+const SUMMARY_JSON_SCHEMA = {
+  type: "object",
+  properties: { summary: { type: "string" } },
+  required: ["summary"]
+};
+
+/**
+ * Draft (or extend) a topic's `summary.md` from its persisted source notes (ADR-0056,
+ * `obscura_consolidate` — the "local" half of R7''s dual consolidation; the other half is
+ * Claude's own `/vkm-research` skill). One call per map/reduce step — the caller
+ * ({@link "./research-persist.mjs"}'s `consolidateTopic`) is responsible for keeping
+ * `notesText` under its own `maxInputChars` budget and never splitting a single note across
+ * calls; this function just makes the one structured call. Throws
+ * {@link OllamaUnavailableError} on ANY failure — unlike {@link curatePage}, there is no
+ * heuristic fallback for a synthesized summary (a summary a 3.8B model didn't actually write
+ * would be worse than no summary).
+ * @param {{ topic: string, notesText: string, priorSummary?: string, model?: string,
+ *           host?: string, keepAlive?: string, signal?: AbortSignal, timeoutMs?: number }} opts
+ * @returns {Promise<{ summary: string }>}
+ */
+export async function summarizeNotes({
+  topic,
+  notesText,
+  priorSummary,
+  model = DEFAULT_MODEL,
+  host = DEFAULT_OLLAMA_HOST,
+  keepAlive = DEFAULT_KEEP_ALIVE,
+  signal,
+  timeoutMs = 60_000
+}) {
+  const userContent =
+    `TOPIC: ${topic}\n\n` +
+    (priorSummary
+      ? `EXISTING DRAFT SUMMARY (extend/refine, don't discard useful content):\n${priorSummary}\n\n`
+      : "") +
+    `SOURCE NOTES:\n${notesText}`;
+  const parsed = await chatJSON({
+    host,
+    model,
+    keepAlive,
+    systemPrompt: SUMMARIZE_SYSTEM_PROMPT,
+    userContent,
+    jsonSchema: SUMMARY_JSON_SCHEMA,
+    signal,
+    timeoutMs
+  });
+  const validated = SummarySchema.safeParse(parsed);
+  if (!validated.success) {
+    throw new OllamaUnavailableError(
+      `Ollama summary output failed schema validation: ${validated.error.message}`,
+      "schema_reject"
+    );
+  }
+  return validated.data;
 }
 
 /** The winget/user-local install location on Windows (not on PATH in already-open shells);
