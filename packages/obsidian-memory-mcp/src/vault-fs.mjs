@@ -12,11 +12,23 @@
  * Pure (no MCP dependency) so they can be unit-tested without spawning
  * StdioServerTransport.
  */
-import { readFile, writeFile, readdir, stat, mkdir, rename, realpath } from "node:fs/promises";
+import {
+  readFile,
+  writeFile,
+  readdir,
+  stat,
+  mkdir,
+  rename,
+  realpath,
+  unlink
+} from "node:fs/promises";
 import { createHash } from "node:crypto";
-import { dirname, isAbsolute, join, normalize, resolve, sep } from "node:path";
+import { dirname, isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
 import { withVaultLock } from "./vault-lock.mjs";
 import { checkSchemaForWrite } from "./schema-config.mjs";
+// Runtime-only circular import (vault-lint needs listMarkdownFiles): safe
+// because both sides are hoisted function declarations used after init.
+import { lintForWrite } from "./vault-lint.mjs";
 
 /**
  * Resolve a relative-or-absolute vault path and refuse anything that escapes
@@ -191,9 +203,21 @@ export async function vaultWriteFile(vaultAbs, relPath, content, opts = {}) {
   // sidecar processes on this host (see vault-lock.mjs for scope and stealing).
   return withVaultLock(vaultAbs, "vault_write_file", async () => {
     if (opts.ifMatch) await assertEtagMatches(fp, opts.ifMatch);
+    let newNote = false;
+    try {
+      await stat(fp);
+    } catch (err) {
+      if (err.code !== "ENOENT") throw err;
+      newNote = true;
+    }
     // Opt-in frontmatter schema check (memory-schema.json): throws under
     // enforce mode — before the tmp write, so a violation never lands on disk.
-    const warnings = await checkSchemaForWrite(vaultAbs, relPath, content);
+    // Write-time hygiene lint (categories, unresolved links, orphan-at-birth):
+    // warns only, never blocks.
+    const warnings = [
+      ...(await checkSchemaForWrite(vaultAbs, relPath, content)),
+      ...(await lintForWrite(vaultAbs, relPath, [content], { newNote }))
+    ];
     await mkdir(dirname(fp), { recursive: true });
     const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
     await writeFile(tmp, content, "utf8");
@@ -288,12 +312,485 @@ export async function vaultEditFile(vaultAbs, relPath, edits, opts = {}) {
           "duplicate the note inside itself. If that is genuinely intended, use vault_write_file instead."
       );
     }
-    const warnings = await checkSchemaForWrite(vaultAbs, relPath, text);
+    // Lint ONLY the text these edits introduce — never pre-existing lines.
+    const warnings = [
+      ...(await checkSchemaForWrite(vaultAbs, relPath, text)),
+      ...(await lintForWrite(
+        vaultAbs,
+        relPath,
+        edits.map((e) => e.newText)
+      ))
+    ];
     // Atomic write
     const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
     await writeFile(tmp, text, "utf8");
     await rename(tmp, fp);
     const result = { path: fp, editsApplied: applied.length, etag: fileEtag(text) };
+    if (warnings.length) result.warnings = warnings;
+    return result;
+  });
+}
+
+/** Obsidian's built-in vault-trash folder ("Move to vault trash" setting). Soft
+ * deletes land here so both Obsidian and vault_move_file can restore them. */
+const TRASH_DIR = ".trash";
+
+/** Core memory-protocol notes (vault root). Deleting or moving one of these
+ * breaks the recall/close ritual every session depends on, so the write tools
+ * hard-refuse them — a human can still do it deliberately in Obsidian. */
+const PROTECTED_NOTES = new Set([
+  "start_here.md",
+  "memory.md",
+  "session_log.md",
+  "known_failures.md"
+]);
+
+/** Vault-relative path (forward slashes) for a canonical absolute path. */
+async function toVaultRel(vaultAbs, canonicalFp) {
+  const vaultReal = await realpath(vaultAbs);
+  return relative(vaultReal, canonicalFp).split(sep).join("/");
+}
+
+function isProtectedNote(rel) {
+  return PROTECTED_NOTES.has(rel.toLowerCase());
+}
+
+/** All .md files under the vault, as vault-relative forward-slash paths.
+ * Skips dot-directories (.obsidian, .trash, .obsidian-memory-rag, …) and
+ * node_modules — link references only live in real notes. Exported for
+ * vault-lint.mjs (wikilink resolution against the live file set). */
+export async function listMarkdownFiles(vaultReal, relDir = "") {
+  return walkMarkdown(vaultReal, relDir);
+}
+
+async function walkMarkdown(vaultReal, relDir = "") {
+  const out = [];
+  const entries = await readdir(relDir ? join(vaultReal, relDir) : vaultReal, {
+    withFileTypes: true
+  });
+  for (const e of entries) {
+    if (e.name.startsWith(".") || e.name === "node_modules") continue;
+    const rel = relDir ? `${relDir}/${e.name}` : e.name;
+    if (e.isDirectory()) out.push(...(await walkMarkdown(vaultReal, rel)));
+    else if (e.isFile() && e.name.toLowerCase().endsWith(".md")) out.push(rel);
+  }
+  return out;
+}
+
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** The names a [[wikilink]] can use to reach `rel`: full path and bare
+ * basename, extension stripped for .md notes (Obsidian's link forms). */
+function wikilinkNames(rel) {
+  const noExt = rel.toLowerCase().endsWith(".md") ? rel.slice(0, -3) : rel;
+  return [...new Set([noExt, noExt.split("/").pop()])];
+}
+
+/**
+ * Report which notes still [[link]] to a note being deleted/moved. Matches
+ * `[[<name>` followed by `]`, `#` or `|` (plain links, heading links, aliases,
+ * embeds) — a boundary check so `[[typescript-advanced]]` never counts for a
+ * note named `typescript`. Read-only: callers surface the list so the agent
+ * (or human) updates links deliberately; nothing is rewritten.
+ * @param {string} vaultReal canonical vault root
+ * @param {string} targetRel vault-relative path of the affected note
+ * @param {string} [excludeRel] skip this note (e.g. the moved file itself)
+ * @returns {Promise<Array<{path: string, refs: number}>>}
+ */
+async function findWikilinkRefs(vaultReal, targetRel, excludeRel) {
+  const patterns = wikilinkNames(targetRel).map(
+    (n) => new RegExp(`\\[\\[${escapeRegExp(n)}(?=[\\]#|])`, "gi")
+  );
+  const refs = [];
+  for (const rel of await walkMarkdown(vaultReal)) {
+    if (rel === excludeRel) continue;
+    let text;
+    try {
+      text = await readFile(join(vaultReal, rel), "utf8");
+    } catch {
+      continue; // racing writer/rotation — a vanished note simply has no refs
+    }
+    let count = 0;
+    for (const re of patterns) count += (text.match(re) || []).length;
+    if (count > 0) refs.push({ path: rel, refs: count });
+  }
+  return refs;
+}
+
+/**
+ * Report the notes that [[link]] to `relPath` (self-references excluded).
+ * Read-only impact check before a delete/move — the target does not need to
+ * exist (useful for auditing links to an already-removed note).
+ * @param {string} vaultAbs
+ * @param {string} relPath
+ * @returns {Promise<{target: string, names: string[], backlinks: Array<{path: string, refs: number}>}>}
+ */
+export async function vaultBacklinks(vaultAbs, relPath) {
+  const fp = await safeVaultPath(vaultAbs, relPath);
+  const vaultReal = await realpath(vaultAbs);
+  const rel = await toVaultRel(vaultAbs, fp);
+  return {
+    target: rel,
+    names: wikilinkNames(rel),
+    backlinks: await findWikilinkRefs(vaultReal, rel, rel)
+  };
+}
+
+/**
+ * Append text to a file inside the vault, creating it (and parent dirs) if
+ * missing. The cheap path for the close ritual's SESSION_LOG one-liners: no
+ * read + single-line-anchor edit round-trip. Newlines in `text` are normalized
+ * to the file's existing EOL (CRLF-aware — this vault's notes are CRLF), a
+ * separating newline is guaranteed when the file doesn't end with one, and the
+ * appended chunk always ends with one. With `opts.ifMatch` the append only
+ * proceeds if the file still hashes to that etag from a prior read.
+ * @param {string} vaultAbs
+ * @param {string} relPath
+ * @param {string} text
+ * @param {{ifMatch?: string}} [opts]
+ */
+export async function vaultAppendFile(vaultAbs, relPath, text, opts = {}) {
+  if (typeof text !== "string" || text.length === 0) {
+    throw new Error("content is required (non-empty string)");
+  }
+  const fp = await safeVaultPath(vaultAbs, relPath);
+  return withVaultLock(vaultAbs, "vault_append_file", async () => {
+    let original = null;
+    try {
+      original = await readFile(fp, "utf8");
+    } catch (err) {
+      if (err.code !== "ENOENT") throw err;
+    }
+    if (opts.ifMatch) {
+      if (original == null) {
+        throw new Error(
+          `precondition failed: file does not exist but ifMatch "${opts.ifMatch}" was given — ` +
+            `re-read (or omit ifMatch to create it)`
+        );
+      }
+      const now = fileEtag(original);
+      if (now !== opts.ifMatch) {
+        throw new Error(
+          `precondition failed: file changed since read (etag ${now} ≠ expected ${opts.ifMatch}) — ` +
+            `re-read the file and retry`
+        );
+      }
+    }
+    const eol = original != null && original.includes("\r\n") ? "\r\n" : "\n";
+    let chunk = text.replace(/\r\n/g, "\n").split("\n").join(eol);
+    if (!chunk.endsWith(eol)) chunk += eol;
+    let finalText;
+    const created = original == null;
+    if (created) {
+      finalText = chunk;
+    } else if (original.length === 0 || original.endsWith("\n")) {
+      finalText = original + chunk;
+    } else {
+      finalText = original + eol + chunk;
+    }
+    // Lint only the appended chunk — the existing body wasn't touched.
+    const warnings = [
+      ...(await checkSchemaForWrite(vaultAbs, relPath, finalText)),
+      ...(await lintForWrite(vaultAbs, relPath, [chunk], { newNote: created }))
+    ];
+    await mkdir(dirname(fp), { recursive: true });
+    const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
+    await writeFile(tmp, finalText, "utf8");
+    await rename(tmp, fp);
+    const result = {
+      path: fp,
+      created,
+      bytesAppended:
+        Buffer.byteLength(finalText, "utf8") -
+        (original == null ? 0 : Buffer.byteLength(original, "utf8")),
+      etag: fileEtag(finalText)
+    };
+    if (warnings.length) result.warnings = warnings;
+    return result;
+  });
+}
+
+/** Top-level frontmatter keys only: a colon or space in a key would let a
+ * single `set` entry smuggle extra YAML lines/structure into the block. */
+const FM_KEY_RE = /^[A-Za-z0-9_][A-Za-z0-9_.-]*$/;
+
+/**
+ * Render a scalar for a frontmatter `key: value` line. Booleans/numbers pass
+ * through; strings stay plain only when YAML cannot misread them (no leading
+ * symbol, no bool/null/number look-alikes, no surrounding whitespace) —
+ * everything else is JSON-quoted, which is valid YAML double-quoting.
+ * @param {string | number | boolean} v
+ * @returns {string}
+ */
+function yamlScalar(v) {
+  if (typeof v === "boolean" || typeof v === "number") return String(v);
+  const s = String(v);
+  const plain =
+    /^[A-Za-z0-9][A-Za-z0-9 _./-]*$/.test(s) &&
+    s === s.trim() &&
+    !/^(true|false|null|yes|no|on|off)$/i.test(s) &&
+    !/^[0-9.+-]+$/.test(s);
+  return plain ? s : JSON.stringify(s);
+}
+
+/**
+ * Set and/or remove TOP-LEVEL scalar keys in a note's YAML frontmatter without
+ * text-matching (the memoria-evolutiva path: `status: hypothesis→confirmed`,
+ * `last_verified`). Creates the block when the note has none. Every other line
+ * — body, comments, unknown keys — is preserved byte-for-byte, and a key whose
+ * value continues on an indented next line (nested/multi-line YAML) is refused
+ * rather than corrupted. Removing a key that isn't there is reported in
+ * `notFound`, not an error. With `opts.ifMatch` the write only proceeds if the
+ * file still hashes to that etag.
+ * @param {string} vaultAbs
+ * @param {string} relPath
+ * @param {{set?: Record<string, string | number | boolean>, remove?: string[], ifMatch?: string}} [opts]
+ */
+export async function vaultFrontmatterSet(vaultAbs, relPath, opts = {}) {
+  const set = opts.set ?? {};
+  const remove = opts.remove ?? [];
+  const setKeys = Object.keys(set);
+  if (setKeys.length === 0 && remove.length === 0) {
+    throw new Error("nothing to do: pass set (key → scalar) and/or remove (keys)");
+  }
+  for (const k of [...setKeys, ...remove]) {
+    if (!FM_KEY_RE.test(k)) {
+      throw new Error(`invalid frontmatter key "${k}" (top-level plain keys only)`);
+    }
+  }
+  for (const k of setKeys) {
+    const t = typeof set[k];
+    if (t !== "string" && t !== "number" && t !== "boolean") {
+      throw new Error(`key "${k}": value must be a scalar (string/number/boolean), got ${t}`);
+    }
+  }
+  const fp = await safeVaultPath(vaultAbs, relPath);
+  return withVaultLock(vaultAbs, "vault_frontmatter_set", async () => {
+    const original = opts.ifMatch
+      ? await assertEtagMatches(fp, opts.ifMatch)
+      : await readFile(fp, "utf8");
+    const eol = original.includes("\r\n") ? "\r\n" : "\n";
+    const m = original.match(FRONTMATTER_RE);
+    let lines;
+    let bodyStart;
+    if (m) {
+      const raw = m[0].split(/\r?\n/);
+      lines = raw.slice(1, raw.length - 2); // drop opening ---, closing --- and trailing ""
+      bodyStart = m[0].length;
+    } else {
+      lines = [];
+      bodyStart = 0;
+    }
+    // A top-level `key:` line whose NEXT line is indented carries a nested or
+    // folded value — replacing/removing just the first line would corrupt it.
+    const isNested = (idx) => idx + 1 < lines.length && /^[ \t]/.test(lines[idx + 1]);
+    const findKey = (key) => lines.findIndex((ln) => ln === `${key}:` || ln.startsWith(`${key}:`));
+    const applied = { set: [], removed: [], notFound: [] };
+    for (const key of setKeys) {
+      const idx = findKey(key);
+      if (idx >= 0 && isNested(idx)) {
+        throw new Error(
+          `key "${key}" has a nested/multi-line value — edit it with vault_edit_file instead`
+        );
+      }
+      const line = `${key}: ${yamlScalar(set[key])}`;
+      if (idx >= 0) lines[idx] = line;
+      else lines.push(line);
+      applied.set.push(key);
+    }
+    for (const key of remove) {
+      const idx = findKey(key);
+      if (idx < 0) {
+        applied.notFound.push(key);
+        continue;
+      }
+      if (isNested(idx)) {
+        throw new Error(
+          `key "${key}" has a nested/multi-line value — edit it with vault_edit_file instead`
+        );
+      }
+      lines.splice(idx, 1);
+      applied.removed.push(key);
+    }
+    const newBlock = lines.length ? ["---", ...lines, "---", ""].join(eol) : "";
+    const finalText = newBlock + original.slice(bodyStart);
+    if (finalText === original) {
+      return { path: fp, ...applied, etag: fileEtag(original), unchanged: true };
+    }
+    const warnings = await checkSchemaForWrite(vaultAbs, relPath, finalText);
+    const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
+    await writeFile(tmp, finalText, "utf8");
+    await rename(tmp, fp);
+    const result = { path: fp, ...applied, etag: fileEtag(finalText) };
+    if (warnings.length) result.warnings = warnings;
+    return result;
+  });
+}
+
+/**
+ * Delete a file inside the vault. Default is a SOFT delete: the file moves to
+ * `.trash/<same relative path>` (uniquified on collision), restorable with
+ * {@link vaultMoveFile} or from Obsidian's trash UI. `opts.permanent` unlinks
+ * for real — the only way to remove something already in `.trash/`. Refuses
+ * directories and the core protocol notes ({@link PROTECTED_NOTES}). With
+ * `opts.ifMatch` the delete only proceeds if the file still hashes to that
+ * etag from a prior read. Returns which notes still [[link]] to the deleted
+ * note so the caller can fix them deliberately.
+ * @param {string} vaultAbs
+ * @param {string} relPath
+ * @param {{ifMatch?: string, permanent?: boolean}} [opts]
+ */
+export async function vaultDeleteFile(vaultAbs, relPath, opts = {}) {
+  const fp = await safeVaultPath(vaultAbs, relPath);
+  const vaultReal = await realpath(vaultAbs);
+  const rel = await toVaultRel(vaultAbs, fp);
+  if (isProtectedNote(rel)) {
+    throw new Error(
+      `refusing to delete core protocol note "${rel}" — it anchors the memory protocol. ` +
+        `If this is truly intended, do it manually in Obsidian/the file manager.`
+    );
+  }
+  return withVaultLock(vaultAbs, "vault_delete_file", async () => {
+    let st;
+    try {
+      st = await stat(fp);
+    } catch (err) {
+      if (err.code === "ENOENT") throw new Error(`file not found: ${rel}`);
+      throw err;
+    }
+    if (!st.isFile()) {
+      throw new Error(`refusing to delete "${rel}": not a regular file (directories unsupported)`);
+    }
+    if (opts.ifMatch) await assertEtagMatches(fp, opts.ifMatch);
+
+    const inTrash = rel === TRASH_DIR || rel.startsWith(`${TRASH_DIR}/`);
+    if (inTrash && !opts.permanent) {
+      throw new Error(
+        `"${rel}" is already in ${TRASH_DIR}/ — pass permanent: true to remove it for good, ` +
+          `or vault_move_file to restore it`
+      );
+    }
+
+    if (opts.permanent) {
+      await unlink(fp);
+      const linkRefs = await findWikilinkRefs(vaultReal, rel);
+      return { deleted: rel, mode: "permanent", linkRefs };
+    }
+
+    let trashRel = `${TRASH_DIR}/${rel}`;
+    try {
+      await stat(join(vaultReal, trashRel));
+      // Name collision in trash: uniquify with a timestamp, before the
+      // extension when there is one, so nothing already trashed is clobbered.
+      const dot = trashRel.lastIndexOf(".");
+      trashRel =
+        dot > trashRel.lastIndexOf("/")
+          ? `${trashRel.slice(0, dot)}-${Date.now()}${trashRel.slice(dot)}`
+          : `${trashRel}-${Date.now()}`;
+    } catch (err) {
+      if (err.code !== "ENOENT") throw err;
+    }
+    const dest = join(vaultReal, ...trashRel.split("/"));
+    await mkdir(dirname(dest), { recursive: true });
+    await rename(fp, dest);
+    const linkRefs = await findWikilinkRefs(vaultReal, rel);
+    return {
+      deleted: rel,
+      mode: "trash",
+      trashedTo: trashRel,
+      restoreHint: `vault_move_file from "${trashRel}" back to "${rel}" restores it`,
+      linkRefs
+    };
+  });
+}
+
+/**
+ * Move/rename a file inside the vault (both endpoints vault-locked). Creates
+ * destination parent dirs; refuses to overwrite an existing destination unless
+ * `opts.overwrite`. Refuses directories and touching the core protocol notes
+ * ({@link PROTECTED_NOTES}) on either end. With `opts.ifMatch` the move only
+ * proceeds if the source still hashes to that etag. Does NOT rewrite
+ * [[wikilinks]] — `staleLinkRefs` lists the notes still referencing the old
+ * name so the caller updates them deliberately.
+ * @param {string} vaultAbs
+ * @param {string} fromPath
+ * @param {string} toPath
+ * @param {{ifMatch?: string, overwrite?: boolean}} [opts]
+ */
+export async function vaultMoveFile(vaultAbs, fromPath, toPath, opts = {}) {
+  const from = await safeVaultPath(vaultAbs, fromPath);
+  const to = await safeVaultPath(vaultAbs, toPath);
+  const vaultReal = await realpath(vaultAbs);
+  const fromRel = await toVaultRel(vaultAbs, from);
+  const toRel = await toVaultRel(vaultAbs, to);
+  if (from === to) {
+    throw new Error(`source and destination are the same file: "${fromRel}"`);
+  }
+  if (isProtectedNote(fromRel)) {
+    throw new Error(
+      `refusing to move core protocol note "${fromRel}" — it anchors the memory protocol ` +
+        `(rotate SESSION_LOG via obsidian-memory-rag rotate-log instead)`
+    );
+  }
+  if (isProtectedNote(toRel)) {
+    throw new Error(
+      `refusing to overwrite core protocol note "${toRel}" via move — ` +
+        `edit it in place with vault_edit_file instead`
+    );
+  }
+  return withVaultLock(vaultAbs, "vault_move_file", async () => {
+    let st;
+    try {
+      st = await stat(from);
+    } catch (err) {
+      if (err.code === "ENOENT") throw new Error(`file not found: ${fromRel}`);
+      throw err;
+    }
+    if (!st.isFile()) {
+      throw new Error(
+        `refusing to move "${fromRel}": not a regular file (directories unsupported)`
+      );
+    }
+    if (opts.ifMatch) await assertEtagMatches(from, opts.ifMatch);
+
+    let destSt = null;
+    try {
+      destSt = await stat(to);
+    } catch (err) {
+      if (err.code !== "ENOENT") throw err;
+    }
+    if (destSt) {
+      if (destSt.isDirectory()) {
+        throw new Error(
+          `destination "${toRel}" is a directory — pass the full target file path instead`
+        );
+      }
+      if (!opts.overwrite) {
+        throw new Error(`destination exists: "${toRel}" — pass overwrite: true to replace it`);
+      }
+    }
+
+    const content = await readFile(from, "utf8");
+    // Destination-side schema check: a note moved under a schema-governed
+    // pattern must satisfy it just like a fresh write there would.
+    const warnings = await checkSchemaForWrite(vaultAbs, toRel, content);
+    await mkdir(dirname(to), { recursive: true });
+    await rename(from, to);
+    const staleLinkRefs = await findWikilinkRefs(vaultReal, fromRel, toRel);
+    const result = {
+      from: fromRel,
+      to: toRel,
+      overwrote: Boolean(destSt),
+      etag: fileEtag(content),
+      staleLinkRefs
+    };
+    if (staleLinkRefs.length) {
+      result.note =
+        "links were NOT rewritten — update these [[wikilinks]] deliberately (or leave them if " +
+        "Obsidian still resolves the bare basename)";
+    }
     if (warnings.length) result.warnings = warnings;
     return result;
   });

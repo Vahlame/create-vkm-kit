@@ -20,9 +20,16 @@ import { fileURLToPath } from "node:url";
 
 const SRC = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "src", "hybrid-mcp.mjs");
 
-// Measured 7,641 chars after the ADR-0035 trim (down from 10,226). Headroom of
-// ~5% covers a new param or two; a whole new tool must pay its way.
-const BUDGET_CHARS = 8000;
+// Measured 7,641 chars after the ADR-0035 trim (down from 10,226); 9,006 after
+// adding vault_delete_file / vault_move_file — two destructive-capable tools
+// whose safety rails (soft-delete-to-.trash default, protected core notes, no
+// wikilink rewriting) must be visible in the schema, not discovered by error.
+// 10,622 after the note-lifecycle set (vault_append_file / vault_frontmatter_set /
+// vault_backlinks / vault_git_history / vault_rotate_log): five tools at ~320
+// chars each, already trimmed to the load-bearing contract (EOL normalization,
+// scalar-keys-only, read-only markers, recovery semantics).
+// Headroom of ~2% covers a new param or two; a whole new tool must pay its way.
+const BUDGET_CHARS = 10800;
 // No single description should be a treatise: the longest legitimate one (the
 // hybrid-search tool description) sits under this after the trim.
 const MAX_SINGLE_CHARS = 450;

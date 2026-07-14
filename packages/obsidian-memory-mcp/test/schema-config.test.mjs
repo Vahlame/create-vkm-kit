@@ -41,7 +41,8 @@ test("validateFrontmatter: folder rule, wildcard fallback, non-md skipped", () =
 test("no config file → writes are unaffected", async () => {
   const vault = await setupVault(undefined);
   try {
-    const res = await vaultWriteFile(vault, "PROJECTS/x.md", "no frontmatter");
+    // Self-link keeps the new note lint-clean: this test isolates schema behavior.
+    const res = await vaultWriteFile(vault, "PROJECTS/x.md", "no frontmatter [[x]]");
     assert.equal(res.warnings, undefined);
   } finally {
     await rm(vault, { recursive: true });
@@ -51,7 +52,7 @@ test("no config file → writes are unaffected", async () => {
 test("warn mode: violating write lands but carries warnings", async () => {
   const vault = await setupVault(CONFIG);
   try {
-    const res = await vaultWriteFile(vault, "PROJECTS/x.md", "---\ntitle: X\n---\nbody");
+    const res = await vaultWriteFile(vault, "PROJECTS/x.md", "---\ntitle: X\n---\nbody [[x]]");
     assert.equal(res.warnings.length, 1);
     assert.match(res.warnings[0], /missing required key\(s\): type, tags/);
     // File landed despite the warning.
@@ -75,7 +76,7 @@ test("enforce mode: violating write throws and file is not created", async () =>
     const res = await vaultWriteFile(
       vault,
       "PROJECTS/x.md",
-      "---\ntitle: X\ntype: t\ntags: [a]\n---\nok"
+      "---\ntitle: X\ntype: t\ntags: [a]\n---\nok [[x]]"
     );
     assert.equal(res.warnings, undefined);
   } finally {
@@ -101,7 +102,7 @@ test("enforce mode: an edit that strips a required key is rejected, file untouch
 test("malformed config: ignored but surfaced as a warning on writes", async () => {
   const vault = await setupVault("not json {{");
   try {
-    const res = await vaultWriteFile(vault, "PROJECTS/x.md", "anything");
+    const res = await vaultWriteFile(vault, "PROJECTS/x.md", "anything [[x]]");
     assert.equal(res.warnings.length, 1);
     assert.match(res.warnings[0], /memory-schema\.json: invalid JSON — ignored/);
   } finally {

@@ -447,6 +447,23 @@ def main() -> None:
         help="Report what would move without writing any file",
     )
 
+    jrl = sub.add_parser(
+        "json-rotate-log",
+        help="Rotate SESSION_LOG.md and print the result as one JSON object (for MCP)",
+    )
+    jrl.add_argument("--vault", type=Path, required=True)
+    jrl.add_argument(
+        "--keep",
+        type=int,
+        default=8,
+        help="Number of most-recent sections to keep in SESSION_LOG.md (default 8)",
+    )
+    jrl.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Report what would move without writing any file",
+    )
+
     cp = sub.add_parser(
         "complete",
         help="Prefix autocomplete over note titles, filenames and inline #tags (Trie)",
@@ -852,6 +869,22 @@ def main() -> None:
         print(
             f"{prefix} sections={res.sections_total} kept={res.kept} "
             f"archived={res.archived} archive={res.archive_path}"
+        )
+    elif args.cmd == "json-rotate-log":
+        res = rotate_session_log(args.vault, keep=args.keep, dry_run=args.dry_run)
+        print(
+            json.dumps(
+                {
+                    "sections_total": res.sections_total,
+                    "kept": res.kept,
+                    "archived": res.archived,
+                    "archive_path": str(res.archive_path),
+                    "changed": res.changed,
+                    "dry_run": args.dry_run,
+                    "mode": res.mode,
+                },
+                ensure_ascii=False,
+            )
         )
     elif args.cmd == "complete":
         if not args.no_auto_index:

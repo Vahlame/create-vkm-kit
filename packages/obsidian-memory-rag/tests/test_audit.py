@@ -345,3 +345,17 @@ def test_git_state_none_without_repo_and_flags_rebase(tmp_path: Path) -> None:
     (vault / ".git" / "MERGE_HEAD").write_text("abc\n", encoding="utf-8")
     report = audit_vault(vault)
     assert report["git_state"] == {"rebase_in_progress": True, "merge_in_progress": True}
+
+
+def test_template_placeholder_links_are_not_broken(tmp_path):
+    """[[X/<placeholder>]] is deliberate scaffolding (RULES/TEMPLATE), not a broken link."""
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    (vault / "TEMPLATE.md").write_text(
+        "Reglas de [[PROJECTS/<proyecto>]] y un roto real [[ghost-note]].\n",
+        encoding="utf-8",
+    )
+    report = audit_vault(vault)
+    targets = [b["target"] for b in report["broken_links"]]
+    assert "PROJECTS/<proyecto>" not in targets
+    assert "ghost-note" in targets

@@ -16,7 +16,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, existsSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -76,6 +76,151 @@ test("RAG-passthrough tools: no tool advertises a wire-level `vault` param", asy
       const props = Object.keys(tool.inputSchema?.properties ?? {});
       assert.ok(!props.includes("vault"), `${name} must not expose a "vault" input param`);
     }
+  } finally {
+    await cleanup();
+    rmSync(vault, { recursive: true, force: true });
+  }
+});
+
+test("vault_delete_file / vault_move_file: registered, wired to the default vault, destructive-annotated", async () => {
+  const vault = makeVault("hybrid-delmove-");
+  writeFileSync(join(vault, "note.md"), "hello", "utf8");
+  writeFileSync(join(vault, "linker.md"), "see [[note]]\n", "utf8");
+  const { client, cleanup } = await connectedClient(vault);
+  try {
+    const { tools } = await client.listTools();
+    for (const name of ["vault_delete_file", "vault_move_file"]) {
+      const tool = tools.find((t) => t.name === name);
+      assert.ok(tool, `expected tool ${name} to be registered`);
+      assert.equal(
+        tool.annotations?.destructiveHint,
+        true,
+        `${name} must be destructive-annotated`
+      );
+      const props = Object.keys(tool.inputSchema?.properties ?? {});
+      assert.ok(!props.includes("vault"), `${name} must not expose a "vault" input param`);
+    }
+
+    // Soft delete over the wire → lands in .trash/, reports the stale link.
+    const del = await client.callTool({
+      name: "vault_delete_file",
+      arguments: { path: "note.md" }
+    });
+    assert.equal(del.isError ?? false, false, textOf(del));
+    const delRes = JSON.parse(textOf(del));
+    assert.equal(delRes.mode, "trash");
+    assert.equal(delRes.trashedTo, ".trash/note.md");
+    assert.deepEqual(delRes.linkRefs, [{ path: "linker.md", refs: 1 }]);
+    assert.ok(!existsSync(join(vault, "note.md")));
+    assert.ok(existsSync(join(vault, ".trash", "note.md")));
+
+    // Restore via move over the wire.
+    const mv = await client.callTool({
+      name: "vault_move_file",
+      arguments: { from: ".trash/note.md", to: "note.md" }
+    });
+    assert.equal(mv.isError ?? false, false, textOf(mv));
+    const mvRes = JSON.parse(textOf(mv));
+    assert.equal(mvRes.to, "note.md");
+    assert.ok(existsSync(join(vault, "note.md")));
+
+    // Protected core note refused end-to-end (zod → handler → error result).
+    writeFileSync(join(vault, "MEMORY.md"), "core", "utf8");
+    const refused = await client.callTool({
+      name: "vault_delete_file",
+      arguments: { path: "MEMORY.md", permanent: true }
+    });
+    assert.equal(refused.isError, true);
+    assert.match(textOf(refused), /core protocol note/);
+    assert.ok(existsSync(join(vault, "MEMORY.md")));
+  } finally {
+    await cleanup();
+    rmSync(vault, { recursive: true, force: true });
+  }
+});
+
+test("lifecycle tools: append / frontmatter_set / backlinks / git_history / rotate_log registered with the right annotations and wired end-to-end", async () => {
+  const vault = makeVault("hybrid-lifecycle-");
+  const { client, cleanup } = await connectedClient(vault);
+  try {
+    const { tools } = await client.listTools();
+    const expect = {
+      vault_append_file: { readOnly: false },
+      vault_frontmatter_set: { readOnly: false },
+      vault_backlinks: { readOnly: true },
+      vault_git_history: { readOnly: true },
+      vault_rotate_log: { readOnly: false }
+    };
+    for (const [name, { readOnly }] of Object.entries(expect)) {
+      const tool = tools.find((t) => t.name === name);
+      assert.ok(tool, `expected tool ${name} to be registered`);
+      assert.equal(tool.annotations?.readOnlyHint, readOnly, `${name} readOnlyHint`);
+      const props = Object.keys(tool.inputSchema?.properties ?? {});
+      assert.ok(!props.includes("vault"), `${name} must not expose a "vault" input param`);
+    }
+
+    // Append: create then append over the wire.
+    await client.callTool({
+      name: "vault_append_file",
+      arguments: { path: "SESSION_LOG.md", content: "- first entry" }
+    });
+    const appended = await client.callTool({
+      name: "vault_append_file",
+      arguments: { path: "SESSION_LOG.md", content: "- second entry" }
+    });
+    assert.equal(appended.isError ?? false, false, textOf(appended));
+    assert.equal(
+      readFileSync(join(vault, "SESSION_LOG.md"), "utf8"),
+      "- first entry\n- second entry\n"
+    );
+
+    // Frontmatter: promote a hypothesis over the wire.
+    writeFileSync(join(vault, "idea.md"), "---\nstatus: hypothesis\n---\nbody\n", "utf8");
+    const fm = await client.callTool({
+      name: "vault_frontmatter_set",
+      arguments: {
+        path: "idea.md",
+        set: { status: "confirmed", last_verified: "2026-07-12" }
+      }
+    });
+    assert.equal(fm.isError ?? false, false, textOf(fm));
+    assert.match(readFileSync(join(vault, "idea.md"), "utf8"), /status: confirmed/);
+
+    // Backlinks: read-only impact check with the untrusted marker.
+    writeFileSync(join(vault, "linker.md"), "see [[idea]]\n", "utf8");
+    const bl = await client.callTool({
+      name: "vault_backlinks",
+      arguments: { path: "idea.md" }
+    });
+    const blRes = JSON.parse(textOf(bl));
+    assert.deepEqual(blRes.backlinks, [{ path: "linker.md", refs: 1 }]);
+    assert.ok(blRes._trust);
+
+    // Git history: the makeVault dir is not a repo — the error must say so.
+    const gh = await client.callTool({
+      name: "vault_git_history",
+      arguments: { path: "idea.md" }
+    });
+    assert.equal(gh.isError, true);
+    assert.match(textOf(gh), /not a git repository/);
+
+    // Rotate (Python bridge): 3 sections, keep 1 → 2 archived.
+    writeFileSync(
+      join(vault, "SESSION_LOG.md"),
+      "## 2026-01-01 — a\n\nx\n\n## 2026-01-02 — b\n\ny\n\n## 2026-01-03 — c\n\nz\n",
+      "utf8"
+    );
+    const rot = await client.callTool({
+      name: "vault_rotate_log",
+      arguments: { keep: 1 }
+    });
+    assert.equal(rot.isError ?? false, false, textOf(rot));
+    const rotRes = JSON.parse(textOf(rot));
+    assert.equal(rotRes.archived, 2);
+    assert.equal(rotRes.kept, 1);
+    assert.ok(existsSync(join(vault, "SESSION_LOG", "archive.md")));
+    const keptLog = readFileSync(join(vault, "SESSION_LOG.md"), "utf8");
+    assert.ok(keptLog.includes("2026-01-03") && !keptLog.includes("2026-01-01"));
   } finally {
     await cleanup();
     rmSync(vault, { recursive: true, force: true });
