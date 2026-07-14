@@ -32,12 +32,30 @@ replays your priors), CONSTRUCT them:
 
 1. **Hues:** pick three hues at least 90° apart on the OKLCH wheel, none within 30° of your
    last run's hue for this product (any pick is legal — including a priced one, with its line).
-2. **Lineages:** three different capsules from `lineages.md`, at most one you used last time.
-3. **Currents:** three different moves from `contemporary.md`.
-4. Cross them into three directions (hue × lineage × current each), then apply the protocol
-   below. The brief kills combinations that don't fit its job — what survives is both varied
+2. **Lineages:** three different capsules from `lineages.md`, **none of them the lineage you used
+   in your last build** — and if you keep reaching for the same 2–3 (serif-editorial, dark-luxe),
+   force at least one you rarely pick (heritage, Y2K chrome, sci-fi HUD, riso, folk, brutalist).
+3. **Type pairings:** the three must not all lean on the same display face — vary the pairing
+   itself (grotesk+mono, slab+geometric, humanist serif+sans, condensed display+text), so the
+   options don't all whisper the same voice.
+4. **Currents:** three different moves from `contemporary.md`.
+5. **Topologies:** at least two different layouts from the topology axis (not the reused
+   header→hero→grid→pricing→wordmark skeleton — see the protocol).
+6. Cross them into three directions (hue × lineage × type × current × topology), then apply the
+   protocol below. The brief kills combinations that don't fit its job — what survives is both varied
    AND functional, which is the actual goal; a beautiful page whose controls don't work fails
    `modes/critique.md` at Blocker level before taste is even discussed.
+
+**Your OWN house style is the subtlest slop of all.** Once you ban the indigo default you drift to
+a _second-order_ comfort look and reuse it on every brief — for this model it is: Fraunces (or any
+serif display) + a mono label face + warm-paper editorial, or the mirror-image "one dark luxe with
+gold/amber". Reusing your favourite lineage/type-pairing/colour-world across unrelated briefs makes
+every site read as "the same designer's template, re-tinted" — exactly what a client notices. **The
+skill has NO house style and neither do you:** the right style is the one this brief earns, and it
+must differ from what you built last. Do not open with a serif + warm paper unless the brief
+genuinely calls for it; rotate the lineage, the type pairing, AND the layout topology
+(`§ variety sampler`) so consecutive builds don't rhyme. If your three candidate directions all
+feel like "you", you sampled your comfort zone, not the space — resample.
 
 **Web/app slop:**
 
@@ -87,11 +105,18 @@ signature. A direction with zero moves produces a correct template, which is its
 
 1. Generate **three directions**. Each gets: a name, a one-sentence concept (the organizing idea),
    its position on the axes it moves, one real-world precedent, and one line on what it _rejects_.
-   **Diversity is mandatory, twice over:** the three must live in three different color worlds —
-   one light-field, one dark-field, one chromatic (a saturated field or dopamine accents) — AND
-   in at least two different lineages. Three tasteful variations of the same world is the
-   convergence failure this step exists to prevent (observed in practice: a model re-offered the
-   same paper-editorial direction across independent runs and called it three options).
+   **Diversity is mandatory, three ways:** the three must live in three different color worlds
+   (one light-field, one dark-field, one chromatic), in at least two different lineages, **and in
+   at least two different layout topologies.** Colour and lineage variety is not enough — a model
+   that keeps the SAME page skeleton and only re-tints it produces sites that read as "the same
+   template in different colours" (observed in practice across independent runs). **The reused
+   skeleton to break out of:** sticky header (wordmark + nav + one CTA) → hero (typographic
+   statement beside one big cropped image) → a card/plate grid → an editorial/stats band → pricing
+   tiers → footer with a giant cropped wordmark. If your layout is landing on that spine again,
+   pick a genuinely different topology for the content: a horizontal-scroll filmstrip, a
+   full-bleed vertical photo-essay (one item per viewport), an indexed contact-sheet, a split
+   sticky-pane, a single natural-rhythm column, a dense table/catalogue — the STRUCTURE is part of
+   the direction, not a constant you re-skin.
 2. **Score against the brief** — audience fit, job fit (density/legibility needs), brand adjacency,
    feasibility in the target stack. One winner. When working interactively, show the three options
    in 6 lines and let the user pick; when autonomous, pick, state the choice and the reason.
