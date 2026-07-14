@@ -23,6 +23,8 @@ import sqlite3
 from array import array
 from dataclasses import dataclass
 
+from .paths import in_section, section_sql_filter
+
 CHUNK_SCHEMA = """
 CREATE TABLE IF NOT EXISTS note_chunks(
   path TEXT NOT NULL,
@@ -173,21 +175,25 @@ def _load_sqlite_vec(conn: sqlite3.Connection) -> bool:
 
 
 def _search_chunks_sqlite_vec(
-    conn: sqlite3.Connection, query_vec: array, embedder: str, limit: int
+    conn: sqlite3.Connection, query_vec: array, embedder: str, limit: int,
+    *, section: str | None = None,
 ) -> list[ChunkHit]:
     """Top-``limit`` chunks by cosine, computed by sqlite-vec inside SQLite.
 
     The ``length(vec) = ?`` guard keeps ``vec_distance_cosine`` from ever seeing a
     dimension-mismatched row (which would abort the query), mirroring the
-    brute-force path's ``len(vec) != len(query_vec)`` skip.
+    brute-force path's ``len(vec) != len(query_vec)`` skip. ``section`` (already
+    validated by the caller) narrows the candidate rows before ``LIMIT`` — see
+    :func:`obsidian_memory_rag.paths.section_sql_filter`.
     """
     qblob = query_vec.tobytes()
+    clause, extra = section_sql_filter(section)
     rows = conn.execute(
         "SELECT path, ordinal, heading, text, "
         "vec_distance_cosine(vec, ?) AS dist FROM note_chunks "
-        "WHERE embedder = ? AND length(vec) = ? "
+        f"WHERE embedder = ? AND length(vec) = ?{clause} "
         "ORDER BY dist ASC LIMIT ?",
-        (qblob, embedder, len(query_vec) * 4, limit),
+        (qblob, embedder, len(query_vec) * 4, *extra, limit),
     ).fetchall()
     return [
         ChunkHit(
@@ -244,7 +250,8 @@ def fetch_adjacent_chunks(
 
 
 def search_chunks(
-    conn: sqlite3.Connection, query_vec: array, embedder: str, limit: int
+    conn: sqlite3.Connection, query_vec: array, embedder: str, limit: int,
+    *, section: str | None = None,
 ) -> list[ChunkHit]:
     """Cosine search over all chunks built by ``embedder``, best first.
 
@@ -253,11 +260,14 @@ def search_chunks(
     candidates). With ``OBSIDIAN_MEMORY_SQLITE_VEC`` enabled and the sqlite-vec
     extension loadable, the identical cosine ranking is computed inside SQLite
     instead (faster at scale); any failure falls back transparently to brute force.
+    ``section`` (already validated by the caller) drops out-of-section chunks
+    BEFORE the top-``limit`` cut in both paths, so filtering never starves the
+    result below the requested ``limit``.
     """
     init_chunks(conn)
     if _sqlite_vec_enabled() and _load_sqlite_vec(conn):
         try:
-            return _search_chunks_sqlite_vec(conn, query_vec, embedder, limit)
+            return _search_chunks_sqlite_vec(conn, query_vec, embedder, limit, section=section)
         except sqlite3.Error:
             pass  # extension misbehaved — fall back to the always-correct brute force
     cur = conn.execute(
@@ -266,13 +276,16 @@ def search_chunks(
     )
     hits: list[ChunkHit] = []
     for r in cur.fetchall():
+        path = str(r["path"])
+        if not in_section(path, section):
+            continue
         vec = _from_blob(r["vec"])
         if len(vec) != len(query_vec):
             continue
         score = math.fsum(x * y for x, y in zip(query_vec, vec))
         hits.append(
             ChunkHit(
-                str(r["path"]),
+                path,
                 int(r["ordinal"]),
                 str(r["heading"] or ""),
                 str(r["text"] or ""),

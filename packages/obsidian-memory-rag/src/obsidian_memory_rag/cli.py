@@ -26,11 +26,23 @@ from .rerank import get_reranker
 from .rotate import rotate_session_log
 
 
+def _add_section_flag(parser) -> None:
+    """Shared ``--section`` flag for search / hybrid-search (spec vkm-research R4)."""
+    parser.add_argument(
+        "--section",
+        choices=("research", "memory"),
+        default=None,
+        help="Scope to a vault section: research = RESEARCH/** only, memory = "
+        "everything except (omitted = unfiltered, default)",
+    )
+
+
 def _add_hybrid_flags(parser) -> None:
     """Shared optional retrieval flags for hybrid-search / json-hybrid-search.
 
     Every flag is off by default so the plain call is the deterministic RRF path.
     """
+    _add_section_flag(parser)
     parser.add_argument(
         "--graph",
         action="store_true",
@@ -132,6 +144,7 @@ def _hybrid_kwargs(args) -> dict:
         "passage_window": args.passage_window,
         "reranker": get_reranker(args.rerank_model or ("1" if args.rerank else None)),
         "rerank_margin": args.rerank_margin,
+        "section": args.section,
     }
 
 
@@ -206,6 +219,7 @@ def main() -> None:
         action="store_true",
         help="Skip the pre-search incremental index refresh (query the index as-is)",
     )
+    _add_section_flag(q)
 
     hs = sub.add_parser(
         "hybrid-search",
@@ -369,6 +383,7 @@ def main() -> None:
         action="store_true",
         help="Log one 'returned' recall_log event per hit (usage telemetry)",
     )
+    _add_section_flag(js)
 
     jlu = sub.add_parser(
         "json-log-use",
@@ -620,7 +635,7 @@ def main() -> None:
     elif args.cmd == "search":
         if not args.no_auto_index:
             ensure_fresh(args.vault)
-        hits = search_vault(args.vault, args.query, limit=args.limit)
+        hits = search_vault(args.vault, args.query, limit=args.limit, section=args.section)
         if args.log_recall and hits:
             log_events(args.vault, "returned", [h.path for h in hits], query=args.query)
         if not hits:
@@ -756,7 +771,7 @@ def main() -> None:
     elif args.cmd == "json-search":
         if not args.no_auto_index:
             ensure_fresh(args.vault)
-        hits = search_vault(args.vault, args.query, limit=args.limit)
+        hits = search_vault(args.vault, args.query, limit=args.limit, section=args.section)
         if args.log_recall and hits:
             log_events(args.vault, "returned", [h.path for h in hits], query=args.query)
         # Compact wire format (ADR-0034): the consumer is an LLM that pays input
