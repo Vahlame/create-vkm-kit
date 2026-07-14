@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Facturio writes, sends and chases your invoices so the money shows up without the follow-up. Invoicing for freelancers, free to start.">
+<meta name="color-scheme" content="light">
+<title>Facturio — invoicing for freelancers who'd rather be working</title>
+<style>
+/* ============================================================
+   FACTURIO — "The Ledger"
+   Direction: editorial print × exposed structure.
+   Organizing sentence: the landing page is a perfectly set invoice.
+
+   FONTS — system stacks only (no network requests by design).
+   Optional webfont upgrade (install note, do NOT hotlink):
+     display/body serif → Fraunces (variable, SOFT/WONK axes), self-hosted
+     ledger mono        → Fragment Mono or JetBrains Mono, self-hosted
+   Drop the files in and prepend to --font-serif / --font-mono below.
+
+   TOKENS — all values computed, not eyeballed:
+     type scale  base 16, ratio 1.414 (scale.mjs --gen 16,1.414,7)
+     space scale base 8 (scale.mjs --space … PASS)
+     palette     palette.mjs --hue 40 + lineage seeds; 12/12 pairs AA
+                 (contrast.mjs --pairs pairs.json)
+   ============================================================ */
+:root{
+  /* color — OKLCH, warm paper + ink + one terracotta "highlighter" */
+  --paper:        oklch(0.96 0.01 85);
+  --paper-raised: oklch(0.985 0.005 85);
+  --ink:          oklch(0.2 0.02 60);     /* 16.11:1 on paper */
+  --ink-soft:     oklch(0.44 0.02 60);    /*  6.94:1 on paper */
+  --hairline:     oklch(0.85 0.01 70);
+  --accent:       oklch(0.56 0.16 40);    /* large/UI only: 4.46:1 */
+  --accent-deep:  oklch(0.48 0.15 40);    /* normal text: 6.25:1 */
+  --accent-wash:  oklch(0.95 0.025 40);
+
+  /* type — two families, real range */
+  --font-serif: 'Iowan Old Style','Palatino Linotype','Book Antiqua',Palatino,Georgia,'Times New Roman',serif;
+  --font-mono: ui-monospace,'Cascadia Mono','Segoe UI Mono',Consolas,'SF Mono',Menlo,'DejaVu Sans Mono',monospace;
+
+  /* scale: 11.31 / 16 / 22.62 / 32 / 45.25 / 64 / 90.5 px */
+  --fs--1: 0.707rem;
+  --fs-0:  1rem;
+  --fs-1:  1.414rem;
+  --fs-2:  2rem;
+  --fs-3:  2.828rem;
+  --fs-4:  4rem;
+  --fs-5:  5.657rem;
+
+  /* fluid display sizes: endpoints sit on the scale */
+  --fs-ledger: clamp(var(--fs-2), 0.5rem + 5.2vw, var(--fs-4));
+  --fs-brand:  clamp(var(--fs-3), 0.75rem + 7.4vw, var(--fs-5));
+  --fs-h2:     clamp(var(--fs-2), 1rem + 2.9vw, var(--fs-3));
+
+  /* space — base 8 */
+  --s-1: 0.5rem;
+  --s-2: 1rem;
+  --s-3: 1.5rem;
+  --s-4: 2rem;
+  --s-6: 3rem;
+  --s-8: 4rem;
+  --s-12: 6rem;
+
+  /* shape & depth: hairlines do the depth; radius is 0 or 2 */
+  --radius: 2px;
+  --rule-thin:   1px solid var(--hairline);
+  --rule-ink:    2px solid var(--ink);
+  --rule-double: 6px double var(--ink);
+
+  /* motion — one language: things slide/grow in 160ms, decelerating */
+  --t-fast: 160ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+*,*::before,*::after{ box-sizing: border-box; margin: 0; }
+
+html{ scroll-behavior: smooth; }
+
+body{
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: var(--fs-0);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- primitives ---------- */
+
+.wrap{ max-width: 70rem; margin-inline: auto; padding-inline: var(--s-3); }
+
+.mono{
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.label{
+  font-family: var(--font-mono);
+  font-size: var(--fs--1);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+.label--accent{ color: var(--accent-deep); }
+
+.sr-only{
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
+.skip-link{
+  position: absolute; left: var(--s-2); top: -100%;
+  z-index: 10; padding: var(--s-1) var(--s-2);
+  background: var(--ink); color: var(--paper);
+  font-family: var(--font-mono); font-size: var(--fs-0);
+}
+.skip-link:focus-visible{ top: var(--s-2); }
+
+::selection{ background: var(--accent-wash); color: var(--ink); }
+
+:focus-visible{
+  outline: 2px solid var(--accent-deep);
+  outline-offset: 3px;
+}
+
+/* links: one interaction language — the underline grows from the left */
+a{ color: inherit; }
+p a, li a, .colophon a, nav a{
+  text-decoration: none;
+  background-image: linear-gradient(var(--accent-deep), var(--accent-deep));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  transition: background-size var(--t-fast);
+  padding-bottom: 2px;
+}
+p a:hover, li a:hover, .colophon a:hover, nav a:hover,
+p a:focus-visible, li a:focus-visible, .colophon a:focus-visible, nav a:focus-visible{
+  background-size: 100% 1px;
+}
+
+/* buttons */
+.btn{
+  display: inline-block;
+  padding: var(--s-2) var(--s-4);
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: var(--fs-0);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  transition: background-color var(--t-fast), border-color var(--t-fast);
+}
+.btn:hover{ background: var(--accent-deep); border-color: var(--accent-deep); }
+.btn:active{ transform: translateY(1px); }
+
+/* ---------- header: the letterhead ---------- */
+
+.site-head{ border-bottom: var(--rule-double); }
+.site-head .wrap{
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  gap: var(--s-2) var(--s-4);
+  padding-block: var(--s-3);
+}
+.wordmark{
+  font-size: var(--fs-1);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  background: none; padding-bottom: 0;
+}
+.wordmark .no{ font-family: var(--font-mono); font-size: var(--fs--1); vertical-align: super; color: var(--accent-deep); }
+.site-head nav{
+  margin-left: auto;
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-3);
+}
+.site-head nav a{
+  font-family: var(--font-mono);
+  font-size: var(--fs--1);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding-block: var(--s-1); /* keeps the hit target ≥ 24px */
+}
+.site-head .btn{
+  padding: var(--s-1) var(--s-3);
+  font-size: var(--fs--1);
+}
+
+/* ---------- hero: the headline is a ledger ---------- */
+
+.hero{ padding-block: var(--s-12) var(--s-8); }
+
+.hero .label{ display: block; margin-bottom: var(--s-4); }
+
+.ledger{ font-weight: 700; letter-spacing: -0.02em; }
+.ledger-line{
+  display: flex; align-items: baseline; gap: var(--s-2);
+  font-size: var(--fs-ledger);
+  line-height: 1.05;
+  padding-block: var(--s-1);
+}
+.ledger-line + .ledger-line{ border-top: var(--rule-thin); }
+.ledger-line .leader{
+  flex: 1; min-width: var(--s-4);
+  border-bottom: 3px dotted var(--hairline);
+  transform: translateY(-0.18em);
+}
+.ledger-line .amount{
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  font-size: 0.5em;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.ledger-line s{
+  text-decoration-line: line-through;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 0.05em;
+}
+.ledger-line--brand{ font-size: var(--fs-brand); line-height: 1; }
+.ledger-line--brand .amount{ color: var(--accent-deep); }
+
+.hero .lede{
+  max-width: 56ch;
+  font-size: var(--fs-1);
+  line-height: 1.45;
+  margin-top: var(--s-6);
+}
+.cta-row{
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+}
+.cta-note{ font-family: var(--font-mono); font-size: var(--fs--1); color: var(--ink-soft); letter-spacing: 0.02em; }
+
+/* ---------- the specimen: the product IS a document ---------- */
+
+.specimen-wrap{
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 15rem;
+  gap: var(--s-6);
+  align-items: start;
+  padding-block: var(--s-8);
+  border-top: var(--rule-thin);
+}
+.specimen{
+  position: relative;
+  background: var(--paper-raised);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  padding: var(--s-4);
+  overflow-x: auto; /* guard: the line-item table at very narrow widths */
+}
+.specimen-head{
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s-2);
+  padding-bottom: var(--s-3);
+  border-bottom: var(--rule-ink);
+  margin-bottom: var(--s-3);
+}
+.specimen-head p{ line-height: 1.4; }
+.specimen table{
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs--1);
+}
+.specimen th{
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 400;
+  color: var(--ink-soft);
+  padding: var(--s-1) 0;
+  border-bottom: var(--rule-thin);
+}
+.specimen td{
+  padding: var(--s-1) 0;
+  border-bottom: var(--rule-thin);
+  vertical-align: top;
+}
+.specimen .num{ text-align: right; white-space: nowrap; padding-left: var(--s-2); }
+.specimen tr.total td{
+  border-top: var(--rule-double);
+  border-bottom: none;
+  font-weight: 700;
+  font-size: var(--fs-0);
+  padding-top: var(--s-2);
+}
+.stamp{
+  position: absolute;
+  top: var(--s-2); right: var(--s-2);
+  transform: rotate(-6deg);
+  padding: var(--s-1) var(--s-2);
+  border: 3px double var(--accent);
+  border-radius: var(--radius);
+  background: var(--paper-raised);
+  color: var(--accent-deep);
+  font-family: var(--font-mono);
+  font-size: var(--fs--1);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.specimen-wrap figcaption{
+  font-style: italic;
+  color: var(--ink-soft);
+  border-top: var(--rule-ink);
+  padding-top: var(--s-2);
+  max-width: 32ch;
+}
+
+/* ---------- sections ---------- */
+
+.section{ padding-block: var(--s-12); border-top: var(--rule-thin); }
+.section-head{ margin-bottom: var(--s-8); }
+.section-head .label{ display: block; margin-bottom: var(--s-2); }
+.section-head h2{
+  font-size: var(--fs-h2);
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  max-width: 22ch;
+  text-wrap: balance; /* progressive enhancement: no widowed last word */
+}
+
+/* features: itemized ledger rows */
+.items{ list-style: none; padding: 0; }
+.item{
+  display: grid;
+  grid-template-columns: var(--s-12) minmax(0, 1fr) minmax(9rem, 16rem);
+  gap: var(--s-3);
+  align-items: baseline;
+  padding-block: var(--s-4);
+  border-top: var(--rule-thin);
+}
+.item:last-child{ border-bottom: var(--rule-thin); }
+.item .num{
+  font-family: var(--font-mono);
+  font-size: var(--fs-3);
+  font-weight: 400;
+  color: var(--ink-soft);
+  line-height: 1;
+}
+.item h3{
+  font-size: var(--fs-2);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin-bottom: var(--s-1);
+}
+.item p{ max-width: 52ch; color: var(--ink-soft); }
+.item .spec{
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-0);
+  color: var(--accent-deep);
+  text-align: right;
+  justify-self: end;
+}
+
+/* pricing: three line-items, not three cards */
+.plans{ list-style: none; padding: 0; }
+.plan{
+  padding-block: var(--s-4);
+  border-top: var(--rule-thin);
+}
+.plan:last-child{ border-bottom: var(--rule-thin); }
+.plan-line{
+  display: flex; align-items: baseline; gap: var(--s-2);
+  flex-wrap: wrap;
+}
+.plan-line h3{
+  font-size: var(--fs-2);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+.plan-line .leader{
+  flex: 1; min-width: var(--s-4);
+  border-bottom: 3px dotted var(--hairline);
+  transform: translateY(-0.18em);
+}
+.plan-line .price{
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-2);
+  white-space: nowrap;
+}
+.plan-line .price small{ font-size: var(--fs--1); color: var(--ink-soft); letter-spacing: 0.04em; }
+.plan > p{ max-width: 52ch; color: var(--ink-soft); margin-top: var(--s-1); }
+.plan--reco{
+  border-left: 4px solid var(--accent);
+  padding-left: var(--s-3);
+}
+.tag{
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--fs--1);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-deep);
+  background: var(--accent-wash);
+  border-radius: var(--radius);
+  padding: 0.25rem var(--s-1); /* 4px = half of the base-8 unit */
+  margin-bottom: var(--s-1);
+}
+.plans-note{
+  font-family: var(--font-mono);
+  font-size: var(--fs--1);
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
+  margin-top: var(--s-4);
+  max-width: 72ch;
+}
+
+/* ---------- footer: the total, then the colophon ---------- */
+
+.total-strip{ border-top: var(--rule-double); padding-block: var(--s-8); }
+.total-line{
+  display: flex; align-items: baseline; gap: var(--s-2);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-h2);
+  font-weight: 700;
+}
+.total-line .leader{
+  flex: 1; min-width: var(--s-4);
+  border-bottom: 3px dotted var(--hairline);
+  transform: translateY(-0.18em);
+}
+.total-line .due{ color: var(--accent-deep); }
+.total-strip .cta-row{ margin-top: var(--s-4); }
+
+.colophon{
+  border-top: var(--rule-thin);
+  padding-block: var(--s-6);
+  color: var(--ink-soft);
+}
+.colophon-grid{
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+  gap: var(--s-4);
+}
+.colophon .about{ max-width: 34ch; }
+.colophon h4{
+  font-family: var(--font-mono);
+  font-size: var(--fs--1);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 400;
+  margin-bottom: var(--s-2);
+}
+.colophon ul{ list-style: none; padding: 0; }
+.colophon li{ margin-bottom: var(--s-1); }
+.colophon-legal{
+  margin-top: var(--s-6);
+  padding-top: var(--s-3);
+  border-top: var(--rule-thin);
+  font-family: var(--font-mono);
+  font-size: var(--fs--1);
+  letter-spacing: 0.02em;
+}
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 720px){
+  .specimen-wrap{ grid-template-columns: minmax(0, 1fr); }
+  .item{ grid-template-columns: var(--s-8) minmax(0, 1fr); }
+  .item .spec{ grid-column: 2; justify-self: start; text-align: left; }
+  .colophon-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .colophon .about{ grid-column: 1 / -1; }
+  .section{ padding-block: var(--s-8); }
+  .hero{ padding-block: var(--s-8) var(--s-6); }
+}
+
+@media (max-width: 480px){
+  .ledger-line{ flex-wrap: wrap; }
+  .ledger-line .leader{ min-width: var(--s-6); }
+  .specimen{ padding: var(--s-3); }
+  .stamp{ position: static; display: inline-block; margin-bottom: var(--s-2); }
+}
+
+/* ---------- motion & print ---------- */
+
+@media (prefers-reduced-motion: reduce){
+  html{ scroll-behavior: auto; }
+  *, *::before, *::after{ transition: none !important; animation: none !important; }
+}
+
+@media print{
+  .site-head nav, .btn, .cta-row, .skip-link{ display: none; }
+  body{ background: white; }
+}
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="wordmark" href="#top">Facturio<span class="no">&nbsp;Nº</span></a>
+    <nav aria-label="Main">
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#colophon">Colophon</a>
+    </nav>
+    <a class="btn" href="#pricing">Start free</a>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- HERO — the headline is a ledger -->
+  <section class="hero" id="top" aria-labelledby="hero-h">
+    <div class="wrap">
+      <span class="label label--accent">Invoice Nº 2026-001 · To: every client who pays late</span>
+
+      <h1 class="ledger" id="hero-h"
+          aria-label="Chasing late payments and just-circling-back emails: gone. Facturio — invoicing that gets you paid, from zero dollars.">
+        <span class="ledger-line" aria-hidden="true">
+          <s>Chasing late payments</s>
+          <span class="leader"></span>
+          <s class="amount">21 hrs/mo</s>
+        </span>
+        <span class="ledger-line" aria-hidden="true">
+          <s>&ldquo;Just circling back&rdquo;</s>
+          <span class="leader"></span>
+          <s class="amount">&times; 14</s>
+        </span>
+        <span class="ledger-line ledger-line--brand" aria-hidden="true">
+          <span>Facturio</span>
+          <span class="leader"></span>
+          <span class="amount">from $0</span>
+        </span>
+      </h1>
+
+      <p class="lede">Facturio writes the invoice, sends it, and follows up — politely,
+      relentlessly — until it&rsquo;s paid. Keep the hours you used to spend asking
+      to be paid for your hours.</p>
+
+      <div class="cta-row">
+        <a class="btn" href="#pricing">Start invoicing free</a>
+        <span class="cta-note">No card · first 3 invoices free forever</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SPECIMEN — no screenshot; the artifact itself -->
+  <div class="wrap">
+    <figure class="specimen-wrap">
+      <div class="specimen">
+        <div class="specimen-head">
+          <p><strong>Invoice Nº&nbsp;0027</strong><br>
+            <span class="label">From</span> Ana Duarte · Brand designer</p>
+          <p><span class="label">To</span> Meridian Coffee Co.<br>
+            <span class="label">Issued</span> <span class="mono">2026-07-01</span> ·
+            <span class="label">Due</span> <span class="mono">2026-07-15</span></p>
+        </div>
+        <table>
+          <caption class="sr-only">Line items of a sample Facturio invoice</caption>
+          <thead>
+            <tr>
+              <th scope="col">Description</th>
+              <th scope="col" class="num">Qty</th>
+              <th scope="col" class="num">Rate</th>
+              <th scope="col" class="num">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Brand identity — phase two</td>
+              <td class="num">1</td>
+              <td class="num">1,800.00</td>
+              <td class="num">1,800.00</td>
+            </tr>
+            <tr>
+              <td>Design tokens &amp; templates</td>
+              <td class="num">12 h</td>
+              <td class="num">95.00</td>
+              <td class="num">1,140.00</td>
+            </tr>
+            <tr>
+              <td>Subtotal</td>
+              <td class="num"></td>
+              <td class="num"></td>
+              <td class="num">2,940.00</td>
+            </tr>
+            <tr>
+              <td>VAT 21%</td>
+              <td class="num"></td>
+              <td class="num"></td>
+              <td class="num">617.40</td>
+            </tr>
+            <tr class="total">
+              <td>Total due</td>
+              <td class="num"></td>
+              <td class="num"></td>
+              <td class="num">$3,557.40</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="stamp">Paid · 4 days early</p>
+      </div>
+      <figcaption>An actual Facturio invoice, as the client sees it.
+        Written in 40&nbsp;seconds. Paid in 4&nbsp;days.</figcaption>
+    </figure>
+  </div>
+
+  <!-- FEATURES — itemized, not carded -->
+  <section class="section" id="features" aria-labelledby="features-h">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="label label--accent">Itemized · What you get</span>
+        <h2 id="features-h">Everything billable, handled.</h2>
+      </div>
+      <ol class="items">
+        <li class="item">
+          <span class="num" aria-hidden="true">01</span>
+          <div>
+            <h3>Reminders that don&rsquo;t need you</h3>
+            <p>Polite, escalating follow-ups go out on schedule until the money
+            lands. You never write another &ldquo;just circling back.&rdquo;</p>
+          </div>
+          <span class="spec">paid ~9 days sooner</span>
+        </li>
+        <li class="item">
+          <span class="num" aria-hidden="true">02</span>
+          <div>
+            <h3>Retainers on autopilot</h3>
+            <p>Set the amount and the day. Facturio issues, sends and reconciles
+            the same invoice every month, forever.</p>
+          </div>
+          <span class="spec">set once</span>
+        </li>
+        <li class="item">
+          <span class="num" aria-hidden="true">03</span>
+          <div>
+            <h3>A pay button on every invoice</h3>
+            <p>Cards, bank transfer or PayPal — your client pays inside the
+            invoice, not in a reply thread.</p>
+          </div>
+          <span class="spec">1 click to pay</span>
+        </li>
+        <li class="item">
+          <span class="num" aria-hidden="true">04</span>
+          <div>
+            <h3>Tax that does itself</h3>
+            <p>VAT, GST and sales tax computed per client and per line — with
+            the paperwork to prove it, in any of 27 currencies.</p>
+          </div>
+          <span class="spec">27 currencies</span>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- PRICING — line items, not cards -->
+  <section class="section" id="pricing" aria-labelledby="pricing-h">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="label label--accent">Terms · Pricing</span>
+        <h2 id="pricing-h">The only invoice we&rsquo;ll ever send you.</h2>
+      </div>
+      <ul class="plans">
+        <li class="plan">
+          <div class="plan-line">
+            <h3>Solo</h3>
+            <span class="leader" aria-hidden="true"></span>
+            <span class="price">$0 <small>forever</small></span>
+          </div>
+          <p>Three invoices a month, pay links, one currency.
+          For the occasional gig.</p>
+        </li>
+        <li class="plan plan--reco">
+          <span class="tag">Most freelancers</span>
+          <div class="plan-line">
+            <h3>Freelance</h3>
+            <span class="leader" aria-hidden="true"></span>
+            <span class="price">$12 <small>/ month</small></span>
+          </div>
+          <p>Unlimited invoices, smart reminders, retainers on autopilot,
+          every currency.</p>
+        </li>
+        <li class="plan">
+          <div class="plan-line">
+            <h3>Studio</h3>
+            <span class="leader" aria-hidden="true"></span>
+            <span class="price">$24 <small>/ month</small></span>
+          </div>
+          <p>Freelance, plus three seats, multiple brands, and an API.</p>
+        </li>
+      </ul>
+      <p class="plans-note">Prices in USD; VAT added where it applies. Cancel any
+      time — your invoices export as PDF and remain yours.</p>
+    </div>
+  </section>
+</main>
+
+<!-- FOOTER — total due, then the colophon -->
+<footer>
+  <div class="total-strip">
+    <div class="wrap">
+      <p class="total-line">
+        <span>Total due today</span>
+        <span class="leader" aria-hidden="true"></span>
+        <span class="due">$0.00</span>
+      </p>
+      <div class="cta-row">
+        <a class="btn" href="#pricing">Start invoicing free</a>
+        <span class="cta-note">No card · cancel any time</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="colophon" id="colophon">
+    <div class="wrap">
+      <div class="colophon-grid">
+        <div class="about">
+          <a class="wordmark" href="#top">Facturio<span class="no">&nbsp;Nº</span></a>
+          <p>Invoicing for freelancers: write it in 40 seconds, get paid
+          without asking twice.</p>
+        </div>
+        <div>
+          <h4>Product</h4>
+          <ul>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+            <li><a href="#top">Changelog</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Company</h4>
+          <ul>
+            <li><a href="#top">About</a></li>
+            <li><a href="#top">Support</a></li>
+            <li><a href="#top">Blog</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Legal</h4>
+          <ul>
+            <li><a href="#top">Privacy</a></li>
+            <li><a href="#top">Terms</a></li>
+            <li><a href="#top">Imprint</a></li>
+          </ul>
+        </div>
+      </div>
+      <p class="colophon-legal">© 2026 Facturio · Set in your system&rsquo;s finest
+      serif · No trackers, no cookies — your ledger is your own.</p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

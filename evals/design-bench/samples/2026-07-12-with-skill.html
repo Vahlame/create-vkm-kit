@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Facturio — Invoicing for freelancers, beautifully settled</title>
+<meta name="description" content="Facturio drafts, sends and chases your invoices — typeset like documents worth paying, with the Pay button built in.">
+<!--
+  FONT INSTALL NOTE (no webfont is loaded; this page renders fully offline).
+  For the intended cut, self-host and swap into the two stacks below:
+    display + body : "Fraunces"  (variable, optical size axis) — https://fonts.google.com/specimen/Fraunces
+    figures/labels : "Fragment Mono" or "IBM Plex Mono"        — https://fonts.google.com/specimen/IBM+Plex+Mono
+  System fallbacks used meanwhile: Iowan Old Style / Palatino / Georgia (serif),
+  ui-monospace / Cascadia Mono / Menlo / Consolas (mono).
+
+  Direction: "The Typeset Ledger" — editorial print lineage.
+  Concept: the landing page is a beautifully typeset invoice.
+  Tokens generated with vkm-design scripts (palette.mjs --hue 85 neutrals, --hue 40 accent;
+  scale.mjs 16/1.414 type, 8-base space). All color pairs verified AA with contrast.mjs.
+-->
+<style>
+/* ========== tokens ========== */
+:root{
+  /* color — OKLCH, hue-85 warm-paper neutrals + hue-40 stamp accent */
+  --paper:        oklch(0.95 0.012 85);
+  --sheet:        oklch(0.99 0.007 85);
+  --ink:          oklch(0.18 0.012 85);
+  --ink-2:        oklch(0.42 0.012 85);
+  --rule:         oklch(0.82 0.012 85);
+  --accent-text:  oklch(0.51 0.14 40);   /* 5.27:1 on paper · 5.92:1 on sheet */
+  --accent-fill:  oklch(0.48 0.14 40);   /* button bg · 6.73:1 with sheet text */
+  --accent-deep:  oklch(0.40 0.125 40);  /* hover fill · chip ink */
+  --wash:         oklch(0.95 0.025 40);
+  --field:        oklch(0.24 0.012 85);  /* footer */
+  --field-ink:    oklch(0.90 0.012 85);
+  --field-muted:  oklch(0.70 0.012 85);
+  --field-bright: oklch(0.99 0.007 85);
+
+  /* type — scale 16px · ratio 1.414 (verified) */
+  --serif: "Iowan Old Style","Palatino Linotype","Book Antiqua",Palatino,"URW Palladio L",Georgia,serif;
+  --mono:  ui-monospace,"Cascadia Mono","Segoe UI Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --t-1: 0.707rem;                                   /* 11.31 — mono meta only, caps + tracking */
+  --t0:  1rem;
+  --t1:  1.406rem;                                   /* 22.5 */
+  --t2:  2rem;                                       /* 32   */
+  --t3:  2.8125rem;                                  /* 45   */
+  --t4:  4rem;                                       /* 64   */
+  --h1:  clamp(2.8125rem, 1.625rem + 3.17vw, 4rem);
+  --h2:  clamp(2rem, 1.1875rem + 2.17vw, 2.8125rem);
+  --lh-body: 1.55; --lh-tight: 1.06; --lh-head: 1.22;
+  --track-disp: -0.015em; --track-caps: 0.06em;
+
+  /* space — base 8 (verified) */
+  --s1:0.5rem; --s2:1rem; --s3:1.5rem; --s4:2rem; --s5:3rem; --s6:4rem; --s7:6rem; --s8:8rem;
+
+  /* shape & line — hairlines are the depth system; radius 0 with one 2px exception */
+  --r0:0; --r1:2px;
+  --hair: 1px solid var(--rule);
+  --dur: 150ms;
+}
+/* hex fallback for engines without OKLCH (values from palette.mjs output;
+   --accent-text hex is interpolated between generated steps — approximation) */
+@supports not (color: oklch(0.5 0.1 40)){
+  :root{
+    --paper:#f2eee6; --sheet:#fefbf7; --ink:#14110c; --ink-2:#504d46; --rule:#c8c4bc;
+    --accent-text:#a6431f; --accent-fill:#9c3a11; --accent-deep:#7c2801; --wash:#fee9e2;
+    --field:#221f19; --field-ink:#e2ded5; --field-muted:#a29e96; --field-bright:#fefbf7;
+  }
+}
+
+/* ========== base ========== */
+*,*::before,*::after{ box-sizing:border-box; margin:0; }
+html{ color-scheme: light; }
+body{
+  background:var(--paper); color:var(--ink);
+  font: var(--t0)/var(--lh-body) var(--serif);
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{ font-weight:600; line-height:var(--lh-head); }
+h1,h2{ text-wrap:balance; }
+p{ text-wrap:pretty; }
+a{ color:var(--accent-text); text-decoration-thickness:1px; text-underline-offset:3px; transition:color var(--dur) ease; }
+a:hover{ color:var(--accent-deep); }
+:focus-visible{ outline:2px solid var(--accent-fill); outline-offset:2px; border-radius:var(--r1); }
+.mono{ font-family:var(--mono); }
+.label{
+  font-family:var(--mono); font-size:var(--t-1); font-weight:500;
+  text-transform:uppercase; letter-spacing:var(--track-caps); color:var(--ink-2);
+}
+.num{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+.wrap{ max-width:70rem; margin-inline:auto; padding-inline:var(--s4); }
+.skip{
+  position:absolute; left:-100vw; top:0; background:var(--sheet); color:var(--ink);
+  padding:var(--s1) var(--s2); font-family:var(--mono); font-size:var(--t-1);
+}
+.skip:focus{ left:var(--s2); z-index:10; }
+.sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+
+/* ========== masthead ========== */
+.masthead{ border-bottom:var(--hair); }
+.masthead .wrap{
+  display:flex; align-items:baseline; gap:var(--s4);
+  padding-block:var(--s3);
+}
+.brand{ font-size:var(--t1); font-weight:700; letter-spacing:var(--track-disp); color:var(--ink); text-decoration:none; }
+.brand em{ font-style:normal; color:var(--accent-text); }
+.masthead nav{ margin-left:auto; display:flex; gap:var(--s3); align-items:baseline; }
+.masthead nav a{
+  font-family:var(--mono); font-size:var(--t-1); text-transform:uppercase;
+  letter-spacing:var(--track-caps); color:var(--ink-2); text-decoration:none;
+  padding-block:var(--s1); /* keeps target ≥ 24px tall */
+}
+.masthead nav a:hover{ color:var(--accent-deep); text-decoration:underline; text-underline-offset:4px; }
+
+/* ========== hero ========== */
+.hero .wrap{
+  display:grid; grid-template-columns:1.1fr 0.9fr; gap:var(--s6);
+  padding-block:var(--s7);
+  align-items:center;
+}
+.kicker{ color:var(--accent-text); display:block; margin-bottom:var(--s3); }
+.hero h1{ font-size:var(--h1); line-height:var(--lh-tight); letter-spacing:var(--track-disp); font-weight:600; }
+.lede{ font-size:var(--t1); color:var(--ink-2); max-width:34ch; margin-top:var(--s3); }
+.cta-row{ display:flex; align-items:center; gap:var(--s3); margin-top:var(--s5); flex-wrap:wrap; }
+.btn{
+  display:inline-block; background:var(--accent-fill); color:var(--field-bright);
+  font-family:var(--mono); font-size:var(--t0); font-weight:600;
+  padding:var(--s2) var(--s4); border:none; border-radius:var(--r0);
+  text-decoration:none; transition:background var(--dur) ease;
+}
+.btn:hover{ background:var(--accent-deep); color:var(--field-bright); }
+.cta-note{ display:block; margin-top:var(--s2); color:var(--ink-2); }
+.cta-alt{ font-family:var(--mono); font-size:var(--t-1); text-transform:uppercase; letter-spacing:var(--track-caps); }
+
+/* the specimen — a real typeset invoice, no images */
+.specimen{
+  background:var(--sheet); border:var(--hair);
+  padding:var(--s4); position:relative;
+  font-size:var(--t-1); font-family:var(--mono); color:var(--ink-2);
+}
+.specimen .doc-head{
+  display:flex; justify-content:space-between; gap:var(--s2);
+  text-transform:uppercase; letter-spacing:var(--track-caps);
+  padding-bottom:var(--s2); border-bottom:var(--hair);
+}
+.specimen .doc-head strong{ color:var(--ink); }
+.specimen .parties{
+  display:grid; grid-template-columns:1fr 1fr; gap:var(--s2);
+  padding-block:var(--s2); border-bottom:var(--hair);
+}
+.specimen .parties b{
+  display:block; font-family:var(--serif); font-size:var(--t0);
+  font-weight:600; color:var(--ink); margin-top:2px; letter-spacing:0;
+}
+.specimen table{ width:100%; border-collapse:collapse; margin-top:var(--s1); }
+.specimen td{ padding-block:var(--s1); vertical-align:baseline; }
+.specimen td:last-child{ text-align:right; font-variant-numeric:tabular-nums; color:var(--ink); }
+.specimen .total td{
+  border-top:2px solid var(--ink); font-family:var(--serif);
+  font-size:var(--t0); font-weight:700; color:var(--ink);
+}
+.specimen figcaption{ margin-top:var(--s2); padding-top:var(--s2); border-top:var(--hair); }
+.stamp{
+  position:absolute; right:var(--s3); bottom:var(--s6);
+  transform:rotate(-7deg);
+  border:2px solid var(--accent-text); border-radius:var(--r1);
+  color:var(--accent-text); padding:2px var(--s1);
+  font-weight:700; letter-spacing:var(--track-caps);
+}
+.stamp small{ display:block; font-weight:500; letter-spacing:var(--track-caps); }
+
+/* ========== stats rule ========== */
+.stats{ border-block:var(--hair); }
+.stats .wrap{ display:grid; grid-template-columns:repeat(3,1fr); }
+.stats > .wrap > div{ padding-block:var(--s4); }
+.stats div + div{ border-left:var(--hair); padding-left:var(--s4); }
+.stats .num{ font-size:var(--t2); color:var(--ink); display:block; line-height:var(--lh-head); }
+.stats .label{ margin-top:var(--s1); display:block; }
+
+/* ========== sections ========== */
+.section{ padding-block:var(--s7); }
+.sec-head{ display:flex; align-items:baseline; gap:var(--s3); margin-bottom:var(--s6); }
+.sec-no{ color:var(--accent-text); font-family:var(--mono); font-size:var(--t1); font-variant-numeric:tabular-nums; }
+.sec-head h2{ font-size:var(--h2); letter-spacing:var(--track-disp); }
+.sec-sub{ color:var(--ink-2); font-size:var(--t1); max-width:44ch; margin-top:calc(-1 * var(--s4)); margin-bottom:var(--s6); }
+
+/* features — numbered editorial index, not cards */
+.features{ display:grid; grid-template-columns:1fr 1fr; column-gap:var(--s6); row-gap:0; }
+.feature{ border-top:var(--hair); padding-block:var(--s4); }
+.feature .no{ color:var(--accent-text); font-family:var(--mono); font-size:var(--t-1); letter-spacing:var(--track-caps); }
+.feature h3{ font-size:var(--t1); margin-top:var(--s1); }
+.feature p{ color:var(--ink-2); margin-top:var(--s1); max-width:52ch; }
+
+/* pricing — a ledger, not cards */
+.ledger-scroll{ overflow-x:auto; }
+.ledger{ width:100%; min-width:44rem; border-collapse:collapse; border-top:2px solid var(--ink); }
+.ledger th, .ledger td{ text-align:left; vertical-align:top; padding:var(--s3) var(--s3) var(--s3) 0; }
+.ledger thead th{
+  font-family:var(--mono); font-size:var(--t-1); font-weight:500;
+  text-transform:uppercase; letter-spacing:var(--track-caps); color:var(--ink-2);
+  border-bottom:var(--hair); padding-block:var(--s2);
+}
+.ledger tbody tr{ border-bottom:var(--hair); }
+.ledger tbody th{ font-size:var(--t1); font-weight:600; white-space:nowrap; }
+.ledger .inc{ color:var(--ink-2); max-width:44ch; }
+.ledger .price{ font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:var(--t1); white-space:nowrap; }
+.ledger .price small{ font-size:var(--t-1); color:var(--ink-2); }
+.ledger td:last-child{ text-align:right; }
+.chip{
+  display:inline-block; margin-left:var(--s1); vertical-align:middle;
+  background:var(--wash); color:var(--accent-deep); border-radius:var(--r1);
+  font-family:var(--mono); font-size:var(--t-1); font-weight:600;
+  text-transform:uppercase; letter-spacing:var(--track-caps);
+  padding:2px var(--s1);
+}
+.fine{ margin-top:var(--s3); color:var(--ink-2); }
+
+/* ========== closing plea ========== */
+.plea{ background:var(--wash); }
+.plea .wrap{ padding-block:var(--s7); display:grid; gap:var(--s4); justify-items:start; }
+.plea p{ font-size:var(--h2); font-style:italic; line-height:var(--lh-head); letter-spacing:var(--track-disp); max-width:24ch; color:var(--accent-deep); }
+.plea .btn:hover{ background:var(--accent-deep); }
+
+/* ========== footer ========== */
+footer{ background:var(--field); color:var(--field-ink); }
+footer .wrap{ padding-block:var(--s6); display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:var(--s5); }
+footer h3{
+  font-family:var(--mono); font-size:var(--t-1); font-weight:500;
+  text-transform:uppercase; letter-spacing:var(--track-caps); color:var(--field-muted);
+  margin-bottom:var(--s2);
+}
+footer ul{ list-style:none; padding:0; display:grid; gap:var(--s1); }
+footer a{ color:var(--field-ink); text-decoration-color:var(--field-muted); }
+footer a:hover{ color:var(--field-bright); }
+.colophon .brand{ color:var(--field-bright); }
+.colophon p{ margin-top:var(--s2); color:var(--field-muted); font-family:var(--mono); font-size:var(--t-1); line-height:1.7; max-width:38ch; }
+.legalline{ border-top:1px solid var(--ink-2); }
+.legalline .wrap{
+  display:flex; justify-content:space-between; gap:var(--s2); flex-wrap:wrap;
+  padding-block:var(--s3); grid-template-columns:none;
+  font-family:var(--mono); font-size:var(--t-1); letter-spacing:var(--track-caps);
+  text-transform:uppercase; color:var(--field-muted);
+}
+
+/* ========== responsive ========== */
+@media (max-width: 56rem){
+  .hero .wrap{ grid-template-columns:1fr; padding-block:var(--s6); }
+  .stats .wrap{ grid-template-columns:1fr; }
+  .stats div + div{ border-left:none; border-top:var(--hair); padding-left:0; }
+  .stats > .wrap > div{ padding-block:var(--s3); }
+  footer .wrap{ grid-template-columns:1fr 1fr; }
+}
+@media (max-width: 40rem){
+  .features{ grid-template-columns:1fr; }
+  .sec-head{ flex-direction:column; gap:var(--s1); }
+  .sec-sub{ margin-top:calc(-1 * var(--s5)); }
+  .masthead .wrap{ flex-wrap:wrap; row-gap:0; }
+  footer .wrap{ grid-template-columns:1fr; gap:var(--s4); }
+}
+@media (prefers-reduced-motion: reduce){
+  *{ transition-duration:0.01ms !important; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="brand" href="#main">Facturio<em>.</em></a>
+    <nav aria-label="Main">
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#pricing">Start free</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero" aria-label="Introduction">
+    <div class="wrap">
+      <div>
+        <span class="kicker label">Invoicing for freelancers</span>
+        <h1>The finest document your client receives all month.</h1>
+        <p class="lede">Facturio drafts, sends and politely chases your invoices — typeset like they’re worth paying, with the Pay button built in.</p>
+        <div class="cta-row">
+          <a class="btn" href="#pricing">Start invoicing free</a>
+          <a class="cta-alt" href="#pricing">See pricing ↓</a>
+        </div>
+        <span class="cta-note label">No card required · 3 invoices a month free, forever</span>
+      </div>
+
+      <figure class="specimen" aria-label="Sample invoice produced with Facturio, shown paid in full">
+        <div class="doc-head">
+          <span><strong>Invoice</strong> Nº 0047</span>
+          <span>Due 26 Jul 2026</span>
+        </div>
+        <div class="parties">
+          <div>From <b>Maren Ots — Editorial design</b></div>
+          <div>To <b>Cordwainer &amp; Co.</b></div>
+        </div>
+        <table>
+          <tbody>
+            <tr><td>Brand identity, phase two</td><td>$2,400.00</td></tr>
+            <tr><td>Editorial templates (×4)</td><td>$960.00</td></tr>
+            <tr><td>Art direction, June</td><td>$1,150.00</td></tr>
+            <tr class="total"><td>Total due</td><td>$4,510.00</td></tr>
+          </tbody>
+        </table>
+        <span class="stamp" aria-hidden="true">Paid<small>12 Jul · 14 days early</small></span>
+        <figcaption>Set &amp; sent with Facturio — payment link enclosed.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <aside class="stats" aria-label="Facturio in numbers">
+    <div class="wrap">
+      <div><span class="num">12,482</span><span class="label">freelancers invoice with Facturio</span></div>
+      <div><span class="num">$48.2M</span><span class="label">collected through invoice pay links</span></div>
+      <div><span class="num">6 days</span><span class="label">sooner paid, on average</span></div>
+    </div>
+  </aside>
+
+  <section class="section" id="features" aria-labelledby="features-h">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="sec-no" aria-hidden="true">01</span>
+        <h2 id="features-h">Everything between “work done” and “money in”.</h2>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <span class="no" aria-hidden="true">Nº 01</span>
+          <h3>Typeset, not templated</h3>
+          <p>Every invoice is set with real typographic care — hierarchy, tabular figures, a proper grid. Clients notice, even when they can’t say why.</p>
+        </div>
+        <div class="feature">
+          <span class="no" aria-hidden="true">Nº 02</span>
+          <h3>Politely relentless reminders</h3>
+          <p>Overdue invoices get firm, courteous follow-ups you approve once. You remain the nice one; Facturio plays the accountant.</p>
+        </div>
+        <div class="feature">
+          <span class="no" aria-hidden="true">Nº 03</span>
+          <h3>Payment inside the page</h3>
+          <p>Card, bank transfer or wallet — the Pay button lives in the invoice itself, so settling up is one click, not one more email thread.</p>
+        </div>
+        <div class="feature">
+          <span class="no" aria-hidden="true">Nº 04</span>
+          <h3>Retainers on rails</h3>
+          <p>Recurring invoices draft, send and reconcile themselves each month. Set the schedule once and watch the ledger fill.</p>
+        </div>
+        <div class="feature">
+          <span class="no" aria-hidden="true">Nº 05</span>
+          <h3>Taxes, precomputed</h3>
+          <p>VAT, sales tax or IVA per line item, plus quarterly exports your accountant will actually thank you for.</p>
+        </div>
+        <div class="feature">
+          <span class="no" aria-hidden="true">Nº 06</span>
+          <h3>Any currency, one ledger</h3>
+          <p>Bill in dollars, euros or kroner; read your totals in one currency at daily rates. No spreadsheet gymnastics.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="pricing" aria-labelledby="pricing-h">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="sec-no" aria-hidden="true">02</span>
+        <h2 id="pricing-h">Pricing, itemized.</h2>
+      </div>
+      <p class="sec-sub">Like any good invoice: nothing surprising below the total.</p>
+      <div class="ledger-scroll">
+        <table class="ledger">
+          <caption class="sr">Facturio plans: name, what is included, monthly price, and sign-up link</caption>
+          <thead>
+            <tr>
+              <th scope="col">Plan</th>
+              <th scope="col">What’s included</th>
+              <th scope="col">Monthly</th>
+              <th scope="col"><span class="sr">Sign up</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Free</th>
+              <td class="inc">3 invoices a month, one client, payment links, a discreet “Set with Facturio” line in the footer.</td>
+              <td class="price">$0</td>
+              <td><a href="#pricing">Start free</a></td>
+            </tr>
+            <tr>
+              <th scope="row">Solo <span class="chip">Recommended</span></th>
+              <td class="inc">Unlimited invoices and clients, automatic reminders, recurring billing, your own mark on every page.</td>
+              <td class="price">$12<small> /mo</small></td>
+              <td><a href="#pricing">Start Solo</a></td>
+            </tr>
+            <tr>
+              <th scope="row">Studio</th>
+              <td class="inc">Everything in Solo, plus three seats, a shared client ledger, tax exports and priority support.</td>
+              <td class="price">$29<small> /mo</small></td>
+              <td><a href="#pricing">Start Studio</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="fine label">Prices in USD, billed monthly · Cancel anytime — your invoices remain yours</p>
+    </div>
+  </section>
+
+  <section class="plea" aria-label="Closing invitation">
+    <div class="wrap">
+      <p>Your work deserves a better last page.</p>
+      <a class="btn" href="#pricing">Start invoicing free</a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="colophon">
+      <span class="brand">Facturio<em>.</em></span>
+      <p>Invoicing for freelancers. This page is one file — set in your system’s own serif, delivered with zero scripts and zero trackers.</p>
+    </div>
+    <div>
+      <h3>Product</h3>
+      <ul>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#main">Templates</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Company</h3>
+      <ul>
+        <li><a href="#main">About</a></li>
+        <li><a href="#main">Journal</a></li>
+        <li><a href="#main">Contact</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Legal</h3>
+      <ul>
+        <li><a href="#main">Terms</a></li>
+        <li><a href="#main">Privacy</a></li>
+        <li><a href="#main">Imprint</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="legalline">
+    <div class="wrap">
+      <span>© 2026 Facturio S.L.</span>
+      <span>All amounts on this page are fictional</span>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

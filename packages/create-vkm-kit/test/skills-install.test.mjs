@@ -31,6 +31,27 @@ test("configureSkillAssets installs skills + agent template; idempotent", async 
     ),
     "domain reference files must install alongside SKILL.md"
   );
+  for (const rel of [
+    ["references", "designer-mind.md"],
+    ["references", "lineages.md"],
+    ["references", "marks.md"],
+    ["references", "contemporary.md"],
+    ["references", "illustration.md"],
+    ["examples", "illustration-gallery.md"],
+    ["scripts", "trace-svg.mjs"],
+    ["scripts", "treat-photo.mjs"],
+    ["modes", "generate.md"],
+    ["scripts", "contrast.mjs"],
+    ["scripts", "palette.mjs"],
+    ["scripts", "audit-css.mjs"],
+    ["scripts", "slop-check.mjs"],
+    ["examples", "worked-example.md"]
+  ]) {
+    assert.ok(
+      fs.existsSync(path.join(home, ".claude", "skills", "vkm-design", ...rel)),
+      `vkm-design nested asset must install: ${rel.join("/")}`
+    );
+  }
   assert.ok(fs.existsSync(path.join(home, ".claude", "agents", "vkm-implementer.md")));
 });
 
