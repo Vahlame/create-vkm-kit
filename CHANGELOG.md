@@ -209,7 +209,10 @@ GENERAL]`, `[regla]` — invisible to `vault_observations(category:'decision')`)
   `--skills`/`--agents`, `--ollama`, `--uninstall`). New `packages/vkm-doctor/README.md` and
   `packages/vkm-spec/README.md` (neither had one). `docs/README.md` hub: usage / migration /
   glossary links. `--help` drift fixed: the skills paragraph now lists `/vkm-design` (ADR-0053)
-  and says "the three skills" (was "the two").
+  and says "the three skills" (was "the two"). `docs/assets/hero.svg`: new bottom band "Suite de
+  eficiencia 4.x" (token-saver, vkm-doctor, vkm-spec, skills, obscura-web) — the hero only told
+  the 3.x memory story; same light/dark theming, new accent contrast-checked (5.45:1 light /
+  6.95:1 dark), README alt texts updated to match.
 
 ## [4.2.0] - 2026-07-12
 

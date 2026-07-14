@@ -1,18 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-label="Diagrama: el agente habla con servidores MCP, que leen y escriben notas Markdown en tu vault git; un daemon sincroniza el vault con un remoto.">
-  <title>Cómo fluye tu memoria: agente → MCP → vault Markdown + git</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 676" role="img" aria-label="Diagrama: el agente habla con servidores MCP, que leen y escriben notas Markdown en tu vault git; un daemon sincroniza el vault con un remoto; debajo, la suite de eficiencia vkm-kit: token-saver, vkm-doctor, vkm-spec, skills y obscura-web.">
+  <title>Cómo fluye tu memoria: agente → MCP → vault Markdown + git — y la suite de eficiencia vkm-kit</title>
   <style>
     :root{
       --bg:#f8fafc; --panel:#ffffff; --border:#d0d7de;
       --ink:#1f2937; --muted:#57606a; --pill:#f3f6fa;
       --line:#94a3b8; --agent:#6366f1; --mcp:#0ea5e9; --vault:#f59e0b;
-      --daemon:#10b981; --remote:#64748b;
+      --daemon:#10b981; --remote:#64748b; --suite:#7c3aed;
     }
     @media (prefers-color-scheme: dark){
       :root{
         --bg:#0d1117; --panel:#161b22; --border:#30363d;
         --ink:#e6edf3; --muted:#9aa4b2; --pill:#0d1117;
         --line:#6e7681; --agent:#818cf8; --mcp:#38bdf8; --vault:#fbbf24;
-        --daemon:#34d399; --remote:#94a3b8;
+        --daemon:#34d399; --remote:#94a3b8; --suite:#a78bfa;
       }
     }
     .bg{fill:var(--bg);stroke:var(--border)}
@@ -35,7 +35,7 @@
   </defs>
 
   <!-- canvas -->
-  <rect x="1" y="1" width="958" height="518" rx="18" class="bg"/>
+  <rect x="1" y="1" width="958" height="674" rx="18" class="bg"/>
 
   <!-- heading -->
   <text x="40" y="52" class="h1">Cómo fluye tu memoria</text>
@@ -113,9 +113,42 @@
   <line x1="688" y1="443" x2="596" y2="443" class="flow" marker-start="url(#ah)" marker-end="url(#ah)"/>
   <text x="642" y="434" class="lbl" text-anchor="middle">push / pull</text>
 
+  <!-- ============ SUITE BAND: the 4.x efficiency layer ============ -->
+
+  <rect x="40" y="516" width="880" height="124" rx="12" class="card"/>
+  <rect x="40" y="516" width="880" height="6" rx="3" fill="var(--suite)"/>
+  <text x="60" y="550" class="ttl">Suite de eficiencia 4.x — alrededor del mismo flujo</text>
+  <text x="900" y="550" class="mono" text-anchor="end">npx @vkmikc/create-vkm-kit --full</text>
+
+  <rect x="60" y="568" width="160" height="52" rx="9" class="pill"/>
+  <rect x="60" y="568" width="5" height="52" rx="2.5" fill="var(--suite)"/>
+  <text x="74" y="589" class="mono">token-saver</text>
+  <text x="74" y="607" class="mut">compacta salida ruidosa</text>
+
+  <rect x="230" y="568" width="160" height="52" rx="9" class="pill"/>
+  <rect x="230" y="568" width="5" height="52" rx="2.5" fill="var(--suite)"/>
+  <text x="244" y="589" class="mono">vkm-doctor</text>
+  <text x="244" y="607" class="mut">tokens · caché · local</text>
+
+  <rect x="400" y="568" width="160" height="52" rx="9" class="pill"/>
+  <rect x="400" y="568" width="5" height="52" rx="2.5" fill="var(--suite)"/>
+  <text x="414" y="589" class="mono">vkm-spec</text>
+  <text x="414" y="607" class="mut">idea → spec del vault</text>
+
+  <rect x="570" y="568" width="160" height="52" rx="9" class="pill"/>
+  <rect x="570" y="568" width="5" height="52" rx="2.5" fill="var(--suite)"/>
+  <text x="584" y="589" class="mono">3 skills</text>
+  <text x="584" y="607" class="mut">discipline·spec·design</text>
+
+  <rect x="740" y="568" width="160" height="52" rx="9" class="pill"/>
+  <rect x="740" y="568" width="5" height="52" rx="2.5" fill="var(--suite)"/>
+  <text x="754" y="589" class="mono">obscura-web</text>
+  <text x="754" y="607" class="mut">web sigilosa · research</text>
+
   <!-- legend -->
-  <circle cx="48" cy="500" r="5" fill="var(--agent)"/><text x="58" y="504" class="lbl">agente</text>
-  <circle cx="150" cy="500" r="5" fill="var(--mcp)"/><text x="160" y="504" class="lbl">puente MCP</text>
-  <circle cx="288" cy="500" r="5" fill="var(--vault)"/><text x="298" y="504" class="lbl">tus archivos</text>
-  <circle cx="430" cy="500" r="5" fill="var(--daemon)"/><text x="440" y="504" class="lbl">sincronización</text>
+  <circle cx="48" cy="658" r="5" fill="var(--agent)"/><text x="58" y="662" class="lbl">agente</text>
+  <circle cx="150" cy="658" r="5" fill="var(--mcp)"/><text x="160" y="662" class="lbl">puente MCP</text>
+  <circle cx="288" cy="658" r="5" fill="var(--vault)"/><text x="298" y="662" class="lbl">tus archivos</text>
+  <circle cx="430" cy="658" r="5" fill="var(--daemon)"/><text x="440" y="662" class="lbl">sincronización</text>
+  <circle cx="580" cy="658" r="5" fill="var(--suite)"/><text x="590" y="662" class="lbl">suite de eficiencia</text>
 </svg>
