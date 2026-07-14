@@ -14,6 +14,9 @@
   <a href="./LICENSE.md"><img src="https://img.shields.io/badge/license-MIT_%2B_attribution-blue.svg" alt="License"></a>
   <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v4.2.0-orange.svg" alt="Release"></a>
   <a href="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://www.npmjs.com/package/@vkmikc/create-vkm-kit"><img src="https://img.shields.io/npm/v/%40vkmikc%2Fcreate-vkm-kit?label=npm&color=cb3837" alt="npm"></a>
+  <img src="https://img.shields.io/badge/node-%E2%89%A5%2020-43853d.svg" alt="Node ≥ 20">
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-555.svg" alt="Cross-platform">
 </p>
 
 <p align="center">
@@ -37,6 +40,10 @@ server; everything else (semantic search, sync daemon) is optional.
 
 > How does information flow? The diagram above sums it up; the visual detail is in
 > [**How it works**](docs/en/how-it-works.md).
+
+<p align="center">
+  🧠 <b>Hybrid memory</b> BM25 + semantic + graph&ensp;·&ensp;💸 <b>Token-saver</b> (CI gate ≥30%)&ensp;·&ensp;🩺 <b>vkm-doctor</b> — tokens & cache, 100% local&ensp;·&ensp;📝 <b>vkm-spec</b> idea → spec&ensp;·&ensp;🛠️ <b>Skills</b> <code>/vkm-discipline</code> · <code>/vkm-spec</code> · <code>/vkm-design</code>&ensp;·&ensp;🕶️ <b>Stealth web</b> (obscura, opt-in)
+</p>
 
 ---
 

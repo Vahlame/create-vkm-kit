@@ -1227,11 +1227,13 @@ Claude Code native-memory override (when --ide includes claude):
   cache-hit ratio and a broken-cache diagnosis.
   --telemetry / --no-telemetry Force on / remove.
 
-  Skills + subagent (ADR-0049, on by default when --ide includes claude): /vkm-discipline
-  (dense minimal-line code at full quality + verification contract), /vkm-spec (idea →
-  precise spec via one assemble_context call), and the vkm-implementer agent template.
-  Hash-tracked files; uninstall never deletes one you edited.
-  --skills / --no-skills       Force on / remove the two skills.
+  Skills + subagent (ADR-0049/0053, on by default when --ide includes claude):
+  /vkm-discipline (dense minimal-line code at full quality + verification contract),
+  /vkm-spec (idea → precise spec via one assemble_context call), /vkm-design
+  (professional anti-generic design: direction before pixels, computed checks, visual
+  loop), and the vkm-implementer agent template. Hash-tracked files; uninstall never
+  deletes one you edited.
+  --skills / --no-skills       Force on / remove the three skills.
   --agents / --no-agents       Force on / remove the subagent template.
 
   Obscura web (ADR-0051, opt-in via --obscura or --full) — routes web access through the

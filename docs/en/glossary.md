@@ -12,6 +12,10 @@ Terms are listed **A–Z**. For the bigger picture of how the pieces fit togethe
 
 An AI model that can use tools. In this repo, "agent" means any assistant that reads `AGENTS.md` (or the equivalent rules synced into your IDE) and follows the memory protocol. The [Cursor](#cursor) assistant is one example, but the kit works with any tool-capable agent.
 
+### `assemble_context`
+
+An [MCP](#mcp) tool (exposed by [`obsidian-memory-hybrid`](#obsidian-memory-hybrid)) that builds a **budgeted context package in one call** instead of a chain of searches: the matching project-note section, the most relevant passages, and stack hints — passage-first and capped by a character budget. Median **−68% wire tokens** vs. chaining individual searches, CI-gated. It also powers [`vkm-spec`](#vkm-spec). See ADR-0045.
+
 ### Autosync
 
 Keeping the [vault](#vault)'s git history moving without you having to commit by hand. You can use **`obsidian-memoryd watch`** (a small background program that commits for you after a quiet pause — default **45 seconds**, configurable with `OBSIDIAN_MEMORY_DEBOUNCE`), plain **manual git**, or your own scheduler. On Windows the background program is built with `-H windowsgui` plus `proc_windows.go` so that neither it nor the `git` processes it launches ever flash a console window on screen.
@@ -48,6 +52,10 @@ For the optional [Streamable HTTP](#streamable-http) [`basic-memory`](#basic-mem
 
 A search that fuses two methods to rank results: [FTS5](#fts5) **BM25** (matching exact keywords) and **vector cosine** (matching meaning), combined with [Reciprocal Rank Fusion](#reciprocal-rank-fusion-rrf). It is exposed as the `vault_hybrid_search` [MCP](#mcp) tool, returns the matching [chunk](#chunk), and quietly falls back to keyword-only search when no [semantic](#semantic-search) vectors have been built yet. See ADR-0014 / ADR-0017.
 
+### Knowledge graph
+
+Structure the agent can query, authored as plain Markdown (Basic-Memory-compatible): **typed relations** (`- implements [[note]]`) and **categorized observations** (`- [decision] fact #tag`). Queryable via the `vault_relations`, `vault_observations`, and `vault_kg_suggest` (read-only suggestions) [MCP](#mcp) tools. See ADR-0023.
+
 ### MCP
 
 **Model Context Protocol** — the shared language an [agent](#agent) uses to talk to external tools (like the memory tools in this kit). See <https://modelcontextprotocol.io/>.
@@ -63,6 +71,14 @@ The configuration file where you tell your IDE which MCP servers to run. **Curso
 ### MEMORY.md
 
 A file at the top of the [vault](#vault) that holds global, long-lived preferences and rules — the things the [agent](#agent) should remember across every project.
+
+### Memory report
+
+A read-only digest for periodic vault upkeep (`vault_memory_report`): automatic indices (observations by category, hub notes, top `#tags`), hygiene signals (oversized / stale / orphan notes, broken links, `SESSION_LOG` bloat) with concrete next steps, and opt-in near-duplicate pairs. It flags what to condense; it never rewrites a note. See ADR-0024.
+
+### `obscura-web`
+
+The kit's optional **stealth web layer** (`packages/obscura-web`, opt-in `--obscura`): an [MCP](#mcp) server exposing `obscura_fetch` (render a URL through the obscura headless browser), `obscura_search` ([SearXNG](#searxng) JSON → obscura-rendered multi-engine SERP → native fallback), and `obscura_research` (local deep crawl + BM25 ranking — only the relevant passages reach the model). The pinned obscura binary is downloaded and **SHA-256-verified** into `~/.vkm/obscura/`. See ADR-0051 / ADR-0052 / ADR-0054.
 
 ### Obsidian MCP server
 
@@ -84,6 +100,10 @@ A folder inside the [vault](#vault) holding one Markdown file per project. The [
 
 The merge rule used by [hybrid search](#hybrid-search) to combine two result lists. Each ranker (BM25 and vector cosine) contributes `1 / (k + rank)` for every result, where `rank` is that result's position in the list. This blends the two lists robustly **without** needing their scores to share a common scale.
 
+### SearXNG
+
+A self-hosted, privacy-respecting metasearch engine. [`obscura-web`](#obscura-web) uses it as its most robust, structured search layer — started **on demand** (only while a search runs, stopped when idle) or pointed at your own instance with `--searxng-url`. See ADR-0052.
+
 ### Semantic search
 
 Finding notes by **meaning** rather than by exact words. The query and the note [chunks](#chunk) are turned into vectors (see [Embedder](#embedder)) and ranked by cosine similarity, so a query like "automatic note backup" can surface the git-sync note even if it never uses those exact words. Inside [hybrid search](#hybrid-search) it is blended with keyword (BM25) matching. See also [Embedder](#embedder), [Hybrid search](#hybrid-search), [Chunk](#chunk).
@@ -91,6 +111,10 @@ Finding notes by **meaning** rather than by exact words. The query and the note 
 ### SESSION_LOG.md
 
 A file at the top of the [vault](#vault). An append-only log of decisions, kept in chronological order.
+
+### Skills
+
+Slash-command skills the installer drops into `~/.claude/skills/` (Claude Code): **`/vkm-discipline`** — cross-domain execution discipline (dense minimal-line code at full quality, run evidence before "done") that measurably lifts any model; **`/vkm-spec`** — idea → a precise, vault-grounded spec via one [`assemble_context`](#assemble_context) call; **`/vkm-design`** — professional, anti-generic design (direction before pixels, computed checks, a visual loop). Hash-tracked files; uninstall never deletes one you edited. See ADR-0049 / ADR-0053.
 
 ### STDIO
 
@@ -103,6 +127,10 @@ The optional way to run an MCP server over HTTP instead of [STDIO](#stdio) — f
 ### Task Scheduler
 
 Windows' built-in scheduler (`schtasks.exe`), the equivalent of cron on other systems. An optional way to run the [vault](#vault) git sync on a timer if you prefer it over `obsidian-memoryd` (see [`sync.md`](./sync.md)).
+
+### Token-saver
+
+Two `PostToolUse` hooks (on by default for Claude Code) that compact noisy tool output **before** it enters the model's context — ANSI/progress/duplicate-line cleanup with hard preservation of error/warn/fail lines, plus whitespace compaction of MCP JSON — together with `permissions.deny` rules for token-hungry artifacts and the `vkm-terse` output style. CI-gated at **≥30% compaction with zero diagnostic loss**. Runtime kill switch: `VKM_TOKEN_SAVER=0`. See ADR-0043.
 
 ### User Rules
 
@@ -119,3 +147,15 @@ The folder your MCP server reads from and writes to — plain Markdown files tra
 ### `vault_audit`
 
 A vault-health check, available both as the `vault_audit` [MCP](#mcp) tool (via [`obsidian-memory-hybrid`](#obsidian-memory-hybrid)) and as the `audit` / `json-audit` subcommands of the [`obsidian-memory-rag`](#obsidian-memory-rag) CLI. It reports notes that exceed the per-note token budget (~8k), broken `[[wikilinks]]` (a stale-memory signal), and the size of `SESSION_LOG.md`. Pair it with the `rotate-log` command, which archives old `##` sections to `SESSION_LOG/archive.md`. See ADR-0018.
+
+### `vkm-doctor`
+
+The suite's local usage doctor (`packages/vkm-doctor`): a `SessionStart` hook spawns an **OTLP/HTTP JSON sink** on `127.0.0.1:4319` that stores Claude Code's telemetry as NDJSON under `~/.vkm/telemetry/` (90-day prune) — **nothing leaves your machine**. The `vkm-doctor` CLI reports tokens, cost, and the **cache-hit ratio**, with a broken-cache diagnosis; `--include-transcripts` adds a clearly-labelled transcript-derived section. See ADR-0044 and [`docs/observability.md`](../observability.md).
+
+### vkm-kit
+
+The name of this suite since 4.0: the persistent Markdown+git memory this glossary describes **plus** the efficiency pieces — the [token-saver](#token-saver), [`vkm-doctor`](#vkm-doctor), [`vkm-spec`](#vkm-spec), the [skills](#skills), and the optional [`obscura-web`](#obscura-web) layer — all installed by `npx @vkmikc/create-vkm-kit`. Compatibility names are frozen on purpose: the `obsidian-memory-hybrid` MCP key, `obsidian-memoryd`, [`BASIC_MEMORY_HOME`](#basic_memory_home) and the `OBSIDIAN_MEMORY_*` env vars keep working. See the [4.0 migration guide](./migration-4.0.md).
+
+### `vkm-spec`
+
+The suite's spec-builder (`packages/vkm-spec`): turns an idea into a **vault-grounded `<orchestration_package>` XML** you paste into your agent. Local GUI on `127.0.0.1:4923` (`vkm-spec --gui`) or CLI (`vkm-spec "<idea>"`); an optional local Ollama (`phi4-mini`) drafts via structured outputs, and a **deterministic fallback** produces a valid spec whenever Ollama is absent — a CI-tested invariant, not a promise. See ADR-0046 / ADR-0047 / ADR-0048.
