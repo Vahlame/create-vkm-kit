@@ -469,3 +469,99 @@ test("assemble_context: rejects a `project` value shaped like a path traversal (
     rmSync(vault, { recursive: true, force: true });
   }
 });
+
+// --- Retrieval scoping: `section` / `include_research` (spec vkm-research R4) -----
+
+test("vault_fts_search / vault_hybrid_search: `section` scopes RESEARCH/** vs everything else", async () => {
+  const vault = makeVault("hybrid-section-");
+  mkdirSync(join(vault, "RESEARCH", "widgets", "sources"), { recursive: true });
+  writeFileSync(
+    join(vault, "RESEARCH", "widgets", "sources", "a1-overview.md"),
+    "# Overview\n\nWeb research on zoekt distributed search indexing internals.\n",
+    "utf8"
+  );
+  writeFileSync(
+    join(vault, "PROJECTS.md"),
+    "# projects\n\nDecided to adopt zoekt distributed search indexing for our repo.\n",
+    "utf8"
+  );
+
+  const { client, cleanup } = await connectedClient(vault);
+  try {
+    await client.callTool({ name: "vault_fts_index", arguments: { semantic: true } });
+
+    const research = await client.callTool({
+      name: "vault_fts_search",
+      arguments: { query: "zoekt indexing", section: "research" }
+    });
+    const researchData = JSON.parse(textOf(research));
+    assert.ok(researchData.hits.length > 0);
+    assert.ok(researchData.hits.every((h) => h.path.startsWith("RESEARCH/")));
+
+    const memory = await client.callTool({
+      name: "vault_hybrid_search",
+      arguments: { query: "zoekt distributed search indexing", section: "memory" }
+    });
+    const memoryData = JSON.parse(textOf(memory));
+    assert.ok(memoryData.hits.length > 0);
+    assert.ok(memoryData.hits.every((h) => !h.path.startsWith("RESEARCH/")));
+  } finally {
+    await cleanup();
+    rmSync(vault, { recursive: true, force: true });
+  }
+});
+
+test("vault_fts_search / vault_hybrid_search: an out-of-domain `section` is rejected by zod, not silently ignored", async () => {
+  const vault = makeVault("hybrid-section-invalid-");
+  const { client, cleanup } = await connectedClient(vault);
+  try {
+    for (const name of ["vault_fts_search", "vault_hybrid_search"]) {
+      const res = await client.callTool({
+        name,
+        arguments: { query: "x", section: "bogus" }
+      });
+      assert.equal(res.isError, true, `${name} must reject an invalid section value`);
+    }
+  } finally {
+    await cleanup();
+    rmSync(vault, { recursive: true, force: true });
+  }
+});
+
+test("assemble_context: `include_research` default excludes RESEARCH/** passages; true includes them", async () => {
+  const vault = makeVault("hybrid-assemble-research-");
+  mkdirSync(join(vault, "RESEARCH", "widgets", "sources"), { recursive: true });
+  writeFileSync(
+    join(vault, "RESEARCH", "widgets", "sources", "a1-overview.md"),
+    "# Overview\n\nnarwhaltoken widget materials research: titanium alloy resists corrosion.\n",
+    "utf8"
+  );
+
+  const { client, cleanup } = await connectedClient(vault);
+  try {
+    await client.callTool({ name: "vault_fts_index", arguments: {} });
+
+    const excluded = await client.callTool({
+      name: "assemble_context",
+      arguments: { query: "narwhaltoken widget materials" }
+    });
+    const excludedData = JSON.parse(textOf(excluded));
+    assert.ok(
+      excludedData.activePatterns.every((p) => !p.includes("RESEARCH/")),
+      "default assemble_context must not surface RESEARCH/** passages"
+    );
+
+    const included = await client.callTool({
+      name: "assemble_context",
+      arguments: { query: "narwhaltoken widget materials", include_research: true }
+    });
+    const includedData = JSON.parse(textOf(included));
+    assert.ok(
+      includedData.activePatterns.some((p) => p.includes("RESEARCH/")),
+      "include_research:true must surface RESEARCH/** passages"
+    );
+  } finally {
+    await cleanup();
+    rmSync(vault, { recursive: true, force: true });
+  }
+});

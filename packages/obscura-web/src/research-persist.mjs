@@ -188,7 +188,9 @@ function normalizeUrl(raw) {
     if (s.endsWith("/") && u.pathname === "/" && !u.search) s = s.slice(0, -1);
     return s;
   } catch {
-    return String(raw ?? "").trim().toLowerCase();
+    return String(raw ?? "")
+      .trim()
+      .toLowerCase();
   }
 }
 
@@ -287,7 +289,8 @@ async function updateGlobalIndex(root, topic) {
   if (idx >= 0) rows[idx] = newRow;
   else rows.push(newRow);
 
-  const header = "# Research index\n\n| Topic | Sources | Last run | Summary |\n|---|---|---|---|\n";
+  const header =
+    "# Research index\n\n| Topic | Sources | Last run | Summary |\n|---|---|---|---|\n";
   await atomicWrite(fp, header + rows.join("\n") + "\n");
 }
 
@@ -472,7 +475,9 @@ export async function consolidateTopic(
 
   const notes = [];
   for (const f of files) {
-    const { data, body } = parseFrontmatter(await readFile(safeResearchPath(root, topic, "sources", f), "utf8"));
+    const { data, body } = parseFrontmatter(
+      await readFile(safeResearchPath(root, topic, "sources", f), "utf8")
+    );
     notes.push({
       text: `## ${f}\nurl: ${data.url ?? ""}\ntitle: ${data.title ?? ""}\n\n${body.trim()}`
     });
