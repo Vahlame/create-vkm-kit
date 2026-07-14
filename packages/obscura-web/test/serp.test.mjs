@@ -110,6 +110,19 @@ test("searxngSearch normalizes JSON results and tolerates failures", async () =>
   );
 });
 
+test("searxngSearch forwards `page` to SearXNG's `pageno` param (defaults to 1)", async () => {
+  let capturedUrl;
+  const capture = async (url) => {
+    capturedUrl = url;
+    return { ok: true, json: async () => ({ results: [] }) };
+  };
+  await searxngSearch("q", { base: "http://127.0.0.1:8888", page: 3 }, capture);
+  assert.match(capturedUrl, /[?&]pageno=3\b/);
+
+  await searxngSearch("q", { base: "http://127.0.0.1:8888" }, capture);
+  assert.match(capturedUrl, /[?&]pageno=1\b/);
+});
+
 test("searchWeb prefers the SearXNG structured layer when it returns results", async () => {
   _clearSearchCache();
   const searxngImpl = async () => [{ title: "SX", url: "https://sx", snippet: "s" }];
