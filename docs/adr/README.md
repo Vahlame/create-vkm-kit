@@ -56,6 +56,7 @@ Each file in this directory captures one design decision: what was chosen, what 
 | [ADR-0050](./0050-release-train-and-npm-shim.md)                   | 4.0.0 release train: two additive minors, breaking changes last, npm shim forever         | Accepted |
 | [ADR-0051](./0051-obscura-web-stealth-browser.md)                  | obscura-web: stealth web fetch + robust layered search via a local headless browser       | Accepted |
 | [ADR-0052](./0052-searxng-on-demand-lifecycle.md)                  | SearXNG search backend: on-demand lifecycle (MCP-owned) + desktop monitor                 | Accepted |
+| [ADR-0053](./0053-vkm-design-skill.md)                             | `vkm-design`: model-agnostic professional design skill (direction, validators, modes)     | Accepted |
 
 ## Template
 

@@ -6,6 +6,188 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **`obscura_research`: deep web research as local CPU/RAM work, not tokens (ADR-0054).** Third tool
+  in `packages/obscura-web`, alongside `obscura_fetch`/`obscura_search`. Origin: a user pushback that
+  `obscura_search`'s 20-result ceiling was too shallow for real research, and that the fix must not be
+  "dispatch a subagent" — a subagent still spends real LLM tokens/quota, it only relocates the cost out
+  of the main conversation. The actual lever: `obscura`/SearXNG already run as local, per-request/
+  on-demand OS processes (ADR-0051/ADR-0052) that cost zero tokens to execute; the gap was that the
+  "search deep" loop lived in the agent calling the MCP N times. `obscura_research(query,
+max_candidates=50≤300, top_k=8≤30, passage_chars=800)` closes that gap: (1) walks SearXNG's `pageno`
+  server-side (`searxngSearch` extended with a `page` param, verified live against
+  `docs.searxng.org/dev/search_api.html`) to gather up to `max_candidates` — one loopback HTTP
+  round-trip per page, zero LLM tokens; (2) ranks every candidate's title+snippet locally with BM25
+  (`rankCandidates`, k1=1.5/b=0.75, +1-smoothed IDF so a small pool never scores negative) — the
+  candidate pool is its own corpus, no external index or embedding call; (3) fetches only the top
+  `top_k` via the existing `obscuraFetch`; (4) excerpts each to the paragraph(s) that actually match the
+  query (`extractPassage`) instead of returning the whole page. Response carries `scanned` (candidates
+  gathered) and `fetched` (pages read) alongside `results`, so the agent sees how deep it searched
+  without paying tokens for the difference. Honest degrade: no local SearXNG → skips the pageno loop
+  and falls through to `searchWeb`'s existing single-page scrape chain (same ceiling as
+  `obscura_search`) rather than hand-rolling fragile per-engine offset pagination against
+  DuckDuckGo/Bing/Brave HTML — `serp.mjs` already documents why that path doesn't scale. Zero new npm
+  dependencies. 47/47 `@vkmikc/obscura-web` tests green (11 new), 49/49 elsewhere in the monorepo,
+  unchanged.
+- **`obscura_research` curates pages with a local Ollama model instead of keyword overlap
+  (ADR-0055).** Follow-up user pushback on the above: BM25/keyword-window extraction alone
+  systematically discards exactly what research is supposed to find — information that's related
+  to the query but doesn't share its vocabulary. Fix, per the user's own spec: a local LLM must
+  understand and relate each page, one page at a time, nothing accumulated in context, only the
+  already-curated info handed back. `packages/obscura-web/src/ollama-client.mjs` — a
+  self-contained adaptation of `vkm-spec/src/ollama-client.mjs`'s already-proven pattern (typed
+  `OllamaUnavailableError`, structured-output `format`, deterministic-fallback hard invariant;
+  read in full before reuse, not assumed), same default model (`phi4-mini:3.8b-q4_K_M`) and host
+  (`127.0.0.1:11434`) as `vkm-spec` so both share one daemon. `deepResearch` now runs one
+  `checkOllama` per call (not per page); when available, each of the `top_k` fetched pages is
+  curated individually via the new `curatePage(markdown, query)` (input capped at 12,000 chars,
+  `truncated` reported, never silent) before its full text goes out of scope — never combined
+  with another page's text, never returned to the agent, only the curated excerpt is. A single
+  page's curation failure degrades only that page to the ADR-0054 heuristic (now itself improved:
+  `extractPassage` keeps the paragraph _after_ a keyword match too, since elaboration rarely
+  repeats the matched term) — one flaky page never sinks the whole call, and the tool keeps
+  working with Ollama absent exactly like it keeps working with obscura/SearXNG absent. Every
+  result now reports `extraction: "ollama" | "heuristic"` and `relevant: boolean`. New env vars,
+  all optional: `OBSCURA_RESEARCH_OLLAMA=0`, `OBSCURA_OLLAMA_HOST`, `OBSCURA_OLLAMA_MODEL`,
+  `OBSCURA_OLLAMA_KEEP_ALIVE`. Zero new npm dependencies (reuses `zod`). 66/66
+  `@vkmikc/obscura-web` tests green (19 new).
+- **`obscura_research` final result order now trusts Ollama's verdict over BM25.** Found via a
+  real (non-mocked) end-to-end run against "bees": `chosen`'s fetch order comes from BM25, which
+  is blind to meaning, but the response kept that same order even after a page was actually
+  curated — a page Ollama explicitly marked `relevant: false` could still outrank one it
+  confirmed `true`, purely because BM25 scored the rejected page's title/snippet text higher.
+  `deepResearch` now re-sorts `results` by `relevant` (stable — ties keep their original BM25
+  order) after curation. 67/67 `@vkmikc/obscura-web` tests green (1 new, reproduces the ordering
+  bug with a keyword-stuffed-but-off-topic page BM25 would otherwise rank first).
+- **Write-time hygiene lint (`vault-lint.mjs`): drift now dies at the write path.** A manual
+  hygiene pass on a real vault (2026-07-12) found three classes of silent drift no tool prevented
+  at the source: 17 observation lines with non-canonical categories (`[DECISIÓN]`, `[LECCIÓN
+GENERAL]`, `[regla]` — invisible to `vault_observations(category:'decision')`), 6 broken
+  `[[wikilinks]]`, and 18 orphan notes the graph couldn't reach. Every `vault_write_file` /
+  `vault_edit_file` / `vault_append_file` now returns `warnings` when the text being written has
+  (a) a non-canonical observation category (suggests the canonical one; per-vault extras via
+  `memory-schema.json` → `observationCategories`), (b) a `[[wikilink]]` that resolves to no note
+  (template placeholders `<…>` exempt), or (c) a NEW knowledge note (PROJECTS/STACKS/PRACTICES/
+  RULES) with zero links — orphan at birth. Strictly scoped to the text the call introduces
+  (never nags about pre-existing lines), warning-only (never blocks), fail-open (a lint crash
+  cannot break a write), and zero schema cost (no new tools, no description growth).
+- **Scaffolded vaults are born connected.** `create-vkm-kit`'s `START_HERE.md` now ships a
+  "Vault map / Mapa del vault" section wikilinking every note the scaffold creates (MEMORY,
+  SESSION_LOG, PRACTICES/\*, RULES/TEMPLATE, `_meta/agent-profiles`) — the hub whose absence let
+  the 18-orphan drift accumulate.
+- **`vault_audit` no longer flags template placeholders.** `[[PROJECTS/<proyecto>]]` in
+  RULES/TEMPLATE is deliberate scaffolding; the broken-link scan now skips `<…>` targets — the
+  same exemption the write-time lint applies.
+- **`/vkm-design` skill: professional, anti-generic design for any medium (ADR-0053).** Third vkm
+  skill installed by `create-vkm-kit`. A designer-cognition core (`references/designer-mind.md`:
+  Gestalt, hierarchy-first, process order, crit vocabulary), a mandatory design-direction protocol
+  with a banned-by-default "slop fingerprint" (`references/direction.md`), quantified foundations
+  (type scales, OKLCH palettes, motion numbers, inline WCAG formula), a live-verified library map
+  across web/mobile/desktop/TUI/dataviz (`references/libraries.md` — candidates unversioned, hard
+  verify-online rule), four modes (`generate`, `critique`, `visual-loop`, `handoff` with DTCG
+  tokens), executable lineage capsules (`references/lineages.md` — real free typefaces + OKLCH
+  seeds + shape/motion numbers per design language), a fully worked brief→deliver example with
+  real validator output (`examples/worked-example.md`), ceremony scaling (full protocol for new
+  surfaces, inherited direction for edits, numbers-only for micro-tasks), and four zero-dep
+  validators with CLI exit codes and unit tests: `scripts/contrast.mjs` (WCAG; accepts hex AND
+  `oklch()` per CSS Color 4 with gamut-clip detection), `scripts/scale.mjs` (check + `--gen`),
+  `scripts/palette.mjs` (gamut-aware OKLCH neutral/accent ramps + semantic ok/warn/danger tokens
+  searched to a guaranteed >= 4.5:1 on both surface extremes; `--json` emits DTCG tokens) and
+  `scripts/audit-css.mjs` (static stylesheet audit for critique mode: declared color pairs with
+  `var()` resolution, font sizes, spacing rhythm — honest static-only scope), plus
+  `scripts/slop-check.mjs` (the anti-generic fingerprint mechanized: scans HTML/CSS for
+  Inter/Poppins defaults, the indigo/violet family, gradient text, glassmorphism, emoji
+  iconography, uniform radii and stock shadows — exit 1 until each hit is justified or
+  replaced; measured end-to-end in `evals/design-bench/`). Critique mode also
+  gains an "infer the incumbent direction" workflow for edits inside existing systems, and
+  `references/marks.md` covers logo/wordmark/favicon craft (construction, optical corrections,
+  16px→512px test matrix, SVG hygiene). After user feedback that a gate-passing page can still
+  be forgettable, `references/contemporary.md` adds the ceiling: time-stamped award-level
+  currents (2026, verified online) as executable recipes with their slop-versions, a "boldness
+  budget" (1–2 full-intensity moves per surface, in the first viewport) and the **lineup test**
+  (logo hidden, distinguishable from ten templates?) wired as a Major finding in critique, a
+  per-iteration check in the visual loop and a hard requirement of the committed direction —
+  correct is the floor, memorable is the target. `references/illustration.md` handles any bespoke
+  figurative drawing of a real thing (species, product, landmark, mascot): because **hand-plotting
+  bézier coordinates cannot depict a complex real subject faithfully** — a model emits the category
+  average, so a hand-drawn "guapote" cichlid came out a tuna with every gate green — it teaches a
+  technique-matching decision (trace a reference / treat a photo / icon library / hand-draw only if
+  abstract), a real tracing pipeline `scripts/trace-svg.mjs` (potrace + jimp: reference → Otsu/
+  alpha mask → vector → restyle), and an **IoU fidelity gate** (measured overlap of trace vs
+  reference, ship ≥ ~0.7). Proven on `evals/design-bench` "The Cabinet": 7 subjects across 3
+  categories traced from CC/CC0 references, IoU 0.66–0.92. `examples/illustration-gallery.md` runs
+  the technique choice across 8 subjects; wired as a Major finding in critique/visual-loop and a
+  build step in generate. `illustration.md` Step 4 + `foundations.md` add the **mixed-ratio
+  alignment** rule: logos/avatars/icons/illustrations of different native aspect ratios in one
+  grid render at different sizes and off-centre (a "desfase") — normalize each to a shared box by
+  its longest side (`object-fit: contain` for raster; shared square `viewBox` +
+  `preserveAspectRatio` for SVG), with `trace-svg.mjs --square` producing grid-ready output at
+  trace time. `trace-svg.mjs` also **cleans the mask before tracing** (largest connected
+  component + fill-holes + morphological smoothing) so the trace follows the subject's shape, not
+  the photo's background grain and interior texture — a raw threshold traces the noise and ships
+  a speckled artifact; a cleaned one traces to a single smooth path. Documented limits (both
+  caught by the IoU gate): a busy background can't be thresholded, and fill-holes closes
+  meaningful holes — so the rule is trace CLEAN references, verify, and drop what won't come out
+  faithful rather than ship artifacts. `scripts/treat-photo.mjs` (jimp-only) covers the table's
+  other faithful branch — **treat a real photo** with duotone / halftone / cutout when a subject
+  has no clean line to trace (fine texture, a portrait): the output IS the photo so it stays
+  faithful with full detail, the treatment makes it one system, no trace artifacts. The
+  illustration toolkit now matches the decision table end to end: trace a clean reference OR treat
+  a photo — both faithful, neither hand-plotted (`evals/design-bench` run 6f). The lineage
+  catalog quadrupled (8 → 16 executable capsules: naturalist/field-guide, heritage/workwear, Y2K
+  chrome, groovy 70s, sci-fi HUD, Scandinavian folk, collage/zine, soft-dimensional/clay) and the
+  contemporary currents grew 10 → 14 (image-treatment-as-identity, sticker/badge layer, giant
+  cropped wordmark, custom cursor/selection). `vkm-discipline`'s `domains/design-ui.md` stays the
+  acceptance gate and now points to the skill.
+
+- **`vault_delete_file` + `vault_move_file`: note lifecycle lands in the hybrid MCP (17 tools).**
+  Until now the vault surface could create and edit notes but never retire or reorganize them —
+  deletes/renames meant dropping to the shell (outside the vault lock, no path-escape checks, no
+  etag precondition). Both tools run under the advisory write lock with `safeVaultPath` validation
+  and opt-in `ifMatch`. Safety rails, chosen so an agent mistake is recoverable and a broken link is
+  visible instead of silent:
+  - Delete is **soft by default** — the file moves to `.trash/<same relative path>` (Obsidian's
+    vault-trash folder, uniquified on collision); `permanent: true` unlinks for real and is the only
+    way to remove something already in `.trash/`. Restore is just `vault_move_file` back out.
+  - Move refuses an existing destination without `overwrite: true`, creates destination parent dirs,
+    and runs the destination-side `memory-schema.json` check like a fresh write there would.
+  - Both refuse directories and the core protocol notes (`START_HERE`/`MEMORY`/`SESSION_LOG`/
+    `KNOWN_FAILURES`), and neither rewrites `[[wikilinks]]` — the result reports which notes still
+    reference the old name (`linkRefs`/`staleLinkRefs`, boundary-checked so `[[typescript-advanced]]`
+    never counts for `typescript`) so the agent fixes links deliberately.
+  - Schema budget (ADR-0035) raised 8,000 → 9,200 chars in the same change: two destructive-capable
+    tools whose rails must be visible in the schema, not discovered by error. Also fixes the stale
+    "fourteen tools" count in the stack rule (it was 15 — `assemble_context` was never enumerated).
+- **Note-lifecycle tool set completes the hybrid MCP surface (22 tools):** `vault_append_file`,
+  `vault_frontmatter_set`, `vault_backlinks`, `vault_git_history`, `vault_rotate_log`.
+  - `vault_append_file` — CRLF-aware append (creates if missing, normalizes newlines to the file's
+    EOL, guarantees separation): the close ritual's `SESSION_LOG` one-liner no longer needs a read +
+    single-line-anchor edit round-trip.
+  - `vault_frontmatter_set` — set/remove top-level **scalar** YAML frontmatter keys without
+    text-matching (`status: hypothesis→confirmed`, `last_verified`). Creates the block when absent,
+    preserves everything else byte-for-byte, refuses nested/multi-line values instead of corrupting
+    them, JSON-quotes values YAML could misread.
+  - `vault_backlinks` — read-only "who `[[links]]` here" (boundary-checked, self-references
+    excluded); the impact check before a delete/move, and it works for already-deleted targets.
+  - `vault_git_history` — read-only bridge to the sync repo: a note's commits, or its content at a
+    `rev` (strict hash/`HEAD~N` allowlist, never parsed as a git option) — recovery even after
+    `permanent: true`. Old content returns inside the untrusted-data envelope like any vault read.
+  - `vault_rotate_log` — MCP face of the existing `rotate-log` engine via a new Python
+    `json-rotate-log` subcommand (same options, one JSON object out): archive old `SESSION_LOG.md`
+    sections keeping the newest N; moves, never deletes; `dryRun` previews. Closes the loop with
+    `vault_audit`'s bloat warning in-session.
+  - The rotate engine (`rotate.py`) now also rotates **flat bullet logs**: when `SESSION_LOG.md`
+    has no `##` sections, top-level `-` bullets (the close ritual's "one line at the end" format,
+    indented continuations attached) are the rotation unit; sections still win on mixed files so a
+    bullet list inside a section is never rotated on its own. `RotateResult`/`json-rotate-log` gain
+    a `mode: "sections" | "bullets"` field. Found live: the shipped vault convention writes bullet
+    lines, so section-only rotation was a silent no-op (`sections_total: 0`) on real logs.
+    `vault_memory_report`'s recent-activity digest (`reflect.py`) shares the splitter and inherits
+    the fallback — a flat bullet log now counts its newest entries instead of reporting zero activity.
+  - Schema budget: 9,200 → 10,800 chars (measured 10,622) — five tools at ~320 chars each, already
+    trimmed to the load-bearing contract.
+
 ## [4.2.0] - 2026-07-12
 
 ### Added
