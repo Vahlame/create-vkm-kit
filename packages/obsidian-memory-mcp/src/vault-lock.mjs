@@ -35,14 +35,24 @@ const RETRY_START_MS = 25;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/** Already gone (ENOENT) is the expected race-loser outcome everywhere we unlink a lockfile.
- * On Windows, a concurrent contender's readFile()/writeFile() on the same path can also make
- * unlink transiently fail EPERM/EBUSY (mandatory file locking; POSIX has no equivalent, which
- * is why this only ever surfaced in Windows CI) — harmless here since correctness never
- * depends on the unlink succeeding: a lock this code fails to clear is still reclaimed by the
- * next acquirer's dead-PID/TTL check. */
-function isBenignUnlinkError(err) {
-  return err.code === "ENOENT" || err.code === "EPERM" || err.code === "EBUSY";
+/**
+ * Windows enforces mandatory file locking around delete; POSIX doesn't, which is why this
+ * whole class of error only ever surfaced in Windows CI. While one lockfile path is mid-delete
+ * (unlink puts it in a "pending delete" state until every handle closes, not gone instantly),
+ * a concurrent create/read of that SAME path can transiently see EPERM/EBUSY where POSIX would
+ * just see ENOENT-then-success. Every unlink/create/read of the lockfile in this module treats
+ * EPERM/EBUSY as "contended right now," never as fatal — correctness never depends on any one
+ * of these calls succeeding on its first try: the retry loop converges, and worst case the next
+ * acquirer's dead-PID/TTL check reclaims a lock this code failed to clear.
+ */
+export function isLockContentionError(err) {
+  return err.code === "EPERM" || err.code === "EBUSY";
+}
+
+/** Already gone (ENOENT), or transiently contended (see {@link isLockContentionError}) —
+ * either way, safe to treat the unlink as having done its job. */
+export function isBenignUnlinkError(err) {
+  return err.code === "ENOENT" || isLockContentionError(err);
 }
 
 /** True when `pid` is a live process on THIS host. EPERM means "alive but not
@@ -97,7 +107,10 @@ export async function acquireVaultLock(vaultAbs, opts = {}) {
         }
       };
     } catch (err) {
-      if (err.code !== "EEXIST") throw err;
+      // EEXIST is the normal "someone's holding it" outcome; a transient EPERM/EBUSY from a
+      // concurrent release's in-flight unlink means the same thing here — treat both as
+      // "contended, go inspect the holder and back off," not as fatal.
+      if (err.code !== "EEXIST" && !isLockContentionError(err)) throw err;
     }
 
     const holder = await readHolder(lockPath);
@@ -127,7 +140,10 @@ export async function acquireVaultLock(vaultAbs, opts = {}) {
     try {
       raw = await readFile(fp, "utf8");
     } catch (err) {
-      if (err.code === "ENOENT") return { stale: true }; // released between attempts
+      // ENOENT: released between attempts. EPERM/EBUSY: someone's unlink of this same path is
+      // in flight on Windows (see isLockContentionError) — functionally the same "releasing
+      // right now" situation, so treat it the same way rather than throwing.
+      if (err.code === "ENOENT" || isLockContentionError(err)) return { stale: true };
       throw err;
     }
     let info = null;
