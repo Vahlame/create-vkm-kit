@@ -59,9 +59,23 @@ export async function loadSchemaConfig(vaultAbs) {
   try {
     const parsed = JSON.parse(await readFile(fp, "utf8"));
     const folders = parsed && typeof parsed.folders === "object" ? parsed.folders : null;
-    value = folders
-      ? { config: { folders, enforce: parsed.enforce === true } }
-      : { config: null, warning: `${SCHEMA_CONFIG_NAME}: no "folders" object — ignored` };
+    // Optional extra allowed observation categories for the write-time lint
+    // (vault-lint.mjs) — carried through even when frontmatter "folders"
+    // validation is not configured.
+    const cats = Array.isArray(parsed?.observationCategories) ? parsed.observationCategories : null;
+    value =
+      folders || cats
+        ? {
+            config: {
+              ...(folders ? { folders } : {}),
+              enforce: parsed.enforce === true,
+              ...(cats ? { observationCategories: cats } : {})
+            }
+          }
+        : {
+            config: null,
+            warning: `${SCHEMA_CONFIG_NAME}: no "folders" object or "observationCategories" — ignored`
+          };
   } catch (err) {
     value = {
       config: null,
@@ -82,7 +96,9 @@ export async function loadSchemaConfig(vaultAbs) {
  * @returns {string[]} missing key names
  */
 export function validateFrontmatter(relPath, content, config) {
-  if (!config || !relPath.toLowerCase().endsWith(".md")) return [];
+  // A config may carry only observationCategories (for the lint) and no
+  // frontmatter rules at all.
+  if (!config || !config.folders || !relPath.toLowerCase().endsWith(".md")) return [];
   const norm = relPath.replace(/\\/g, "/").replace(/^\/+/, "");
   const folder = norm.includes("/") ? norm.split("/", 1)[0] : "";
   const rule = config.folders[folder] ?? config.folders["*"];

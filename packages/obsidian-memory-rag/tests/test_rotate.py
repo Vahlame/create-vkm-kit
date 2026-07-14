@@ -131,3 +131,152 @@ def test_archive_appends_across_runs(tmp_path: Path) -> None:
     # Earlier archived content is preserved; more sections were appended.
     assert "entry 0" in second
     assert second.count("## ") > first.count("## ")
+
+
+def test_cli_json_rotate_log(tmp_path: Path, monkeypatch, capsys) -> None:
+    """`json-rotate-log` prints ONE JSON object (the MCP bridge contract)."""
+    import json
+    import sys
+
+    from obsidian_memory_rag.cli import main
+
+    vault = tmp_path / "vault"
+    _make_log(vault, 12)
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["obsidian-memory-rag", "json-rotate-log", "--vault", str(vault), "--keep", "8"],
+    )
+    main()
+    out = json.loads(capsys.readouterr().out)
+    assert out["sections_total"] == 12
+    assert out["kept"] == 8
+    assert out["archived"] == 4
+    assert out["changed"] is True
+    assert out["dry_run"] is False
+    assert out["archive_path"].endswith("archive.md")
+
+
+def test_cli_json_rotate_log_dry_run_writes_nothing(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    import json
+    import sys
+
+    from obsidian_memory_rag.cli import main
+
+    vault = tmp_path / "vault"
+    log = _make_log(vault, 12)
+    before = log.read_text(encoding="utf-8")
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "obsidian-memory-rag",
+            "json-rotate-log",
+            "--vault",
+            str(vault),
+            "--keep",
+            "8",
+            "--dry-run",
+        ],
+    )
+    main()
+    out = json.loads(capsys.readouterr().out)
+    assert out["archived"] == 4
+    assert out["dry_run"] is True
+    assert out["changed"] is False
+    assert log.read_text(encoding="utf-8") == before
+    assert not (vault / "SESSION_LOG" / "archive.md").exists()
+
+
+def _make_bullet_log(vault: Path, n: int, *, preamble: str = "# SESSION_LOG\n\n") -> Path:
+    """Write SESSION_LOG.md as a flat bullet timeline (the close-ritual format)."""
+    vault.mkdir(parents=True, exist_ok=True)
+    parts = [preamble] if preamble else []
+    for i in range(n):
+        parts.append(f"- **2026-06-{i + 1:02d} — entry {i}**: body {i}\n")
+    log = vault / "SESSION_LOG.md"
+    log.write_text("".join(parts), encoding="utf-8")
+    return log
+
+
+def test_bullet_log_rotates_keeping_newest(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    log = _make_bullet_log(vault, 12)
+
+    res = rotate_session_log(vault, keep=8)
+
+    assert res.mode == "bullets"
+    assert res.changed is True
+    assert res.sections_total == 12
+    assert res.kept == 8
+    assert res.archived == 4
+
+    kept_text = log.read_text(encoding="utf-8")
+    assert kept_text.startswith("# SESSION_LOG\n\n")  # preamble preserved
+    assert "entry 3" not in kept_text
+    assert "entry 4" in kept_text and "entry 11" in kept_text
+
+    archive = (vault / "SESSION_LOG" / "archive.md").read_text(encoding="utf-8")
+    assert "entry 0" in archive and "entry 3" in archive
+    assert "entry 4" not in archive
+    # Oldest-first original order preserved.
+    assert archive.index("entry 0") < archive.index("entry 3")
+
+
+def test_bullet_log_keeps_indented_continuations_attached(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    log = vault / "SESSION_LOG.md"
+    log.write_text(
+        "- **old**: first\n  continued line of old\n- **mid**: second\n- **new**: third\n",
+        encoding="utf-8",
+    )
+
+    res = rotate_session_log(vault, keep=2)
+
+    assert res.mode == "bullets"
+    assert res.archived == 1
+    archive = (vault / "SESSION_LOG" / "archive.md").read_text(encoding="utf-8")
+    assert "continued line of old" in archive
+    kept = log.read_text(encoding="utf-8")
+    assert "continued line of old" not in kept
+    assert kept == "- **mid**: second\n- **new**: third\n"
+
+
+def test_mixed_log_prefers_sections_over_bullets(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    log = vault / "SESSION_LOG.md"
+    # Bullets INSIDE sections must never be rotated as standalone units.
+    log.write_text(
+        "## 2026-01-01 — a\n\n- inner bullet a\n\n"
+        "## 2026-01-02 — b\n\n- inner bullet b\n\n"
+        "## 2026-01-03 — c\n\n- inner bullet c\n",
+        encoding="utf-8",
+    )
+
+    res = rotate_session_log(vault, keep=2)
+
+    assert res.mode == "sections"
+    assert res.archived == 1
+    kept = log.read_text(encoding="utf-8")
+    assert "inner bullet a" not in kept
+    assert "inner bullet b" in kept
+
+
+def test_bullet_log_dry_run_writes_nothing(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    log = _make_bullet_log(vault, 12)
+    before = log.read_text(encoding="utf-8")
+
+    res = rotate_session_log(vault, keep=8, dry_run=True)
+
+    assert res.mode == "bullets"
+    assert res.archived == 4
+    assert res.changed is False
+    assert log.read_text(encoding="utf-8") == before
+    assert not (vault / "SESSION_LOG" / "archive.md").exists()

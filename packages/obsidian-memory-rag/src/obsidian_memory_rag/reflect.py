@@ -107,7 +107,10 @@ def _recent_activity(vault: Path, *, sections: int = 15) -> dict:
         text = fp.read_text(encoding="utf-8-sig")
     except OSError:
         return {"sections": 0, "top_tags": [], "top_links": []}
-    _, secs = _split_sections(text)
+    # 3-tuple since the bullet-mode change: reflect inherits the same fallback,
+    # so a flat bullet SESSION_LOG (the close ritual's real format) counts its
+    # newest entries instead of silently reporting zero activity.
+    _, secs, _mode = _split_sections(text)
     newest = secs[-sections:]
     tags: Counter[str] = Counter()
     links: Counter[str] = Counter()

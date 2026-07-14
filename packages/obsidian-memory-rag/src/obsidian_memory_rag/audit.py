@@ -284,6 +284,11 @@ def audit_vault(
             target = _wikilink_target(match.group(1))
             if not target:
                 continue
+            # Template placeholders ([[PROJECTS/<proyecto>]]) are deliberate
+            # scaffolding, not broken links — same exemption as the write-time
+            # lint in the MCP (vault-lint.mjs).
+            if "<" in target or ">" in target:
+                continue
             norm = target.replace("\\", "/").strip("/").lower()
             basename = norm.rsplit("/", 1)[-1]
             if basename in known_basenames or norm in known_relpaths:
