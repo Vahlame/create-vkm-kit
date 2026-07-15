@@ -57,6 +57,9 @@ Each file in this directory captures one design decision: what was chosen, what 
 | [ADR-0051](./0051-obscura-web-stealth-browser.md)                  | obscura-web: stealth web fetch + robust layered search via a local headless browser       | Accepted |
 | [ADR-0052](./0052-searxng-on-demand-lifecycle.md)                  | SearXNG search backend: on-demand lifecycle (MCP-owned) + desktop monitor                 | Accepted |
 | [ADR-0053](./0053-vkm-design-skill.md)                             | `vkm-design`: model-agnostic professional design skill (direction, validators, modes)     | Accepted |
+| [ADR-0054](./0054-obscura-research-local-deep-crawl.md)            | `obscura_research`: deep web research as local CPU/RAM work, not tokens                   | Accepted |
+| [ADR-0055](./0055-obscura-research-local-llm-curation.md)          | `obscura_research` curates pages with a local Ollama model, not keyword overlap           | Accepted |
+| [ADR-0056](./0056-research-knowledge-bank.md)                      | `RESEARCH/`: persistent web-research knowledge bank in the same vault, section-filtered   | Accepted |
 
 ## Template
 

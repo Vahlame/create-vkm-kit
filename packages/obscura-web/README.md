@@ -8,8 +8,9 @@ Part of [vkm-kit](../../README.md). Runs from the clone (a private workspace pac
 Code, Codex and Cursor by the installer under `--obscura` / `--full`. See
 [ADR-0051](../../docs/adr/0051-obscura-web-stealth-browser.md),
 [ADR-0052](../../docs/adr/0052-searxng-on-demand-lifecycle.md),
-[ADR-0054](../../docs/adr/0054-obscura-research-local-deep-crawl.md), and
-[ADR-0055](../../docs/adr/0055-obscura-research-local-llm-curation.md).
+[ADR-0054](../../docs/adr/0054-obscura-research-local-deep-crawl.md),
+[ADR-0055](../../docs/adr/0055-obscura-research-local-llm-curation.md), and
+[ADR-0056](../../docs/adr/0056-research-knowledge-bank.md).
 
 ## Why
 
@@ -63,13 +64,15 @@ Deep research without spending agent tokens on the crawl (ADR-0054). Preferred o
 `obscura_search`/`obscura_fetch` calls when a task needs broad coverage — "scan hundreds, keep the
 best few."
 
-| Param            | Type         | Default | Notes                                                                                            |
-| ---------------- | ------------ | ------- | ------------------------------------------------------------------------------------------------ |
-| `query`          | string       | —       | Keywords beat full sentences                                                                     |
-| `max_candidates` | int 1–300    | 50      | Candidates scanned **locally** before ranking — narrow the query past 300, don't widen the crawl |
-| `top_k`          | int 1–30     | 8       | How many top-ranked pages are actually fetched + excerpted                                       |
-| `passage_chars`  | int 200–4000 | 800     | Max chars of excerpted passage per result                                                        |
-| `stealth`        | boolean      | on      | Anti-detection when fetching                                                                     |
+| Param            | Type         | Default | Notes                                                                                             |
+| ---------------- | ------------ | ------- | ------------------------------------------------------------------------------------------------- |
+| `query`          | string       | —       | Keywords beat full sentences                                                                      |
+| `max_candidates` | int 1–300    | 50      | Candidates scanned **locally** before ranking — narrow the query past 300, don't widen the crawl  |
+| `top_k`          | int 1–30     | 8       | How many top-ranked pages are actually fetched + excerpted                                        |
+| `passage_chars`  | int 200–4000 | 800     | Max chars of excerpted passage per result                                                         |
+| `stealth`        | boolean      | on      | Anti-detection when fetching                                                                      |
+| `persist`        | boolean      | false   | Save curated results as notes under `RESEARCH/<topic>/` (requires `topic`) — see below (ADR-0056) |
+| `topic`          | string       | —       | Slug (`^[\w][\w-]*$`) grouping this research; required with `persist`                             |
 
 **How it stays cheap:** the crawl and ranking both run as local CPU/RAM work, not LLM calls —
 `max_candidates` are gathered by walking SearXNG's `pageno` server-side (structured JSON, one loopback
@@ -99,6 +102,39 @@ meaning); once a page is actually curated, the response is re-sorted so `relevan
 come first — a page Ollama explicitly rejected can no longer outrank one it confirmed, just
 because BM25 scored the rejected page's title/snippet higher. Ties keep their BM25 order.
 
+**Persisting into `RESEARCH/` (ADR-0056).** `persist:true` + `topic` turns curated results from
+ephemeral tool output into a small Markdown bank under `OBSCURA_RESEARCH_DIR/<topic>/` (typed
+error if that env var is unset). One verbatim-extract note per curated result goes to
+`sources/<hash8-url>-<slug>.md` (frontmatter `url`/`title`/`retrieved`/`query`/`extraction`/
+`relevant`/`origin: web`/`status: raw`); a per-topic hub (`_index.md`: query log, open questions)
+and the global index (`RESEARCH/_index.md`) are created/updated alongside it. Dedup is by URL
+hash8: re-persisting a URL already in the topic updates that note in place (`retrieved` refreshed,
+query appended to the hub) — it never duplicates. `fetchFailed` results are never persisted;
+`relevant:false` ones are, flag intact, so the agent still makes the final call. The response
+gains a `persisted: { topic, written, updated, dir }` receipt; `persist:false` (the default) is
+byte-identical to the pre-ADR-0056 tool — no new side effects, no new field. Every write is
+root-checked against `OBSCURA_RESEARCH_DIR` first, the same defense-in-depth class as the vault's
+own root-lock.
+
+### `obscura_consolidate(topic, force?)`
+
+The local, 0-token half of dual consolidation (ADR-0056) — the other half is Claude's own
+`/vkm-research` skill (`create-vkm-kit`). Reads `OBSCURA_RESEARCH_DIR/<topic>/sources/` and
+drafts/refreshes `summary.md` via the same local Ollama client as curation, map-reducing sources
+in ≤12,000-char batches without splitting a note across a batch boundary.
+
+| Param   | Type    | Default | Notes                                                   |
+| ------- | ------- | ------- | ------------------------------------------------------- |
+| `topic` | string  | —       | Slug of an existing research topic                      |
+| `force` | boolean | false   | Regenerate an existing `status: draft-local` summary.md |
+
+Writes `summary.md` with frontmatter `status: draft-local`, `generated`, `model`, `sources`, and
+returns `{ sources_read, truncated, model, wrote }`. A `status: consolidated` summary (written by
+`/vkm-research`) is **never** overwritten — not even with `force` — that's a typed rejection; only
+Claude promotes a topic to `consolidated`. No Ollama available → `OllamaUnavailableError`, no
+heuristic fallback (unlike per-page curation, a paraphrased draft has no honest deterministic
+substitute). Empty `sources/` → typed error.
+
 ## SearXNG, started on demand
 
 SearXNG doesn't run in the background. `ensureSearxng()` (`src/ensure-searxng.mjs`) starts the local
@@ -124,19 +160,20 @@ tools simply steer to the native ones — the install never breaks.
 
 ## Environment
 
-| Var                                                        | Purpose                                                                      |
-| ---------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `OBSCURA_BIN`                                              | Absolute obscura binary path (installer sets it; else `obscura` on PATH)     |
-| `OBSCURA_STEALTH=0`                                        | Disable anti-detection (default on)                                          |
-| `OBSCURA_FETCH_TIMEOUT_MS`                                 | Per-fetch navigation budget (default 30000)                                  |
-| `OBSCURA_FETCH_MAX_CHARS`                                  | Cap on returned page size (default 60000)                                    |
-| `OBSCURA_SEARCH_ENGINES`                                   | Comma list overriding the scrape chain (default `duckduckgo,bing,brave`)     |
-| `OBSCURA_SEARXNG_URL`                                      | Point search at a SearXNG directly (`""` disables; bypasses on-demand)       |
-| `OBSCURA_SEARXNG_{PORT,PY,SRC,SETTINGS,IDLE_MS,AUTOSTART}` | On-demand SearXNG paths/timing (see `searxng/README.md`)                     |
-| `OBSCURA_RESEARCH_OLLAMA=0`                                | Disable local-LLM curation in `obscura_research` (default on, auto-detected) |
-| `OBSCURA_OLLAMA_HOST`                                      | Ollama host (default `http://127.0.0.1:11434` — same as `vkm-spec`)          |
-| `OBSCURA_OLLAMA_MODEL`                                     | Curation model (default `phi4-mini:3.8b-q4_K_M` — same as `vkm-spec`)        |
-| `OBSCURA_OLLAMA_KEEP_ALIVE`                                | How long Ollama keeps the model loaded after a research call (default `5m`)  |
+| Var                                                        | Purpose                                                                                       |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `OBSCURA_BIN`                                              | Absolute obscura binary path (installer sets it; else `obscura` on PATH)                      |
+| `OBSCURA_STEALTH=0`                                        | Disable anti-detection (default on)                                                           |
+| `OBSCURA_FETCH_TIMEOUT_MS`                                 | Per-fetch navigation budget (default 30000)                                                   |
+| `OBSCURA_FETCH_MAX_CHARS`                                  | Cap on returned page size (default 60000)                                                     |
+| `OBSCURA_SEARCH_ENGINES`                                   | Comma list overriding the scrape chain (default `duckduckgo,bing,brave`)                      |
+| `OBSCURA_SEARXNG_URL`                                      | Point search at a SearXNG directly (`""` disables; bypasses on-demand)                        |
+| `OBSCURA_SEARXNG_{PORT,PY,SRC,SETTINGS,IDLE_MS,AUTOSTART}` | On-demand SearXNG paths/timing (see `searxng/README.md`)                                      |
+| `OBSCURA_RESEARCH_OLLAMA=0`                                | Disable local-LLM curation in `obscura_research` (default on, auto-detected)                  |
+| `OBSCURA_OLLAMA_HOST`                                      | Ollama host (default `http://127.0.0.1:11434` — same as `vkm-spec`)                           |
+| `OBSCURA_OLLAMA_MODEL`                                     | Curation model (default `phi4-mini:3.8b-q4_K_M` — same as `vkm-spec`)                         |
+| `OBSCURA_OLLAMA_KEEP_ALIVE`                                | How long Ollama keeps the model loaded after a research call (default `5m`)                   |
+| `OBSCURA_RESEARCH_DIR`                                     | Root for `persist`/`obscura_consolidate` writes (installer defaults it to `<vault>/RESEARCH`) |
 
 ## Security
 

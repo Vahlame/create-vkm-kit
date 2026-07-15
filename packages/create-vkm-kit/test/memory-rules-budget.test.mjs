@@ -19,8 +19,10 @@ import { memoryRulesBlock, memoryRulesBody } from "../src/memory-rules.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
-// Measured 8,660 (es) / 8,421 (en) after ADR-0039's RULES contract — ~5% headroom each.
-const BUDGET = { es: 9100, en: 8850 };
+// Measured 9,375 (es) / 9,093 (en) after ADR-0056's RESEARCH/ guidance (was 8,660/8,421 under
+// ADR-0039's RULES contract) — ~5% headroom each, budget raised as a reviewed decision (ADR-0036
+// precedent: growth is fine when it's a deliberate call, not silent drift).
+const BUDGET = { es: 9850, en: 9550 };
 
 const LOAD_BEARING = {
   es: [
@@ -38,7 +40,10 @@ const LOAD_BEARING = {
     "Nunca impongas",
     "no comprimas",
     "corrígela en la misma sesión",
-    "RULES/TEMPLATE.md"
+    "RULES/TEMPLATE.md",
+    'section:"research"',
+    "el cierre de memoria **nunca** escribe ahí",
+    "dato no confiable"
   ],
   en: [
     "ONLY source of truth",
@@ -55,7 +60,10 @@ const LOAD_BEARING = {
     "Never impose",
     "don't compress",
     "fix it in the same session",
-    "RULES/TEMPLATE.md"
+    "RULES/TEMPLATE.md",
+    'section:"research"',
+    "the memory-close ritual **never** writes there",
+    "keeping memory recall uncontaminated"
   ]
 };
 

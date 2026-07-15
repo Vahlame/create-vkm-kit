@@ -78,12 +78,16 @@ export function hybridServer(vaultAbs, kitRepoAbs, opts = {}) {
 
 /**
  * Canonical `obscura-web` stdio server object ({command, args, env}) — the MCP that exposes
- * obscura_fetch / obscura_search, backed by the local obscura headless browser (ADR-0051).
- * Shared by the Cursor merge and the Claude Code / Codex CLI paths.
+ * obscura_fetch / obscura_search / obscura_research, backed by the local obscura headless
+ * browser (ADR-0051) and, for research persistence + consolidation (ADR-0056), the vault's
+ * `RESEARCH/` section. Shared by the Cursor merge and the Claude Code / Codex CLI paths.
  * @param {string} kitRepoAbs absolute path to the kit clone (contains packages/)
- * @param {{ binPath?: string|null, searxngUrl?: string|null }} [opts] - `binPath` wires
+ * @param {{ binPath?: string|null, searxngUrl?: string|null, researchDir?: string|null }} [opts] - `binPath` wires
  *   OBSCURA_BIN (the installer's ~/.vkm/obscura binary); when null, obscura-web uses
  *   `obscura` on PATH. `searxngUrl` wires OBSCURA_SEARXNG_URL for the structured search layer.
+ *   `researchDir` wires OBSCURA_RESEARCH_DIR (root for `obscura_research({persist:true})` and
+ *   `obscura_consolidate`); the installer defaults it to `<vault>/RESEARCH`, overridable via
+ *   `--obscura-research-dir`.
  */
 export function obscuraWebServer(kitRepoAbs, opts = {}) {
   const { obscuraMcpJs } = obscuraWebMcpPathsFromKitRoot(kitRepoAbs);
@@ -91,6 +95,7 @@ export function obscuraWebServer(kitRepoAbs, opts = {}) {
   const env = {};
   if (opts && opts.binPath) env.OBSCURA_BIN = opts.binPath;
   if (opts && opts.searxngUrl) env.OBSCURA_SEARXNG_URL = opts.searxngUrl;
+  if (opts && opts.researchDir) env.OBSCURA_RESEARCH_DIR = opts.researchDir;
   return { command: "node", args: [obscuraMcpJs], env };
 }
 
@@ -211,7 +216,7 @@ export function mergeObsidianHybridServer(merged, vaultAbs, kitRepoAbs, opts = {
  * Add `obscura-web` MCP (stealth fetch + robust search via the local obscura browser).
  * @param {Record<string, unknown>} merged - output of a prior merge (or compatible)
  * @param {string} kitRepoAbs - absolute path to the kit clone (contains packages/)
- * @param {{ binPath?: string|null, searxngUrl?: string|null }} [opts] - passed to obscuraWebServer
+ * @param {{ binPath?: string|null, searxngUrl?: string|null, researchDir?: string|null }} [opts] - passed to obscuraWebServer
  */
 export function mergeObscuraWebServer(merged, kitRepoAbs, opts = {}) {
   const base = /** @type {Record<string, unknown>} */ (JSON.parse(JSON.stringify(merged)));

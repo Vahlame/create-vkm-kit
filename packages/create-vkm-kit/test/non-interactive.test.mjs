@@ -51,6 +51,15 @@ test("non-interactive defaults the vault to ~/Documents/obsidian-memory-vault an
     fs.existsSync(path.join(vault, "RULES", "TEMPLATE.md")),
     "RULES contract template scaffolded (ADR-0039)"
   );
+  assert.ok(
+    fs.existsSync(path.join(vault, "RESEARCH", "_index.md")),
+    "RESEARCH/_index.md seeded (research bank home, ADR-0056)"
+  );
+  assert.match(
+    fs.readFileSync(path.join(vault, "START_HERE.md"), "utf8"),
+    /\[\[RESEARCH\/_index\|RESEARCH\]\]/,
+    "START_HERE links the research bank into the graph (avoids orphan-at-birth)"
+  );
 });
 
 test("non-interactive accepts the vault as a positional arg and creates it if missing", () => {
