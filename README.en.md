@@ -42,7 +42,7 @@ server; everything else (semantic search, sync daemon) is optional.
 > [**How it works**](docs/en/how-it-works.md).
 
 <p align="center">
-  🧠 <b>Hybrid memory</b> BM25 + semantic + graph&ensp;·&ensp;💸 <b>Token-saver</b> (CI gate ≥30%)&ensp;·&ensp;🩺 <b>vkm-doctor</b> — tokens & cache, 100% local&ensp;·&ensp;📝 <b>vkm-spec</b> idea → spec&ensp;·&ensp;🛠️ <b>Skills</b> <code>/vkm-discipline</code> · <code>/vkm-spec</code> · <code>/vkm-design</code>&ensp;·&ensp;🕶️ <b>Stealth web</b> (obscura, opt-in)
+  🧠 <b>Hybrid memory</b> BM25 + semantic + graph&ensp;·&ensp;💸 <b>Token-saver</b> (CI gate ≥30%)&ensp;·&ensp;🩺 <b>vkm-doctor</b> — tokens & cache, 100% local&ensp;·&ensp;📝 <b>vkm-spec</b> idea → spec&ensp;·&ensp;🛠️ <b>Skills</b> <code>/vkm-discipline</code> · <code>/vkm-spec</code> · <code>/vkm-design</code> · <code>/vkm-research</code>&ensp;·&ensp;🕶️ <b>Stealth web</b> (obscura, opt-in)
 </p>
 
 ---
