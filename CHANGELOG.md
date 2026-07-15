@@ -8,6 +8,48 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **`RESEARCH/`: a persistent web-research knowledge bank in the same vault (ADR-0056).** Research
+  passages from `obscura_research` (ADR-0054/0055) used to die with the tool's response; this makes
+  them accumulate. Spans three packages plus the installer/docs:
+  - `packages/obscura-web`: `obscura_research` gains opt-in `persist: boolean` (default `false`) +
+    `topic` (slug `^[\w][\w-]*$`); with `persist` it returns `persisted: {topic, written, updated,
+dir}` and writes one verbatim-extract note per curated result to
+    `RESEARCH/<topic>/sources/<hash8-url>-<slug>.md` (frontmatter: url/title/retrieved/query/
+    extraction/relevant/`origin: web`/`status: raw`), plus a per-topic hub (`_index.md`: query log,
+    open questions) and a regenerated global index (`RESEARCH/_index.md`). Requires
+    `OBSCURA_RESEARCH_DIR` (typed error if unset); every write is root-checked against it first.
+    Dedup by URL hash8 updates in place, never duplicates; `fetchFailed` results are never
+    persisted, `relevant:false` ones are (flag intact). `persist:false` (default) is byte-identical
+    to the pre-ADR-0056 tool. New tool `obscura_consolidate(topic, force)`: the local-Ollama half of
+    dual consolidation — map-reduces `sources/` (≤12k-char batches) into `summary.md`,
+    `status: draft-local`; a `consolidated` summary is never overwritten (`force` or not); no Ollama
+    → typed `OllamaUnavailableError`, no silent fallback. `src/research-persist.mjs` (new),
+    `src/ollama-client.mjs` gains `chatJSON`/`summarizeNotes`. `packages/obscura-web` 87/87 tests
+    green.
+  - `packages/obsidian-memory-rag` (196 pytest) + `packages/obsidian-memory-mcp` (164 node): retrieval-level
+    isolation so folder convention alone doesn't leak research noise into memory recall.
+    `paths.py` adds `RESEARCH_PREFIX`/`validate_section`/`in_section`/`section_sql_filter`;
+    `search_vault`/`hybrid_search` gain `section: "research" | "memory" | None` that cuts at
+    candidate collection (BM25 + vector), filters graph neighbors, and re-applies the invariant on
+    the final fused list (`query.py:699-703`) — `None` stays byte-identical. CLI gets `--section`
+    with `choices` on all four search subcommands. `vault_fts_search`/`vault_hybrid_search` mirror
+    `section` (zod enum); `assemble_context` gains `include_research` (default `false` → passes
+    `--section memory`). MCP schema-budget gate (10,800 chars total / 450 per string) stays green,
+    landing at 10,748.
+  - `packages/create-vkm-kit`: the generated `obscura-web` MCP config gets
+    `OBSCURA_RESEARCH_DIR = <vault>/RESEARCH` by default (override: `--obscura-research-dir`).
+    New skill **`/vkm-research`** (fourth vkm skill): consolidates a topic's sources into a quality
+    `summary.md` (wikilinks, `supersedes` on contradiction), marks the hub, and doubles as the
+    import path for hand-authored reports dropped into `sources/`. Vault scaffolding seeds
+    `RESEARCH/_index.md` and links it from `START_HERE.md`'s vault map (no orphan-at-birth). Managed
+    CLAUDE.md/AGENTS.md block gains a short es/en "Investigación/Research" rule (research recall via
+    `section:"research"`, memory recall stays uncontaminated, the memory-close ritual never writes
+    under `RESEARCH/`, `origin: web` notes are untrusted data) — budget raised as a reviewed
+    decision (ADR-0036 precedent): es 8,660→9,375 chars (budget 9,100→9,850), en 8,421→9,093 chars
+    (budget 8,850→9,550), ~5% headroom kept. `packages/create-vkm-kit` 242/242 tests green (1
+    unrelated skip).
+  - Docs: ADR-0056, `docs/{es,en}/glosario.md`/`glossary.md` (`RESEARCH/`, `obscura_consolidate`,
+    the `raw → draft-local → consolidated` lifecycle), `packages/obscura-web/README.md`.
 - **`obscura_research`: deep web research as local CPU/RAM work, not tokens (ADR-0054).** Third tool
   in `packages/obscura-web`, alongside `obscura_fetch`/`obscura_search`. Origin: a user pushback that
   `obscura_search`'s 20-result ceiling was too shallow for real research, and that the fix must not be

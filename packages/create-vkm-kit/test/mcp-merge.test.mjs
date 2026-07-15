@@ -231,6 +231,22 @@ test("mergeObscuraWebServer adds obscura-web alongside existing servers", () => 
   assert.equal(out.mcpServers["obscura-web"].env.OBSCURA_SEARXNG_URL, "http://127.0.0.1:8888");
 });
 
+test("obscuraWebServer wires OBSCURA_RESEARCH_DIR when researchDir is provided (ADR-0056)", () => {
+  const plain = obscuraWebServer(repoRoot);
+  assert.equal(plain.env.OBSCURA_RESEARCH_DIR, undefined);
+  const s = obscuraWebServer(repoRoot, { researchDir: "/vault/RESEARCH" });
+  assert.equal(s.env.OBSCURA_RESEARCH_DIR, "/vault/RESEARCH");
+});
+
+test("mergeObscuraWebServer carries researchDir alongside searxngUrl/binPath", () => {
+  const base = mergeBasicMemoryServer({}, "/vault");
+  const out = mergeObscuraWebServer(base, repoRoot, {
+    searxngUrl: "http://127.0.0.1:8888",
+    researchDir: "/vault/RESEARCH"
+  });
+  assert.equal(out.mcpServers["obscura-web"].env.OBSCURA_RESEARCH_DIR, "/vault/RESEARCH");
+});
+
 test("obscuraWebMcpPathsFromKitRoot resolves the bridge path", () => {
   const { obscuraMcpJs } = obscuraWebMcpPathsFromKitRoot(repoRoot);
   assert.ok(obscuraMcpJs.endsWith(path.join("packages", "obscura-web", "src", "obscura-mcp.mjs")));

@@ -78,7 +78,11 @@ Un resumen de solo lectura para el mantenimiento periódico del vault (`vault_me
 
 ### `obscura-web`
 
-La capa **web sigilosa** opcional del kit (`packages/obscura-web`, opt-in `--obscura`): un servidor [MCP](#mcp) que expone `obscura_fetch` (renderiza una URL a través del navegador headless obscura), `obscura_search` (JSON de [SearXNG](#searxng) → SERP multi-motor renderizada por obscura → fallback nativo) y `obscura_research` (crawl profundo local + rankeo BM25 — al modelo solo llegan los pasajes relevantes). El binario pineado de obscura se descarga y **verifica por SHA-256** en `~/.vkm/obscura/`. Ver ADR-0051 / ADR-0052 / ADR-0054.
+La capa **web sigilosa** opcional del kit (`packages/obscura-web`, opt-in `--obscura`): un servidor [MCP](#mcp) que expone `obscura_fetch` (renderiza una URL a través del navegador headless obscura), `obscura_search` (JSON de [SearXNG](#searxng) → SERP multi-motor renderizada por obscura → fallback nativo) y `obscura_research` (crawl profundo local + rankeo BM25 — al modelo solo llegan los pasajes relevantes; con `persist:true` + `topic` los persiste en [`RESEARCH/`](#research)). El binario pineado de obscura se descarga y **verifica por SHA-256** en `~/.vkm/obscura/`. Ver ADR-0051 / ADR-0052 / ADR-0054 / ADR-0056.
+
+### `obscura_consolidate`
+
+Herramienta [MCP](#mcp) de [`obscura-web`](#obscura-web) que redacta/actualiza `RESEARCH/<topic>/summary.md` con el modelo Ollama local, map-reduce sobre los `sources/` del tema (por lotes ≤12k caracteres, sin partir una nota). Es la mitad **gratis** (0 tokens) de la consolidación dual — marca el resultado `status: draft-local` y **nunca** pisa un `summary.md` ya `consolidated` (ni con `force`). La otra mitad, de calidad, es la skill [`/vkm-research`](#skills-habilidades). Sin Ollama disponible, falla con error tipado — no hay heurística de respaldo para redactar. Ver ADR-0056.
 
 ### Obsidian MCP server (Servidor MCP de Obsidian)
 
@@ -100,6 +104,10 @@ Una carpeta dentro del [vault](#vault-bóveda) que contiene un archivo Markdown 
 
 La regla de combinación que usa la [búsqueda híbrida](#hybrid-search-búsqueda-híbrida) para unir dos listas de resultados. Cada criterio de ordenación (BM25 y coseno de vectores) aporta `1 / (k + rank)` por cada resultado, donde `rank` es la posición de ese resultado en la lista. Esto mezcla ambas listas de forma robusta **sin** necesidad de que sus puntuaciones compartan una misma escala.
 
+### RESEARCH/
+
+Sección del [vault](#vault-bóveda) — un banco de investigación web persistente, separado de la memoria personal (`MEMORY.md`/`PROJECTS/`/`SESSION_LOG.md`). Solo la escriben `obscura_research({persist:true})` y la consolidación (`obscura_consolidate` / [`/vkm-research`](#skills-habilidades)); el cierre de memoria nunca escribe ahí. Layout: `RESEARCH/_index.md` (índice global de temas) y, por tema, `<topic>/_index.md` (hub: log de queries, huecos), `<topic>/summary.md` (destilado) y `<topic>/sources/*.md` (extractos verbatim con procedencia, `origin: web`). El aislamiento en recall no depende solo de la carpeta: `vault_hybrid_search`/`vault_fts_search` aceptan `section: "research" | "memory"` y `assemble_context` la excluye salvo `include_research:true`. Cada nota de `sources/` sigue el ciclo `raw` (recién persistida) → `draft-local` (borrador de `obscura_consolidate`) → `consolidated` (síntesis de `/vkm-research`, definitiva — nada local la vuelve a pisar). Ver ADR-0056.
+
 ### SearXNG
 
 Un metabuscador auto-hospedado y respetuoso de la privacidad. [`obscura-web`](#obscura-web) lo usa como su capa de búsqueda más robusta y estructurada — se levanta **bajo demanda** (solo mientras corre una búsqueda; se apaga al quedar inactivo) o se apunta a tu propia instancia con `--searxng-url`. Ver ADR-0052.
@@ -114,7 +122,7 @@ Un archivo en la raíz del [vault](#vault-bóveda). Un registro de solo añadidu
 
 ### Skills (Habilidades)
 
-Skills de slash-command que el instalador deja en `~/.claude/skills/` (Claude Code): **`/vkm-discipline`** — disciplina de ejecución cross-dominio (código denso de líneas mínimas a calidad plena, evidencia ejecutada antes de "terminado") que sube el rendimiento de cualquier modelo de forma medida; **`/vkm-spec`** — idea → spec precisa anclada al vault vía una sola llamada a [`assemble_context`](#assemble_context); **`/vkm-design`** — diseño profesional anti-genérico (dirección antes de píxeles, checks computados, loop visual). Archivos con hash; el uninstall nunca borra uno que editaste. Ver ADR-0049 / ADR-0053.
+Skills de slash-command que el instalador deja en `~/.claude/skills/` (Claude Code): **`/vkm-discipline`** — disciplina de ejecución cross-dominio (código denso de líneas mínimas a calidad plena, evidencia ejecutada antes de "terminado") que sube el rendimiento de cualquier modelo de forma medida; **`/vkm-spec`** — idea → spec precisa anclada al vault vía una sola llamada a [`assemble_context`](#assemble_context); **`/vkm-design`** — diseño profesional anti-genérico (dirección antes de píxeles, checks computados, loop visual); **`/vkm-research`** — consolida un tema de [`RESEARCH/`](#research) en un `summary.md` de calidad (wikilinks, `supersedes`), y es también la vía de importación de reportes externos. Archivos con hash; el uninstall nunca borra uno que editaste. Ver ADR-0049 / ADR-0053 / ADR-0056.
 
 ### STDIO
 

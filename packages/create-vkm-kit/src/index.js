@@ -299,6 +299,7 @@ Keeps every note reachable from a hub — link new notes here or from a project 
 - Core: [[MEMORY]] · [[SESSION_LOG]]
 - Practices: [[PRACTICES/observations|observations]] · [[PRACTICES/confirmed-good|confirmed-good]] · [[PRACTICES/confirmed-bad|confirmed-bad]]
 - Rules & meta: [[RULES/TEMPLATE]] · [[_meta/agent-profiles]]
+- Research bank (web findings, separate from personal memory — ADR-0056): [[RESEARCH/_index|RESEARCH]]
 `
       : `---
 type: index
@@ -318,6 +319,7 @@ Mantiene toda nota alcanzable desde un hub — enlaza las notas nuevas aquí o d
 - Núcleo: [[MEMORY]] · [[SESSION_LOG]]
 - Prácticas: [[PRACTICES/observations|observations]] · [[PRACTICES/confirmed-good|confirmed-good]] · [[PRACTICES/confirmed-bad|confirmed-bad]]
 - Reglas y meta: [[RULES/TEMPLATE]] · [[_meta/agent-profiles]]
+- Banco de investigación (hallazgos web, separado de la memoria personal — ADR-0056): [[RESEARCH/_index|RESEARCH]]
 `;
   await fse.writeFile(path.join(vault, "START_HERE.md"), start, "utf8");
   await fse.writeFile(
@@ -445,6 +447,39 @@ Formato: \`fecha · modelo · tipo de tarea · qué funcionó / qué evitar\`
 - 2026-01-15 · Composer · cambio auth/seguridad · se le escapó un caso RLS → añade un self-check de Claude para trabajo sensible a seguridad
 `;
   await fse.writeFile(path.join(vault, "_meta", "agent-profiles.md"), profilesDoc, "utf8");
+  // Research bank home (ADR-0056): global index only — obscura_research/obscura_consolidate
+  // create <topic>/ subdirs on first persist; seeded minimal here to avoid an orphan-at-birth
+  // note (write-time hygiene lint flags unresolved [[wikilinks]] and orphans).
+  await fse.ensureDir(path.join(vault, "RESEARCH"));
+  const researchIndex =
+    lang === "en"
+      ? `---
+type: index
+tags: [research]
+---
+
+# RESEARCH
+
+Global index of research topics — written by \`obscura_research({persist:true})\` and
+\`obscura_consolidate\`, never by the memory-close ritual. Table fills in as topics are persisted.
+
+| Topic | Status | Sources | Last run | Summary |
+| --- | --- | --- | --- | --- |
+`
+      : `---
+type: index
+tags: [research]
+---
+
+# RESEARCH
+
+Índice global de temas de investigación — lo escriben \`obscura_research({persist:true})\` y
+\`obscura_consolidate\`, nunca el cierre de memoria. La tabla se llena a medida que se persisten temas.
+
+| Tema | Estado | Fuentes | Última corrida | Summary |
+| --- | --- | --- | --- | --- |
+`;
+  await fse.writeFile(path.join(vault, "RESEARCH", "_index.md"), researchIndex, "utf8");
   await fse.writeFile(path.join(vault, ".gitignore"), ".obsidian-memory-rag/\n", "utf8");
   await writeVaultGitWorkspaceSettings(vault, dryRun);
 }
@@ -486,7 +521,8 @@ async function writeCursorMcp(home, vaultAbs, dryRun, hybridOpts = {}) {
     usage = false,
     obscura = false,
     obscuraBin = null,
-    searxngUrl = null
+    searxngUrl = null,
+    researchDir = null
   } = hybridOpts;
   if (withHybrid && repoRoot) {
     merged = mergeObsidianHybridServer(merged, vaultAbs, path.resolve(repoRoot), {
@@ -500,7 +536,8 @@ async function writeCursorMcp(home, vaultAbs, dryRun, hybridOpts = {}) {
   if (obscura && repoRoot) {
     merged = mergeObscuraWebServer(merged, path.resolve(repoRoot), {
       binPath: obscuraBin,
-      searxngUrl
+      searxngUrl,
+      researchDir
     });
   }
   if (dryRun) {
@@ -603,7 +640,8 @@ async function registerClaudeCodeMcp(vaultAbs, dryRun, hybridOpts = {}) {
     usage = false,
     obscura = false,
     obscuraBin = null,
-    searxngUrl = null
+    searxngUrl = null,
+    researchDir = null
   } = hybridOpts;
   /** @type {Array<[string, object]>} */
   const servers = [["basic-memory", basicMemoryServer(vaultAbs)]];
@@ -616,7 +654,7 @@ async function registerClaudeCodeMcp(vaultAbs, dryRun, hybridOpts = {}) {
   if (obscura && repoRoot) {
     servers.push([
       "obscura-web",
-      obscuraWebServer(path.resolve(repoRoot), { binPath: obscuraBin, searxngUrl })
+      obscuraWebServer(path.resolve(repoRoot), { binPath: obscuraBin, searxngUrl, researchDir })
     ]);
   }
   for (const [name, server] of servers) {
@@ -661,7 +699,8 @@ async function registerCodexMcp(vaultAbs, dryRun, hybridOpts = {}) {
     usage = false,
     obscura = false,
     obscuraBin = null,
-    searxngUrl = null
+    searxngUrl = null,
+    researchDir = null
   } = hybridOpts;
   /** @type {Array<[string, object]>} */
   const servers = [["basic-memory", basicMemoryServer(vaultAbs)]];
@@ -674,7 +713,7 @@ async function registerCodexMcp(vaultAbs, dryRun, hybridOpts = {}) {
   if (obscura && repoRoot) {
     servers.push([
       "obscura-web",
-      obscuraWebServer(path.resolve(repoRoot), { binPath: obscuraBin, searxngUrl })
+      obscuraWebServer(path.resolve(repoRoot), { binPath: obscuraBin, searxngUrl, researchDir })
     ]);
   }
   for (const [name, server] of servers) {
@@ -920,6 +959,9 @@ async function runNonInteractive(argv) {
   let obscuraBin = null;
   let wantObscuraFinal = wantObscura;
   const searxngUrl = flagValue(argv, "--searxng-url");
+  // Default RESEARCH/ persistence root to <vault>/RESEARCH (ADR-0056); the vault path is
+  // already known here, same pattern as searxngUrl's override above --obscura-research-dir.
+  const researchDir = flagValue(argv, "--obscura-research-dir") || path.join(vault, "RESEARCH");
   if (wantObscuraFinal && !kitRoot) {
     kitRoot = await resolveKitRepoRoot({ cwd, argv, pathExists: (p) => fse.pathExists(p) });
   }
@@ -964,7 +1006,8 @@ async function runNonInteractive(argv) {
     usage: wantUsageBoost,
     obscura: wantObscuraFinal,
     obscuraBin,
-    searxngUrl
+    searxngUrl,
+    researchDir
   };
   if (ides.includes("cursor") && !noCursorMcp) {
     await writeCursorMcp(home, vault, dryRun, hybridOpts);
@@ -1227,13 +1270,14 @@ Claude Code native-memory override (when --ide includes claude):
   cache-hit ratio and a broken-cache diagnosis.
   --telemetry / --no-telemetry Force on / remove.
 
-  Skills + subagent (ADR-0049/0053, on by default when --ide includes claude):
+  Skills + subagent (ADR-0049/0053/0056, on by default when --ide includes claude):
   /vkm-discipline (dense minimal-line code at full quality + verification contract),
   /vkm-spec (idea → precise spec via one assemble_context call), /vkm-design
   (professional anti-generic design: direction before pixels, computed checks, visual
-  loop), and the vkm-implementer agent template. Hash-tracked files; uninstall never
-  deletes one you edited.
-  --skills / --no-skills       Force on / remove the three skills.
+  loop), /vkm-research (consolidate a RESEARCH/<topic> bank into a quality summary.md,
+  wikilinks + supersedes), and the vkm-implementer agent template. Hash-tracked files;
+  uninstall never deletes one you edited.
+  --skills / --no-skills       Force on / remove the four skills.
   --agents / --no-agents       Force on / remove the subagent template.
 
   Obscura web (ADR-0051, opt-in via --obscura or --full) — routes web access through the
@@ -1245,6 +1289,9 @@ Claude Code native-memory override (when --ide includes claude):
   --obscura / --no-obscura     Install + wire obscura-web (on under --full) / skip it.
   --searxng-url <url>          Point obscura_search at a SearXNG JSON instance (e.g.
                                 http://127.0.0.1:8888) for the most robust, structured layer.
+  --obscura-research-dir <dir> Override OBSCURA_RESEARCH_DIR (default <vault>/RESEARCH) — root
+                                obscura_research({persist:true})/obscura_consolidate write under
+                                (ADR-0056).
 
   Uninstall: --no-native-memory-override / --no-memory-enforcement / --no-effort-gate on a
   re-run now ACTIVELY REMOVE the matching pieces this kit previously installed (not just
