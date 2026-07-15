@@ -364,8 +364,11 @@ this architecture:
 - **ADR-0049** — discipline doctrine in three channels (output style, managed-block bullet, `/vkm-discipline` skill).
 - **ADR-0051** — obscura-web: stealth web fetch + layered search via a local headless browser.
 - **ADR-0052** — SearXNG search backend: on-demand lifecycle (MCP-owned) + desktop monitor.
+- **ADR-0053** — `vkm-design`: a model-agnostic professional design skill (direction before pixels, computed checks, visual-critique loop).
+- **ADR-0054/0055** — `obscura_research`: local deep crawl (CPU/RAM, not tokens) + local-LLM (Ollama) curation of the results.
+- **ADR-0056** — `RESEARCH/`: persistent web-research knowledge bank in the vault, consolidated by the `/vkm-research` skill.
 
-The full list (0001–0052) is the [ADR index](./docs/adr/README.md).
+The full list (0001–0056) is the [ADR index](./docs/adr/README.md).
 
 Do not undo an accepted ADR without superseding it with a new one
 (see [`CONTRIBUTING.md`](./CONTRIBUTING.md)).

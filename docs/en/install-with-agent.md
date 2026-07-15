@@ -49,25 +49,25 @@ flowchart TD
   F --> V["Verify: vault ✓ · index ✓ ·<br>Python backend ✓ · mcp list ✓"]
   B --> V
   V --> R["Restart the IDE/CLI<br>(MCP tools don't hot-load)"]
-  R --> L["Next session: vault_hybrid_search ·<br>/vkm-spec · /vkm-discipline · /vkm-design · vkm-doctor"]
+  R --> L["Next session: vault_hybrid_search ·<br>/vkm-spec · /vkm-discipline · /vkm-design · /vkm-research · vkm-doctor"]
 ```
 
 ### What "all its tools and capabilities" means
 
 With Python ≥ 3.11 present, `npm run setup` installs the complete 4.0 suite in one pass:
 
-| Piece                                                                                               | What it gives you                                                                                                              |
-| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **Vault + `basic-memory` MCP**                                                                      | Markdown memory that survives across chats (read/write/search), version-pinned                                                 |
-| **`obsidian-memory-hybrid` MCP**                                                                    | passage-first search (BM25 + semantic + graph), typed knowledge graph, `vault_audit`, memory reports                           |
-| **FTS index + sqlite-vec**                                                                          | search by meaning, accelerated — in `<VAULT>/.obsidian-memory-rag/`                                                            |
-| **Memory rules**                                                                                    | the agent protocol as an idempotent marked block in `~/.claude/CLAUDE.md`, `AGENTS.md` and `.cursor/rules/`                    |
-| **token-saver** _(Claude Code)_                                                                     | noisy-output compaction hooks + artifact deny rules + the `vkm-terse` output style (ADR-0043)                                  |
-| **Local telemetry + `vkm-doctor`** _(Claude Code)_                                                  | OTLP sink at `127.0.0.1:4319`; `npm run doctor` reports tokens, cost and cache health — nothing leaves your machine (ADR-0044) |
-| **`/vkm-discipline`, `/vkm-spec` & `/vkm-design` skills + `vkm-implementer` agent** _(Claude Code)_ | dense-code discipline + the idea→spec pipeline anchored to the vault + the anti-generic design method (ADR-0049, ADR-0053)     |
-| **vkm-spec GUI**                                                                                    | idea to XML spec at `127.0.0.1:4923`, runs from the clone                                                                      |
-| **Ollama + `phi4-mini`** _(≈2.3 GB; best-effort)_                                                   | local spec drafting; if it fails or you skip it with `--no-ollama`, vkm-spec uses its deterministic fallback (ADR-0047)        |
-| **Memory hooks** _(Claude Code)_                                                                    | native auto-memory OFF + deterministic enforcement + effort-gate (ADR-0029/0030/0031)                                          |
+| Piece                                                                                                                | What it gives you                                                                                                                                                |
+| -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Vault + `basic-memory` MCP**                                                                                       | Markdown memory that survives across chats (read/write/search), version-pinned                                                                                   |
+| **`obsidian-memory-hybrid` MCP**                                                                                     | passage-first search (BM25 + semantic + graph), typed knowledge graph, `vault_audit`, memory reports                                                             |
+| **FTS index + sqlite-vec**                                                                                           | search by meaning, accelerated — in `<VAULT>/.obsidian-memory-rag/`                                                                                              |
+| **Memory rules**                                                                                                     | the agent protocol as an idempotent marked block in `~/.claude/CLAUDE.md`, `AGENTS.md` and `.cursor/rules/`                                                      |
+| **token-saver** _(Claude Code)_                                                                                      | noisy-output compaction hooks + artifact deny rules + the `vkm-terse` output style (ADR-0043)                                                                    |
+| **Local telemetry + `vkm-doctor`** _(Claude Code)_                                                                   | OTLP sink at `127.0.0.1:4319`; `npm run doctor` reports tokens, cost and cache health — nothing leaves your machine (ADR-0044)                                   |
+| **`/vkm-discipline`, `/vkm-spec`, `/vkm-design` & `/vkm-research` skills + `vkm-implementer` agent** _(Claude Code)_ | dense-code discipline + the idea→spec pipeline anchored to the vault + the anti-generic design method + consolidating `RESEARCH/` (ADR-0049, ADR-0053, ADR-0056) |
+| **vkm-spec GUI**                                                                                                     | idea to XML spec at `127.0.0.1:4923`, runs from the clone                                                                                                        |
+| **Ollama + `phi4-mini`** _(≈2.3 GB; best-effort)_                                                                    | local spec drafting; if it fails or you skip it with `--no-ollama`, vkm-spec uses its deterministic fallback (ADR-0047)                                          |
+| **Memory hooks** _(Claude Code)_                                                                                     | native auto-memory OFF + deterministic enforcement + effort-gate (ADR-0029/0030/0031)                                                                            |
 
 Pieces marked _(Claude Code)_ install only if the `claude` CLI is on PATH (or you pass
 `--ide claude`). Without a kit clone, the hybrid part degrades to `basic-memory` with a warning —

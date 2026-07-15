@@ -40,15 +40,16 @@ observaciones `[decision]`/`[gotcha]`/`[fact]`) está en [cómo funciona](como-f
 
 ## Las herramientas de la suite, en el día a día
 
-| Quiero…                                                  | Uso…                                                                                                                                              | Dónde                                         |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| Convertir una idea vaga en una spec implementable        | skill **`/vkm-spec`** (en Claude Code) o la **GUI** (acceso directo del Escritorio en Windows, o `npm run gui -w @vkmikc/vkm-spec` desde el clon) | `127.0.0.1:4923`                              |
-| Implementar algo no trivial con disciplina de coste      | skill **`/vkm-discipline`**                                                                                                                       | Claude Code                                   |
-| Diseñar UI/visuales que no parezcan plantilla            | skill **`/vkm-design`** (dirección → tokens → loop visual)                                                                                        | Claude Code                                   |
-| Delegar una spec precisa a un ejecutor                   | subagente **`vkm-implementer`**                                                                                                                   | Claude Code (tool `Agent`)                    |
-| Saber cuántos tokens/coste llevo y si la caché está sana | **`npm run doctor`** desde el clon del kit                                                                                                        | terminal (lee el sink local `127.0.0.1:4319`) |
-| Backup / multi-máquina del vault                         | daemon **`obsidian-memoryd`** o git manual                                                                                                        | [sincronización](sincronizacion.md)           |
-| Revisar la salud del vault                               | tools **`vault_audit`** y **`vault_memory_report`** (pídeselo al agente)                                                                          | cualquier chat con el MCP conectado           |
+| Quiero…                                                   | Uso…                                                                                                                                              | Dónde                                         |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Convertir una idea vaga en una spec implementable         | skill **`/vkm-spec`** (en Claude Code) o la **GUI** (acceso directo del Escritorio en Windows, o `npm run gui -w @vkmikc/vkm-spec` desde el clon) | `127.0.0.1:4923`                              |
+| Implementar algo no trivial con disciplina de coste       | skill **`/vkm-discipline`**                                                                                                                       | Claude Code                                   |
+| Diseñar UI/visuales que no parezcan plantilla             | skill **`/vkm-design`** (dirección → tokens → loop visual)                                                                                        | Claude Code                                   |
+| Consolidar una investigación web en un resumen de calidad | skill **`/vkm-research`** (wikilinks, `supersedes`; también importa reportes externos)                                                            | Claude Code                                   |
+| Delegar una spec precisa a un ejecutor                    | subagente **`vkm-implementer`**                                                                                                                   | Claude Code (tool `Agent`)                    |
+| Saber cuántos tokens/coste llevo y si la caché está sana  | **`npm run doctor`** desde el clon del kit                                                                                                        | terminal (lee el sink local `127.0.0.1:4319`) |
+| Backup / multi-máquina del vault                          | daemon **`obsidian-memoryd`** o git manual                                                                                                        | [sincronización](sincronizacion.md)           |
+| Revisar la salud del vault                                | tools **`vault_audit`** y **`vault_memory_report`** (pídeselo al agente)                                                                          | cualquier chat con el MCP conectado           |
 
 ## Guía situacional: ¿qué uso ahora?
 
