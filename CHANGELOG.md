@@ -6,8 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **`obsidian-memory-rag`: concurrent `ensure_fresh` writers no longer die with `database is
+locked`.** Two simultaneous `vault_hybrid_search` calls with a stale index (reproduced live while
+  verifying ADR-0056) raced `index_vectors`' `BEGIN IMMEDIATE`; the loser only got Python's
+  implicit ~5s `sqlite3.connect` timeout — undocumented and demonstrably too short for a
+  `batch_commit_every=64` batch under a real embedder. Root-cause fix in the shared
+  `store.connect()`: explicit `PRAGMA busy_timeout=30000` on every connection, so a second writer
+  blocks and then reads the winner's committed state (the existing mtime/size incremental logic
+  already skips re-indexing) — no manual retry loop needed, SQLite's busy handler transparently
+  retries `BEGIN IMMEDIATE`. Verified red→green with a new barrier-synced two-thread test
+  (`tests/test_concurrent_ensure_fresh.py`, slow-embedder holds the lock ~6.4s); full suite 197
+  passed, none modified.
+
 ### Added
 
+- **`vkm-doctor`: skills-drift check.** Real gap found on the maintainer's own machine: `vkm-design`
+  and `vkm-research` existed in the kit's templates but were missing from `~/.claude/skills/`
+  (install predated their addition) and nothing noticed. The doctor now compares what the kit
+  defines against what's installed and reports MISSING (no `SKILL.md` installed) and STALE
+  (installed `SKILL.md` content differs from the template), with an actionable reinstall hint. The
+  canonical list comes from `create-vkm-kit`'s own `skillAssetFiles` resolver via a dynamic import
+  isolated in `src/skills-drift.mjs` — it can never drift from what the installer actually installs,
+  and when that import isn't resolvable (standalone npm install) the check degrades to an honest
+  skip, never a silent false-negative; no `~/.claude/skills/` directory at all is likewise an
+  informative skip. `packages/vkm-doctor` 11/11 tests green.
 - **`RESEARCH/`: a persistent web-research knowledge bank in the same vault (ADR-0056).** Research
   passages from `obscura_research` (ADR-0054/0055) used to die with the tool's response; this makes
   them accumulate. Spans three packages plus the installer/docs:
