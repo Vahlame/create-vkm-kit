@@ -119,7 +119,23 @@ export function renderReport(report) {
     );
   }
   lines.push("", `sources: ${report.sources.join(", ")} (local only; nothing leaves this machine)`);
+  if (report.skillsDrift) lines.push("", renderSkillsDrift(report.skillsDrift));
   return lines.join("\n");
+}
+
+const SKILLS_REINSTALL_HINT = "npx @vkmikc/create-vkm-kit --ide claude --skills -y";
+
+/** Render the skills-drift section (ADR-0049 companion) — its own labelled block, never
+ *  folded into the token totals above: a missing/stale skill is a Claude Code config
+ *  problem, not a token-usage number. */
+export function renderSkillsDrift(d) {
+  if (d.skipped) return `skills: skipped — ${d.reason}`;
+  if (!d.missing.length && !d.stale.length) return `skills: ok — ${d.ok.join(", ")} (up to date)`;
+  const parts = ["skills: [!] drift detected"];
+  if (d.missing.length) parts.push(`  MISSING (not installed): ${d.missing.join(", ")}`);
+  if (d.stale.length) parts.push(`  STALE (differs from kit template): ${d.stale.join(", ")}`);
+  parts.push(`  fix: ${SKILLS_REINSTALL_HINT}`);
+  return parts.join("\n");
 }
 
 async function main() {
@@ -128,6 +144,18 @@ async function main() {
   const report = aggregate({
     days: daysFlag >= 0 ? Number(argv[daysFlag + 1]) || 30 : 30
   });
+  // Skills drift (ADR-0049 companion): degrade honest — a resolution failure of the deep
+  // create-vkm-kit import (e.g. a pre-ADR-0049 vkm-doctor install) must never crash the core
+  // token report, just mark the check skipped.
+  try {
+    const { checkSkillsDrift } = await import("./skills-drift.mjs");
+    report.skillsDrift = checkSkillsDrift();
+  } catch (e) {
+    report.skillsDrift = {
+      skipped: true,
+      reason: `skills-drift check unavailable: ${e?.message || e}`
+    };
+  }
   // Transcript-estimate fallback, opt-in and NEVER blended: it renders as its own
   // labeled section / JSON key (session JSONL is an unstable internal format).
   if (argv.includes("--include-transcripts")) {
