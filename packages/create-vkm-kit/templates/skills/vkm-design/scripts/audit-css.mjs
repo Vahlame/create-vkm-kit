@@ -5,7 +5,7 @@
 // rhythm with the sibling checkers. HONEST SCOPE: token-level static analysis only —
 // inheritance, computed styles and rendered output are out of reach; the visual loop
 // (modes/visual-loop.md) remains the real judge.
-// Library:   import { extractCustomProps, resolveVars, extractPairs } from "./audit-css.mjs"
+// Library:   import { extractCustomProps, resolveVars, extractPairs, countEmUsage } from "./audit-css.mjs"
 // CLI:       node audit-css.mjs <file.css> [more.css…] [--base 4] [--tolerance 0.03]
 // Exit codes: 0 = no failing findings · 1 = failing findings · 2 = usage error.
 import { readFileSync } from "node:fs";
@@ -120,6 +120,23 @@ export function extractPx(css, propPattern, props) {
   return [...out].sort((a, b) => a - b);
 }
 
+/**
+ * Count numeric `em` usages inside declarations matching `propPattern` — informational only.
+ * Unlike `rem` (always relative to the root, safe to count at 16px), `em` is relative to the
+ * ELEMENT'S OWN computed font-size, which static analysis can't resolve — guessing a conversion
+ * risks injecting a wrong value into the scale check, so this only reports that em was found and
+ * excluded, the same honesty `extractPairs`'s `skipped` count already applies to unparseable colors.
+ * @returns {number}
+ */
+export function countEmUsage(css, propPattern) {
+  const re = new RegExp(`(?:^|;|\\{)\\s*(?:${propPattern})\\s*:\\s*([^;}]+)`, "gi");
+  let count = 0;
+  for (const m of stripComments(css).matchAll(re)) {
+    count += [...m[1].matchAll(/(-?[\d.]+)em\b/gi)].length;
+  }
+  return count;
+}
+
 function usageError(msg) {
   console.error(`error: ${msg}`);
   console.error("usage: node audit-css.mjs <file.css> [more…] [--base 4] [--tolerance 0.03]");
@@ -164,9 +181,17 @@ function main(argv) {
     if (skipped)
       console.log(`(skipped ${skipped} pair(s) with unparseable values — rgb()/named/gradient)`);
 
+    const FONT_PROP_PATTERN = "font-size";
+    const fontEm = countEmUsage(css, FONT_PROP_PATTERN);
+    if (fontEm) {
+      console.log(
+        `(${fontEm} em-based font-size value(s) found, excluded — em is relative to computed ` +
+          `font-size, not statically resolvable; use rem/px or check by hand)`
+      );
+    }
     const sizes = [
       ...new Set([
-        ...extractPx(css, "font-size", props),
+        ...extractPx(css, FONT_PROP_PATTERN, props),
         ...extractPropPx(props, /^--(font|text|step|size)/i)
       ])
     ].sort((a, b) => a - b);
@@ -184,9 +209,17 @@ function main(argv) {
       console.log(`type: ${sizes.length} px size(s) found — too few to infer a scale`);
     }
 
+    const SPACE_PROP_PATTERN = "margin[\\w-]*|padding[\\w-]*|inset[\\w-]*|gap|row-gap|column-gap";
+    const spaceEm = countEmUsage(css, SPACE_PROP_PATTERN);
+    if (spaceEm) {
+      console.log(
+        `(${spaceEm} em-based spacing value(s) found, excluded — em is relative to computed ` +
+          `font-size, not statically resolvable; use rem/px or check by hand)`
+      );
+    }
     const spacing = [
       ...new Set([
-        ...extractPx(css, "margin[\\w-]*|padding[\\w-]*|gap|row-gap|column-gap", props),
+        ...extractPx(css, SPACE_PROP_PATTERN, props),
         ...extractPropPx(props, /^--(space|gap)/i)
       ])
     ]

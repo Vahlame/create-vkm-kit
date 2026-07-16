@@ -9,6 +9,7 @@ import {
   parseHex,
   parseColor,
   oklchToRgb,
+  rgbToOklch,
   contrastRatio,
   rate,
   evaluatePair
@@ -32,7 +33,8 @@ import {
   resolveVars,
   extractPairs,
   extractPx,
-  extractPropPx
+  extractPropPx,
+  countEmUsage
 } from "../templates/skills/vkm-design/scripts/audit-css.mjs";
 import { scan } from "../templates/skills/vkm-design/scripts/slop-check.mjs";
 
@@ -150,6 +152,34 @@ test("contrastRatio accepts oklch and hex interchangeably", () => {
     "evaluatePair must surface gamut clipping"
   );
   assert.equal(exitCode(contrastCli, ["oklch(0 0 0)", "#ffffff"]), 0);
+});
+
+test("parseColor: oklch() with an alpha channel gets a targeted error, not a hex-shaped one", () => {
+  assert.throws(() => parseColor("oklch(0.5 0.1 250 / 0.5)"), /alpha/);
+});
+
+test("rgbToOklch: round-trips oklchToRgb within tight tolerance (exact mathematical inverse)", () => {
+  for (const [L, C, H] of [
+    [0.55, 0.2, 25],
+    [0.7, 0.15, 145],
+    [0.3, 0.1, 280]
+  ]) {
+    const { rgb } = oklchToRgb(L, C, H);
+    const back = rgbToOklch(rgb);
+    assert.ok(Math.abs(back.L - L) < 0.01, `L: got ${back.L}`);
+    assert.ok(Math.abs(back.C - C) < 0.01, `C: got ${back.C}`);
+    let dH = Math.abs(back.H - H);
+    if (dH > 180) dH = 360 - dH;
+    assert.ok(dH < 2, `H: got ${back.H}`);
+  }
+});
+
+test("rgbToOklch: Tailwind indigo-500 AND an unlisted near-miss both land in the violet band", () => {
+  const indigo500 = rgbToOklch(parseHex("#6366f1"));
+  assert.ok(indigo500.C >= 0.08 && indigo500.H >= 265 && indigo500.H <= 305, "canonical indigo");
+  // #5b21b6 was never in slop-check's old hardcoded 11-item hex list — this is the gap it closed
+  const nearMiss = rgbToOklch(parseHex("#5b21b6"));
+  assert.ok(nearMiss.C >= 0.08 && nearMiss.H >= 265 && nearMiss.H <= 305, "unlisted near-miss");
 });
 
 test("checkTypeScale: explicit ratio flags off-scale values", () => {
@@ -298,6 +328,32 @@ test("audit-css: extractPx resolves var() and takes clamp() min/max only", () =>
   assert.deepEqual(extractPx(css.split("\n")[1], "font-size"), [14]);
 });
 
+test("audit-css: extractPx captures inset, including inset-inline/inset-block variants", () => {
+  const css = `.a { inset: 12px; } .b { inset-inline: 8px; } .c { inset-block-start: 4px; }`;
+  assert.deepEqual(extractPx(css, "margin[\\w-]*|padding[\\w-]*|inset[\\w-]*|gap"), [4, 8, 12]);
+});
+
+test("countEmUsage: reports em usage without attempting a risky conversion", () => {
+  const css = `.a { font-size: 1.25em; } .b { font-size: 16px; } .c { padding: 0.5em; }`;
+  assert.equal(countEmUsage(css, "font-size"), 1);
+  assert.equal(countEmUsage(css, "padding[\\w-]*"), 1);
+  assert.equal(countEmUsage(css, "margin[\\w-]*"), 0);
+  // em values must NOT leak into the numeric px/rem extraction as if they were px
+  assert.deepEqual(extractPx(css, "font-size"), [16]);
+});
+
+test("audit-css CLI: reports em usage as an excluded, non-guessed finding", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vkm-audit-em-test-"));
+  const file = path.join(dir, "em.css");
+  fs.writeFileSync(
+    file,
+    `.a { color: #111111; background-color: #ffffff; font-size: 1.25em; padding: 0.5em; }`
+  );
+  const out = execFileSync(process.execPath, [auditCli, file], { stdio: "pipe" }).toString();
+  assert.match(out, /em-based font-size value\(s\) found, excluded/);
+  assert.match(out, /em-based spacing value\(s\) found, excluded/);
+});
+
 test("audit-css CLI: exit 1 on failing contrast, 0 on clean file, 2 on usage error", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vkm-audit-test-"));
   const bad = path.join(dir, "bad.css");
@@ -353,6 +409,24 @@ test("slop-check: clean instrument-panel CSS produces zero hits", () => {
 
 test("slop-check: single emoji (content, not iconography) is tolerated", () => {
   assert.ok(!scan("<p>Gracias 🙂</p>").some((h) => h.id === "emoji-icons"));
+});
+
+test("slop-check: catches an indigo hex OUTSIDE the old hardcoded 11-item list", () => {
+  // #5b21b6 (Tailwind violet-800) was never in the fixed list this checker used to rely on;
+  // it's caught now because every hex found is converted to OKLCH and hue-tested, same as
+  // literal oklch() strings already were.
+  const hits = scan(`<style>.x { background: #5b21b6; }</style>`);
+  assert.ok(hits.some((h) => h.id === "indigo-family" && h.evidence.includes("#5b21b6")));
+});
+
+test("slop-check: a non-indigo hex is not flagged (no false positive)", () => {
+  assert.ok(!scan(`<style>.x { background: #22c55e; }</style>`).some((h) => h.id === "indigo-family"));
+});
+
+test("slop-check: an alpha hex (#rrggbbaa) is skipped, not mis-parsed as 6-digit", () => {
+  assert.ok(
+    !scan(`<style>.x { background: #6366f1aa; }</style>`).some((h) => h.id === "indigo-family")
+  );
 });
 
 test("slop-check CLI: exit codes", () => {

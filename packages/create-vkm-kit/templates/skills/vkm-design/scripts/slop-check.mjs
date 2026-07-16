@@ -11,21 +11,18 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { parseHex, rgbToOklch } from "./contrast.mjs";
 
-/** The indigo/violet default family (hex, lowercase) — Tailwind-era indigo/violet/purple 400–700. */
-const INDIGO_HEX = [
-  "#6366f1",
-  "#4f46e5",
-  "#4338ca",
-  "#818cf8",
-  "#8b5cf6",
-  "#7c3aed",
-  "#6d28d9",
-  "#a78bfa",
-  "#a855f7",
-  "#9333ea",
-  "#c084fc"
-];
+/**
+ * Indigo/violet family test: chroma >= 0.08 and hue in the 265–305° band (Tailwind's whole
+ * indigo/violet/purple 400–700 run lands here — confirmed live: #6366f1 -> hue 277.1,
+ * #8b5cf6 -> hue ~292). Computed via OKLCH, not a fixed hex list, so a near-miss hex a model
+ * "launders" slop through (e.g. #5b21b6, hue 292.8 — not in any hardcoded list) is caught
+ * exactly like the canonical shades.
+ */
+function isIndigoHue(C, H) {
+  return C >= 0.08 && H >= 265 && H <= 305;
+}
 
 // Deliberately excludes U+2600–27BF (dingbats: ✓ ✂ ✈) — checkmarks as list markers are
 // typography, not emoji iconography; the slop signal lives in the 1F300+ pictographs.
@@ -61,19 +58,26 @@ export function scan(text) {
     )
   );
 
-  // 2. Indigo/violet family colors (hex, exact set) and high-chroma violet oklch hues.
-  for (const hex of INDIGO_HEX) {
-    hits.push(
-      ...findAll(text, new RegExp(hex, "gi"), () => ({ id: "indigo-family", evidence: hex }))
-    );
-  }
+  // 2. Indigo/violet family: every hex color found, converted to OKLCH, plus literal oklch().
+  hits.push(
+    ...findAll(text, /#[0-9a-f]{3}\b|#[0-9a-f]{6}\b/gi, (m) => {
+      let rgb;
+      try {
+        rgb = parseHex(m[0]);
+      } catch {
+        return null; // malformed/alpha hex — not this checker's job, parseHex already logs why
+      }
+      const { C, H } = rgbToOklch(rgb);
+      return isIndigoHue(C, H)
+        ? { id: "indigo-family", evidence: `${m[0]} (oklch hue ${H.toFixed(0)}, chroma ${C.toFixed(2)})` }
+        : null;
+    })
+  );
   hits.push(
     ...findAll(text, /oklch\(\s*[\d.]+%?\s+([\d.]+)\s+([\d.]+)/gi, (m) => {
       const C = Number(m[1]);
       const H = Number(m[2]);
-      return C >= 0.08 && H >= 265 && H <= 305
-        ? { id: "indigo-family", evidence: `oklch chroma ${C} hue ${H}` }
-        : null;
+      return isIndigoHue(C, H) ? { id: "indigo-family", evidence: `oklch chroma ${C} hue ${H}` } : null;
     })
   );
 

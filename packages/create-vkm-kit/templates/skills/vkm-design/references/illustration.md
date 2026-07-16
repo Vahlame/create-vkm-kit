@@ -42,10 +42,14 @@ accurately, you picked the wrong technique. Go back to the table.
 
 ## Step 2 — the faithful trace pipeline (`scripts/trace-svg.mjs`)
 
-Node ≥ 18, needs `potrace` + `jimp` + `svg-path-bbox` (`npm i potrace jimp@0.22 svg-path-bbox` in
-a scratch dir — these aren't bundled, since most design tasks don't trace; installing takes
-seconds). Reference photo/silhouette → subject mask (Otsu threshold, alpha-aware for transparent
-PNGs) → potrace vector → restyled line-art or filled silhouette.
+Node ≥ 18, needs `potrace` + `jimp` + `svg-path-bbox` — run `npm install` inside `scripts/`
+(a `package.json` there pins the exact working versions: **jimp must stay on 0.22.x** — jimp v1,
+the current npm default, dropped the default export and the constants/methods this script uses,
+so a bare `npm i jimp` breaks it with a raw `SyntaxError`, not a helpful message; the script also
+fails fast with a clear one if the wrong version ever slips in). Not bundled by default since
+most design tasks don't trace — installing takes seconds. Reference photo/silhouette → subject
+mask (Otsu threshold, alpha-aware for transparent PNGs) → potrace vector → restyled line-art or
+filled silhouette.
 
 ```text
 node trace-svg.mjs <ref.(jpg|png)> <out.svg> [--stroke "#1b3a2b"] [--fill none|<color>]
@@ -149,7 +153,8 @@ animate it with a real library (GSAP/ScrollTrigger for scroll reveals and timeli
 CSS scroll-driven animation + `prefers-reduced-motion`. Source content resourcefully (CC/CC0 photo
 libraries, PhyloPic, PD scans). Always render-and-look before committing.
 
-Needs only `jimp`. Output is a PNG you embed (data-URI for a single-file page). This is the
+Needs only `jimp` — same pinned `package.json` in `scripts/` as the tracer (`npm install` there
+covers both scripts). Output is a PNG you embed (data-URI for a single-file page). This is the
 faithful path for exactly the subjects that made hand-plotting and forced tracing fail.
 
 ## Step 3 — verify by overlay (the objective fidelity gate)
