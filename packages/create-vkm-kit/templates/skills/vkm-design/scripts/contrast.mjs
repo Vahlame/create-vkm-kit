@@ -2,7 +2,7 @@
 // WCAG 2.x contrast checker — zero dependencies, Node >= 18.
 // Accepts hex ("#rgb"/"#rrggbb") AND CSS "oklch(L C H)" colors (the token format
 // foundations.md prescribes), converting OKLCH per CSS Color 4 with gamut clipping.
-// Library:   import { contrastRatio, rate, parseColor } from "./contrast.mjs"
+// Library:   import { contrastRatio, rate, parseColor, parseHex, rgbToOklch } from "./contrast.mjs"
 // CLI:       node contrast.mjs <fg> <bg> [--large|--ui]
 //            node contrast.mjs --pairs tokens.json
 //   tokens.json: [{ "name": "body", "fg": "#333", "bg": "oklch(0.98 0.005 95)", "usage": "normal" }, ...]
@@ -77,14 +77,49 @@ export function oklchToRgb(L, C, H) {
 }
 
 /**
+ * Convert sRGB 0–255 to OKLCH (CSS Color 4 math: gamma-decode → linear sRGB → LMS' → OKLab →
+ * OKLCH). The exact mathematical inverse of `oklchToRgb` above — same standard OKLab matrices,
+ * run backwards; `Math.cbrt` (not `**(1/3)`) because intermediate LMS' values can be negative.
+ * @param {[number, number, number]} rgb channels 0–255
+ * @returns {{ L: number, C: number, H: number }} H in degrees, 0–360
+ */
+export function rgbToOklch([r, g, b]) {
+  const toLinear = (c8) => {
+    const c = c8 / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const [lr, lg, lb] = [r, g, b].map(toLinear);
+  const l_ = Math.cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb);
+  const m_ = Math.cbrt(0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb);
+  const s_ = Math.cbrt(0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb);
+  const L = 0.2104542553 * l_ + 0.793617785 * m_ - 0.0040720468 * s_;
+  const a = 1.9779984951 * l_ - 2.428592205 * m_ + 0.4505937099 * s_;
+  const bb = 0.0259040371 * l_ + 0.7827717662 * m_ - 0.808675766 * s_;
+  const C = Math.sqrt(a * a + bb * bb);
+  let H = (Math.atan2(bb, a) * 180) / Math.PI;
+  if (H < 0) H += 360;
+  return { L, C, H };
+}
+
+/**
  * Parse a color string — hex or "oklch(L C H)" (L may be a percentage, H may carry "deg").
  * @param {string} input
  * @returns {{ rgb: [number, number, number], clipped: boolean }}
  */
 export function parseColor(input) {
   if (typeof input !== "string") throw new TypeError("color must be a string");
-  const m = input.trim().match(OKLCH_RE);
-  if (!m) return { rgb: parseHex(input), clipped: false };
+  const trimmed = input.trim();
+  const m = trimmed.match(OKLCH_RE);
+  if (!m) {
+    if (/^oklch\(/i.test(trimmed)) {
+      throw new RangeError(
+        `"${input}": not a supported oklch() form — expected "oklch(L C H)" (percentage L and ` +
+          `"deg" hue are fine); alpha ("/ A") isn't supported here — composite over the ` +
+          `background first, same as alpha hex.`
+      );
+    }
+    return { rgb: parseHex(input), clipped: false };
+  }
   const L = m[1].endsWith("%") ? Number(m[1].slice(0, -1)) / 100 : Number(m[1]);
   const C = Number(m[2]);
   const H = Number(m[3]);

@@ -1,0 +1,10 @@
+{
+  "name": "vkm-design-illustration-deps",
+  "private": true,
+  "description": "Pinned deps for trace-svg.mjs and treat-photo.mjs. jimp MUST stay on the 0.22.x line: jimp v1 (current npm default) renamed/removed the exact API these scripts use (default export, positional constructor, Jimp.MIME_PNG, Jimp.AUTO, getBufferAsync). potrace itself depends on jimp@^0.14.0, so it never touches v1 either. Run `npm install` in this folder before using either script; the rest of the skill needs zero npm deps.",
+  "dependencies": {
+    "jimp": "0.22.x",
+    "potrace": "2.1.8",
+    "svg-path-bbox": "2.1.0"
+  }
+}

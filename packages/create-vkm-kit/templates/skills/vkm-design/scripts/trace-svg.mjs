@@ -8,9 +8,23 @@
 // traces drop into a grid aligned and same-sized (see illustration.md Step 4 — the "desfase" fix).
 // Emits: <out.svg> (stylised trace) and prints IoU faithfulness vs the mask (0..1, higher=better).
 import { readFileSync, writeFileSync } from "node:fs";
-import Jimp from "jimp";
 import potrace from "potrace";
 import { svgPathBbox } from "svg-path-bbox";
+
+// This script uses jimp's v0 API (default export, positional constructor, Jimp.MIME_PNG,
+// getBufferAsync) — jimp v1 (current npm default) removed the default export entirely, which
+// makes a STATIC `import Jimp from "jimp"` throw a raw SyntaxError before this file's body even
+// runs (verified live against real jimp@1.6.1). A dynamic import lets us check the version and
+// fail with a clear, actionable message instead of that cryptic crash (or a missing-package one).
+const { default: Jimp } = await import("jimp").catch(() => ({}));
+if (typeof Jimp?.MIME_PNG !== "string") {
+  console.error(
+    "error: this script needs jimp@0.22.x (the v0 API) — detected an incompatible or missing " +
+      "Jimp (no default export / no Jimp.MIME_PNG; jimp v1+ removed both). Run `npm install` " +
+      "in this scripts/ folder — package.json pins the working version."
+  );
+  process.exit(2);
+}
 
 function arg(flag, def) {
   const i = process.argv.indexOf(flag);
