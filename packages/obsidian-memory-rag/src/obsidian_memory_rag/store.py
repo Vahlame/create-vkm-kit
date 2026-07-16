@@ -83,6 +83,19 @@ def connect(db_path: Path) -> sqlite3.Connection:
     conn.execute("PRAGMA synchronous=NORMAL;")
     conn.execute("PRAGMA temp_store=MEMORY;")
     conn.execute("PRAGMA mmap_size=268435456;")
+    # Two concurrent ensure_fresh() calls (e.g. two overlapping MCP requests) each
+    # open their own connection and take a writer lock via BEGIN IMMEDIATE
+    # (index_vault/index_vectors). Without this, sqlite3.connect()'s own implicit
+    # ~5s busy wait is the only thing standing between a second writer and an
+    # instant "database is locked" — and it is silently too short once a single
+    # commit batch (batch_commit_every notes, each re-embedded) legitimately holds
+    # the lock longer, e.g. under a real (non-hashing) embedder. Make the wait
+    # explicit and generous instead of relying on that undocumented default;
+    # sqlite's own busy handler blocks-and-retries BEGIN IMMEDIATE transparently,
+    # so no manual retry loop is needed on top (verified empirically — see
+    # tests/test_concurrent_ensure_fresh.py). Bounded, not indefinite: a genuinely
+    # stuck writer still surfaces OperationalError after this many ms.
+    conn.execute("PRAGMA busy_timeout=30000;")
     return conn
 
 
