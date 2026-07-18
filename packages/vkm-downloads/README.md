@@ -64,7 +64,7 @@ size_bytes, sha256, content_type, final_url }`. **Side-effecting** — it writes
 - **Sanitized, root-checked filename.** `../`, path separators, `%2f`, NUL/control bytes,
   Windows-illegal characters and reserved device names (`CON`, `NUL`, `COM1`…) are stripped; the
   destination is `path.resolve`-checked to be **inside** the root before writing; an existing file
-  is **never overwritten** (a ` (1)`, ` (2)` suffix is added).
+  is **never overwritten** (a `(1)`/`(2)`-style numeric suffix is added).
 - **Never executed.** The file is saved as-is and never opened or run — this server has no such
   capability, and no code path spawns a process.
 - **Audit log.** Every completed download is appended to `~/.vkm/downloads/downloads.log` (one JSON
