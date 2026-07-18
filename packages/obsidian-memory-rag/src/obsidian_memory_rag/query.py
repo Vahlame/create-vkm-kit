@@ -99,7 +99,7 @@ def search_vault(
            bm25(vault_fts, 1.0, 1.0, {TITLE_WEIGHT}, {BODY_WEIGHT}) AS score
     FROM vault_fts
     WHERE vault_fts MATCH ?{section_clause}
-    ORDER BY score
+    ORDER BY score, path
     LIMIT ?
     """
     conn = connect(db_path)

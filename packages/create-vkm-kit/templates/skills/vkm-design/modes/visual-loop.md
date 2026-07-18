@@ -10,6 +10,13 @@ screenshot MCP, a desktop screenshot tool for native apps, or — worst case —
 paste a screenshot. **No renderer at all →** degrade to static critique (`modes/critique.md`) plus
 the computed checks, and say explicitly: "the visual loop did not run; finish is unverified."
 
+**In-app preview pane + a file OUTSIDE the project folder:** some harnesses render `file://`
+only for paths inside the project — an outside file opens as a blank "static snapshot" and every
+later tool call reports "no site open" (two real sessions lost time fighting this as if it were
+a page bug). Don't fight it and don't skip the loop: copy the file INTO the project as a
+dot-named temp (`.preview-<name>.html`), render the copy, re-copy after each edit of the
+original (never edit the copy — the two must not drift), and delete it when the loop ends.
+
 ## The loop
 
 1. **Render the real thing** — the app with real data/copy, not an isolated snippet.
