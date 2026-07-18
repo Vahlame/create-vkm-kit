@@ -43,6 +43,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **CI red since `b59e4fb` (4 pushes): two independent causes, both reproduced before fixing.**
+  (1) `lint`: `slop-check.mjs` was committed unformatted for the pinned `prettier@3.8.4` —
+  reformatted (installed copy re-synced). (2) `test-python`: the ADR-0038 regression test
+  (`test_usage_boost_decays_stale_credit_so_new_note_not_buried`) was green on Windows and red on
+  ubuntu — retrieval order was **platform-dependent**: `os.walk` returns names sorted on NTFS but
+  hash-ordered on ext4, insertion order decides FTS rowids, and rowids are the hidden tie-breaker
+  when BM25/cosine scores tie exactly; with a tie at the top, the ranks fed into RRF differ per
+  platform and the stale note's residual usage credit (linear taper leaves ~0.022 at 89.5/90
+  days) crossed the ~`w/(k+r)²` one-rank margin, burying the brand-new note the test protects.
+  Root fixes, all five ordering sites + the decay: sorted walk in `_iter_markdown_files`;
+  `ORDER BY score, path` (BM25 FTS query); `ORDER BY dist, path, ordinal` (sqlite-vec path);
+  `heapq.nsmallest` over `(-score, path, ordinal)` (brute-force cosine — same O(n·log k));
+  `(-score, path)` tie-breaks in `reciprocal_rank_fusion` and the post-lever sort; and
+  `usage_counts_decayed` taper linear→**quadratic** so window-edge credit lands two orders below
+  any rank margin instead of inside it. Verified: an adverse-order simulation (reversed
+  insertion, the ext4 condition) reproduced the CI failure locally with the ordering fixes alone
+  and passes with the full set; 197/197 pytest; all four retrieval/token/assemble bench gates
+  exit 0 locally at CI thresholds.
+- **vkm-design `modes/visual-loop.md`: capability-check note for preview panes that only render
+  `file://` inside the project folder.** Two real sessions hit the blank "static snapshot" +
+  "no site open" wall on an outside-the-project file and misread it as a page bug; the mode now
+  prescribes the copy-into-project pattern (dot-named temp, re-copy after each edit, delete at
+  loop end) instead of fighting the pane or skipping the loop.
 - **vkm-design audit scripts: four defects exposed by a real user session log** (a session
   "audited" a roadmap HTML with these scripts and half the tool output was wrong — each fix
   below re-verified against the exact input that failed).
