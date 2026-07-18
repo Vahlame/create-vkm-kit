@@ -89,16 +89,51 @@ test("searxngSearch normalizes JSON results and tolerates failures", async () =>
     ok: true,
     json: async () => ({
       results: [
-        { url: "https://s1", title: "S1", content: "snippet 1" },
+        {
+          url: "https://s1",
+          title: "S1",
+          content: "snippet 1",
+          score: 4,
+          engines: ["google cse", "startpage"],
+          publishedDate: "2026-01-02T00:00:00"
+        },
         { title: "no url — dropped" },
-        { url: "https://s2", title: "S2", content: "snippet 2" }
+        { url: "https://s2", title: "S2", content: "snippet 2", score: 1.5, engines: ["brave"] }
       ]
     })
   });
   const r = await searxngSearch("q", { base: "http://127.0.0.1:8888", limit: 8 }, okFetch);
+  // `score`/`engines`/`publishedDate` are carried through, not dropped. `score` is SearXNG's
+  // own multi-engine consensus (results.py#calculate_score) and dropping it here was what
+  // forced the pipeline to re-derive relevance with BM25 over `snippet` — measurably worse.
   assert.deepEqual(r, [
-    { title: "S1", url: "https://s1", snippet: "snippet 1" },
-    { title: "S2", url: "https://s2", snippet: "snippet 2" }
+    {
+      title: "S1",
+      url: "https://s1",
+      snippet: "snippet 1",
+      score: 4,
+      engines: ["google cse", "startpage"],
+      publishedDate: "2026-01-02T00:00:00"
+    },
+    {
+      title: "S2",
+      url: "https://s2",
+      snippet: "snippet 2",
+      score: 1.5,
+      engines: ["brave"],
+      publishedDate: null
+    }
+  ]);
+
+  // A response without the scoring fields (an older SearXNG, or the shape a test double
+  // hands back) must still work — score defaults to 0, which the pipeline reads as "no
+  // consensus signal", exactly the state of the scrape-chain fallback.
+  const bareFetch = async () => ({
+    ok: true,
+    json: async () => ({ results: [{ url: "https://s3", title: "S3", content: "c3" }] })
+  });
+  assert.deepEqual(await searxngSearch("q", { base: "http://x" }, bareFetch), [
+    { title: "S3", url: "https://s3", snippet: "c3", score: 0, engines: [], publishedDate: null }
   ]);
 
   assert.equal(await searxngSearch("q", { base: "http://x" }, async () => ({ ok: false })), null);

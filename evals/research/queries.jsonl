@@ -1,0 +1,40 @@
+# Golden set for the web research bench (packages/obscura-web/src/bench-research.mjs).
+#
+# Format mirrors evals/retrieval/queries.jsonl: {query, relevant: [urls], kind, note?}.
+# `relevant` holds URLs that a good crawl MUST surface. Matching is canonical
+# (url-identity.mjs#canonicalizeUrl), so scheme/www/trailing-slash/utm variants still hit.
+#
+# ── Design: paired queries, one target ────────────────────────────────────────────────────
+# Most golden URLs appear TWICE — once under `lexical` (query restates the page's own words)
+# and once under `vocab-mismatch` (a colloquial Spanish query for the same page, sharing
+# almost no vocabulary with it). Same page, same findability, only the wording differs, so
+# the delta between the two buckets isolates the vocabulary effect instead of confounding it
+# with "is this page reachable at all".
+#
+# `vocab-mismatch` is the bucket this whole redesign exists for. ADR-0055 named the flaw
+# ("research is not just find what matches the query's wording") but its §5 left BM25 as the
+# filter that decides which pages get fetched at all. If phases 1-2 work, this bucket moves.
+# If it doesn't move, they didn't work.
+#
+# Every URL below was verified live to exist and to be the right answer before being written
+# here — a golden set with an invented URL silently scores every ranker as broken.
+
+{"query": "SearXNG search API pageno parameter json format", "relevant": ["https://docs.searxng.org/dev/search_api.html"], "kind": "lexical", "note": "paired with the vocab-mismatch metasearch query below"}
+{"query": "SQLite WAL write-ahead logging journal mode pragma", "relevant": ["https://www.sqlite.org/wal.html"], "kind": "lexical", "note": "paired with the 'se traba' query below"}
+{"query": "Ollama structured outputs JSON schema format parameter", "relevant": ["https://ollama.com/blog/structured-outputs"], "kind": "lexical", "note": "paired with the 'mismo formato' query below"}
+{"query": "OWASP LLM01 prompt injection indirect", "relevant": ["https://genai.owasp.org/llmrisk/llm01-prompt-injection/"], "kind": "lexical", "note": "paired with the 'instrucciones escondidas' query below"}
+{"query": "Okapi BM25 ranking function IDF term frequency saturation", "relevant": ["https://en.wikipedia.org/wiki/Okapi_BM25"], "kind": "lexical"}
+{"query": "Node.js built-in test runner node:test", "relevant": ["https://nodejs.org/api/test.html"], "kind": "primary-source", "note": "official API docs must beat the tutorial blogspam that outranks them on this query"}
+
+{"query": "se me traba sqlite cuando dos procesos escriben a la vez", "relevant": ["https://www.sqlite.org/wal.html"], "kind": "vocab-mismatch", "note": "names sqlite so the target is unambiguous, but says 'se traba'/'a la vez' where the page says locking/concurrency/WAL. Earlier draft omitted 'sqlite' and was an unfair entry: any DB could answer it, so a miss measured nothing."}
+{"query": "como obligo a un modelo local a responder siempre con la misma estructura", "relevant": ["https://ollama.com/blog/structured-outputs"], "kind": "vocab-mismatch", "note": "target says structured outputs/JSON schema/format; query says none of those"}
+{"query": "como evito que mi agente obedezca instrucciones escondidas en una pagina web", "relevant": ["https://genai.owasp.org/llmrisk/llm01-prompt-injection/"], "kind": "vocab-mismatch", "note": "target says prompt injection/indirect/untrusted; query says none of those"}
+{"query": "buscar en muchos buscadores a la vez desde mi maquina sin que me bloqueen", "relevant": ["https://docs.searxng.org/dev/search_api.html", "https://docs.searxng.org/"], "kind": "vocab-mismatch", "note": "target says metasearch engine/privacy; query describes the need, not the name"}
+
+# Dropped during authoring, on purpose, and left here as a worked example of the rule:
+#   "por que se pone lentisimo el modelo cuando no entra en la placa de video"
+# The obvious target (github.com/ollama/ollama/blob/main/docs/gpu.md) is a 404 — the file is
+# gpu.mdx — and the rendered page that does exist (docs.ollama.com/gpu) documents supported
+# hardware, NOT VRAM spill / layer offloading, so it is not the answer to that question.
+# No verified target => no entry. A golden set with a wrong URL doesn't measure a ranker,
+# it just reports every ranker as broken and burns the credibility of the whole gate.

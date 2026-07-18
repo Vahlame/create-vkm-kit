@@ -1,0 +1,787 @@
+{
+  "_captured": "2026-07-16T20:37:42.470Z",
+  "_query": "Ollama structured outputs JSON schema format parameter",
+  "_categories": "general",
+  "_n": 21,
+  "results": [
+    {
+      "template": "default.html",
+      "title": "Structured Outputs - Ollama documentation",
+      "content": "Ollama's Cloud currently does not support structured outputs. Structured outputs let you enforce a JSON schema on model responses so you can reliably extract ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRUDuytfGmLJjiC5mCYp82vxNOLnCJYmVybuTITH7dQHK8I0JV62btgozI",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        1,
+        1
+      ],
+      "score": 4,
+      "category": "general",
+      "url": "https://docs.ollama.com/capabilities/structured-outputs",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "docs.ollama.com",
+        "/capabilities/structured-outputs",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Structured outputs · Ollama Blog",
+      "content": "Dec 6, 2024 ... ... output to a specific format defined by a JSON schema. The Ollama ... To pass structured outputs to the model, the format parameter can ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTdHHfQy8wQbdSIqekCzE5uO2V10ba_Oe9omBcqsHJPg5YXdktUqUH_tW0",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        2,
+        2
+      ],
+      "score": 2,
+      "category": "general",
+      "url": "https://ollama.com/blog/structured-outputs",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "ollama.com",
+        "/blog/structured-outputs",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "How Does Ollama's Structured Outputs Work?",
+      "content": "Dec 9, 2024 ... When you set the format parameter to json , ollama helpfully passes an already written grammar for valid JSON. In case you're interested, here ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSPzeSD1DSNQs4Q6elxgm13kEPPgokAnRekiFt7fHVNXcyqLrY7iAgAvEBe",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        3,
+        4
+      ],
+      "score": 1.1666666666666665,
+      "category": "general",
+      "url": "https://blog.danielclayton.co.uk/posts/ollama-structured-outputs/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "blog.danielclayton.co.uk",
+        "/posts/ollama-structured-outputs/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "with_structured_output | langchain_ollama - LangChain Reference",
+      "content": "Parameters · 'json_schema' : Uses Ollama's structured output API · 'function_calling' : Uses Ollama's tool-calling API · 'json_mode' : Specifies format='json' .",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQnC1D2htj73zuJ81tSwJRHHQRzwe_egigotxGgURjVa6lUVG2UKBSwxG3H",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        4,
+        5
+      ],
+      "score": 0.9,
+      "category": "general",
+      "url": "https://reference.langchain.com/python/langchain-ollama/chat_models/ChatOllama/with_structured_output",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "reference.langchain.com",
+        "/python/langchain-ollama/chat_models/ChatOllama/with_structured_output",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Constraining LLMs with Structured Output: Ollama, Qwen3 & Python ...",
+      "content": "Ollama now lets you pass a schema in the format parameter. The model is then constrained to respond only in JSON that conforms to the schema (docs). In ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRdlIIPe5qkzliA6kFcy61d8gh2ZzU9LCPsOxrc2kZTeZDhqeG7dJ1V_pqh",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        10,
+        3
+      ],
+      "score": 0.8666666666666667,
+      "category": "general",
+      "url": "https://www.glukhov.org/llm-performance/ollama/llm-structured-output-with-ollama-in-python-and-go/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.glukhov.org",
+        "/llm-performance/ollama/llm-structured-output-with-ollama-in-python-and-go/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Constraining LLMs with Structured Output: Ollama, Qwen3 & Python ...",
+      "content": "29 sept 2025 ... Ollama's Structured Output ... Ollama now lets you pass a schema in the format parameter. The model is then constrained to respond only in JSON ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSo3Meo2djv7w4tR8y01yJgN61V84f_LHMFpPpKUc562x-sLZd5Fv4Rfy8",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        6,
+        6
+      ],
+      "score": 0.6666666666666666,
+      "category": "general",
+      "url": "https://medium.com/@rosgluk/constraining-llms-with-structured-output-ollama-qwen3-python-or-go-2f56ff41d720",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "medium.com",
+        "/@rosgluk/constraining-llms-with-structured-output-ollama-qwen3-python-or-go-2f56ff41d720",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Structured LLM Output Using Ollama - Towards Data Science",
+      "content": "Dec 17, 2024 ... By introducing structured outputs, Ollama now makes it possible to constrain a model's output to a specific format defined by a JSON schema.",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRf5tOh5sQ7neYE6FYOkAbAUiTb27_hoRvymWAl_V8nPTS1gdGWGycxyuIZ",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        9,
+        8
+      ],
+      "score": 0.4722222222222222,
+      "category": "general",
+      "url": "https://towardsdatascience.com/structured-llm-output-using-ollama-73422889c7ad/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "towardsdatascience.com",
+        "/structured-llm-output-using-ollama-73422889c7ad/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Structured Output with Gemma3 - LinkedIn",
+      "content": "Jun 13, 2025 ... A Practical Guide: Getting Structured JSON from Gemma 3 and Ollama ... ', }, ], format=UserInfo, ) # The output will be a clean JSON object.",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTWsyhiUFbxiNT0XTapQqD8P60QdcXteDZIEpF9DoC7H9X9XEyKcYCB",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        18,
+        9
+      ],
+      "score": 0.3333333333333333,
+      "category": "general",
+      "url": "https://www.linkedin.com/pulse/structured-output-gemma3-ali-afshar-nadae",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.linkedin.com",
+        "/pulse/structured-output-gemma3-ali-afshar-nadae",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Improve compatibility with OpenAI structured outputs json_schema ...",
+      "content": "26 mar 2025 ... Whereas Ollama only need a simpler format parameter: \"format ... fix: add Ollama-native format field for JSON schema compatibility ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRolBGohQUEpqjaze7m4XGczpPNBbgYAVAqj1QN7wUZC34fZHPxlrWOmIn9",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        7
+      ],
+      "score": 0.14285714285714285,
+      "category": "general",
+      "url": "https://github.com/ollama/ollama/issues/10001",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "github.com",
+        "/ollama/ollama/issues/10001",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Structured Outputs in Ollama - What's Your Recipe for Success?",
+      "content": "Mar 20, 2025 ... I've been experimenting with Ollama's structured output feature (using JSON schemas via Pydantic models) and wanted to hear how others are implementing this in ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        5,
+        10
+      ],
+      "score": 0.6000000000000001,
+      "category": "general",
+      "url": "https://www.reddit.com/r/ollama/comments/1jflnxl/structured_outputs_in_ollama_whats_your_recipe/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.reddit.com",
+        "/r/ollama/comments/1jflnxl/structured_outputs_in_ollama_whats_your_recipe/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "url": "https://github.com/ollama/ollama/issues/15260",
+      "title": "`think=false` breaks `format` (structured output) for `gemma4` - GitHub",
+      "content": "Apr 2, 2026 ... When using gemma4:26b-a4b-it-q4_K_M with the format parameter (JSON schema structured output), setting think=false causes the format constraint ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "github.com",
+        "/ollama/ollama/issues/15260",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        7
+      ],
+      "score": 0.14285714285714285,
+      "category": "general"
+    },
+    {
+      "template": "default.html",
+      "title": "How to Get Structured JSON Responses from a LLM using Ollama",
+      "content": "30 dic 2025 ... By setting the format parameter to \"json\" , the model will wrap its knowledge in a JSON object. Example query and response. messages=[{'role': ' ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        11
+      ],
+      "score": 0.09090909090909091,
+      "category": "general",
+      "url": "https://voipnuggets.com/2025/12/30/how-to-get-structured-json-responses-from-a-llm-using-ollama/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "voipnuggets.com",
+        "/2025/12/30/how-to-get-structured-json-responses-from-a-llm-using-ollama/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Structured outputs with Ollama, a complete guide w - Instructor",
+      "content": "This guide demonstrates how to use Ollama with Instructor to generate structured outputs. You'll learn how to use JSON schema mode with local LLMs to create ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        20
+      ],
+      "score": 0.05,
+      "category": "general",
+      "url": "https://python.useinstructor.com/integrations/ollama/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "python.useinstructor.com",
+        "/integrations/ollama/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Reliable JSON from Any LLM: Pydantic + Zod (2026) | TECHSY",
+      "content": "13 jun 2026 ... When you enable structured output, the model physically cannot produce tokens that violate your schema. You define a JSON Schema (or Pydantic ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSw26imkWQlVZ282ghyb7SzMgK-dtDFPnqFCXCcIF6HvgUQtpl_RKQTSIc",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        8
+      ],
+      "score": 0.125,
+      "category": "general",
+      "url": "https://techsy.io/en/blog/llm-structured-outputs-guide",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "techsy.io",
+        "/en/blog/llm-structured-outputs-guide",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Mastering JSON Output with Quarkus, Langchain4j, and Ollama",
+      "content": "19 jun 2025 ... Behind the scenes, this adds \"format\": \"json\" to the Ollama API request. It's a polite request that works reasonably well with modern models— ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRCulEsmNU44icB6X3LbXJxpiH7t8o3dXPyf0b-t0EcHGCzjtbaHIQXw6Q",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        12
+      ],
+      "score": 0.08333333333333333,
+      "category": "general",
+      "url": "https://www.the-main-thread.com/p/taming-json-output-quarkus-langchain4j-ollama",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.the-main-thread.com",
+        "/p/taming-json-output-quarkus-langchain4j-ollama",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Unlocking the Power of Ollama's Structured JSON Output - YouTube",
+      "content": "7 dic 2024 ... In this video, we dive into Ollama's incredible feature for structured JSON output. We'll explore multiple examples of how to utilize this ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRB8reXLwRyFmJOFpQHbGlzvZvG8B8qwEIqn3PlDAN_FsUUjwn7PfFVlXT2",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        13
+      ],
+      "score": 0.07692307692307693,
+      "category": "general",
+      "url": "https://www.youtube.com/watch?v=nz5c9d1fJZ0",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.youtube.com",
+        "/watch",
+        "",
+        "v=nz5c9d1fJZ0",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "A Data Platform Engineer's AI Rebuild : Chapter 2 - Level Up Coding",
+      "content": "hace 6 días ... [Ollama's own blog post on structured outputs] explains the JSON-schema-to-grammar compilation this chapter's 100%-valid, 6.7%-correct ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTupfwjeCYq75KQ36N3ENawZz2clJb6UxxpAfe0qVc6eSTD9ZUK1RXbyHQ&s=0",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        14
+      ],
+      "score": 0.07142857142857142,
+      "category": "general",
+      "url": "https://levelup.gitconnected.com/a-data-platform-engineers-ai-rebuild-chapter-2-4dc89662ae98",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "levelup.gitconnected.com",
+        "/a-data-platform-engineers-ai-rebuild-chapter-2-4dc89662ae98",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Structured outputs: JSON Schema, OpenAI, Claude, Gemini | Logic",
+      "content": "10 abr 2026 ... Structured outputs are model responses constrained to a schema. The schema defines fields, types, required values, enums, nested objects, and ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTyvNi047tMUT7iUdfLcRMglb7VL7QLkVJJVNRopQyCl6yX0h-Wj8hzjsOi",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        15
+      ],
+      "score": 0.06666666666666667,
+      "category": "general",
+      "url": "https://logic.inc/resources/structured-outputs-guide",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "logic.inc",
+        "/resources/structured-outputs-guide",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Structured Output, Schema Validation, 100% Parse - Gemma 4 AI",
+      "content": "7 abr 2026 ... Method 2: Ollama Format Parameter ... The format: \"json\" flag tells Ollama to constrain the token generation to only produce valid JSON. This is ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRX3fDdONkVARm82mloL5lN28M6qk21jAJffRkBm-jaahyNXCFFdN4Fvp4",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        16
+      ],
+      "score": 0.0625,
+      "category": "general",
+      "url": "https://gemma4-ai.com/blog/gemma4-json-output",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "gemma4-ai.com",
+        "/blog/gemma4-json-output",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "dcarrascosa/medgemma-1.5-4b-it:Q8_0 - Ollama",
+      "content": "Ollama supports constraining model output to valid JSON using a JSON Schema via format . PowerShell example (Windows) — text-only. $schema = @{ type=\"object\" ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTdHHfQy8wQbdSIqekCzE5uO2V10ba_Oe9omBcqsHJPg5YXdktUqUH_tW0",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        17
+      ],
+      "score": 0.058823529411764705,
+      "category": "general",
+      "url": "https://ollama.com/dcarrascosa/medgemma-1.5-4b-it:Q8_0",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "ollama.com",
+        "/dcarrascosa/medgemma-1.5-4b-it:Q8_0",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Using Ollama with Structured Outputs: A Java Practical Guide",
+      "content": "25 dic 2024 ... Structured Output with a JSON Response Schema: Defining a JSON schema that the model will adhere to when generating output. In this article we ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcT0G1bBCsTONbJiLaWEfi66bD1lEEHYNhNu4u--RRZrTtJvk0KV34duVm8",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        19
+      ],
+      "score": 0.05263157894736842,
+      "category": "general",
+      "url": "https://mwzero.medium.com/using-ollama-with-structured-outputs-a-java-practical-guide-37e1a831f4de",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "mwzero.medium.com",
+        "/using-ollama-with-structured-outputs-a-java-practical-guide-37e1a831f4de",
+        "",
+        "",
+        ""
+      ]
+    }
+  ],
+  "unresponsive_engines": [
+    [
+      "brave",
+      "Suspended: too many requests"
+    ],
+    [
+      "duckduckgo",
+      "CAPTCHA"
+    ],
+    [
+      "wikidata",
+      "Suspended: access denied"
+    ]
+  ]
+}

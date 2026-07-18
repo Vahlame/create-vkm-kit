@@ -63,11 +63,16 @@ def _should_skip_dir(path: Path) -> bool:
 
 
 def _iter_markdown_files(vault: Path) -> list[Path]:
+    # Sorted walk on purpose: os.walk order is filesystem-dependent (NTFS returns
+    # names sorted, ext4 returns hash order), and insertion order decides FTS rowids
+    # — which is the hidden tie-breaker when BM25/cosine scores tie. Unsorted, the
+    # same vault ranked differently on Windows vs Linux (caught by CI: a ranking
+    # regression test green on Windows, red on ubuntu, 2026-07-18).
     out: list[Path] = []
     for root, dirnames, filenames in os.walk(vault):
         root_path = Path(root)
-        dirnames[:] = [d for d in dirnames if not _should_skip_dir(root_path / d)]
-        for name in filenames:
+        dirnames[:] = sorted(d for d in dirnames if not _should_skip_dir(root_path / d))
+        for name in sorted(filenames):
             if not name.endswith(".md"):
                 continue
             fp = root_path / name

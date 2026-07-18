@@ -6,10 +6,12 @@ import path from "node:path";
 import {
   persistResults,
   consolidateTopic,
+  listCoveredHashes,
   resolveResearchRoot,
   ResearchPersistError
 } from "../src/research-persist.mjs";
 import { OllamaUnavailableError } from "../src/ollama-client.mjs";
+import { hash8 } from "../src/url-identity.mjs";
 
 async function freshRoot() {
   return mkdtemp(path.join(tmpdir(), "obscura-research-"));
@@ -152,6 +154,98 @@ test("missing OBSCURA_RESEARCH_DIR + persist -> typed error, no default root ass
     );
     await assert.rejects(
       () => persistResults({ topic: "cats", query: "q", results: [okResult()] }),
+      (e) => e instanceof ResearchPersistError && e.code === "missing_root"
+    );
+  } finally {
+    if (prev === undefined) delete process.env.OBSCURA_RESEARCH_DIR;
+    else process.env.OBSCURA_RESEARCH_DIR = prev;
+  }
+});
+
+// ── listCoveredHashes — the durable "seen" set behind cross-session mass research ───────
+
+test("listCoveredHashes: empty for a topic that doesn't exist yet — not an error", async () => {
+  const root = await freshRoot();
+  const hashes = await listCoveredHashes("never-researched", root);
+  assert.deepEqual([...hashes], []);
+});
+
+test("listCoveredHashes: returns the hash8 of every URL a previous call persisted", async () => {
+  const root = await freshRoot();
+  await persistResults({
+    topic: "cats",
+    query: "cat diet",
+    results: [
+      okResult({ url: "https://a.example/1" }),
+      okResult({ url: "https://b.example/2", title: "Second Article" })
+    ],
+    researchDir: root
+  });
+
+  const hashes = await listCoveredHashes("cats", root);
+  assert.equal(hashes.size, 2);
+  assert.ok(hashes.has(hash8("https://a.example/1")));
+  assert.ok(hashes.has(hash8("https://b.example/2")));
+});
+
+test("listCoveredHashes: a URL never persisted is NOT in the set", async () => {
+  const root = await freshRoot();
+  await persistResults({
+    topic: "cats",
+    query: "q",
+    results: [okResult({ url: "https://a.example/1" })],
+    researchDir: root
+  });
+  const hashes = await listCoveredHashes("cats", root);
+  assert.ok(!hashes.has(hash8("https://never-seen.example/x")));
+});
+
+test("listCoveredHashes: reflects re-persisting the SAME URL as still one entry, not two", async () => {
+  // persistResults dedupes by hash and updates in place — the covered-set must match that,
+  // not double-count a URL that was "persisted" twice across two research calls.
+  const root = await freshRoot();
+  await persistResults({ topic: "cats", query: "q1", results: [okResult()], researchDir: root });
+  await persistResults({ topic: "cats", query: "q2", results: [okResult()], researchDir: root });
+  const hashes = await listCoveredHashes("cats", root);
+  assert.equal(hashes.size, 1);
+});
+
+test("listCoveredHashes: does not cross-contaminate between topics", async () => {
+  const root = await freshRoot();
+  await persistResults({
+    topic: "cats",
+    query: "q",
+    results: [okResult({ url: "https://a.example/1" })],
+    researchDir: root
+  });
+  await persistResults({
+    topic: "dogs",
+    query: "q",
+    results: [okResult({ url: "https://b.example/2" })],
+    researchDir: root
+  });
+  const catHashes = await listCoveredHashes("cats", root);
+  assert.equal(catHashes.size, 1);
+  assert.ok(!catHashes.has(hash8("https://b.example/2")));
+});
+
+test("listCoveredHashes: ignores non-.md files and malformed filenames in sources/", async () => {
+  const root = await freshRoot();
+  const dir = path.join(root, "cats", "sources");
+  await mkdir(dir, { recursive: true });
+  await writeFile(path.join(dir, "12345678-real.md"), "x", "utf8");
+  await writeFile(path.join(dir, ".gitkeep"), "", "utf8");
+  await writeFile(path.join(dir, "not-a-hash-prefix.md"), "x", "utf8");
+  const hashes = await listCoveredHashes("cats", root);
+  assert.deepEqual([...hashes], ["12345678"]);
+});
+
+test("listCoveredHashes: propagates the typed missing_root error, same as persistResults", async () => {
+  const prev = process.env.OBSCURA_RESEARCH_DIR;
+  delete process.env.OBSCURA_RESEARCH_DIR;
+  try {
+    await assert.rejects(
+      () => listCoveredHashes("cats"),
       (e) => e instanceof ResearchPersistError && e.code === "missing_root"
     );
   } finally {
