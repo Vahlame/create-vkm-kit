@@ -2,11 +2,13 @@
 // Static CSS token audit — zero dependencies, Node >= 18. Gives critique mode executable
 // teeth: extracts declared colors (hex/oklch, resolving one file's var() chains), pairs
 // color/background declared in the same rule, and checks contrast, type scale and spacing
-// rhythm with the sibling checkers. HONEST SCOPE: token-level static analysis only —
+// rhythm with the sibling checkers. Accepts .css files, or .html/.htm — for HTML only the
+// <style> blocks + inline style="…" attributes are audited, never script/markup (see
+// cssSourceFor). HONEST SCOPE: token-level static analysis only —
 // inheritance, computed styles and rendered output are out of reach; the visual loop
 // (modes/visual-loop.md) remains the real judge.
-// Library:   import { extractCustomProps, resolveVars, extractPairs, countEmUsage } from "./audit-css.mjs"
-// CLI:       node audit-css.mjs <file.css> [more.css…] [--base 4] [--tolerance 0.03]
+// Library:   import { extractCustomProps, resolveVars, extractPairs, countEmUsage, cssSourceFor } from "./audit-css.mjs"
+// CLI:       node audit-css.mjs <file.css|file.html> [more…] [--base 4] [--tolerance 0.03]
 // Exit codes: 0 = no failing findings · 1 = failing findings · 2 = usage error.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -18,6 +20,28 @@ const HAIRLINE_MAX = 2; // px values <= this are treated as hairlines, exempt fr
 
 function stripComments(css) {
   return css.replace(/\/\*[\s\S]*?\*\//g, " ");
+}
+
+/**
+ * Source text the audit should parse for a given input file: raw content for CSS; for
+ * .html/.htm, ONLY the <style> block contents plus each inline style="…" attribute
+ * (wrapped as a synthetic one-off rule so its declarations join the px/em extraction).
+ * Before this, an HTML file's whole markup went through the rule regex — which happily
+ * read a <script> theme-config object literal (`{ background: "#0e2846", … }`, a real
+ * mermaid init block, 2026-07-18) as CSS declarations: one bare `color:` key away from
+ * fabricated contrast pairs. Static scope, same honesty as the rest of this file: a
+ * literal "</style>" inside a CSS string would end a block early — acceptable for
+ * token-level auditing.
+ * @returns {{ css: string, styleBlocks: number | null }} `styleBlocks` null = input was CSS
+ */
+export function cssSourceFor(fp, raw) {
+  if (!/\.html?$/i.test(fp)) return { css: raw, styleBlocks: null };
+  const blocks = [...raw.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi)].map((m) => m[1]);
+  // (?<![\w-]) so `data-style=`/`map-style=` don't leak in — \b alone matches after a hyphen.
+  const inline = [...raw.matchAll(/(?<![\w-])style\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)].map(
+    (m, i) => `[inline-${i}] { ${m[1] ?? m[2]} }`
+  );
+  return { css: blocks.concat(inline).join("\n"), styleBlocks: blocks.length };
 }
 
 /** Collect `--name: value` custom-property definitions (last definition wins). */
@@ -139,7 +163,9 @@ export function countEmUsage(css, propPattern) {
 
 function usageError(msg) {
   console.error(`error: ${msg}`);
-  console.error("usage: node audit-css.mjs <file.css> [more…] [--base 4] [--tolerance 0.03]");
+  console.error(
+    "usage: node audit-css.mjs <file.css|file.html> [more…] [--base 4] [--tolerance 0.03]"
+  );
   process.exit(2);
 }
 
@@ -157,13 +183,19 @@ function main(argv) {
   if (files.length === 0) return usageError("need at least one CSS file");
   let failed = false;
   for (const fp of files) {
-    let css;
+    let raw;
     try {
-      css = readFileSync(fp, "utf8");
+      raw = readFileSync(fp, "utf8");
     } catch (e) {
       return usageError(`cannot read ${fp}: ${e.message}`);
     }
     console.log(`== ${fp}`);
+    const { css, styleBlocks } = cssSourceFor(fp, raw);
+    if (styleBlocks !== null) {
+      console.log(
+        `(html input: auditing ${styleBlocks} <style> block(s) + inline style attributes — script/markup excluded)`
+      );
+    }
     const props = extractCustomProps(css);
     const { pairs, skipped } = extractPairs(css, props);
     if (pairs.length === 0) {
@@ -202,6 +234,9 @@ function main(argv) {
         console.log(
           `TYPE  FAIL  ratio ${res.ratio} (inferred), base ${res.base} — off-scale: ${res.offenders.map((o) => o.value).join(", ")}`
         );
+        console.log(
+          "  (1.067 excluded from inference — pass --ratio 1.067 to scale.mjs if deliberate)"
+        );
       } else {
         console.log(`TYPE  PASS  ratio ${res.ratio} (inferred) over ${sizes.length} sizes`);
       }
@@ -230,6 +265,13 @@ function main(argv) {
       if (res.offenders.length) {
         failed = true;
         console.log(`SPACE FAIL  base ${base} — off-rhythm: ${res.offenders.join(", ")}`);
+        if (res.halfGrid) {
+          console.log(
+            res.halfGrid.offenders.length === 0
+              ? `  (half-grid ${res.halfGrid.base}px: ALL values align — a half-step rhythm or phase mix; judge intent before renumbering)`
+              : `  (half-grid ${res.halfGrid.base}px: only ${res.halfGrid.offenders.join(", ")} stay off — the rest is a half-step rhythm; judge intent before renumbering)`
+          );
+        }
       } else {
         console.log(`SPACE PASS  base ${base} over ${spacing.length} value(s)`);
       }

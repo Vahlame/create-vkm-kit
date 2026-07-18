@@ -8,6 +8,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **vkm-design audit scripts: four defects exposed by a real user session log** (a session
+  "audited" a roadmap HTML with these scripts and half the tool output was wrong — each fix
+  below re-verified against the exact input that failed).
+  (1) `scale.mjs` no longer _infers_ the 1.067 ratio: its steps sit 6.7% apart, so the default
+  ±3% tolerance bands cover ~91% of the value space and almost any incoherent set "fits" — 22
+  real ad-hoc font sizes scored 1 offender under inferred 1.067, a false PASS that buried
+  exactly the incoherence the check exists to expose (now honestly 11+ offenders under the
+  best non-degenerate ratio, with a hint that `--ratio 1.067` remains available explicitly).
+  (2) `scale.mjs --gen` accepts the natural named-flag form (`--gen --base 16 --ratio 1.25
+--steps 6`): the packed-only parser swallowed a following `--base` as its value and died
+  with a misleading "not a comma-separated number list".
+  (3) `checkSpacing` attaches a `halfGrid` diagnosis when it explains part of the mess: a file
+  interleaving 4k and 4k+2 paddings (a real 2px half-step rhythm) was reported flat as "8
+  values off-rhythm", sending the session on a manual detour to conclude "false alarm" — the
+  CLI now says "only 3 stay off — the rest is a half-step rhythm; judge intent" itself, while
+  the exit code still fails against the declared base.
+  (4) `audit-css.mjs` given `.html/.htm` audits only `<style>` blocks + inline `style=""`
+  attributes: the whole file used to go through the rule regex, which read a `<script>` mermaid
+  theme object (`{ background: "#0e2846", … }`) as CSS — one bare `color:` key away from
+  fabricated contrast pairs — while real inline styles stayed invisible. Regression tests for
+  all four; installed copies under `~/.claude/skills/` re-synced.
+- **vkm-doctor skills-drift check: compares EVERY installed skill file, not just `SKILL.md`.**
+  The motivating real case (2026-07-18): `vkm-discipline/domains/design-ui.md` stale under a
+  byte-identical `SKILL.md` — the check reported "ok" for exactly the drift class it was built
+  to catch, and the routing fix that file carried (design tasks → vkm-design gate) silently
+  never reached sessions. A skill is now STALE if any of its template files differs installed-
+  side or is absent (new regression test reproduces the design-ui.md case).
+- **vkm-design `modes/visual-loop.md`: new trap — republishing a document to a NEW artifact URL
+  while the user still holds the old link.** Real session: the fixes landed on a fresh artifact,
+  the user's open copy never changed, and the session read back "no veo ningún cambio" as a
+  design complaint instead of a delivery failure. The loop now instructs: list existing
+  artifacts, redeploy to the SAME url, verify at the link the user actually holds.
 - **`obsidian-memory-rag`: concurrent `ensure_fresh` writers no longer die with `database is
 locked`.** Two simultaneous `vault_hybrid_search` calls with a stale index (reproduced live while
   verifying ADR-0056) raced `index_vectors`' `BEGIN IMMEDIATE`; the loser only got Python's

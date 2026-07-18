@@ -34,7 +34,8 @@ import {
   extractPairs,
   extractPx,
   extractPropPx,
-  countEmUsage
+  countEmUsage,
+  cssSourceFor
 } from "../templates/skills/vkm-design/scripts/audit-css.mjs";
 import { scan } from "../templates/skills/vkm-design/scripts/slop-check.mjs";
 
@@ -215,6 +216,103 @@ test("checkSpacing: base-unit rhythm", () => {
   assert.deepEqual(checkSpacing([6, 12], { base: 6 }).offenders, []);
   assert.throws(() => checkSpacing([]), /non-empty/);
   assert.throws(() => checkSpacing([4], { base: 0 }), /base/);
+});
+
+test("checkTypeScale: inference never picks the degenerate 1.067 ratio (false-PASS trap)", () => {
+  // 22 real ad-hoc sizes from a user session (rem×16). Under 1.067 at the default 3%
+  // tolerance only ONE failed — a false PASS on an obviously incoherent set, because
+  // 1.067's ±3% bands cover ~91% of the value space. Inference must expose the mess.
+  const messy = [
+    9.92, 10, 10.08, 10.24, 11.2, 11.9, 12, 12.48, 12.8, 13.6, 14, 14.4, 15, 15.2, 16, 16.8, 17,
+    20.8, 25.6, 27.2, 30.4, 32
+  ];
+  const res = checkTypeScale(messy);
+  assert.equal(res.inferred, true);
+  assert.notEqual(res.ratio, 1.067);
+  assert.ok(
+    res.offenders.length >= 10,
+    `expected the incoherence exposed, got ${res.offenders.length}`
+  );
+  // Explicit --ratio 1.067 still works: a genuine 1.067 scale passes when requested.
+  const explicit = checkTypeScale([16, 17.07, 18.22], { ratio: 1.067 });
+  assert.equal(explicit.offenders.length, 0);
+  assert.ok(CANDIDATE_RATIOS.includes(1.067), "1.067 stays available for explicit use");
+});
+
+test("checkSpacing: half-grid diagnosis on mixed 4k/4k+2 sets; absent when clean or uninformative", () => {
+  // Real case: a file interleaving 4k (4,8,12) and 4k+2 (6,10) paddings plus one true
+  // outlier (3) — the old output ("off-rhythm: 3, 6, 10") sent a session on a manual
+  // detour; the diagnosis names the 2px half-step rhythm and isolates the outlier.
+  const mixed = checkSpacing([3, 4, 6, 8, 10, 12], { base: 4 });
+  assert.deepEqual(mixed.offenders, [3, 6, 10]);
+  assert.deepEqual(mixed.halfGrid, { base: 2, offenders: [3] });
+  // clean set → no diagnosis field at all
+  assert.equal(checkSpacing([4, 8, 12]).halfGrid, undefined);
+  // all-odd offenders: the half-grid explains nothing → omitted
+  assert.equal(checkSpacing([5, 9, 13], { base: 4 }).halfGrid, undefined);
+  // base too small to halve meaningfully
+  assert.equal(checkSpacing([3, 5], { base: 2 }).halfGrid, undefined);
+});
+
+test("scale CLI --space: prints the half-grid diagnosis and still exits 1", () => {
+  let out = "";
+  let status = 0;
+  try {
+    execFileSync(process.execPath, [scaleCli, "--space", "3,4,6,8,10,12"], { stdio: "pipe" });
+  } catch (e) {
+    status = e.status;
+    out = e.stdout.toString();
+  }
+  assert.equal(status, 1, "half-grid diagnosis must not soften the FAIL exit");
+  assert.match(out, /half-grid 2px: only 3 stay off/);
+});
+
+test("scale CLI --gen: named-flag form works and matches the packed form", () => {
+  const packed = execFileSync(process.execPath, [scaleCli, "--gen", "16,1.25,6"], {
+    stdio: "pipe"
+  }).toString();
+  const flags = execFileSync(
+    process.execPath,
+    [scaleCli, "--gen", "--base", "16", "--ratio", "1.25", "--steps", "6"],
+    { stdio: "pipe" }
+  ).toString();
+  assert.equal(flags, packed);
+  // the old parser swallowed `--base` as --gen's packed value and died confusingly
+  assert.equal(exitCode(scaleCli, ["--gen", "--base", "16", "--ratio", "1.25"]), 2); // no --steps
+  assert.equal(
+    exitCode(scaleCli, ["--gen", "--base", "abc", "--ratio", "1.25", "--steps", "6"]),
+    2
+  );
+});
+
+test("audit-css: .html input audits only <style> + inline style attrs, never <script> contents", () => {
+  const html = `<title>t</title>
+<style>:root { --ink: #111111; } .ok { color: var(--ink); background: #ffffff; font-size: 16px; padding: 8px; }</style>
+<div style="padding-left: 12px">x</div><span style='margin-top: 4px'>y</span>
+<i data-style="margin: 99px">z</i>
+<script type="module">const themeVariables = { color: "#aaaaaa", background: "#ffffff" };</script>`;
+  const { css, styleBlocks } = cssSourceFor("page.html", html);
+  assert.equal(styleBlocks, 1);
+  assert.ok(!css.includes("themeVariables"), "script content must never reach the CSS parser");
+  assert.ok(!css.includes("99px"), "data-style= is not a style attribute — must not leak in");
+  const props = extractCustomProps(css);
+  const { pairs } = extractPairs(css, props);
+  assert.equal(pairs.length, 1, "only the real <style> rule pairs, not the script object");
+  assert.equal(pairs[0].fg, "#111111");
+  // inline style attributes (double- and single-quoted) join the numeric extraction
+  assert.deepEqual(extractPx(css, "margin[\\w-]*|padding[\\w-]*|gap"), [4, 8, 12]);
+  // non-HTML inputs pass through untouched
+  assert.deepEqual(cssSourceFor("a.css", ".x{color:#000}"), {
+    css: ".x{color:#000}",
+    styleBlocks: null
+  });
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vkm-audit-html-test-"));
+  const fp = path.join(dir, "page.html");
+  fs.writeFileSync(fp, html);
+  const out = execFileSync(process.execPath, [auditCli, fp], { stdio: "pipe" }).toString();
+  assert.match(out, /html input: auditing 1 <style> block/);
+  assert.ok(!out.includes("#aaaaaa"), "script-object colors must not become contrast pairs");
 });
 
 test("scale CLI: exit codes", () => {
@@ -420,7 +518,9 @@ test("slop-check: catches an indigo hex OUTSIDE the old hardcoded 11-item list",
 });
 
 test("slop-check: a non-indigo hex is not flagged (no false positive)", () => {
-  assert.ok(!scan(`<style>.x { background: #22c55e; }</style>`).some((h) => h.id === "indigo-family"));
+  assert.ok(
+    !scan(`<style>.x { background: #22c55e; }</style>`).some((h) => h.id === "indigo-family")
+  );
 });
 
 test("slop-check: an alpha hex (#rrggbbaa) is skipped, not mis-parsed as 6-digit", () => {
