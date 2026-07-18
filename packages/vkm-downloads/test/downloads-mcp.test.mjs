@@ -121,3 +121,118 @@ test("download_file never logs when the download fails", async () => {
   assert.equal(res.isError, true);
   assert.equal(logged, false, "a failed download must not be recorded as if it happened");
 });
+
+// ── async / large-file / mirror tools ─────────────────────────────────────────────────────
+
+test("all six download tools are registered", async () => {
+  const client = await connect({});
+  const names = (await client.listTools()).tools.map((t) => t.name);
+  for (const n of [
+    "download_resolve",
+    "download_file",
+    "download_start",
+    "download_status",
+    "download_cancel",
+    "probe_mirrors"
+  ]) {
+    assert.ok(names.includes(n), `missing tool: ${n}`);
+  }
+});
+
+test("download_start / download_status / download_cancel side-effecting hints are correct", async () => {
+  const client = await connect({});
+  const tools = (await client.listTools()).tools;
+  const by = (n) => tools.find((t) => t.name === n);
+  assert.equal(by("download_start").annotations?.readOnlyHint, false);
+  assert.equal(by("download_status").annotations?.readOnlyHint, true);
+  assert.equal(by("download_cancel").annotations?.readOnlyHint, false);
+  assert.equal(by("probe_mirrors").annotations?.readOnlyHint, true);
+});
+
+test("download_file forwards max_bytes to the downloader", async () => {
+  let seen = null;
+  const downloadImpl = async (url, opts) => {
+    seen = opts;
+    return {
+      path: "/d/x",
+      filename: "x",
+      size_bytes: 1,
+      sha256: "h",
+      content_type: null,
+      final_url: url
+    };
+  };
+  const client = await connect({ downloadImpl, logImpl: () => {} });
+  await client.callTool({
+    name: "download_file",
+    arguments: { url: "https://cdn.test/x", max_bytes: 12345 }
+  });
+  assert.equal(seen.maxBytes, 12345);
+});
+
+test("download_start forwards the spec to the manager, logs, and returns the job", async () => {
+  let startedSpec = null;
+  let logged = null;
+  const manager = {
+    start(spec) {
+      startedSpec = spec;
+      return { job_id: "job-1", state: "running", files: spec.files.map((f, i) => ({ index: i })) };
+    }
+  };
+  const client = await connect({ manager, logImpl: (e) => (logged = e) });
+  const res = await client.callTool({
+    name: "download_start",
+    arguments: {
+      files: [{ urls: ["https://a.test/f", "https://b.test/f"] }],
+      max_bytes: 999,
+      prefer_fastest: true
+    }
+  });
+  const data = JSON.parse(textOf(res));
+  assert.equal(data.job_id, "job-1");
+  assert.match(data._note, /background/i);
+  assert.equal(startedSpec.maxBytes, 999);
+  assert.equal(startedSpec.preferFastest, true);
+  assert.equal(startedSpec.files[0].urls.length, 2);
+  assert.equal(logged.event, "download_start");
+  assert.equal(logged.job_id, "job-1");
+});
+
+test("download_status and download_cancel forward the job_id to the manager", async () => {
+  const calls = [];
+  const manager = {
+    status(id) {
+      calls.push(["status", id]);
+      return { job_id: id, state: "done", files: [] };
+    },
+    cancel(id) {
+      calls.push(["cancel", id]);
+      return { job_id: id, state: "cancelled", files: [] };
+    }
+  };
+  const client = await connect({ manager });
+  const s = await client.callTool({ name: "download_status", arguments: { job_id: "j9" } });
+  assert.equal(JSON.parse(textOf(s)).state, "done");
+  const c = await client.callTool({ name: "download_cancel", arguments: { job_id: "j9" } });
+  assert.equal(JSON.parse(textOf(c)).state, "cancelled");
+  assert.deepEqual(calls, [
+    ["status", "j9"],
+    ["cancel", "j9"]
+  ]);
+});
+
+test("probe_mirrors returns the ranking and the fastest url", async () => {
+  const probeImpl = async (urls) => [
+    { url: urls[1], ok: true, throughput_bps: 5000, latency_ms: 2, rank: 1 },
+    { url: urls[0], ok: true, throughput_bps: 100, latency_ms: 9, rank: 2 }
+  ];
+  const client = await connect({ probeImpl });
+  const res = await client.callTool({
+    name: "probe_mirrors",
+    arguments: { urls: ["https://slow.test/f", "https://fast.test/f"] }
+  });
+  const data = JSON.parse(textOf(res));
+  assert.equal(data.fastest, "https://fast.test/f");
+  assert.equal(data.ranked[0].rank, 1);
+  assert.match(data._trust, /untrusted/i);
+});

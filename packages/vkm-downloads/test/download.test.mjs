@@ -18,7 +18,8 @@ import net from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
-import { downloadTo, resolveMetadata } from "../src/download.mjs";
+import { statfs } from "node:fs/promises";
+import { downloadTo, resolveMetadata, assertDiskSpace, DiskSpaceError } from "../src/download.mjs";
 
 function tmpDir() {
   return mkdtempSync(path.join(tmpdir(), "vkm-dl-"));
@@ -292,4 +293,17 @@ test("resolveMetadata: falls back to GET-and-abort when HEAD is refused", async 
 
 test("resolveMetadata: rejects a non-http(s) scheme", async () => {
   await assert.rejects(() => resolveMetadata("data:text/plain,hi"), /http\(s\)/);
+});
+
+test("assertDiskSpace: refuses a download bigger than free space, no-ops on unknown size", async () => {
+  const dir = tmpDir();
+  try {
+    const s = await statfs(dir);
+    const free = s.bavail * s.bsize;
+    await assert.rejects(() => assertDiskSpace(dir, free + 1, 0), DiskSpaceError);
+    await assertDiskSpace(dir, NaN); // unknown size → cannot guard → must not throw
+    await assertDiskSpace(dir, 1, 0); // trivially fits → must not throw
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

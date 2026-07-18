@@ -112,6 +112,26 @@ locked`.** Two simultaneous `vault_hybrid_search` calls with a stale index (repr
 
 ### Added
 
+- **`vkm-downloads`: background downloads, sets of files, resume, and fastest-mirror selection
+  (ADR-0059).** Follow-up to the synchronous tool: the user needed to download large files or SETS
+  of files "whether the download is fast or slow" and to "find the site with the fastest download" —
+  both blocked by the MCP transport's ~60s per-call wall (a 3 GB ISO can't be one synchronous call)
+  and by the conservative 500MB cap. Additive (the sync `download_file` and every ADR-0058 guardrail
+  are byte-for-byte unchanged): four new tools + a background job runner. `download_start({ files })`
+  registers a job and returns a `job_id` immediately, running the transfer as an async task **inside
+  the long-lived stdio server — no child process, so the "never execute downloaded bytes" property
+  holds**; `download_status` / `download_cancel` poll and abort. Each file may list several **mirror
+  URLs**; `probe_mirrors` (and `prefer_fastest`) measures each with a ~512 KB ranged GET and ranks by
+  real throughput (latency tiebreak; a `size_mismatch` flag catches a "mirror" that isn't the same
+  file), all through the same guarded, IP-pinned path so a private/loopback mirror is refused, not
+  probed. Large files are gated by a **free-disk-space check** (`fs.statfs`) rather than a hard byte
+  wall (background ceiling `VKM_DOWNLOAD_MAX_BYTES_BG`, 100GB); interrupted downloads **resume** from
+  their `.part` via HTTP Range. Verified live end-to-end against the real Hiren's BootCD PE servers:
+  `probe_mirrors` ranked its two real mirrors by measured speed (edgeuno 9.1 Mbps vs origin 8.8 Mbps,
+  same 3,291,686,912-byte size), and the 3 GB ISO the sync path refused streamed in the background at
+  ~130 Mbps and cancelled cleanly (`.part` removed). 18 new tests (mirror ranking with an injected
+  clock, the job runner over injected request/DNS incl. batch/mirror-pick/cancel/resume, the disk
+  guard, and the four MCP handlers).
 - **`vkm-downloads`: a guarded file-download manager MCP, opt-in via `--downloads` (ADR-0058).**
   The user wanted Claude to download files on request (find a URL, save it to disk) — a capability
   no existing tool had, and one that writes bytes to disk rather than reading the web as DATA. New
