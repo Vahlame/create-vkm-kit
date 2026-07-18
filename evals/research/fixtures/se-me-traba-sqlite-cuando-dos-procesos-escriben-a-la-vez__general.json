@@ -1,0 +1,987 @@
+{
+  "_captured": "2026-07-16T20:40:20.489Z",
+  "_query": "se me traba sqlite cuando dos procesos escriben a la vez",
+  "_categories": "general",
+  "_n": 29,
+  "results": [
+    {
+      "template": "default.html",
+      "title": "Docs ejecutables de SQLite: Transacciones - Coddy.tech",
+      "content": "3 may 2026 ... Con un BEGIN a secas, dos conexiones pueden abrir su transacción a la vez, leer tan tranquilas y, al intentar escribir, chocar de frente: la ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTBtnfpK4RiOq-RQZXR2DxnMehyoOFjIvWo311OH6265woIv-vwnnFjDkCL",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        1
+      ],
+      "score": 1,
+      "category": "general",
+      "url": "https://coddy.tech/docs/es/sqlite/transactions",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "coddy.tech",
+        "/docs/es/sqlite/transactions",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Prácticas recomendadas para el rendimiento de SQLite | App quality",
+      "content": "Considera INTEGER PRIMARY KEY ... La columna rowid es un índice que conserva el orden de inserción. Las consultas que filtran por rowid se implementan como una ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTRMQD4ZOCV2rzQ4MiYybpak0CKssC7jOo8Q7_Vn0F-ji1vG1yNnYntUbiG",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        3,
+        7
+      ],
+      "score": 0.9523809523809523,
+      "category": "general",
+      "url": "https://developer.android.com/topic/performance/sqlite-performance-best-practices?hl=es-419",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "developer.android.com",
+        "/topic/performance/sqlite-performance-best-practices",
+        "",
+        "hl=es-419",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "File Locking And Concurrency In SQLite Version 3",
+      "content": "31 may 2025 ... ... 2. But these days, most readers of this document have probably never ... Before reading from a database file, SQLite always checks to see if that ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRfrO5uAT2BQc6kTzIFFDeN3kQmBmtjGw7d_1LPAzvDyl7XNN3ND8kZanFU",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        2
+      ],
+      "score": 0.5,
+      "category": "general",
+      "url": "https://sqlite.org/lockingv3.html",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "sqlite.org",
+        "/lockingv3.html",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Bases de datos locales de .NET MAUI - Microsoft Learn",
+      "content": "10 abr 2026 ... De forma predeterminada, SQLite usa un diario de reversión tradicional. Una copia del contenido de la base de datos sin cambios se escribe en un ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTamiYiZkfXbLeih3vADC8SZH3wbbrq_92KFEfjeYjdTxr8-Z0AtOhIt4cS",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        6
+      ],
+      "score": 0.16666666666666666,
+      "category": "general",
+      "url": "https://learn.microsoft.com/es-es/dotnet/maui/data-cloud/database-sqlite?view=net-maui-10.0",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "learn.microsoft.com",
+        "/es-es/dotnet/maui/data-cloud/database-sqlite",
+        "",
+        "view=net-maui-10.0",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Guía de configuración para el modo queue n8n | Contabo Blog",
+      "content": "23 mar 2026 ... Redis (usando Bull internamente) mantiene estas colas donde los trabajos esperan hasta que un worker está disponible. Si se activan diez flujos ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTWczMdrMXtK6z_ONIXrxs5Ie0Ns90GLVFUUV4SzX4s0wcqJiqAB0VQ83o",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        7
+      ],
+      "score": 0.14285714285714285,
+      "category": "general",
+      "url": "https://contabo.com/blog/es/guia-de-configuracion-del-modo-cola-de-n8n-para-la-escalabilidad-en-vps/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "contabo.com",
+        "/blog/es/guia-de-configuracion-del-modo-cola-de-n8n-para-la-escalabilidad-en-vps/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Atomic Commit In SQLite",
+      "content": "2. Hardware Assumptions. Throughout this article, we will call the mass storage device \"disk\" even though the mass storage device might really be flash memory ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTlBKkIy8BywNx2NkurpNTcV0NmgBsnh95W5MP2LNP3Bz0fmG0QkqZ705tH",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        9
+      ],
+      "score": 0.1111111111111111,
+      "category": "general",
+      "url": "https://www.sqlite.org/atomiccommit.html",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.sqlite.org",
+        "/atomiccommit.html",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Write-Ahead Logging - SQLite",
+      "content": "13 abr 2026 ... 0 (2016-02-15), WAL mode works as efficiently with large transactions as does rollback mode. 2. How WAL Works. The traditional rollback journal ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRfrO5uAT2BQc6kTzIFFDeN3kQmBmtjGw7d_1LPAzvDyl7XNN3ND8kZanFU",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        11
+      ],
+      "score": 0.09090909090909091,
+      "category": "general",
+      "url": "https://sqlite.org/wal.html",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "sqlite.org",
+        "/wal.html",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Sociedad Ecuatoriana de Estadística - Facebook",
+      "content": "9 mar 2026 ... Curso: SQL Server para Ciencia de Datos y Analítica Integrada Regístrate aquí: info.see-ec.org/sql_server #SQL #SQLServer #CienciaDeDatos # ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTODZxpsG-2tSVfdNM4AV8JaumPJVONAQnuq3w7CWSiv2tYwmLc9hfW5Sk",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        12
+      ],
+      "score": 0.08333333333333333,
+      "category": "general",
+      "url": "https://www.facebook.com/socecuest/posts/a-veces-pensamos-que-el-problema-est%C3%A1-en-el-modelo-en-el-algoritmo-o-en-el-dashb/951843580748618/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.facebook.com",
+        "/socecuest/posts/a-veces-pensamos-que-el-problema-est%C3%A1-en-el-modelo-en-el-algoritmo-o-en-el-dashb/951843580748618/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Solucionar problemas de conectividad y otros errores",
+      "content": "1 may 2026 ... Recibirá mensajes de error cuando se produce un error en la conexión a Azure SQL Database, SQL Database en Microsoft Fabric o Instancia ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTamiYiZkfXbLeih3vADC8SZH3wbbrq_92KFEfjeYjdTxr8-Z0AtOhIt4cS",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        15
+      ],
+      "score": 0.06666666666666667,
+      "category": "general",
+      "url": "https://learn.microsoft.com/es-es/azure/azure-sql/database/troubleshoot-common-errors-issues?view=azuresql",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "learn.microsoft.com",
+        "/es-es/azure/azure-sql/database/troubleshoot-common-errors-issues",
+        "",
+        "view=azuresql",
+        ""
+      ]
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=CV2IqUjxNPA",
+      "title": "CURSO COMPLETO DE BASE DE DATOS SQLITE 2024 - YouTube",
+      "content": "Jun 1, 2024 ... ... vez realizado el pago me brindas un correo por WhatsApp + ... se te facilitará el material con la cual trabajó en cada una ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.youtube.com",
+        "/watch",
+        "",
+        "v=CV2IqUjxNPA",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        1
+      ],
+      "score": 1,
+      "category": "general"
+    },
+    {
+      "url": "https://coddy.tech/docs/es/sqlite/sqlite-vs-mysql",
+      "title": "Docs ejecutables de SQLite: SQLite vs MySQL - Coddy.tech",
+      "content": "May 2, 2026 ... Esa única diferencia condiciona todo lo demás: cómo se instalan, cuántos procesos pueden escribir a la vez, cómo se hacen las copias de ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "coddy.tech",
+        "/docs/es/sqlite/sqlite-vs-mysql",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        2
+      ],
+      "score": 0.5,
+      "category": "general"
+    },
+    {
+      "url": "https://koder.ai/es/blog/por-que-sqlite-esta-en-todas-partes",
+      "title": "Por qué SQLite está en todas partes: la base de datos embebida ...",
+      "content": "Aug 21, 2025 ... Atomico: un cambio es todo o nada. Si una operacion incluye 5 actualizaciones y la app cae despues de 3, SQLite no te deja con un resultado a ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "koder.ai",
+        "/es/blog/por-que-sqlite-esta-en-todas-partes",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        3
+      ],
+      "score": 0.3333333333333333,
+      "category": "general"
+    },
+    {
+      "template": "default.html",
+      "title": "Gestión y Uso de la Base de Datos SQLite 3 - ServBay",
+      "content": "29 abr 2025 ... ¿El archivo de la base de datos está dañado? Intenta conectarte con la herramienta de línea de comandos sqlite3 . Si falla o arroja errores, es ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        4
+      ],
+      "score": 0.25,
+      "category": "general",
+      "url": "https://support.servbay.com/es/database-management/getting-started/sqlite3-management-and-usage",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "support.servbay.com",
+        "/es/database-management/getting-started/sqlite3-management-and-usage",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=b4f4ozxIrUo",
+      "title": "Mejora un 90% el rendimiento de Power Query con ... - YouTube",
+      "content": "Feb 15, 2026 ... Mira mis cursos: https://www.deztaca.com/cursos #241 - ¿Estás cansado de esperar minutos a que Power Query termine de actualizar? 🎙️ Hoy me ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.youtube.com",
+        "/watch",
+        "",
+        "v=b4f4ozxIrUo",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        4
+      ],
+      "score": 0.25,
+      "category": "general"
+    },
+    {
+      "template": "default.html",
+      "title": "¿Cómo se conectan los sitios web a las bases de datos SQL ...",
+      "content": "27 may 2025 ... SQLite no es un servidor, así que no hay necesidad de meterlo en un contenedor. Es una librería que usas en tu app y que te da una base de datos ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        5
+      ],
+      "score": 0.2,
+      "category": "general",
+      "url": "https://www.reddit.com/r/webdev/comments/1kwj3a6/how_do_websites_connect_to_sql_databases_quickly/?tl=es-419",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.reddit.com",
+        "/r/webdev/comments/1kwj3a6/how_do_websites_connect_to_sql_databases_quickly/",
+        "",
+        "tl=es-419",
+        ""
+      ]
+    },
+    {
+      "url": "https://josejuansanchez.org/bd/unidad-04-sqlite/index.html",
+      "title": "Unidad Didáctica 4. Creación de bases de datos en SQLite",
+      "content": "Una vez instalada la utilidad sólo tenemos que escribir sqlite3 en un terminal para iniciarla. Deberíamos obtener una salida similar a la que se muestra a ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "josejuansanchez.org",
+        "/bd/unidad-04-sqlite/index.html",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        5
+      ],
+      "score": 0.2,
+      "category": "general"
+    },
+    {
+      "url": "https://learn.microsoft.com/es-es/windows/apps/develop/data-access/sqlite-data-access",
+      "title": "Uso de una base de datos de SQLite en una aplicación de Windows",
+      "content": "Mar 10, 2026 ... Configuración de la solución para usar la biblioteca Microsoft.Data.SQLite · Haz clic con el botón derecho en la solución y luego haz clic en ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "learn.microsoft.com",
+        "/es-es/windows/apps/develop/data-access/sqlite-data-access",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        6
+      ],
+      "score": 0.16666666666666666,
+      "category": "general"
+    },
+    {
+      "template": "default.html",
+      "title": "Controladores de bases de datos SQL - Qt Documentation",
+      "content": "... vez finalizada la ... escribir un formato de archivo específico estableciendo la definición SQLITE_DEFAULT_FILE_FORMAT cuando se construye SQLite.",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        8
+      ],
+      "score": 0.125,
+      "category": "general",
+      "url": "https://doc.qt.io/qt-6/es/sql-driver.html",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "doc.qt.io",
+        "/qt-6/es/sql-driver.html",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "url": "https://docs.python.org/es/3.8/library/sqlite3.html",
+      "title": "sqlite3 — DB-API 2.0 interfaz para bases de datos SQLite ...",
+      "content": "Sep 8, 2024 ... Cuando una base de datos es accedida por múltiples conexiones, y uno de los procesos modifica la base de datos, la base de datos SQLite se ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "docs.python.org",
+        "/es/3.8/library/sqlite3.html",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        8
+      ],
+      "score": 0.125,
+      "category": "general"
+    },
+    {
+      "url": "https://www.juliancabezas.com/post/2019-03-15-sqlite-r-memoria-csv-txt/tutorial-2/",
+      "title": "Trabajar con un base de datos en .csv o .txt más grande que tu ...",
+      "content": "Apr 1, 2019 ... ... me pasó a mi una vez). Como ocupo R para todo, se me hace muy difícil trabajar ... SQLite, y repite el proceso hasta la ultima linea del archivo.",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.juliancabezas.com",
+        "/post/2019-03-15-sqlite-r-memoria-csv-txt/tutorial-2/",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        9
+      ],
+      "score": 0.1111111111111111,
+      "category": "general"
+    },
+    {
+      "template": "default.html",
+      "title": "La capa de abstracción de la base de datos - Web2py",
+      "content": "Cadenas de conexión¶ ... Ten en cuenta que en SQLite la base de datos consiste de un único archivo. Si este no existe, se creará. El archivo se bloquea cada vez ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        10
+      ],
+      "score": 0.1,
+      "category": "general",
+      "url": "https://www.web2py.com/books/default/chapter/41/06/la-capa-de-abstraccion-de-la-base-de-datos",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.web2py.com",
+        "/books/default/chapter/41/06/la-capa-de-abstraccion-de-la-base-de-datos",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=yKcEDs1joXk",
+      "title": "05 - Crear la Conexion a SQLite | Proceso CRUD (C Sharp y SQLite)",
+      "content": "Oct 21, 2022 ... ... me/message/OXYTVXR2IN73A1) * Cuenta PLIN Soles: 942366999 (Solo ... se te facilitará el material con la cual trabajó en cada una de las ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.youtube.com",
+        "/watch",
+        "",
+        "v=yKcEDs1joXk",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        10
+      ],
+      "score": 0.1,
+      "category": "general"
+    },
+    {
+      "template": "default.html",
+      "title": "15. Python y Bases de Datos - GitHub Pages",
+      "content": "Cuando seleccionamos INTEGER PRIMARY KEY como el tipo de nuestra columna id , estamos indicando que nos gustaría que SQLite administre esta columna y asigne una ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        13
+      ],
+      "score": 0.07692307692307693,
+      "category": "general",
+      "url": "https://catedu.github.io/python-for-person-in-everybody/es/15-database.html",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "catedu.github.io",
+        "/python-for-person-in-everybody/es/15-database.html",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Para un sitio web, ¿debería usar MySQL o SQLite3? - Reddit",
+      "content": "16 ene 2024 ... En la nube, sqlite no es una opción (voy a arreglar mi comentario original). Requiere acceso constante a la misma parte del sistema de archivos.",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        14
+      ],
+      "score": 0.07142857142857142,
+      "category": "general",
+      "url": "https://www.reddit.com/r/AskProgramming/comments/197jmvt/for_a_website_should_i_use_mysql_or_sqlite3/?tl=es-419",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.reddit.com",
+        "/r/AskProgramming/comments/197jmvt/for_a_website_should_i_use_mysql_or_sqlite3/",
+        "",
+        "tl=es-419",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "8. Errores y excepciones — documentación de Python - 3.13.14",
+      "content": "Hasta ahora los mensajes de error apenas habían sido mencionados, pero si has probado los ejemplos anteriores probablemente hayas visto algunos.",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        17
+      ],
+      "score": 0.058823529411764705,
+      "category": "general",
+      "url": "https://docs.python.org/es/3.13/tutorial/errors.html",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "docs.python.org",
+        "/es/3.13/tutorial/errors.html",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Volumen, Velocidad Y Variedad: Entendiendo Las Tres V's Del Big ...",
+      "content": "7 abr 2020 ... Intente escribir sqlite3 newdb.sqlite. Si se te presenta un sqlite&gt; prompt, ¡has instalado SQLite! Introduce control + d para salir ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTKJlGTZvZMwAoREJUIPziC8JDT-AfJpT374NR7oLkzVE7yN6Uh_164KIY",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        16
+      ],
+      "score": 0.0625,
+      "category": "general",
+      "url": "https://www.datasource.ai/es/data-science-articles/volumen-velocidad-y-variedad-entendiendo-las-tres-v-s-del-big-data",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.datasource.ai",
+        "/es/data-science-articles/volumen-velocidad-y-variedad-entendiendo-las-tres-v-s-del-big-data",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Testimonios - DbGate",
+      "content": "Se conecta fácilmente a múltiples bases de datos (PostgreSQL, MySQL, SQL Server, SQLite, MongoDB, etc.) y la interfaz es mucho más limpia que la de muchas ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTJkwrYf3pN9Xk8Joy7f4pWEazfZXeZKEzunIItyo-MQiMVSsr9FKvz2A",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        18
+      ],
+      "score": 0.05555555555555555,
+      "category": "general",
+      "url": "https://www.dbgate.io/es/testimonials/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.dbgate.io",
+        "/es/testimonials/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "escribir en un archivo: Trabajar con archivos de texto, CSV y JSON",
+      "content": "21 ene 2026 ... Tú le dices dos cosas: ¿Con qué archivo quieres trabajar? Cómo ... Una vez que te sientas cómodo abriendo archivos con el modo adecuado ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSYavY-4f99LIk75csefcGNWQce_9OZ-4D9infuybatTWjPgWwzI3-1Rxk",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        19
+      ],
+      "score": 0.05263157894736842,
+      "category": "general",
+      "url": "https://www.datacamp.com/es/tutorial/python-write-to-file",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.datacamp.com",
+        "/es/tutorial/python-write-to-file",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Building a Personal AI Assistant with SQLite, Claude Code, and GTD",
+      "content": "14 mar 2026 ... Si quieres ver esto en acción y aprender a trabajar de esta forma, te ... vez más automatizada, la claridad estratégica se vuelve el ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcR9Vslvei2gA15ZF8Ejbdne6AaEKLPtd7ERBHfJcDBpEMyZeAdoFBtLKNc",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        20
+      ],
+      "score": 0.05,
+      "category": "general",
+      "url": "https://es.linkedin.com/posts/marcbara_building-a-personal-ai-assistant-with-sqlite-activity-7438547074280816640-B4br",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "es.linkedin.com",
+        "/posts/marcbara_building-a-personal-ai-assistant-with-sqlite-activity-7438547074280816640-B4br",
+        "",
+        "",
+        ""
+      ]
+    }
+  ],
+  "unresponsive_engines": [
+    [
+      "brave",
+      "Suspended: too many requests"
+    ],
+    [
+      "duckduckgo",
+      "CAPTCHA"
+    ],
+    [
+      "wikidata",
+      "Suspended: access denied"
+    ]
+  ]
+}

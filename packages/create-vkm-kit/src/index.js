@@ -17,12 +17,14 @@ import {
   mergeBasicMemoryServer,
   mergeObsidianHybridServer,
   mergeObscuraWebServer,
+  mergeDownloadsServer,
   resolveKitRepoRoot,
   hybridMcpPathsFromKitRoot,
   flagValue,
   basicMemoryServer,
   hybridServer,
   obscuraWebServer,
+  downloadsServer,
   claudeAddArgv,
   claudeRemoveArgv,
   codexAddArgv,
@@ -522,7 +524,9 @@ async function writeCursorMcp(home, vaultAbs, dryRun, hybridOpts = {}) {
     obscura = false,
     obscuraBin = null,
     searxngUrl = null,
-    researchDir = null
+    researchDir = null,
+    downloads = false,
+    downloadDir = null
   } = hybridOpts;
   if (withHybrid && repoRoot) {
     merged = mergeObsidianHybridServer(merged, vaultAbs, path.resolve(repoRoot), {
@@ -539,6 +543,9 @@ async function writeCursorMcp(home, vaultAbs, dryRun, hybridOpts = {}) {
       searxngUrl,
       researchDir
     });
+  }
+  if (downloads && repoRoot) {
+    merged = mergeDownloadsServer(merged, path.resolve(repoRoot), { downloadDir });
   }
   if (dryRun) {
     console.log(pc.cyan("[dry-run] would write"), fp);
@@ -641,7 +648,9 @@ async function registerClaudeCodeMcp(vaultAbs, dryRun, hybridOpts = {}) {
     obscura = false,
     obscuraBin = null,
     searxngUrl = null,
-    researchDir = null
+    researchDir = null,
+    downloads = false,
+    downloadDir = null
   } = hybridOpts;
   /** @type {Array<[string, object]>} */
   const servers = [["basic-memory", basicMemoryServer(vaultAbs)]];
@@ -656,6 +665,9 @@ async function registerClaudeCodeMcp(vaultAbs, dryRun, hybridOpts = {}) {
       "obscura-web",
       obscuraWebServer(path.resolve(repoRoot), { binPath: obscuraBin, searxngUrl, researchDir })
     ]);
+  }
+  if (downloads && repoRoot) {
+    servers.push(["vkm-downloads", downloadsServer(path.resolve(repoRoot), { downloadDir })]);
   }
   for (const [name, server] of servers) {
     const addArgv = claudeAddArgv(name, server);
@@ -700,7 +712,9 @@ async function registerCodexMcp(vaultAbs, dryRun, hybridOpts = {}) {
     obscura = false,
     obscuraBin = null,
     searxngUrl = null,
-    researchDir = null
+    researchDir = null,
+    downloads = false,
+    downloadDir = null
   } = hybridOpts;
   /** @type {Array<[string, object]>} */
   const servers = [["basic-memory", basicMemoryServer(vaultAbs)]];
@@ -715,6 +729,9 @@ async function registerCodexMcp(vaultAbs, dryRun, hybridOpts = {}) {
       "obscura-web",
       obscuraWebServer(path.resolve(repoRoot), { binPath: obscuraBin, searxngUrl, researchDir })
     ]);
+  }
+  if (downloads && repoRoot) {
+    servers.push(["vkm-downloads", downloadsServer(path.resolve(repoRoot), { downloadDir })]);
   }
   for (const [name, server] of servers) {
     const addArgv = codexAddArgv(name, server);
@@ -889,11 +906,12 @@ async function runNonInteractive(argv) {
   // ADR-0031: effort-gate hook (PreToolUse) also rides along by default, independently of
   // --memory-enforcement; --no-effort-gate opts out of just this one.
   const wantEffortGate = wantNativeOverride && on("--effort-gate", "--no-effort-gate");
-  // vkm-kit token-saver (ADR-0043): PostToolUse compaction hooks (noisy Bash output; MCP
-  // JSON whitespace) + permissions.deny rules for token-hungry build artifacts + the
-  // vkm-terse output style. Claude Code-only; same default-on / --no-X idiom. The terse
-  // style gets its own toggle — changing Claude's voice is a preference, not pure noise
-  // removal — but ships ON with the rest.
+  // vkm-kit token-saver (ADR-0043, amended): PostToolUse compaction hooks (noisy Bash
+  // output; MCP JSON whitespace) + the vkm-terse output style. Claude Code-only; same
+  // default-on / --no-X idiom. The terse style gets its own toggle — changing Claude's
+  // voice is a preference, not pure noise removal — but ships ON with the rest. The
+  // permissions.deny rules were retired (hard blocks obstructed legit reads); reconcile
+  // strips them from old installs.
   const wantTokenSaver = ides.includes("claude") && on("--token-saver", "--no-token-saver");
   const wantTerseStyle = wantTokenSaver && on("--terse-style", "--no-terse-style");
   // vkm-kit local telemetry (ADR-0044): OTEL env → local sink (127.0.0.1:4319) so
@@ -910,6 +928,11 @@ async function runNonInteractive(argv) {
   // obscura-web (ADR-0051): stealth web fetch + robust search via the local obscura browser.
   // Gated to explicit --full or --obscura (downloads a ~40MB third-party binary); --no-obscura wins.
   const wantObscura = (full || argv.includes("--obscura")) && !argv.includes("--no-obscura");
+  // vkm-downloads (ADR-0058): guarded file-download manager. Its OWN flag, DELIBERATELY not folded
+  // into --full even though --full includes --obscura: this tool WRITES bytes to the user's disk (a
+  // different risk surface than obscura's web reads), so opting into web access must never silently
+  // grant disk-write capability. Explicit --downloads only; --no-downloads wins.
+  const wantDownloads = argv.includes("--downloads") && !argv.includes("--no-downloads");
   let kitRoot = null;
 
   if (wantHybrid) {
@@ -985,6 +1008,22 @@ async function runNonInteractive(argv) {
     }
   }
 
+  // vkm-downloads (ADR-0058) needs the kit clone for its MCP bridge path (same as hybrid/obscura).
+  // No third-party binary to install — pure stdlib — so this only resolves the clone and wires it.
+  let wantDownloadsFinal = wantDownloads;
+  const downloadDir = flagValue(argv, "--download-dir");
+  if (wantDownloadsFinal && !kitRoot) {
+    kitRoot = await resolveKitRepoRoot({ cwd, argv, pathExists: (p) => fse.pathExists(p) });
+  }
+  if (wantDownloadsFinal && !kitRoot) {
+    console.warn(
+      pc.yellow(
+        "No kit clone found — vkm-downloads is skipped (run from a clone or pass --repo-root)."
+      )
+    );
+    wantDownloadsFinal = false;
+  }
+
   console.log(
     pc.cyan(t.title),
     pc.dim(full ? "full preset" : minimal ? "minimal" : "full stack (default)")
@@ -1007,7 +1046,9 @@ async function runNonInteractive(argv) {
     obscura: wantObscuraFinal,
     obscuraBin,
     searxngUrl,
-    researchDir
+    researchDir,
+    downloads: wantDownloadsFinal,
+    downloadDir
   };
   if (ides.includes("cursor") && !noCursorMcp) {
     await writeCursorMcp(home, vault, dryRun, hybridOpts);
@@ -1031,8 +1072,7 @@ async function runNonInteractive(argv) {
     // previously-installed token-saver instead of merely skipping it.
     await configureTokenSaver(home, dryRun, {
       hooks: wantTokenSaver,
-      terseStyle: wantTerseStyle,
-      denyRules: wantTokenSaver
+      terseStyle: wantTerseStyle
     });
     await configureTelemetry(home, dryRun, { enable: wantTelemetry, kitRoot });
     await configureSkillAssets(home, dryRun, { skills: wantSkills, agents: wantAgents });
@@ -1254,14 +1294,15 @@ Claude Code native-memory override (when --ide includes claude):
   Token-saver (ADR-0043, on by default when --ide includes claude) — cuts token spend
   with zero quality loss: two PostToolUse hooks compact noisy tool output before it
   enters context (Bash: ANSI/progress/dup-line cleanup + head/tail windowing that HARD
-  preserves error/warn/fail lines; mcp__.*: whitespace-only JSON compaction), plus
-  permissions.deny rules for token-hungry artifacts (node_modules, dist, lockfiles) and
-  the vkm-terse output style (~/.claude/output-styles/vkm-terse.md, activated via the
+  preserves error/warn/fail lines; mcp__.*: whitespace-only JSON compaction) and the
+  vkm-terse output style (~/.claude/output-styles/vkm-terse.md, activated via the
   outputStyle setting). Runtime kill switch without uninstalling: VKM_TOKEN_SAVER=0.
+  The permissions.deny rules older versions installed were retired (ADR-0043 amendment);
+  any run now removes them from ~/.claude/settings.json.
   --token-saver                Force it on (even under --minimal).
-  --no-token-saver             Skip/remove hooks + deny rules + style.
+  --no-token-saver             Skip/remove hooks + style.
   --terse-style                Force just the output style on.
-  --no-terse-style             Keep the hooks + deny rules but not the output style.
+  --no-terse-style             Keep the hooks but not the output style.
 
   Local telemetry + doctor (ADR-0044, on by default when --ide includes claude and a kit
   clone is available) — wires Claude Code's OTEL metrics export to a LOCAL sink
@@ -1292,6 +1333,15 @@ Claude Code native-memory override (when --ide includes claude):
   --obscura-research-dir <dir> Override OBSCURA_RESEARCH_DIR (default <vault>/RESEARCH) — root
                                 obscura_research({persist:true})/obscura_consolidate write under
                                 (ADR-0056).
+
+  Downloads (ADR-0058, opt-in via --downloads only — deliberately NOT in --full, since it writes
+  files to disk) — a guarded file-download manager MCP (vkm-downloads) exposing download_resolve
+  (metadata only, no write) and download_file (streams to ~/Downloads/vkm-kit/). http(s) only;
+  URLs resolving to private/loopback addresses are refused; a 500MB cap aborts oversize files
+  mid-stream; downloaded files are never opened or executed. Pure stdlib (no binary to install);
+  needs a kit clone for the MCP bridge.
+  --downloads / --no-downloads Wire vkm-downloads / skip it (default off; not enabled by --full).
+  --download-dir <dir>         Override VKM_DOWNLOAD_DIR (default ~/Downloads/vkm-kit).
 
   Uninstall: --no-native-memory-override / --no-memory-enforcement / --no-effort-gate on a
   re-run now ACTIVELY REMOVE the matching pieces this kit previously installed (not just
@@ -1486,8 +1536,7 @@ Claude Code native-memory override (when --ide includes claude):
     });
     await configureTokenSaver(home, dryRun, {
       hooks: wantTokenSaver,
-      terseStyle: wantTerseStyle,
-      denyRules: wantTokenSaver
+      terseStyle: wantTerseStyle
     });
     await configureTelemetry(home, dryRun, {
       // Independent of wantTokenSaver — telemetry is its own ADR-0044 toggle

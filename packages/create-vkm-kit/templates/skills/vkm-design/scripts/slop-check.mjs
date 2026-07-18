@@ -69,7 +69,10 @@ export function scan(text) {
       }
       const { C, H } = rgbToOklch(rgb);
       return isIndigoHue(C, H)
-        ? { id: "indigo-family", evidence: `${m[0]} (oklch hue ${H.toFixed(0)}, chroma ${C.toFixed(2)})` }
+        ? {
+            id: "indigo-family",
+            evidence: `${m[0]} (oklch hue ${H.toFixed(0)}, chroma ${C.toFixed(2)})`
+          }
         : null;
     })
   );
@@ -77,7 +80,9 @@ export function scan(text) {
     ...findAll(text, /oklch\(\s*[\d.]+%?\s+([\d.]+)\s+([\d.]+)/gi, (m) => {
       const C = Number(m[1]);
       const H = Number(m[2]);
-      return isIndigoHue(C, H) ? { id: "indigo-family", evidence: `oklch chroma ${C} hue ${H}` } : null;
+      return isIndigoHue(C, H)
+        ? { id: "indigo-family", evidence: `oklch chroma ${C} hue ${H}` }
+        : null;
     })
   );
 

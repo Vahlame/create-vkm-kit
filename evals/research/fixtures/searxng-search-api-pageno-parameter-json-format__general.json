@@ -1,0 +1,812 @@
+{
+  "_captured": "2026-07-16T20:37:41.043Z",
+  "_query": "SearXNG search API pageno parameter json format",
+  "_categories": "general",
+  "_n": 22,
+  "results": [
+    {
+      "template": "default.html",
+      "title": "Search API - SearXNG Documentation (2026.7.12+c19d86faa)",
+      "content": "Two endpoints, / and /search , are supported for both GET and POST methods. The GET method expects parameters as URL query parameters, while the POST method ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTjfAn7cX_8r6RVgCqamitYT4ZEyMi0Y2cQpWxsmxeZmHsgeXw68Rq6uH3U",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        1,
+        1
+      ],
+      "score": 4,
+      "category": "general",
+      "url": "https://docs.searxng.org/dev/search_api.html",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "docs.searxng.org",
+        "/dev/search_api.html",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "JSON Engine - SearXNG Documentation (2026.7.12+c19d86faa)",
+      "content": "https://example.org/?search={query}&page={pageno}{time_range}{safe_search} ... Safe-search URL parameter if engine supports safe-search . The {safe_search} ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTjfAn7cX_8r6RVgCqamitYT4ZEyMi0Y2cQpWxsmxeZmHsgeXw68Rq6uH3U",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        2,
+        3
+      ],
+      "score": 1.6666666666666665,
+      "category": "general",
+      "url": "https://docs.searxng.org/dev/engines/json_engine.html",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "docs.searxng.org",
+        "/dev/engines/json_engine.html",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "SearXNG Search - LiteLLM Docs",
+      "content": "Note: SearXNG returns a fixed number of results per page (~20 by default) and does not support limiting results via the API. The max_results parameter is not ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRrKFV-9gu6flWw1B5VDH3hm4btoyJiguPEiB9EBYCopnDfnUIST-lxJcBk",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        4,
+        2
+      ],
+      "score": 1.5,
+      "category": "general",
+      "url": "https://docs.litellm.ai/docs/search/searxng",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "docs.litellm.ai",
+        "/docs/search/searxng",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Discover the Magic of SearXNG Service and Empower Your Search ...",
+      "content": "Jul 22, 2024 ... ... API, allowing you to perform searches and retrieve results in various formats. ... Multi-Format Support: Retrieve search results in JSON, CSV, and ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcS9EYra-tvX3Z5mehWMFD6ocmlJjfhtEF9zRC7VVWglooIy8m1_hPUw1Qw",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        7,
+        4
+      ],
+      "score": 0.7857142857142857,
+      "category": "general",
+      "url": "https://dev.to/zand/discover-the-magic-of-searxng-service-and-empower-your-search-engine-api-87l",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "dev.to",
+        "/zand/discover-the-magic-of-searxng-service-and-empower-your-search-engine-api-87l",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "SearXNG Tool | Nodes - n8n Docs",
+      "content": "Jun 24, 2026 ... ... JSON format, which isn't enabled in the default SearXNG configuration. ... search.formats section of your SearXNG instance's settings.yml file:.",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSy4yYztDHOW-wRuCJDonh2vy_TjGolAWgSG8221LuDST2X9-YofwTuFXAO",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        5,
+        6
+      ],
+      "score": 0.7333333333333334,
+      "category": "general",
+      "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.toolsearxng",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "docs.n8n.io",
+        "/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.toolsearxng",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "pi-searxng-search · Packages - Pi Coding Agent",
+      "content": "May 24, 2026 ... Search API. JSON output must be enabled in SearXNG. The included config does this with: search: formats: - html - json. Configuration. By ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQvM-f7OTV02_3arsxINXqqCPW-Lz7_NoHVf4XMHOuVzN4w31_4MN9Q5Nw",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        6,
+        7
+      ],
+      "score": 0.6190476190476191,
+      "category": "general",
+      "url": "https://pi.dev/packages/pi-searxng-search?page=43",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "pi.dev",
+        "/packages/pi-searxng-search",
+        "",
+        "page=43",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "searxng-settings.yml · Asman2010/Perplexica_Perplexity_Clone at ...",
+      "content": "May 5, 2024 ... search_url: https://gitlab.com/api/v4/projects?search={query}&page={pageno} ... search_url: https://packagist.org/search.json?q={query}&page={ ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRzPBpo8QyQyGc4LBqQ6eYf3KBueWmtdK14thruhLBZi9IA9QM4TFOFsDA",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        9,
+        10
+      ],
+      "score": 0.4222222222222222,
+      "category": "general",
+      "url": "https://huggingface.co/spaces/Asman2010/Perplexica_Perplexity_Clone/blob/969bb94ad2f36181123326639b5ac9e2430c8e7c/searxng-settings.yml",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "huggingface.co",
+        "/spaces/Asman2010/Perplexica_Perplexity_Clone/blob/969bb94ad2f36181123326639b5ac9e2430c8e7c/searxng-settings.yml",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "SearXNG MCP Server by tisDDM - Glama",
+      "content": "Perform web searches using the searxngsearch tool with customizable queries · Customize search parameters · Zero-configuration setup · Connect to private instances ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTiNZ-rNbzBMZmcceS4E9PRz-4N_tEPtfLeSBMH4VZq_BkDt1aZaztpNUw",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        12,
+        8
+      ],
+      "score": 0.41666666666666663,
+      "category": "general",
+      "url": "https://glama.ai/mcp/servers/tisDDM/searxng-mcp",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "glama.ai",
+        "/mcp/servers/tisDDM/searxng-mcp",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "searxng Error searching #9646 - open-webui open-webui - GitHub",
+      "content": "Make sure that you have enabled JSON output within the settings of the SearXNG container. By default it outputs results by query as HTML even though the request ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQluqUFcNvpruFuMi0BJBKVtsTzkagnl55WDTq80DFuSX43iQKuPcm49DE",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        8
+      ],
+      "score": 0.125,
+      "category": "general",
+      "url": "https://github.com/open-webui/open-webui/discussions/9646",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "github.com",
+        "/open-webui/open-webui/discussions/9646",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Frustration with major engines · searxng searxng · Discussion #5651",
+      "content": "2 jul 2026 ... ... parameter value. See the Country Codes section for a ... But Microsoft offers the Bing Web Search v7 API — it returns clean structured JSON ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        3
+      ],
+      "score": 0.3333333333333333,
+      "category": "general",
+      "url": "https://github.com/searxng/searxng/discussions/5651",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "github.com",
+        "/searxng/searxng/discussions/5651",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "url": "https://github.com/searxng/searxng/blob/master/searx/engines/json_engine.py",
+      "title": "searxng/searx/engines/json_engine.py at master - GitHub",
+      "content": "engine : json_engine. paging : True. search_url : https://developer.mozilla.org/api/v1/search?q={query}&page={pageno}. results_query : documents. url_query ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "github.com",
+        "/searxng/searxng/blob/master/searx/engines/json_engine.py",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        5
+      ],
+      "score": 0.2,
+      "category": "general"
+    },
+    {
+      "url": "https://lobehub.com/mcp/tisddm-searxng-mcp",
+      "title": "SearXNG MCP Server - LobeHub",
+      "content": "Markdown-formatted search results ... 一个模型上下文协议（MCP）服务器，允许像Claude这样的AI助手使用Exa AI Search API进行实时网页搜索、学术论文搜索、LinkedIn搜索等。",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "lobehub.com",
+        "/mcp/tisddm-searxng-mcp",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        9
+      ],
+      "score": 0.1111111111111111,
+      "category": "general"
+    },
+    {
+      "template": "default.html",
+      "title": "Web Retrievers - msgFlux",
+      "content": "SearXNG's search API requires q and supports format=json . The SearXNG server must enable JSON in search.formats . Parameters. Parameter, Default, Description ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        15
+      ],
+      "score": 0.06666666666666667,
+      "category": "general",
+      "url": "https://msgflux.com/learn/retrievers/web/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "msgflux.com",
+        "/learn/retrievers/web/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Strands Agents SDK | SEA-LION Documentation",
+      "content": "30 jun 2025 ... ... API, which follows an OpenAI-compatible format . ... Here's an example of custom web search tool using a locally-deployed SearXNG search engine :.",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcR0l-5mQqAZnEWvmKEi12j8sV3dexRjg8OInUZpQHEKnBA1ozQbUNGahcXi",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        10
+      ],
+      "score": 0.1,
+      "category": "general",
+      "url": "https://docs.sea-lion.ai/guides/agents/strands_sdk",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "docs.sea-lion.ai",
+        "/guides/agents/strands_sdk",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "@jharding_npm/mcp-server-searxng - npm",
+      "content": "8 sept 2025 ... Returns structured JSON results web_search(\"artificial intelligence news\") ; Search with specific parameters web_search(\"climate change\" ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcT4isN9fX93H_Y8-WKJRVbkmxpfeOJPoNWpeMdmsFNExMKNIkX5JvF7m0Ar",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        11
+      ],
+      "score": 0.09090909090909091,
+      "category": "general",
+      "url": "https://npmjs.com/package/@jharding_npm/mcp-server-searxng",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "npmjs.com",
+        "/package/@jharding_npm/mcp-server-searxng",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "searxng + openclaw - Friends of the Crustacean - Answer Overflow",
+      "content": "3 mar 2026 ... ... search?q=test&format=json' | head. curl -sS 'http://<searxng ... (\"format\", \"json\"); u.searchParams.set(\"pageno\", \"1\"); if (params ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRKvbwIz12ZW2sX0I34hkCfq_DlhFLS4lRmxx_t0Oe2Zy706oJyfRV1kKiB",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        13
+      ],
+      "score": 0.07692307692307693,
+      "category": "general",
+      "url": "https://www.answeroverflow.com/m/1478407848164593735",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.answeroverflow.com",
+        "/m/1478407848164593735",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Step by step installation — Searx Documentation (Searx-1.1.0.tex)",
+      "content": "Step by step installation with virtualenv. For Ubuntu, be sure to have enable universe repository. Install packages¶. Ubuntu / debian. Arch Linux Fedora ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSES3tJirFMjaX562_fmc4XkP2QLL-kXDOqYN4JuA92eXQU9ACtCPM4",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        14
+      ],
+      "score": 0.07142857142857142,
+      "category": "general",
+      "url": "https://searx.github.io/searx/admin/installation-searx.html",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "searx.github.io",
+        "/searx/admin/installation-searx.html",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Engine Overview - SearXNG Documentation (2026.7.15+7b2199ecd)",
+      "content": "These arguments can be used to construct the search query. Furthermore, parameters with default value can be redefined for special purposes. Table 5 If the ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTjfAn7cX_8r6RVgCqamitYT4ZEyMi0Y2cQpWxsmxeZmHsgeXw68Rq6uH3U",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        16
+      ],
+      "score": 0.0625,
+      "category": "general",
+      "url": "https://docs.searxng.org/dev/engines/engine_overview.html",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "docs.searxng.org",
+        "/dev/engines/engine_overview.html",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Build Your Own Local Web Reading LLM Agent in 700 Lines of Python",
+      "content": "29 may 2026 ... format=\"json\", think=False, ) cleaned = json.loads(resp[\"message ... SearXNG, the search engine reused from Part 3; The Model Context ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSbY7sMnqYUo--_xOFsgxV5zCwX_HCxQouO5KZW6tHTA5ELCaaZ5N-yBeVI",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        17
+      ],
+      "score": 0.058823529411764705,
+      "category": "general",
+      "url": "https://generativeai.pub/build-your-own-local-web-reading-llm-agent-in-700-lines-of-python-bc308167d5f0",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "generativeai.pub",
+        "/build-your-own-local-web-reading-llm-agent-in-700-lines-of-python-bc308167d5f0",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Google PSE/CSE - Awesome MCP Servers",
+      "content": "A Model Context Protocol (MCP) server for the Google Programmable Search Engine (PSE) API. This server exposes tools for searching the web with Google Custom ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcS3i-SIgdFdhWUrd5TCDH6RiQ3Tcx6pB-4vkMxABkROqIy2UHibkml7O1g",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        18
+      ],
+      "score": 0.05555555555555555,
+      "category": "general",
+      "url": "https://mcpservers.org/servers/rendyfebry/google-pse-mcp",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "mcpservers.org",
+        "/servers/rendyfebry/google-pse-mcp",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "GitHub - JamePeng/searxng_search: A Python client library for ...",
+      "content": "pageno ( int , optional): Page number of results to fetch. Defaults to 1. format ( Literal[\"json\", \"html\"] , optional): Desired output format from SearXNG.",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcS0h8VMNi6VdieqSiYiUpsd_PtH8elXgYzEuuzU8LJljoxKresPqXboEFY",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        19
+      ],
+      "score": 0.05263157894736842,
+      "category": "general",
+      "url": "https://github.com/JamePeng/searxng_search",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "github.com",
+        "/JamePeng/searxng_search",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "SearXNG MCP Server In-Depth: Your AI Agent's Bridge to the Web",
+      "content": "19 oct 2025 ... The search query to be sent to SearXNG. pageno, number, Yes, The page number of the search results to retrieve (starts at 1). time_range, string ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQpABh0Dg_NsenNp5C-kkrZF3K356_JJvb2hPKUdXOP-apnzgjOYmI-sqQ",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        20
+      ],
+      "score": 0.05,
+      "category": "general",
+      "url": "https://skywork.ai/skypage/en/searxng-mcp-server-ai-agent/1977988153954193408",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "skywork.ai",
+        "/skypage/en/searxng-mcp-server-ai-agent/1977988153954193408",
+        "",
+        "",
+        ""
+      ]
+    }
+  ],
+  "unresponsive_engines": [
+    [
+      "brave",
+      "Suspended: too many requests"
+    ],
+    [
+      "duckduckgo",
+      "CAPTCHA"
+    ],
+    [
+      "wikidata",
+      "Suspended: access denied"
+    ]
+  ]
+}

@@ -5,23 +5,28 @@ import {
   checkOllama,
   curatePage,
   summarizeNotes,
+  embedPassages,
   compareVersions,
   ensureOllamaServer,
   OllamaUnavailableError,
   DEFAULT_MODEL,
+  DEFAULT_EMBED_MODEL,
   DEFAULT_OLLAMA_HOST
 } from "../src/ollama-client.mjs";
 
 /**
  * Minimal fake Ollama (non-streaming `/api/chat`, matching `curatePage`'s `stream: false`).
  * Options: version, models ([{name}]), chatContent (the message.content JSON string the
- * `/api/chat` response carries), chatStatus (override HTTP status).
+ * `/api/chat` response carries), chatStatus (override HTTP status), embedResponse/embedStatus
+ * for `/api/embed` (defaults to one 4-dim vector per input, echoing input.length).
  */
 function startFakeOllama({
   version = "0.6.0",
-  models = [{ name: DEFAULT_MODEL }],
-  chatContent = JSON.stringify({ relevant: true, excerpt: "the relevant bit" }),
-  chatStatus = 200
+  models = [{ name: DEFAULT_MODEL }, { name: DEFAULT_EMBED_MODEL }],
+  chatContent = JSON.stringify({ relevance: 8, reason: "on point", excerpt: "the relevant bit" }),
+  chatStatus = 200,
+  embedResponse = null,
+  embedStatus = 200
 } = {}) {
   const server = http.createServer((req, res) => {
     if (req.method === "GET" && req.url === "/api/version") {
@@ -48,6 +53,26 @@ function startFakeOllama({
             model: DEFAULT_MODEL,
             message: { role: "assistant", content: chatContent },
             done: true
+          })
+        );
+      });
+      return;
+    }
+    if (req.method === "POST" && req.url === "/api/embed") {
+      let body = "";
+      req.on("data", (c) => (body += c));
+      req.on("end", () => {
+        if (embedStatus !== 200) {
+          res.writeHead(embedStatus, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "boom" }));
+          return;
+        }
+        const { input } = JSON.parse(body);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            model: DEFAULT_EMBED_MODEL,
+            embeddings: embedResponse ?? input.map((_, i) => [i, i + 1, i + 2, i + 3])
           })
         );
       });
@@ -105,7 +130,11 @@ test("checkOllama: closed port never throws, just reports unreachable", async ()
 
 test("curatePage: happy path returns the model's relevant/excerpt verdict", async () => {
   const fake = await startFakeOllama({
-    chatContent: JSON.stringify({ relevant: true, excerpt: "a page found the eiffel tower" })
+    chatContent: JSON.stringify({
+      relevance: 7,
+      reason: "answers the query",
+      excerpt: "a page found the eiffel tower"
+    })
   });
   try {
     const out = await curatePage({
@@ -199,6 +228,76 @@ test("curatePage: HTTP error status -> OllamaUnavailableError (http_error)", asy
     await assert.rejects(
       curatePage({ markdown: "x", query: "q", host: fake.host }),
       (e) => e instanceof OllamaUnavailableError && e.reason === "http_error"
+    );
+  } finally {
+    await fake.close();
+  }
+});
+
+// ── embedPassages (ADR-0057 fourth phase) ─────────────────────────────────────────────────
+
+test("embedPassages: happy path returns one vector per input, in order", async () => {
+  const fake = await startFakeOllama({
+    embedResponse: [
+      [1, 0, 0],
+      [0, 1, 0]
+    ]
+  });
+  try {
+    const out = await embedPassages({ texts: ["first", "second"], host: fake.host });
+    assert.deepEqual(out, [
+      [1, 0, 0],
+      [0, 1, 0]
+    ]);
+  } finally {
+    await fake.close();
+  }
+});
+
+test("embedPassages: empty input returns an empty array without a network call", async () => {
+  const host = await closedPortHost(); // would throw on any real call if one were made
+  assert.deepEqual(await embedPassages({ texts: [], host }), []);
+});
+
+test("embedPassages: closed port -> OllamaUnavailableError (conn_refused)", async () => {
+  const host = await closedPortHost();
+  await assert.rejects(embedPassages({ texts: ["x"], host, timeoutMs: 5000 }), (e) => {
+    assert.ok(e instanceof OllamaUnavailableError);
+    assert.equal(e.reason, "conn_refused");
+    return true;
+  });
+});
+
+test("embedPassages: model not pulled -> OllamaUnavailableError (model_missing)", async () => {
+  const fake = await startFakeOllama({ models: [{ name: DEFAULT_MODEL }] }); // embed model absent
+  try {
+    await assert.rejects(
+      embedPassages({ texts: ["x"], host: fake.host }),
+      (e) => e instanceof OllamaUnavailableError && e.reason === "model_missing"
+    );
+  } finally {
+    await fake.close();
+  }
+});
+
+test("embedPassages: HTTP error status -> OllamaUnavailableError (http_error)", async () => {
+  const fake = await startFakeOllama({ embedStatus: 500 });
+  try {
+    await assert.rejects(
+      embedPassages({ texts: ["x"], host: fake.host }),
+      (e) => e instanceof OllamaUnavailableError && e.reason === "http_error"
+    );
+  } finally {
+    await fake.close();
+  }
+});
+
+test("embedPassages: a mismatched embeddings count -> OllamaUnavailableError (bad_json)", async () => {
+  const fake = await startFakeOllama({ embedResponse: [[1, 2, 3]] }); // 1 vector for 2 inputs
+  try {
+    await assert.rejects(
+      embedPassages({ texts: ["a", "b"], host: fake.host }),
+      (e) => e instanceof OllamaUnavailableError && e.reason === "bad_json"
     );
   } finally {
     await fake.close();

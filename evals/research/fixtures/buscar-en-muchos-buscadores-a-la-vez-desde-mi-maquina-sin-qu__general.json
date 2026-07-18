@@ -1,0 +1,876 @@
+{
+  "_captured": "2026-07-16T20:37:47.047Z",
+  "_query": "buscar en muchos buscadores a la vez desde mi maquina sin que me bloqueen",
+  "_categories": "general",
+  "_n": 26,
+  "results": [
+    {
+      "url": "https://www.youtube.com/watch?v=D_knMob2C-A",
+      "title": "Arreglar Fácilmente \"No se Puede Acceder a Este Sitio Web\" (2026)",
+      "content": "Oct 6, 2022 ... Crea tu Web con Hostinger! https://bit.ly/3MclPJB ¡Usa el código de descuento AH10 para obtener un 10% de DESCUENTO! El error de \"No se ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.youtube.com",
+        "/watch",
+        "",
+        "v=D_knMob2C-A",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        1,
+        11
+      ],
+      "score": 2.1818181818181817,
+      "category": "general"
+    },
+    {
+      "url": "https://support.google.com/chrome/answer/114662?hl=es-419&co=GENIE.Platform%3DDesktop",
+      "title": "Cómo cambiar los permisos de configuración de sitios - Computadora",
+      "content": "En la computadora, abre Chrome. · Ve a un sitio. · A la izquierda de la dirección web, selecciona Consulta la información del sitio Default (Secure) . · Selecciona ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "support.google.com",
+        "/chrome/answer/114662",
+        "",
+        "hl=es-419&co=GENIE.Platform%3DDesktop",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        2,
+        5
+      ],
+      "score": 1.4,
+      "category": "general"
+    },
+    {
+      "template": "default.html",
+      "title": "Desactivación de vista de ia en navegador - Comunidad de Google ...",
+      "content": "28 oct 2025 ... Desactivación de vista de ia en navegador · Usar el filtro “Web” en cada búsqueda. Haz tu búsqueda en Google y pulsa la pestaña Web (a veces está ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        1
+      ],
+      "score": 1,
+      "category": "general",
+      "url": "https://support.google.com/chrome/thread/383635483/desactivaci%C3%B3n-de-vista-de-ia-en-navegador?hl=es",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "support.google.com",
+        "/chrome/thread/383635483/desactivaci%C3%B3n-de-vista-de-ia-en-navegador",
+        "",
+        "hl=es",
+        ""
+      ]
+    },
+    {
+      "url": "https://learn.microsoft.com/es-es/answers/questions/4318251/barra-de-busqueda-de-windows-10-no-me-deja-escribi",
+      "title": "Barra de busqueda de windows 10 no me deja escribir",
+      "content": "Jul 28, 2022 ... ... vez que inicie el PC, es esto posible? Gracias por su atención de ... Muchas gracias Sandro un saludo!! ¿Le ha resultado útil esta ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "learn.microsoft.com",
+        "/es-es/answers/questions/4318251/barra-de-busqueda-de-windows-10-no-me-deja-escribi",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        6,
+        18
+      ],
+      "score": 0.4444444444444444,
+      "category": "general"
+    },
+    {
+      "url": "https://www.tiktok.com/@hardwarejavix028/video/7447576029914205473",
+      "title": "Solución para problemas de búsqueda en Windows - TikTok",
+      "content": "Dec 12, 2024 ... Google tiene un problema con el modo incógnito. El modo incógnito. es una manera de navegar. sin que el navegador guarde tu historial de ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.tiktok.com",
+        "/@hardwarejavix028/video/7447576029914205473",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        3
+      ],
+      "score": 0.3333333333333333,
+      "category": "general"
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=MSl3_5LQFjM",
+      "title": "Solución al ERROR Búsqueda en Windows 10 ... - YouTube",
+      "content": "Jan 18, 2021 ... No puedo escribir nada en el buscador de WINDOWS 10 ni en Microsoft Store, por ello decidi hacer este video para solucionar el problema y ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.youtube.com",
+        "/watch",
+        "",
+        "v=MSl3_5LQFjM",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        10,
+        16
+      ],
+      "score": 0.325,
+      "category": "general"
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=hXLKFgTUXec",
+      "title": "Cómo BLOQUEAR Anuncios NO DESEADOS y Ventanas ...",
+      "content": "Oct 28, 2023 ... ? ¡No te preocupes, hay una solución! Google Chrome tiene una función integrada que te permite bloquear estos elementos no deseados y ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.youtube.com",
+        "/watch",
+        "",
+        "v=hXLKFgTUXec",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        4
+      ],
+      "score": 0.25,
+      "category": "general"
+    },
+    {
+      "template": "default.html",
+      "title": "[PC Chrome] Google Chrome sigue cambiando a Yahoo - Reddit",
+      "content": "7 ago 2023 ... En Chrome, haga clic en el menú de 3 puntos en la parte superior derecha. Vaya a configuración > motor de búsqueda > Administrar motores de ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        4
+      ],
+      "score": 0.25,
+      "category": "general",
+      "url": "https://www.reddit.com/r/chrome/comments/15kyyrl/pc_chrome_google_chrome_keeps_changing_to_yahoo/?tl=es",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.reddit.com",
+        "/r/chrome/comments/15kyyrl/pc_chrome_google_chrome_keeps_changing_to_yahoo/",
+        "",
+        "tl=es",
+        ""
+      ]
+    },
+    {
+      "url": "https://www.facebook.com/CBcooperativa/posts/%EF%B8%8F-haz-de-tu-navegador-tu-mejor-defensaactiva-el-bloqueo-de-ventanas-emergentes-e/868569755923395/",
+      "title": "Haz de tu navegador tu mejor defensa. Activa el bloqueo de ...",
+      "content": "Dec 13, 2025 ... Al entrar en una página web por primera vez, esta te avisará de que las instalará para personalizar tu navegación. Debes aceptarlas manualmente ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.facebook.com",
+        "/CBcooperativa/posts/%EF%B8%8F-haz-de-tu-navegador-tu-mejor-defensaactiva-el-bloqueo-de-ventanas-emergentes-e/868569755923395/",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        5
+      ],
+      "score": 0.2,
+      "category": "general"
+    },
+    {
+      "template": "default.html",
+      "title": "Como BLOQUEAR el ACCESO a INTERNET de un PROGRAMA en ...",
+      "content": "31 ago 2023 ... En este tutorial te mostraré cómo bloquear el acceso a Internet de un programa específico en Windows 10 y Windows 11 utilizando el Firewall ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSWAQJEXKj7ZDGsviIz99gotIQpKn00KKt1Xeg4TLlbmIhSXzOWDRhZLGHe",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        2
+      ],
+      "score": 0.5,
+      "category": "general",
+      "url": "https://www.youtube.com/watch?v=QaFXM0MheXI",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.youtube.com",
+        "/watch",
+        "",
+        "v=QaFXM0MheXI",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "El navegador que te da prioridad - Brave",
+      "content": "¿Cómo va la web cuando tu privacidad es prioridad? · La Web, sin las molestias. Brave bloquea los anuncios de terceros en todos los sitios web. · Ahorrar datos, ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRplbqFiOS0ISF-l57nm6HO7ksaUCSHwRrksZ-bGM2d60vg11V--toV4w",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        3
+      ],
+      "score": 0.3333333333333333,
+      "category": "general",
+      "url": "https://brave.com/es/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "brave.com",
+        "/es/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Solucionar problemas en Windows Search - Microsoft Learn",
+      "content": "12 feb 2026 ... Si el equipo ejecuta la actualización del 10 de mayo de 2019 de Windows 11, Windows 10 o una actualización posterior, puede usar una secuencia ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTamiYiZkfXbLeih3vADC8SZH3wbbrq_92KFEfjeYjdTxr8-Z0AtOhIt4cS",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        6
+      ],
+      "score": 0.16666666666666666,
+      "category": "general",
+      "url": "https://learn.microsoft.com/es-es/troubleshoot/windows-client/shell-experience/fix-problems-in-windows-search",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "learn.microsoft.com",
+        "/es-es/troubleshoot/windows-client/shell-experience/fix-problems-in-windows-search",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Cómo bloquear el acceso a ciertas páginas web - Control parental",
+      "content": "11 feb 2024 ... Hoy os enseño a: Cómo bloquear el acceso a ciertas páginas web Cómo permitir el acceso a ciertas páginas web Cómo quitar el internet al ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSYrBgKnqOL0_fUodIZRPyCSW2t0PmGhws6k7x0aQrwBEXki5YfD8DVlw4",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        7
+      ],
+      "score": 0.14285714285714285,
+      "category": "general",
+      "url": "https://www.youtube.com/watch?v=HOP2w89oP6w",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.youtube.com",
+        "/watch",
+        "",
+        "v=HOP2w89oP6w",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Te enseño a eliminar buscadores no deseados (Yahoo ... - TikTok",
+      "content": "7 ago 2025 ... 🛡️ Entra en Configuración - \"Buscador\", elige Google y luego \"Gestionar buscadores\" para borrar el resto. ¡Navega sin distracciones en ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTgns0jgjCnPbzk2o_VN6zD5CmteJNs2DdOo6Q6OxUnhOR01uk45inwE-pL",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        8
+      ],
+      "score": 0.125,
+      "category": "general",
+      "url": "https://www.tiktok.com/@laitadigital/video/7535828451685567776",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.tiktok.com",
+        "/@laitadigital/video/7535828451685567776",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Cómo bloquear sitios web en la computadora - TikTok",
+      "content": "10 may 2025 ... Este es un resumen del contenido generado con IA y no busca ofrecer un contexto basado en hechos. Si crees que puede contener algún error, ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTLymZsVBJ_30w03Mt3l2NsoIJI4rghkImao_g-jkrS6hTzFJjiLZ5BuRwp",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        9
+      ],
+      "score": 0.1111111111111111,
+      "category": "general",
+      "url": "https://www.tiktok.com/@tecnicodepc.ar/video/7502819403906485510",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.tiktok.com",
+        "/@tecnicodepc.ar/video/7502819403906485510",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Solucionar los fallos en el buscador de Windows - SoftZone",
+      "content": "25 mar 2025 ... Si el servicio de búsqueda Windows sigue sin funcionar o no responde, podemos probar a reiniciar el servicio siguiendo los siguientes pasos. Lo ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQYQcpDM5Rcx4M3osNITXTUd7fXY_VxnKXaOpC65o_dcdI-hz6xSYRVhDw",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        12
+      ],
+      "score": 0.08333333333333333,
+      "category": "general",
+      "url": "https://www.softzone.es/windows/como-se-hace/solucionar-problemas-buscador/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.softzone.es",
+        "/windows/como-se-hace/solucionar-problemas-buscador/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Bloqueador de anuncios para Chrome - AdBlock",
+      "content": "¿Quieres bloquear los anuncios de YouTube en Chrome sin dejar de apoyar a los creadores de contenido? AdBlock para Chrome te permite hacerlo. AdBlock es el ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQKfyWPHIX2zCStE-XRWWbFShcnP-l7yyEbfjkxpnoKnaNgqXVhWxCnduc",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        14
+      ],
+      "score": 0.07142857142857142,
+      "category": "general",
+      "url": "https://getadblock.com/es/chrome/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "getadblock.com",
+        "/es/chrome/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Tienes que desactivar esto ahora mismo de Google Chrome por tu ...",
+      "content": "7 mar 2025 ... Solo tienes que entrar, buscar \"SafeSearch\" y activar el filtro para bloquear contenido explícito. Sin instalar nada. Sin complicaciones.",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTPJIa78mFdSEYkpt8G2G3KRCC2FQGn5CfKLtCeJaT1UfTk8gbgqHHYcgs",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        15
+      ],
+      "score": 0.06666666666666667,
+      "category": "general",
+      "url": "https://www.tiktok.com/@lopeztips/video/7479155716939566382?lang=es",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.tiktok.com",
+        "/@lopeztips/video/7479155716939566382",
+        "",
+        "lang=es",
+        ""
+      ]
+    },
+    {
+      "url": "https://www.tiktok.com/@maditecnologia/video/7233543573998734598?lang=en",
+      "title": "No más ventanas que se abren solas al navegar o querer ... - TikTok",
+      "content": "May 15, 2023 ... 2️⃣ AdGuard Bloquea prácticamente todos los anuncios y muchos rastreadores. Pago único, sin mensualidades. 3️⃣ Hush Elimina banners de cookies y ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.tiktok.com",
+        "/@maditecnologia/video/7233543573998734598",
+        "",
+        "lang=en",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        7
+      ],
+      "score": 0.14285714285714285,
+      "category": "general"
+    },
+    {
+      "url": "https://www.instagram.com/reel/C69mN58pN2D/?hl=en",
+      "title": "ELIMINÉ GOOGLE CHROME: ¿QUÉ USO AHORA? . ❤️ Like si te ...",
+      "content": "May 14, 2024 ... Este es el logo y te voy a contar por qué está buenísimo. Uno, porque navego sitios sin publicidad. Brave bloquea por defecto los anuncios de ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.instagram.com",
+        "/reel/C69mN58pN2D/",
+        "",
+        "hl=en",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        8
+      ],
+      "score": 0.125,
+      "category": "general"
+    },
+    {
+      "url": "https://www.redeszone.net/tutoriales/seguridad/evita-firewall-antivirus-bloquee-google-chrome/",
+      "title": "Qué hacer si tu firewall o antivirus bloquea Google Chrome",
+      "content": "May 25, 2025 ... Hay momentos en los que un tráfico de red inusual debido a otras aplicaciones podría hacer que el firewall restrinja Chrome. Saber qué programas ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.redeszone.net",
+        "/tutoriales/seguridad/evita-firewall-antivirus-bloquee-google-chrome/",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        9
+      ],
+      "score": 0.1111111111111111,
+      "category": "general"
+    },
+    {
+      "template": "default.html",
+      "title": "Ayuda para bloquear en Safari la venta… - Comunidad de Apple",
+      "content": "3 sept 2023 ... Preguntas similares · Ve a la página de tu cuenta de Google. · buscar Seguridad pestaña y luego desplácese hacia abajo Iniciar sesión en otros ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        10
+      ],
+      "score": 0.1,
+      "category": "general",
+      "url": "https://communities.apple.com/es/thread/255103946",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "communities.apple.com",
+        "/es/thread/255103946",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "¡¿Cómo diablos me deshago de Yahoo de una vez por todas?!",
+      "content": "8 dic 2024 ... Escribe Chrome://extensions en la barra de direcciones y busca cualquier extensión que tenga permisos para cambiar tu página de nueva pestaña.",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        13
+      ],
+      "score": 0.07692307692307693,
+      "category": "general",
+      "url": "https://www.reddit.com/r/chrome/comments/1h9lpj6/how_the_heck_do_i_remove_yahoo_for_good/?tl=es-419",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.reddit.com",
+        "/r/chrome/comments/1h9lpj6/how_the_heck_do_i_remove_yahoo_for_good/",
+        "",
+        "tl=es-419",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Permitir o bloquear el acceso a sitios web - Ayuda de Chrome ...",
+      "content": "Para bloquear funciones del sistema, como la cámara, los ajustes del SO y la configuración del navegador, te recomendamos que uses la opción Funciones ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        17
+      ],
+      "score": 0.058823529411764705,
+      "category": "general",
+      "url": "https://support.google.com/chrome/a/answer/7532419?hl=es",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "support.google.com",
+        "/chrome/a/answer/7532419",
+        "",
+        "hl=es",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Cómo Bloquear Páginas Web (Guía Definitiva) - YouTube",
+      "content": "10 feb 2025 ... En este video, te muestro la guía definitiva para bloquear páginas web en este año 2025. Descubre el método efectivo para proteger tu ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcS_oEC2IVZ2teiplSWOqPMCQBD75AptR2KbsAlNu8KRSmPBT84Zky_sQ38",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        19
+      ],
+      "score": 0.05263157894736842,
+      "category": "general",
+      "url": "https://www.youtube.com/watch?v=5sDQFrgcgYk",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.youtube.com",
+        "/watch",
+        "",
+        "v=5sDQFrgcgYk",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Como bloquear contenido de YouTube del teléfono de tus hijos ...",
+      "content": "19 oct 2025 ... Desactiva el buscador para que no encuentren contenido diferente. Activa el temporizador para que el contenido se detenga automáticamente sin ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRoZdGv2TL7aLMFYHm8Ll5PIRFF8xHEyuTk6yGAQsMRNVHQwiNEIUmeX9dc",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        20
+      ],
+      "score": 0.05,
+      "category": "general",
+      "url": "https://www.instagram.com/reel/DP_N_7gDFq-/?hl=es-la",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.instagram.com",
+        "/reel/DP_N_7gDFq-/",
+        "",
+        "hl=es-la",
+        ""
+      ]
+    }
+  ],
+  "unresponsive_engines": [
+    [
+      "brave",
+      "Suspended: too many requests"
+    ],
+    [
+      "duckduckgo",
+      "CAPTCHA"
+    ],
+    [
+      "wikidata",
+      "Suspended: access denied"
+    ]
+  ]
+}
