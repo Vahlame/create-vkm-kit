@@ -18,7 +18,7 @@
 import { createHash } from "node:crypto";
 import dns from "node:dns";
 import { createWriteStream, existsSync as fsExistsSync } from "node:fs";
-import { mkdir, rm } from "node:fs/promises";
+import { mkdir, rm, statfs } from "node:fs/promises";
 import http from "node:http";
 import https from "node:https";
 import net from "node:net";
@@ -30,9 +30,10 @@ import { pipeline } from "node:stream/promises";
 import { assertHttpUrl, resolveAndValidate } from "./safe-url.mjs";
 import { deriveFilename, resolveWithinRoot } from "./filename.mjs";
 
-const DEFAULT_MAX_BYTES = 500 * 1024 * 1024; // 500 MB
-const DEFAULT_IDLE_MS = 30000; // socket-inactivity timeout, not a total-time cap
+const DEFAULT_MAX_BYTES = 500 * 1024 * 1024; // 500 MB (the synchronous download_file path)
+export const DEFAULT_IDLE_MS = 30000; // socket-inactivity timeout, not a total-time cap
 const MAX_REDIRECTS = 5;
+const DEFAULT_DISK_MARGIN = 100 * 1024 * 1024; // keep this much free after a download
 
 const VERSION = (() => {
   try {
@@ -41,7 +42,7 @@ const VERSION = (() => {
     return "0.0.0";
   }
 })();
-const USER_AGENT = `vkm-downloads/${VERSION}`;
+export const USER_AGENT = `vkm-downloads/${VERSION}`;
 
 /** A non-2xx HTTP status on the final response. */
 export class DownloadHttpError extends Error {
@@ -85,14 +86,67 @@ export class TooManyRedirectsError extends Error {
   }
 }
 
+/** Not enough free disk space to hold the download. */
+export class DiskSpaceError extends Error {
+  constructor(freeBytes, needBytes) {
+    super(
+      `Not enough free disk space: need ~${needBytes} bytes, only ${freeBytes} free. ` +
+        `Free up space or choose a smaller download.`
+    );
+    this.name = "DiskSpaceError";
+    this.code = "no_disk_space";
+  }
+}
+
+/**
+ * Refuse a download that wouldn't fit on the target volume (with a safety margin). A no-op when the
+ * expected size is unknown (can't guard what we can't measure) or when statfs isn't available — the
+ * mid-stream byte cap is still the hard backstop against runaway writes.
+ * @param {string} dir target directory (must exist)
+ * @param {number} needBytes expected download size, or a non-finite value to skip the check
+ * @param {number} [marginBytes]
+ */
+export async function assertDiskSpace(dir, needBytes, marginBytes = DEFAULT_DISK_MARGIN) {
+  if (!Number.isFinite(needBytes) || needBytes <= 0) return;
+  let free;
+  try {
+    const s = await statfs(dir);
+    free = s.bavail * s.bsize;
+  } catch {
+    return; // statfs unsupported/failed — don't block on an inability to measure
+  }
+  if (free < needBytes + marginBytes) throw new DiskSpaceError(free, needBytes);
+}
+
 /** The default download root: ~/Downloads/vkm-kit (override with VKM_DOWNLOAD_DIR). */
 export function downloadDir() {
   return process.env.VKM_DOWNLOAD_DIR || path.join(homedir(), "Downloads", "vkm-kit");
 }
 
-function envMaxBytes() {
+export function envMaxBytes() {
   const n = Number(process.env.VKM_DOWNLOAD_MAX_BYTES);
   return Number.isFinite(n) && n > 0 ? n : DEFAULT_MAX_BYTES;
+}
+
+/**
+ * The cap for background (download_start) transfers. Background exists FOR large files, so it does
+ * not inherit the conservative 500MB synchronous default: it defaults to a high sanity ceiling
+ * (VKM_DOWNLOAD_MAX_BYTES_BG, 100GB) and relies on {@link assertDiskSpace} as the real guard.
+ */
+export function envMaxBytesBackground() {
+  const n = Number(process.env.VKM_DOWNLOAD_MAX_BYTES_BG);
+  if (Number.isFinite(n) && n > 0) return n;
+  const sync = Number(process.env.VKM_DOWNLOAD_MAX_BYTES);
+  // An explicit sync cap that is LARGER than the background default should still win.
+  return Math.max(100 * 1024 * 1024 * 1024, Number.isFinite(sync) && sync > 0 ? sync : 0);
+}
+
+export function resolveDeps(opts = {}) {
+  return {
+    requestImpl: opts.requestImpl || defaultRequestImpl,
+    lookupImpl: opts.lookupImpl || dns.lookup,
+    existsSync: opts.existsSync || fsExistsSync
+  };
 }
 
 /** Default request factory: pick http/https by protocol and issue the request. */
@@ -113,23 +167,15 @@ function fixedLookup({ address, family }) {
   };
 }
 
-function resolveDeps(opts) {
-  return {
-    requestImpl: opts.requestImpl || defaultRequestImpl,
-    lookupImpl: opts.lookupImpl || dns.lookup,
-    existsSync: opts.existsSync || fsExistsSync
-  };
-}
-
 /**
  * Issue one request to `urlObj` and resolve with its response stream. Resolves+validates the host
- * first and pins the socket to that address.
+ * first and pins the socket to that address. `signal` (an AbortSignal) cancels the in-flight request.
  * @returns {Promise<{ res: import("node:http").IncomingMessage, req: import("node:http").ClientRequest }>}
  */
-async function dispatch(urlObj, { method, headers, deps, idleMs }) {
+async function dispatch(urlObj, { method, headers, deps, idleMs, signal }) {
   const pinned = await resolveAndValidate(urlObj.hostname, deps.lookupImpl);
   return new Promise((resolve, reject) => {
-    const req = deps.requestImpl(urlObj, { method, headers, lookup: fixedLookup(pinned) });
+    const req = deps.requestImpl(urlObj, { method, headers, lookup: fixedLookup(pinned), signal });
     req.on("response", (res) => resolve({ res, req }));
     req.on("error", reject);
     if (typeof req.setTimeout === "function") {
@@ -140,13 +186,24 @@ async function dispatch(urlObj, { method, headers, deps, idleMs }) {
 }
 
 /**
- * Follow redirects manually (http.request does not), re-validating scheme + address on every hop.
+ * Issue a request and follow redirects manually (http.request does not), re-validating scheme +
+ * address on every hop (a redirect to 127.0.0.1 is refused). Shared by resolveMetadata, downloadTo,
+ * the background job runner, and mirror probing — the single guarded entry point to the network.
+ * @param {string} url
+ * @param {{ method: string, deps: object, idleMs: number, extraHeaders?: Record<string,string>, signal?: AbortSignal, redirectsLeft?: number }} opts
  * @returns {Promise<{ res, req, finalUrl: URL }>}
  */
-async function follow(url, { method, deps, idleMs, redirectsLeft = MAX_REDIRECTS }) {
+export async function openStream(
+  url,
+  { method, deps, idleMs, extraHeaders, signal, redirectsLeft = MAX_REDIRECTS }
+) {
   const urlObj = assertHttpUrl(url);
-  const headers = { "user-agent": USER_AGENT, "accept-encoding": "identity" };
-  const { res, req } = await dispatch(urlObj, { method, headers, deps, idleMs });
+  const headers = {
+    "user-agent": USER_AGENT,
+    "accept-encoding": "identity",
+    ...(extraHeaders || {})
+  };
+  const { res, req } = await dispatch(urlObj, { method, headers, deps, idleMs, signal });
   const status = res.statusCode || 0;
   const location = res.headers?.location;
   if ([301, 302, 303, 307, 308].includes(status) && location) {
@@ -155,7 +212,14 @@ async function follow(url, { method, deps, idleMs, redirectsLeft = MAX_REDIRECTS
     const nextUrl = new URL(location, urlObj).href; // resolves relative Location too
     // 303 mandates GET; we only ever issue GET/HEAD, so keep the method otherwise.
     const nextMethod = status === 303 ? "GET" : method;
-    return follow(nextUrl, { method: nextMethod, deps, idleMs, redirectsLeft: redirectsLeft - 1 });
+    return openStream(nextUrl, {
+      method: nextMethod,
+      deps,
+      idleMs,
+      extraHeaders,
+      signal,
+      redirectsLeft: redirectsLeft - 1
+    });
   }
   return { res, req, finalUrl: urlObj };
 }
@@ -174,7 +238,7 @@ export async function resolveMetadata(url, opts = {}) {
 
   let hop = null;
   try {
-    hop = await follow(url, { method: "HEAD", deps, idleMs });
+    hop = await openStream(url, { method: "HEAD", deps, idleMs });
   } catch (e) {
     // A refused scheme / blocked address is a hard no — surface it, don't retry as GET.
     if (e?.code === "unsupported_scheme" || e?.code === "blocked_address") throw e;
@@ -188,7 +252,7 @@ export async function resolveMetadata(url, opts = {}) {
     hop.res.resume(); // HEAD has no body, but drain to free the socket
   } else {
     if (hop) hop.res.resume();
-    ({ res, finalUrl } = await follow(url, { method: "GET", deps, idleMs }));
+    ({ res, finalUrl } = await openStream(url, { method: "GET", deps, idleMs }));
     res.destroy(); // metadata only — headers are already parsed; never read the body
   }
 
@@ -220,7 +284,7 @@ export async function downloadTo(url, opts = {}) {
   const maxBytes = opts.maxBytes || envMaxBytes();
   const root = opts.destDir || downloadDir();
 
-  const { res, finalUrl } = await follow(url, { method: "GET", deps, idleMs });
+  const { res, finalUrl } = await openStream(url, { method: "GET", deps, idleMs });
   const status = res.statusCode || 0;
   if (status < 200 || status >= 300) {
     res.destroy();
