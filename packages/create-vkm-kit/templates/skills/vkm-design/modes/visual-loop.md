@@ -16,6 +16,13 @@ later tool call reports "no site open" (two real sessions lost time fighting thi
 a page bug). Don't fight it and don't skip the loop: copy the file INTO the project as a
 dot-named temp (`.preview-<name>.html`), render the copy, re-copy after each edit of the
 original (never edit the copy — the two must not drift), and delete it when the loop ends.
+Two more pane behaviors that silently invalidate iterations (both bit a real session): repeat
+`navigate` calls to a `file://` URL may KEEP the old document (the "opened" reply lies) or spawn
+a NEW tab instead of reusing the one you addressed — so (a) verify `location.href` in-page
+matches the copy you just wrote BEFORE trusting any probe or capture, (b) write each iteration
+to a fresh versioned name (`.preview-<name>2.html`, `3`…) and (c) list tabs and target the tab
+that actually holds it. An iteration probed against a stale document reports the PREVIOUS
+build's geometry — you'll conclude your fix "did nothing" when it was never loaded.
 
 ## The loop
 
@@ -30,6 +37,23 @@ original (never edit the copy — the two must not drift), and delete it when th
    the committed move isn't landing — intensify or swap it, don't add a third one. Write the
    findings down before touching code — otherwise you'll fix the first thing you see and miss
    the pattern.
+   1. **Focused sweeps — full-page captures are NOT enough.** A downscaled full-page shot hides
+      exactly the finish bugs users see first (a frame covering a neighbor's title, a label
+      clipped by a box — real case: a mermaid subgraph frame overlapping the adjacent
+      subgraph's text, invisible at page scale, obvious to the user). After the full captures,
+      review the page **region by region, sequentially**: `scrollIntoView` each section /
+      component / diagram and capture it at real scale, checking spacing, margins and alignment
+      inside that one frame before moving to the next — small frames keep the judgment
+      minucious and the context small.
+   2. **Overlap is measured, not eyeballed — nothing may sit on top of content.** Run a
+      rect-intersection probe in the page: for overlay-prone elements (absolutely-positioned,
+      transformed/rotated, SVG cluster frames and labels), compute
+      `getBoundingClientRect()` intersections against sibling text/content rects and report
+      any pair over a few px² — declared decorative watermarks are the only exemption. In SVG
+      diagrams check frame-vs-frame AND frame-vs-label pairs (mermaid widens a cluster for its
+      title AFTER layout, so long titles overlap the neighbor — wrap the title to two lines
+      with `<br/>` instead of shrinking text). Zero unexempted hits is part of done, at every
+      captured viewport and theme.
 4. **Fix causes, not symptoms** — at the token/system level when possible: a bad gap is usually a
    missing scale step, not a one-off margin; a flat hierarchy is a scale-ratio problem, not a
    font-size tweak.
