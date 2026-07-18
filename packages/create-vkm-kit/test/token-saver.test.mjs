@@ -17,7 +17,7 @@ import {
   COMPACT_BASH_HOOK_BASENAME,
   COMPACT_MCP_HOOK_BASENAME,
   TERSE_STYLE_NAME,
-  TOKEN_SAVER_DENY_RULES
+  LEGACY_TOKEN_SAVER_DENY_RULES
 } from "../src/token-saver.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -200,7 +200,7 @@ function readSettings(home) {
   return JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
 }
 
-test("configureTokenSaver installs hooks + deny rules + output style; idempotent", async () => {
+test("configureTokenSaver installs hooks + output style (NO deny rules); idempotent", async () => {
   const home = tempHome();
   await configureTokenSaver(home, false);
   await configureTokenSaver(home, false); // re-run must converge, not duplicate
@@ -208,7 +208,8 @@ test("configureTokenSaver installs hooks + deny rules + output style; idempotent
   const postToolUse = settings.hooks.PostToolUse;
   assert.equal(postToolUse.length, 2);
   assert.deepEqual(postToolUse.map((e) => e.matcher).sort(), ["Bash", "mcp__.*"]);
-  for (const rule of TOKEN_SAVER_DENY_RULES) assert.ok(settings.permissions.deny.includes(rule));
+  // Retired (ADR-0043 amendment): a fresh install must never add deny rules.
+  assert.equal("permissions" in settings, false);
   assert.equal(settings.outputStyle, TERSE_STYLE_NAME);
   assert.ok(fs.existsSync(path.join(home, ".claude", "hooks", COMPACT_BASH_HOOK_BASENAME)));
   assert.ok(fs.existsSync(path.join(home, ".claude", "hooks", COMPACT_MCP_HOOK_BASENAME)));
@@ -226,10 +227,10 @@ test("configureTokenSaver preserves unrelated settings and reconciles pieces off
   await configureTokenSaver(home, false);
   let settings = readSettings(home);
   assert.equal(settings.model, "opus");
-  assert.ok(settings.permissions.deny.includes("Read(/secrets/**)"));
+  assert.deepEqual(settings.permissions.deny, ["Read(/secrets/**)"]); // user rules untouched
 
   // Reconcile with everything off = full removal, user entries intact.
-  await configureTokenSaver(home, false, { hooks: false, terseStyle: false, denyRules: false });
+  await configureTokenSaver(home, false, { hooks: false, terseStyle: false });
   settings = readSettings(home);
   assert.equal(settings.model, "opus");
   assert.deepEqual(settings.permissions.deny, ["Read(/secrets/**)"]);
@@ -260,8 +261,35 @@ test("uninstallTokenSaver removes owned hook files but keeps a user-modified sty
 
 test("configureTokenSaver true no-op: nothing wanted, nothing present → no settings.json", async () => {
   const home = tempHome();
-  await configureTokenSaver(home, false, { hooks: false, terseStyle: false, denyRules: false });
+  await configureTokenSaver(home, false, { hooks: false, terseStyle: false });
   assert.equal(fs.existsSync(path.join(home, ".claude", "settings.json")), false);
+});
+
+test("reconcile strips the LEGACY deny rules an older kit installed, keeping user rules", async () => {
+  const home = tempHome();
+  const claudeDir = path.join(home, ".claude");
+  fs.mkdirSync(claudeDir, { recursive: true });
+  // Machine state as left by a pre-amendment install: our 4 rules + one user rule.
+  fs.writeFileSync(
+    path.join(claudeDir, "settings.json"),
+    JSON.stringify({
+      model: "opus",
+      permissions: { deny: ["Read(/secrets/**)", ...LEGACY_TOKEN_SAVER_DENY_RULES] }
+    })
+  );
+  await configureTokenSaver(home, false); // default install path (hooks + style ON)
+  const settings = readSettings(home);
+  assert.deepEqual(settings.permissions.deny, ["Read(/secrets/**)"]);
+  assert.equal(settings.model, "opus");
+
+  // Cleanup happens even with every piece toggled OFF (pure legacy sweep).
+  fs.writeFileSync(
+    path.join(claudeDir, "settings.json"),
+    JSON.stringify({ permissions: { deny: [...LEGACY_TOKEN_SAVER_DENY_RULES] } })
+  );
+  await configureTokenSaver(home, false, { hooks: false, terseStyle: false });
+  const swept = readSettings(home);
+  assert.equal("permissions" in swept, false); // emptied container removed, no trace
 });
 
 test("configureTokenSaver dry-run writes nothing", async () => {

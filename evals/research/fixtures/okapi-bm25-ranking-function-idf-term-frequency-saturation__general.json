@@ -1,0 +1,672 @@
+{
+  "_captured": "2026-07-16T20:37:43.825Z",
+  "_query": "Okapi BM25 ranking function IDF term frequency saturation",
+  "_categories": "general",
+  "_n": 20,
+  "results": [
+    {
+      "url": "https://medium.com/@readwith_emma/understanding-okapi-bm25-document-ranking-algorithm-70d81adab001",
+      "title": "Understanding Okapi BM25 — Document Ranking algorithm - Medium",
+      "content": "Feb 17, 2025 ... Inverse Document Frequency (IDF) ... The classic BM25 term-weighting and document-scoring function — presented in the paper “The Probabilistic ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "medium.com",
+        "/@readwith_emma/understanding-okapi-bm25-document-ranking-algorithm-70d81adab001",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        1,
+        2
+      ],
+      "score": 3,
+      "category": "general"
+    },
+    {
+      "url": "https://en.wikipedia.org/wiki/Okapi_BM25",
+      "title": "Okapi BM25 - Wikipedia",
+      "content": "In information retrieval, Okapi BM25 is a ranking function used by search engines to estimate the relevance of documents to a given search query.",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "en.wikipedia.org",
+        "/wiki/Okapi_BM25",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        2,
+        1
+      ],
+      "score": 3,
+      "category": "general"
+    },
+    {
+      "url": "https://spice.ai/learn/bm25-full-text-search",
+      "title": "What is BM25 Full-Text Search? How Document Ranking Works",
+      "content": "BM25 improves on TF-IDF in two key ways: it applies a saturation function to term frequency (so the 10th occurrence of a term adds less relevance than the first) ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "spice.ai",
+        "/learn/bm25-full-text-search",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        3,
+        5
+      ],
+      "score": 1.0666666666666667,
+      "category": "general"
+    },
+    {
+      "url": "https://milvus.io/ai-quick-reference/what-is-the-role-of-bm25-in-fulltext-search",
+      "title": "What is the role of BM25 in full-text search? - Milvus",
+      "content": "BM25 enhances this traditional model by introducing saturation effects, ensuring that the impact of term frequency on the scoring diminishes as the term appears ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "milvus.io",
+        "/ai-quick-reference/what-is-the-role-of-bm25-in-fulltext-search",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        5,
+        3
+      ],
+      "score": 1.0666666666666667,
+      "category": "general"
+    },
+    {
+      "url": "https://arpitbhayani.me/blogs/bm25/",
+      "title": "BM25 - Arpit Bhayani",
+      "content": "What BM25 Was Built To Solve · Term Frequency (TF): how many times the query term appears in the document · Inverse Document Frequency (IDF): a measure of how ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "arpitbhayani.me",
+        "/blogs/bm25/",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        4,
+        4
+      ],
+      "score": 1,
+      "category": "general"
+    },
+    {
+      "url": "https://www.geeksforgeeks.org/nlp/what-is-bm25-best-matching-25-algorithm/",
+      "title": "What is BM25 (Best Matching 25) Algorithm - GeeksforGeeks",
+      "content": "Dec 16, 2025 ... BM25 (Best Matching 25) is a ranking algorithm used in information retrieval systems to determine how relevant a document is to a given ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.geeksforgeeks.org",
+        "/nlp/what-is-bm25-best-matching-25-algorithm/",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        6,
+        7
+      ],
+      "score": 0.6190476190476191,
+      "category": "general"
+    },
+    {
+      "url": "https://kmwllc.com/index.php/2020/03/20/understanding-tf-idf-and-bm-25/",
+      "title": "Understanding TF-IDF and BM-25 - KMW Technology",
+      "content": "Mar 20, 2020 ... This article is for search practitioners who want to achieve a deep understanding of the ranking functions TF-IDF and BM25 (also called “ ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "kmwllc.com",
+        "/index.php/2020/03/20/understanding-tf-idf-and-bm-25/",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        7,
+        8
+      ],
+      "score": 0.5357142857142857,
+      "category": "general"
+    },
+    {
+      "url": "https://mbrenndoerfer.com/writing/bm25-probabilistic-ranking-information-retrieval",
+      "title": "BM25: The Probabilistic Ranking Revolution in Information Retrieval",
+      "content": "Apr 10, 2025 ... Learn how BM25 solved TF-IDF's limitations through sophisticated term frequency saturation, document length normalization, and probabilistic ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "mbrenndoerfer.com",
+        "/writing/bm25-probabilistic-ranking-information-retrieval",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        10,
+        6
+      ],
+      "score": 0.5333333333333333,
+      "category": "general"
+    },
+    {
+      "url": "https://apxml.com/courses/advanced-vector-search-llms/chapter-3-hybrid-search-approaches/integrating-keyword-search",
+      "title": "Integrating Keyword Search (BM25, TF-IDF) - ApX Machine Learning",
+      "content": "You might be familiar with TF-IDF (Term Frequency Inverse Document Frequency), a classic technique for scoring documents based on keyword relevance. It ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "apxml.com",
+        "/courses/advanced-vector-search-llms/chapter-3-hybrid-search-approaches/integrating-keyword-search",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        8,
+        9
+      ],
+      "score": 0.4722222222222222,
+      "category": "general"
+    },
+    {
+      "url": "https://metricgate.com/docs/bm25-okapi-ranking/",
+      "title": "BM25 Okapi Ranking Calculator - MetricGate",
+      "content": "May 5, 2026 ... Rank documents against a query with Okapi BM25, the probabilistic ranking function used by modern search engines. Tune k1 and b, ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "metricgate.com",
+        "/docs/bm25-okapi-ranking/",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        9,
+        15
+      ],
+      "score": 0.3555555555555555,
+      "category": "general"
+    },
+    {
+      "template": "default.html",
+      "title": "What is bm25? Meaning, Architecture, Examples, Use Cases, and ...",
+      "content": "16 feb 2026 ... bm25 is a fast, interpretable term-weighted ranking function using TF, IDF, and length normalization to score document relevance for keyword ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        10
+      ],
+      "score": 0.1,
+      "category": "general",
+      "url": "https://aiopsschool.com/blog/bm25/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "aiopsschool.com",
+        "/blog/bm25/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "BM25 is all you need - kenneth.computer",
+      "content": "1 sept 2024 ... BM25, also known as Okapi BM25, is a ranking function used in information retrieval to estimate the relevance of documents to a given search ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        20
+      ],
+      "score": 0.05,
+      "category": "general",
+      "url": "https://kenneth.computer/blog/bm25-is-all-you-need",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "kenneth.computer",
+        "/blog/bm25-is-all-you-need",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "The Probabilistic Relevance Framework: BM25 and Beyond Contents",
+      "content": "Thus the commonly used term-weighting functions such as the traditional tf *idf , linear in ... In order to use BM25 as a ranking function for retrieval, we need ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRd_IA1MKmlhZx3137idgpSgyKjhDFNUS1L109Z72yfWGBPrDG-05UkcQk",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        11
+      ],
+      "score": 0.09090909090909091,
+      "category": "general",
+      "url": "https://www.staff.city.ac.uk/~sbrp622/papers/foundations_bm25_review.pdf",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.staff.city.ac.uk",
+        "/~sbrp622/papers/foundations_bm25_review.pdf",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "bm25_intro - GitHub Pages",
+      "content": "Quick Introduction to Okapi BM25¶. The problem that BM25 (Best ... Inverse Document Frequency aka idf: measures how many documents the term appeared in.",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSk6Kp9zM69tD5vtqpzSVqutMNwB-kB3zNbk30lFK2cw9rrms70INJjAfIM",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        12
+      ],
+      "score": 0.08333333333333333,
+      "category": "general",
+      "url": "https://ethen8181.github.io/machine-learning/search/bm25_intro.html",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "ethen8181.github.io",
+        "/machine-learning/search/bm25_intro.html",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Exploring Information Retrieval from BoW to BM25 - Deconvolute Labs",
+      "content": "8 feb 2025 ... Based on this idea, models like Bag of Words (BoW), TF-IDF, and BM25 rank documents by scoring their relevance based on term frequency and ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSs2JL3sFFNwzzldt37ERNyeWiqG8FltNbdrz8E8y0wLa4WBsEZAk6Ik4oN",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        13
+      ],
+      "score": 0.07692307692307693,
+      "category": "general",
+      "url": "https://deconvoluteai.com/blog/information-retrieval-introduction",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "deconvoluteai.com",
+        "/blog/information-retrieval-introduction",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Okapi BM25: The Probabilistic Ranking Function That Powers ...",
+      "content": "29 oct 2025 ... k1: Term frequency saturation parameter (typically 1.2 to 2.0); b: Length normalization parameter (typically 0.75). IDF Component. IDF(qi) = ln ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRS2haDq50sYPj2PO6tzHA0CBbAQekFXl3colHs6xbtaTBGwPQXjPSbAadY",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        14
+      ],
+      "score": 0.07142857142857142,
+      "category": "general",
+      "url": "https://medium.com/@rutikaambadkar1/okapi-bm25-the-probabilistic-ranking-function-that-powers-search-engines-4ce2e43798ed",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "medium.com",
+        "/@rutikaambadkar1/okapi-bm25-the-probabilistic-ranking-function-that-powers-search-engines-4ce2e43798ed",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "What is BM25? - ParadeDB",
+      "content": "Okapi BM25 is a ranking function used in search engines to score documents by relevance to a query. The BM is short for best matching , and 25 is the version of ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQwZu2qJ_ug9tQLVggEbGaKyHDof1i3SPZVVh3QAYHlzLCcSWkR2nJeHaU",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        16
+      ],
+      "score": 0.0625,
+      "category": "general",
+      "url": "https://www.paradedb.com/learn/search-concepts/bm25",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.paradedb.com",
+        "/learn/search-concepts/bm25",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "azure.search.documents.indexes.models.BM25SimilarityAlgorithm ...",
+      "content": "Ranking function based on the Okapi BM25 similarity algorithm. BM25 is a TF ... term frequency saturation (controlled by the 'k1' parameter).",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTamiYiZkfXbLeih3vADC8SZH3wbbrq_92KFEfjeYjdTxr8-Z0AtOhIt4cS",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        17
+      ],
+      "score": 0.058823529411764705,
+      "category": "general",
+      "url": "https://learn.microsoft.com/en-us/python/api/azure-search-documents/azure.search.documents.indexes.models.bm25similarityalgorithm?view=azure-python",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "learn.microsoft.com",
+        "/en-us/python/api/azure-search-documents/azure.search.documents.indexes.models.bm25similarityalgorithm",
+        "",
+        "view=azure-python",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Improving document clustering using Okapi BM25 feature weighting",
+      "content": "20 feb 2011 ... This study demonstrates that incorporating Okapi BM25 feature weighting significantly enhances clustering performance across multiple datasets ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRRpUZeLLyU4A65SCXPKa_Fh-NQ3Nsqi_WnEDl73v_E8d9roB0f6JoBIUwo",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        18
+      ],
+      "score": 0.05555555555555555,
+      "category": "general",
+      "url": "https://link.springer.com/article/10.1007/s10791-011-9163-y",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "link.springer.com",
+        "/article/10.1007/s10791-011-9163-y",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Okapi BM25: Guide to Modern Information Retrieval - ADaSci",
+      "content": "11 jul 2024 ... By considering factors such as term frequency, document length, and inverse document frequency, BM25 provides a nuanced approach to ranking that ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSg8OwSLktMVocZBaEeCUv1PDo4KEnTj-n8-R0AVXTqHbfVaNRpSyxrR1U-",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        19
+      ],
+      "score": 0.05263157894736842,
+      "category": "general",
+      "url": "https://adasci.org/blog/understanding-okapi-bm25-a-guide-to-modern-information-retrieval",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "adasci.org",
+        "/blog/understanding-okapi-bm25-a-guide-to-modern-information-retrieval",
+        "",
+        "",
+        ""
+      ]
+    }
+  ],
+  "unresponsive_engines": [
+    [
+      "brave",
+      "Suspended: too many requests"
+    ],
+    [
+      "duckduckgo",
+      "CAPTCHA"
+    ],
+    [
+      "wikidata",
+      "Suspended: access denied"
+    ]
+  ]
+}

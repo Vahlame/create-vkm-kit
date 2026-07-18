@@ -17,7 +17,7 @@
  *   <root>/<topic>/sources/<hash8>-<slug>.md — one verbatim extract per source URL
  */
 import { readFile, writeFile, mkdir, rename, readdir, stat } from "node:fs/promises";
-import { createHash } from "node:crypto";
+import { hash8 } from "./url-identity.mjs";
 import path from "node:path";
 import {
   checkOllama,
@@ -176,27 +176,10 @@ function coerceScalar(v) {
 
 // ── URL/title -> stable filename ────────────────────────────────────────────────────────────
 
-/** Normalize a URL for dedup hashing only (not a general canonicalizer): lowercase host,
- * drop the fragment, drop a bare trailing `/`. Falls back to a trimmed lowercase string for
- * anything `URL` can't parse rather than throwing — dedup degrades, it never blocks a write. */
-function normalizeUrl(raw) {
-  try {
-    const u = new URL(String(raw));
-    u.hash = "";
-    u.hostname = u.hostname.toLowerCase();
-    let s = u.toString();
-    if (s.endsWith("/") && u.pathname === "/" && !u.search) s = s.slice(0, -1);
-    return s;
-  } catch {
-    return String(raw ?? "")
-      .trim()
-      .toLowerCase();
-  }
-}
-
-function hash8(url) {
-  return createHash("sha256").update(normalizeUrl(url), "utf8").digest("hex").slice(0, 8);
-}
+// `normalizeUrl`/`hash8` now live in ./url-identity.mjs — one identity for the whole package
+// instead of the three that had drifted apart (exact-match in serp.mjs and research.mjs, this
+// normalizer here). Byte-identical behavior, asserted by url-identity.test.mjs's frozen digests:
+// these name the notes already on disk under `sources/<hash8>-<slug>.md`, so they cannot move.
 
 /** Lowercase, transliterate accents away, keep `[a-z0-9-]` only, cap at ~40 chars. */
 export function slugifyTitle(title, maxLen = 40) {
@@ -292,6 +275,45 @@ async function updateGlobalIndex(root, topic) {
   const header =
     "# Research index\n\n| Topic | Sources | Last run | Summary |\n|---|---|---|---|\n";
   await atomicWrite(fp, header + rows.join("\n") + "\n");
+}
+
+/**
+ * Every URL hash already covered by a topic's `sources/` — the durable "seen" set behind
+ * cross-session mass research.
+ *
+ * Scrapling's crawler checkpoints a `seen: set[hashed URLs]` to disk (pickle, atomic write,
+ * `checkpoint.py`) specifically so a resumed crawl doesn't re-walk ground it already covered.
+ * `RESEARCH/<topic>/sources/` already IS that durable seen-set — every file is named
+ * `<hash8>-<slug>.md`, one per URL ever persisted for the topic — so this reuses it rather than
+ * inventing a second, parallel bookkeeping file. `deepResearch` (via the MCP tool handler) reads
+ * this before crawling and skips already-covered candidates, so a `persist:true` call spends its
+ * `top_k` budget on genuinely NEW pages instead of re-fetching and re-curating ones a PREVIOUS
+ * call (in a previous process, possibly days earlier) already put in the bank. That is what
+ * turns "scan up to top_k pages" into a mass crawl that actually accumulates across many
+ * invocations instead of covering the same top hits every time.
+ *
+ * Returns an empty set (never throws) when the topic doesn't exist yet — a first-ever research
+ * call on a topic has nothing to skip, which is the correct behavior, not a degraded one.
+ *
+ * @param {string} topic
+ * @param {string} [researchDir]
+ * @returns {Promise<Set<string>>} 8-hex-char hashes, matching `url-identity.mjs#hash8`
+ */
+export async function listCoveredHashes(topic, researchDir) {
+  const root = resolveResearchRoot(researchDir);
+  const sourcesDir = safeResearchPath(root, topic, "sources");
+  let entries;
+  try {
+    entries = await readdir(sourcesDir);
+  } catch {
+    return new Set();
+  }
+  const hashes = new Set();
+  for (const f of entries) {
+    const m = /^([0-9a-f]{8})-.+\.md$/.exec(f);
+    if (m) hashes.add(m[1]);
+  }
+  return hashes;
 }
 
 /**

@@ -274,7 +274,10 @@ def reciprocal_rank_fusion(
     for weight, ranking in zip(weights, rankings):
         for rank, path in enumerate(ranking, start=1):
             scores[path] = scores.get(path, 0.0) + weight / (k + rank)
-    return sorted(scores.items(), key=lambda kv: kv[1], reverse=True)[:limit]
+    # Path ascending as the explicit tie-break: without it, ties fall back to dict
+    # insertion order — which descends from ranking-input order and ultimately from
+    # filesystem walk order, i.e. it differs across platforms for the same vault.
+    return sorted(scores.items(), key=lambda kv: (-kv[1], kv[0]))[:limit]
 
 
 def graph_neighbors(vault: Path, seeds: list[str], *, limit: int = 50) -> list[str]:
@@ -651,7 +654,8 @@ def hybrid_search(
                 for p, s in fused
             ]
     if recency or importance or usage:
-        fused.sort(key=lambda kv: kv[1], reverse=True)
+        # Same deterministic tie-break as reciprocal_rank_fusion: score desc, path asc.
+        fused.sort(key=lambda kv: (-kv[1], kv[0]))
 
     bm_rank = {p: i + 1 for i, p in enumerate(bm_paths)}
     sem_rank = {p: i + 1 for i, p in enumerate(sem_paths)}

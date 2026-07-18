@@ -1,7 +1,10 @@
-// vkm-kit token-saver installer (ADR-0043): wires the pieces that cut Claude Code's token
-// spend with zero quality loss — two PostToolUse compaction hooks (noisy Bash output; MCP
-// JSON whitespace), permissions.deny rules that stop Claude from reading token-hungry
-// build artifacts, and the `vkm-terse` output style (default ON under `--full`).
+// vkm-kit token-saver installer (ADR-0043, amended 2026-07-16): wires the pieces that cut
+// Claude Code's token spend with zero quality loss — two PostToolUse compaction hooks
+// (noisy Bash output; MCP JSON whitespace) and the `vkm-terse` output style (default ON
+// under `--full`). The permissions.deny read rules the module used to install were
+// retired after field evidence (see the ADR amendment): a hard Read block on lockfiles
+// and build outputs kept obstructing legitimate day-to-day work across heterogeneous
+// projects. Reconcile now actively STRIPS those legacy rules from settings.json.
 //
 // Same contract as `claude-native-memory.mjs`: symmetric reconcile (every call merges what
 // is wanted and actively strips what is not, so `--no-token-saver` on a re-run reverses a
@@ -23,7 +26,6 @@ import {
   setOrDeleteHooks
 } from "./settings-io.mjs";
 import {
-  mergeManagedPermissions,
   removeManagedPermissions,
   setManagedOutputStyle,
   clearManagedOutputStyle
@@ -44,10 +46,13 @@ export const COMPACT_MCP_HOOK_BASENAME = `${COMPACT_MCP_HOOK_STEM}.mjs`;
 export const TERSE_STYLE_NAME = "vkm-terse";
 export const TERSE_STYLE_BASENAME = `${TERSE_STYLE_NAME}.md`;
 
-/** Read-deny rules for artifacts that burn input tokens without informing the model
- * (generated/vendored content; lockfiles are machine-written and huge). Kept deliberately
- * short — a deny rule is a hard block, so only unambiguous noise qualifies. */
-export const TOKEN_SAVER_DENY_RULES = [
+/** Read-deny rules that PREVIOUS kit versions installed and that reconcile now strips.
+ * Retired 2026-07-16 (ADR-0043 amendment): a deny rule is a hard, prompt-less block, and
+ * in daily use these kept blocking legitimate reads (`pubspec.lock`, `Cargo.lock`, small
+ * `dist/` outputs, debugging inside a dep). The compaction hooks — which degrade
+ * gracefully instead of refusing — remain the token-saving mechanism. Keep this list
+ * frozen: it exists only so re-running the installer cleans old machines. */
+export const LEGACY_TOKEN_SAVER_DENY_RULES = [
   "Read(node_modules/**)",
   "Read(**/dist/**)",
   "Read(**/*.lock)",
@@ -69,15 +74,12 @@ export function compactHookCommand(hookPath) {
  * Install / reconcile / remove the token-saver pieces in `~/.claude/`.
  * @param {string} home
  * @param {boolean} dryRun
- * @param {{ lang?: "es"|"en", hooks?: boolean, terseStyle?: boolean, denyRules?: boolean }} [opts]
+ * @param {{ lang?: "es"|"en", hooks?: boolean, terseStyle?: boolean }} [opts]
  *   Each piece is independently toggleable; all default ON (callers pass the resolved
- *   `--token-saver` / `--terse-style` flags).
+ *   `--token-saver` / `--terse-style` flags). Legacy deny rules are unconditionally
+ *   stripped on every reconcile, regardless of these toggles.
  */
-export async function configureTokenSaver(
-  home,
-  dryRun,
-  { hooks = true, terseStyle = true, denyRules = true } = {}
-) {
+export async function configureTokenSaver(home, dryRun, { hooks = true, terseStyle = true } = {}) {
   const claudeDir = path.join(home, ".claude");
   const hooksDir = path.join(claudeDir, "hooks");
   const settingsFp = path.join(claudeDir, "settings.json");
@@ -88,12 +90,13 @@ export async function configureTokenSaver(
 
   try {
     let { existing, priorBytes, invalidJson, rawText } = await readSettingsSafe(settingsFp);
+    const hadLegacyDeny = LEGACY_TOKEN_SAVER_DENY_RULES.some((rule) => rawText.includes(rule));
     const oursPresent =
       TOKEN_SAVER_STEMS.some((stem) => rawText.includes(stem)) ||
       rawText.includes(TERSE_STYLE_NAME) ||
-      TOKEN_SAVER_DENY_RULES.some((rule) => rawText.includes(rule)) ||
+      hadLegacyDeny ||
       (await fse.pathExists(styleDest));
-    const wantAnything = hooks || terseStyle || denyRules;
+    const wantAnything = hooks || terseStyle;
 
     // True no-op: nothing wanted, nothing of ours anywhere — never conjure settings.json.
     if (!wantAnything && !oursPresent) return;
@@ -109,13 +112,8 @@ export async function configureTokenSaver(
       } else if (rawText.includes(TERSE_STYLE_NAME)) {
         console.log(pc.cyan("[dry-run] would deactivate output style"), TERSE_STYLE_NAME);
       }
-      if (denyRules) {
-        console.log(
-          pc.cyan("[dry-run] would add permissions.deny rules:"),
-          TOKEN_SAVER_DENY_RULES.join(", ")
-        );
-      } else if (TOKEN_SAVER_DENY_RULES.some((rule) => rawText.includes(rule))) {
-        console.log(pc.cyan("[dry-run] would remove the token-saver permissions.deny rules"));
+      if (hadLegacyDeny) {
+        console.log(pc.cyan("[dry-run] would remove the legacy token-saver permissions.deny rules"));
       }
       return;
     }
@@ -180,9 +178,9 @@ export async function configureTokenSaver(
       hookMap = removeManagedHook(hookMap, "PostToolUse", COMPACT_MCP_HOOK_STEM);
     }
     merged = setOrDeleteHooks(merged, Boolean(hadHooks), hookMap);
-    merged = denyRules
-      ? mergeManagedPermissions(merged, { deny: TOKEN_SAVER_DENY_RULES })
-      : removeManagedPermissions(merged, { deny: TOKEN_SAVER_DENY_RULES });
+    // Always strip, never add: retired rules (see LEGACY_TOKEN_SAVER_DENY_RULES) get
+    // cleaned from machines where an older kit version installed them.
+    merged = removeManagedPermissions(merged, { deny: LEGACY_TOKEN_SAVER_DENY_RULES });
     merged = terseStyle
       ? setManagedOutputStyle(merged, TERSE_STYLE_NAME)
       : clearManagedOutputStyle(merged, TERSE_STYLE_NAME);
@@ -199,11 +197,8 @@ export async function configureTokenSaver(
     if (terseStyle) {
       console.log(pc.green("Output style installed + active:"), pc.dim(styleDest));
     }
-    if (denyRules) {
-      console.log(
-        pc.green("permissions.deny noise rules:"),
-        pc.dim(TOKEN_SAVER_DENY_RULES.join(", "))
-      );
+    if (hadLegacyDeny) {
+      console.log(pc.green("Removed legacy permissions.deny rules (retired in ADR-0043 amendment)"));
     }
   } catch (e) {
     console.warn(pc.yellow("Could not configure the token-saver (skipped):"), e?.message || e);
@@ -218,7 +213,7 @@ export async function configureTokenSaver(
  * @param {boolean} dryRun
  */
 export async function uninstallTokenSaver(home, dryRun) {
-  await configureTokenSaver(home, dryRun, { hooks: false, terseStyle: false, denyRules: false });
+  await configureTokenSaver(home, dryRun, { hooks: false, terseStyle: false });
 
   const hooksDir = path.join(home, ".claude", "hooks");
   for (const basename of [COMPACT_BASH_HOOK_BASENAME, COMPACT_MCP_HOOK_BASENAME]) {

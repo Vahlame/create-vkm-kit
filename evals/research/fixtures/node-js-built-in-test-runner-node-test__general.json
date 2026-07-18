@@ -1,0 +1,706 @@
+{
+  "_captured": "2026-07-16T20:37:44.495Z",
+  "_query": "Node.js built-in test runner node:test",
+  "_categories": "general",
+  "_n": 21,
+  "results": [
+    {
+      "url": "https://nodejs.org/api/test.html",
+      "title": "Test runner | Node.js v26.5.0 Documentation",
+      "content": "The test runner can randomize execution order to help detect order-dependent tests. When enabled, the runner randomizes both discovered test files and queued ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "nodejs.org",
+        "/api/test.html",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        1,
+        1
+      ],
+      "score": 4,
+      "category": "general"
+    },
+    {
+      "url": "https://nodejs.org/learn/test-runner/using-test-runner",
+      "title": "Using Node.js's test runner | Node.js Learn",
+      "content": "Node.js has a flexible and robust built-in test runner. This guide will show you how to set up and use it. TEXT",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "nodejs.org",
+        "/learn/test-runner/using-test-runner",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        2,
+        2
+      ],
+      "score": 2,
+      "category": "general"
+    },
+    {
+      "url": "https://www.w3schools.com/nodejs/nodejs_test_runner.asp",
+      "title": "Node.js Test Runner - W3Schools",
+      "content": "The built-in node:test module provides a lightweight, no-dependency framework for writing and running JavaScript tests directly in Node.js.",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.w3schools.com",
+        "/nodejs/nodejs_test_runner.asp",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        7,
+        3
+      ],
+      "score": 0.9523809523809523,
+      "category": "general"
+    },
+    {
+      "url": "https://blog.appsignal.com/2024/08/07/advanced-use-cases-of-the-nodejs-native-test-runner.html",
+      "title": "Advanced Use Cases of the Node.js Native Test Runner",
+      "content": "Aug 7, 2024 ... In this installment, we'll dive into practical examples of how to use mocking, code coverage analysis, test hooks, and strategies for testing HTTP servers.",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "blog.appsignal.com",
+        "/2024/08/07/advanced-use-cases-of-the-nodejs-native-test-runner.html",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        4,
+        6
+      ],
+      "score": 0.8333333333333333,
+      "category": "general"
+    },
+    {
+      "url": "https://www.reddit.com/r/node/comments/12iualb/why_they_are_adding_a_native_test_runner_to_nodejs/",
+      "title": "Why they are adding a native test runner to node.js? - Reddit",
+      "content": "Apr 11, 2023 ... Node versions are often swapped between development and deploy/host versions as well. The official test runner is always dictated by the company ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.reddit.com",
+        "/r/node/comments/12iualb/why_they_are_adding_a_native_test_runner_to_nodejs/",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        3,
+        15
+      ],
+      "score": 0.7999999999999999,
+      "category": "general"
+    },
+    {
+      "url": "https://medium.com/@farhad.gulizada/test-runner-in-node-js-intermediate-series-12d62fff91c8",
+      "title": "Test Runner in Node.js — Intermediate Series | by Farhad - Medium",
+      "content": "Jun 30, 2025 ... Test Runner in Node.js — Intermediate Series Introduction The node:test module provides a built-in test runner for JavaScript/TypeScript ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "medium.com",
+        "/@farhad.gulizada/test-runner-in-node-js-intermediate-series-12d62fff91c8",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        9,
+        5
+      ],
+      "score": 0.6222222222222222,
+      "category": "general"
+    },
+    {
+      "url": "https://dev.to/mbarzeev/is-nodejs-test-runner-dev-ready-4gm8",
+      "title": "Is NodeJS Test Runner “Dev-Ready”?",
+      "content": "Jun 2, 2023 ... NodeJS now offers its own test runner, which holds great promise for developers seeking reliable testing frameworks.",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "dev.to",
+        "/mbarzeev/is-nodejs-test-runner-dev-ready-4gm8",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        5,
+        14
+      ],
+      "score": 0.5428571428571429,
+      "category": "general"
+    },
+    {
+      "url": "https://www.sonarsource.com/blog/node-js-test-runner/",
+      "title": "Hands on with the Node.js test runner - Sonar",
+      "content": "May 30, 2023 ... Node.js's built-in test runner, introduced in recent Node versions, provides a native alternative to third-party testing frameworks, ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.sonarsource.com",
+        "/blog/node-js-test-runner/",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        8,
+        10
+      ],
+      "score": 0.45,
+      "category": "general"
+    },
+    {
+      "url": "https://marketplace.visualstudio.com/items?itemName=connor4312.nodejs-testing",
+      "title": "node:test runner - Visual Studio Marketplace",
+      "content": "Configuring · nodejs-testing.include is the list of directories in which to look for test files, relative to your workspace folder. · nodejs-testing.exclude is ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "marketplace.visualstudio.com",
+        "/items",
+        "",
+        "itemName=connor4312.nodejs-testing",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        10,
+        9
+      ],
+      "score": 0.4222222222222222,
+      "category": "general"
+    },
+    {
+      "template": "default.html",
+      "title": "Node.js node:test module | API Reference - Bun",
+      "content": "The 'node:test' module is Node.js's built-in test runner that provides a zero-dependency testing framework. It supports test() functions, lifecycle hooks ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcS547uKdQb-y5mX2svqZE--sLrOLSehSlFGSiHgZGjcqEfQykemeOt8kYnB",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        4
+      ],
+      "score": 0.25,
+      "category": "general",
+      "url": "https://bun.com/reference/node/test",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "bun.com",
+        "/reference/node/test",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "How to Setup and Run Your First Test in Node.js - YouTube",
+      "content": "2 nov 2025 ... Welcome to **Tutorial 1** of the **Node.js Native Test Runner** series! In this beginner-friendly video, we'll walk through **how to set up ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTZdj9gdlkyTE5rB0XABC-brKt2wZ-LBj4vZ-A8xAEYodftLNOj2uCmRmU",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        7
+      ],
+      "score": 0.14285714285714285,
+      "category": "general",
+      "url": "https://www.youtube.com/watch?v=5p6hTOSNQI8",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.youtube.com",
+        "/watch",
+        "",
+        "v=5p6hTOSNQI8",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "How to Write Tests Using the Node.js Test Runner and mongodb ...",
+      "content": "13 feb 2025 ... The Node.js test runner was introduced as an experimental feature in version 18 of Node.js. It became fully available in version 20. It gives ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcS9Rp9gAdJTF6CcOTIXHrJR3xlN1jiTGy3jqjY85fdlaAIAvjvU0OITrgwo",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        8
+      ],
+      "score": 0.125,
+      "category": "general",
+      "url": "https://www.freecodecamp.org/news/how-to-write-tests-using-the-nodejs-test-runner-and-mongodb-memory-server/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.freecodecamp.org",
+        "/news/how-to-write-tests-using-the-nodejs-test-runner-and-mongodb-memory-server/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Demystifying Node.js test runner assertions | Nearform",
+      "content": "27 feb 2025 ... The built-in Node.js test runner is a huge leap forward for the JavaScript community. For most cases, you can say goodbye to installing, ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSjwHF1lncGuQbB50cDevaj2_cegyXWA4QbfnuiinrkkDpg78jB34SIddk",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        11
+      ],
+      "score": 0.09090909090909091,
+      "category": "general",
+      "url": "https://nearform.com/digital-community/demystifying-node-js-test-runner-assertions/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "nearform.com",
+        "/digital-community/demystifying-node-js-test-runner-assertions/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Exploring Node.js Test Runner by Marco Ippolito - GitNation",
+      "content": "Today's Talk introduces the new Node.js test runner and its features, including filtering, sub-testing, and reporting. It also discusses executing and ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRBRgJ_GRC40eonkpPF3lsG-mAlLGg7BzEgL0iPeXNHfZg6jFJn8USQqhDH",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        12
+      ],
+      "score": 0.08333333333333333,
+      "category": "general",
+      "url": "https://gitnation.com/contents/exploring-nodejs-test-runner",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "gitnation.com",
+        "/contents/exploring-nodejs-test-runner",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Test an Express.js App with node:test - Brian Douglass",
+      "content": "22 abr 2025 ... Yep! It is that simple. Node will automatically run any tests that match a specific criteria, like those in a test directory or ending with .",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQoZsrSdicjah6_c6HcOUwtY-8H0p0yYt3cZ4IbmwVUkfWYyoXJuR5QJZA",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        13
+      ],
+      "score": 0.07692307692307693,
+      "category": "general",
+      "url": "https://bhdouglass.com/blog/test-an-expressjs-app-with-nodetest/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "bhdouglass.com",
+        "/blog/test-an-expressjs-app-with-nodetest/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Discovering Node.js's test runner | Node.js Learn",
+      "content": "A test runner is a tool that allows you to run tests on your code. It will execute your tests and give you feedback on whether they pass or fail.",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcS5WNWXzW5TbfiJ040ydLN28OWEOSkB8zNDXpluC8ZdtW7WPV4K04tQ0L-r",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        16
+      ],
+      "score": 0.0625,
+      "category": "general",
+      "url": "https://nodejs.org/learn/test-runner/introduction",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "nodejs.org",
+        "/learn/test-runner/introduction",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "The Built-In Node Test Runner: Fast, Clean, and CI-Ready - Medium",
+      "content": "4 nov 2025 ... So the Node test runner is just… there. In Node. You write tests using node:test which is a built-in module. No install. No package.json ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQj1-9HwN3nvC2GdGesRXjjaYqyDjWpoTiMsaet4QwtED4TLE7IZzoeg0qw",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        17
+      ],
+      "score": 0.058823529411764705,
+      "category": "general",
+      "url": "https://medium.com/@ashusk_1790/the-built-in-node-test-runner-fast-clean-and-ci-ready-3d4a7e22b8da",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "medium.com",
+        "/@ashusk_1790/the-built-in-node-test-runner-fast-clean-and-ci-ready-3d4a7e22b8da",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Node.js Native Test Runner Tutorial for Beginners - YouTube",
+      "content": "27 nov 2025 ... Welcome to this **Beginner-Friendly Node.js Native Test Runner Tutorial**! In this video, you'll learn how to use the **built-in test ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRokAB6_E7VYl1yZt5t4rggFB_ChaojJ-8-mY3t6fDkj0MQSldj1Ec7KxV-",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        18
+      ],
+      "score": 0.05555555555555555,
+      "category": "general",
+      "url": "https://www.youtube.com/watch?v=cgHcOaTCpIk",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.youtube.com",
+        "/watch",
+        "",
+        "v=cgHcOaTCpIk",
+        ""
+      ]
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=eXv_fxoc8UM",
+      "title": "Node.js has a built-in test runner! - YouTube",
+      "content": "Sep 25, 2024 ... Node.js has a built-in test runner! @DanielBergholz64 likes1.9K views1 year ago more. Subscribe. Comments. 11. Comment.",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.youtube.com",
+        "/watch",
+        "",
+        "v=eXv_fxoc8UM",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        6
+      ],
+      "score": 0.16666666666666666,
+      "category": "general"
+    },
+    {
+      "template": "default.html",
+      "title": "Testing Node.js | WebStorm Documentation - JetBrains",
+      "content": "11 mar 2026 ... WebStorm supports integration with the built-in test runner, so you can run your tests without installing and configuring any third-party ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSyleAPJHNlPI9PE_suMarXg7YNtYJYz16VK-JY1nI7IVNgXL5jp1ZDPlM",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        19
+      ],
+      "score": 0.05263157894736842,
+      "category": "general",
+      "url": "https://www.jetbrains.com/help/webstorm/unit-testing-node-js.html",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.jetbrains.com",
+        "/help/webstorm/unit-testing-node-js.html",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Exploring the Node.js native test runner - LogRocket Blog",
+      "content": "1 sept 2023 ... js test runner is part of the Node core, so it makes sense that it is faster than the other options. The test runner is optimized for Node, ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTviM-HyV1S_npiEBNUkTrqEeEMsgdNkq7aJVC390RoiDbOY4SqV_5whcI",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        20
+      ],
+      "score": 0.05,
+      "category": "general",
+      "url": "https://blog.logrocket.com/exploring-node-js-native-test-runner/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "blog.logrocket.com",
+        "/exploring-node-js-native-test-runner/",
+        "",
+        "",
+        ""
+      ]
+    }
+  ],
+  "unresponsive_engines": [
+    [
+      "brave",
+      "Suspended: too many requests"
+    ],
+    [
+      "duckduckgo",
+      "CAPTCHA"
+    ],
+    [
+      "wikidata",
+      "Suspended: access denied"
+    ]
+  ]
+}

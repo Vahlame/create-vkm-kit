@@ -1,0 +1,808 @@
+{
+  "_captured": "2026-07-16T20:37:43.163Z",
+  "_query": "OWASP LLM01 prompt injection indirect",
+  "_categories": "general",
+  "_n": 24,
+  "results": [
+    {
+      "url": "https://genai.owasp.org/llmrisk/llm01-prompt-injection/",
+      "title": "LLM01:2025 Prompt Injection - OWASP Gen AI Security Project",
+      "content": "Indirect prompt injections occur when an LLM accepts input from external sources, such as websites or files. The content may have in the external content data ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "genai.owasp.org",
+        "/llmrisk/llm01-prompt-injection/",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        1,
+        1
+      ],
+      "score": 4,
+      "category": "general"
+    },
+    {
+      "url": "https://owasp.org/www-community/attacks/PromptInjection",
+      "title": "Prompt Injection - OWASP Foundation",
+      "content": "Prompt Injection is a novel security vulnerability that targets Large Language Models (LLMs) like ChatGPT, Bard, and others. It manipulates the model's behavior ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "owasp.org",
+        "/www-community/attacks/PromptInjection",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        5,
+        2
+      ],
+      "score": 1.4,
+      "category": "general"
+    },
+    {
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html",
+      "title": "LLM Prompt Injection Prevention - OWASP Cheat Sheet Series",
+      "content": "Prompt injection is a vulnerability in Large Language Model (LLM) applications that allows attackers to manipulate the model's behavior by injecting malicious ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "cheatsheetseries.owasp.org",
+        "/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        3,
+        3
+      ],
+      "score": 1.3333333333333333,
+      "category": "general"
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=LB9v4Nf25-o",
+      "title": "Prompt Injection Explained — OWASP Top 10 for LLMs - YouTube",
+      "content": "May 16, 2026 ... That's Prompt Injection — and it's the #1 risk in the OWASP Top 10 for Large Language Models. In this lesson, we break down LLM01: Prompt ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.youtube.com",
+        "/watch",
+        "",
+        "v=LB9v4Nf25-o",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        4,
+        11
+      ],
+      "score": 0.6818181818181819,
+      "category": "general"
+    },
+    {
+      "url": "https://www.aakashx.com/blog/prompt-injection-attacks-defenses/",
+      "title": "Prompt Injection: 6 Attacks and 6 Defenses | aakashx",
+      "content": "Apr 27, 2026 ... Yes. Prompt injection is ranked #1 (LLM01) on the OWASP Top 10 for LLM Applications. It is the most reported and most exploited vulnerability ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.aakashx.com",
+        "/blog/prompt-injection-attacks-defenses/",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        7,
+        7
+      ],
+      "score": 0.5714285714285714,
+      "category": "general"
+    },
+    {
+      "url": "https://genai.owasp.org/llmrisk2023-24/llm01-24-prompt-injection/",
+      "title": "LLM01: Prompt Injection - OWASP Gen AI Security Project",
+      "content": "Indirect Prompt Injections occur when an LLM accepts input from external sources that can be controlled by an attacker, such as websites or files. The attacker ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "genai.owasp.org",
+        "/llmrisk2023-24/llm01-24-prompt-injection/",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        2
+      ],
+      "score": 0.5,
+      "category": "general"
+    },
+    {
+      "url": "https://christian-schneider.net/blog/prompt-injection-agentic-amplification/",
+      "title": "From LLM to agentic AI: prompt injection got worse",
+      "content": "Jan 29, 2026 ... Prompt injection has topped the OWASP Top 10 for LLM Applications since the list's inception. For simple chatbot integrations, this ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "christian-schneider.net",
+        "/blog/prompt-injection-agentic-amplification/",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        10,
+        13
+      ],
+      "score": 0.35384615384615387,
+      "category": "general"
+    },
+    {
+      "url": "https://rodelllemit.medium.com/understanding-llm01-2025-prompt-injection-llm-apps-8f04e5d4f825",
+      "title": "Understanding LLM01:2025 Prompt Injection | by @ro0taddict",
+      "content": "Feb 15, 2025 ... According to OWASP, a Prompt Injection Vulnerability occurs when user prompts alter the LLM's behavior or output in unintended ways. These ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "rodelllemit.medium.com",
+        "/understanding-llm01-2025-prompt-injection-llm-apps-8f04e5d4f825",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        6
+      ],
+      "score": 0.16666666666666666,
+      "category": "general"
+    },
+    {
+      "url": "https://arxiv.org/html/2509.05883v1",
+      "title": "Multimodal Prompt Injection Attacks: Risks and Defenses for Modern ...",
+      "content": "Sep 7, 2025 ... Indirect prompt injection leverages third-party content rather than direct user input. Grenshake et al. ... Benjamin [7] further showed that ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "arxiv.org",
+        "/html/2509.05883v1",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        8
+      ],
+      "score": 0.125,
+      "category": "general"
+    },
+    {
+      "template": "default.html",
+      "title": "What Is a Prompt Injection Attack? - StackHawk",
+      "content": "16 mar 2026 ... Indirect prompt injection attacks are harder to detect and often more damaging. Instead of a user typing a malicious prompt directly, indirect ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRJ07wYwXZo3bIoeM2KMKATk9doHTEaZDSAaFwLavaSBeLOcrkeRq0H9lE",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        4
+      ],
+      "score": 0.25,
+      "category": "general",
+      "url": "https://www.stackhawk.com/blog/owasp-llm01-prompt-injection/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.stackhawk.com",
+        "/blog/owasp-llm01-prompt-injection/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "OWASP Top 10 for Large Language Model Applications",
+      "content": "LLM01: Prompt Injection · LLM02: Insecure Output Handling · LLM03: Training Data Poisoning · LLM04: Model Denial of Service · LLM05: Supply Chain Vulnerabilities.",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQkcv6aOl4NNFipLyP7AslVtRVqgjV3f7QhwZYh70uVgtaY1kZ2vx1gIA",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        5
+      ],
+      "score": 0.2,
+      "category": "general",
+      "url": "https://owasp.org/www-project-top-10-for-large-language-model-applications/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "owasp.org",
+        "/www-project-top-10-for-large-language-model-applications/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "OWASP TOP 10 FOR AI — LLM01: PROMPT INJECTION The ...",
+      "content": "6 mar 2026 ... Prompt Injection holds the top position in the OWASP Top 10 for Large Language Models for a reason. It is the root attack that makes almost ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQxovNVFng0mFZVh8QW04CMpigb8_7TMQQxoIgrOPIt8Z1Sk9blSkoimPpB",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        6
+      ],
+      "score": 0.16666666666666666,
+      "category": "general",
+      "url": "https://medium.com/@shivayadav2820/owasp-top-10-for-ai-blog-1-prompt-injection-the-mother-of-all-ai-attacks-3af23412ff6d",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "medium.com",
+        "/@shivayadav2820/owasp-top-10-for-ai-blog-1-prompt-injection-the-mother-of-all-ai-attacks-3af23412ff6d",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "The OWASP Top 10 for LLM Applications (2025): Explained Simply",
+      "content": "Indirect prompt injection is subtler: attackers embed instructions in documents, websites or other content that the LLM later processes. When the model ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRLy8qlDFShzKRYxWU9VAHndj4f3DQeS0N6YxzbcUnMtb7aptzZ35zgyic",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        8
+      ],
+      "score": 0.125,
+      "category": "general",
+      "url": "https://aembit.io/blog/owasp-top-10-llm-risks-explained/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "aembit.io",
+        "/blog/owasp-top-10-llm-risks-explained/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Why Prompt Injection Attacks Are GenAI's #1 Vulnerability - Galileo AI",
+      "content": "28 abr 2026 ... Prompt injection is the #1 OWASP risk for LLM applications in the 2025 Top 10 · Indirect injection through external data sources is a significant ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSASsULB0w-QrItjQSkqecE1pvYMRRQyPQfcOYHkUkv6z_BRK5hqHQPFexn",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        9
+      ],
+      "score": 0.1111111111111111,
+      "category": "general",
+      "url": "https://galileo.ai/blog/ai-prompt-injection-attacks-detection-and-prevention",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "galileo.ai",
+        "/blog/ai-prompt-injection-attacks-detection-and-prevention",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Weaponizing Words: Direct & Indirect Prompt Injection Attacks on LLM",
+      "content": "27 dic 2025 ... Indirect Prompt Injection: malicious instructions embedded in data the system fetches (links, HTML, PDFs, images with alt-text, tool responses) ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSy0oO3xsoTWHT1hfLd0JWH5IZQPN0oflZlJiq9MuoOGtbinE1eru-3bE8B",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        10
+      ],
+      "score": 0.1,
+      "category": "general",
+      "url": "https://dl.acm.org/doi/10.1145/3769694.3771165",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "dl.acm.org",
+        "/doi/10.1145/3769694.3771165",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "OWASP Top 10 for LLMs 2025 - The LLM Red Teaming Framework",
+      "content": "Prompt Injection (LLM01:2025) ... Prompt Injection remains the #1 critical vulnerability, where attackers manipulate LLM inputs to override original instructions, ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTYIOc8NNDSyGsL1kXQs6JFvo9BVSfKjliR59hAyi9Sc-lmCO51r4wCJk4",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        12
+      ],
+      "score": 0.08333333333333333,
+      "category": "general",
+      "url": "https://trydeepteam.com/docs/frameworks-owasp-top-10-for-llms",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "trydeepteam.com",
+        "/docs/frameworks-owasp-top-10-for-llms",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "OWASP LLM Top 10 - Promptfoo",
+      "content": "6 ago 2024 ... 1. Prompt Injection (LLM01)​ · Direct Prompt Injection: A user's prompt directly changes the LLM's behavior in an unintended way. · Indirect ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTHb-WTuIZyyGlUZ8QUpjGz4wgxMieted_Njdo8o-BCTvHrtMtyouWzPSBn",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        14
+      ],
+      "score": 0.07142857142857142,
+      "category": "general",
+      "url": "https://www.promptfoo.dev/docs/red-team/owasp-llm-top-10/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.promptfoo.dev",
+        "/docs/red-team/owasp-llm-top-10/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "LLM01 OWASP Prompt Injection: Understanding Security Risk in ...",
+      "content": "6 feb 2026 ... Indirect prompt injections occur when malicious instructions are embedded into external content that the model is expected to retrieve and ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcThG8eRGLu1fUpVG7T3luTWLePmOueKp6oOOeVrVyN7Dez24rYialCtprm-",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        15
+      ],
+      "score": 0.06666666666666667,
+      "category": "general",
+      "url": "https://securiti.ai/llm01-owasp-prompt-injection/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "securiti.ai",
+        "/llm01-owasp-prompt-injection/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "url": "https://www.vectra.ai/topics/prompt-injection",
+      "title": "Prompt injection: types, real-world CVEs, and enterprise defenses",
+      "content": "Prompt injection is the #1 OWASP LLM risk. Learn types, real-world CVEs, defense strategies, and compliance frameworks to protect your AI deployments.",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.vectra.ai",
+        "/topics/prompt-injection",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        9
+      ],
+      "score": 0.1111111111111111,
+      "category": "general"
+    },
+    {
+      "template": "default.html",
+      "title": "Prompt Injection Attacks in Large Language Models and AI Agent ...",
+      "content": "We examine the taxonomy of prompt injection techniques, including direct jailbreaking and indirect injection through external content. The rise of AI agent ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        16
+      ],
+      "score": 0.0625,
+      "category": "general",
+      "url": "https://www.mdpi.com/2078-2489/17/1/54",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.mdpi.com",
+        "/2078-2489/17/1/54",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "OWASP LLM Top 10: How it Applies to Code Generation - Sonar",
+      "content": "LLM01: Prompt Injection · Direct prompt injection (“jailbreaking” ): The attacker manipulates the LLM system prompt directly with crafted input. · Indirect prompt ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        18
+      ],
+      "score": 0.05555555555555555,
+      "category": "general",
+      "url": "https://www.sonarsource.com/resources/library/owasp-llm-code-generation/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.sonarsource.com",
+        "/resources/library/owasp-llm-code-generation/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Joe-B-Security/awesome-prompt-injection - GitHub",
+      "content": "LLM01:2025 Prompt Injection – OWASP Gen AI Security Project - The canonical OWASP definition, threat model, and attack scenarios for prompt injection ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRV76E2DnrkEsSiGMM-xZqHUu0az-5heHcRz1Xzi28YobPf4L65_8Gfx3U",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        17
+      ],
+      "score": 0.058823529411764705,
+      "category": "general",
+      "url": "https://github.com/Joe-B-Security/awesome-prompt-injection",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "github.com",
+        "/Joe-B-Security/awesome-prompt-injection",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Indirect Prompt Injection: Attacks, Defenses, and the 2026 State of ...",
+      "content": "12 abr 2026 ... Unlike classic injection vulnerabilities — SQL, shell, XSS — which operate at well-understood interface boundaries, prompt injection exploits ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTKYIOmADvUgniKzE2VoeBC0q3ePlzPvB5raOCesIqSu6asP4t9qXfPl8k9",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        19
+      ],
+      "score": 0.05263157894736842,
+      "category": "general",
+      "url": "https://zylos.ai/research/2026-04-12-indirect-prompt-injection-defenses-agents-untrusted-content/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "zylos.ai",
+        "/research/2026-04-12-indirect-prompt-injection-defenses-agents-untrusted-content/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Prompt Injection Attacks: Examples and Defences - CyberDesserts",
+      "content": "22 dic 2025 ... OWASP ranks prompt injection #1 on their 2025 Top 10 for LLM Applications specifically because indirect attacks scale. One poisoned document can ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcR3UpVIuuG-5hYyIL2EwDLqBGWh1ypt2SmO1Hq-sAfssSH0o7fatVcrgMQ",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        20
+      ],
+      "score": 0.05,
+      "category": "general",
+      "url": "https://blog.cyberdesserts.com/prompt-injection-attacks/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "blog.cyberdesserts.com",
+        "/prompt-injection-attacks/",
+        "",
+        "",
+        ""
+      ]
+    }
+  ],
+  "unresponsive_engines": [
+    [
+      "brave",
+      "Suspended: too many requests"
+    ],
+    [
+      "duckduckgo",
+      "CAPTCHA"
+    ],
+    [
+      "wikidata",
+      "Suspended: access denied"
+    ]
+  ]
+}
