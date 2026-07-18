@@ -100,6 +100,26 @@ export function obscuraWebServer(kitRepoAbs, opts = {}) {
 }
 
 /**
+ * Canonical `vkm-downloads` stdio server object ({command, args, env}) — the MCP that exposes
+ * download_resolve / download_file, a guarded file-download manager (ADR-0058). Deliberately a
+ * SEPARATE package/flag from obscura-web: this one writes bytes to the user's disk, a different
+ * risk surface, so opting into stealth web READS (--obscura) must not silently grant disk WRITES.
+ * Shared by the Cursor merge and the Claude Code / Codex CLI paths.
+ * @param {string} kitRepoAbs absolute path to the kit clone (contains packages/)
+ * @param {{ downloadDir?: string|null, maxBytes?: number|null }} [opts] - `downloadDir` wires
+ *   VKM_DOWNLOAD_DIR (default, when unset, is ~/Downloads/vkm-kit inside the server); `maxBytes`
+ *   wires VKM_DOWNLOAD_MAX_BYTES (default 500MB).
+ */
+export function downloadsServer(kitRepoAbs, opts = {}) {
+  const { downloadsMcpJs } = downloadsMcpPathsFromKitRoot(kitRepoAbs);
+  /** @type {Record<string, string>} */
+  const env = {};
+  if (opts && opts.downloadDir) env.VKM_DOWNLOAD_DIR = opts.downloadDir;
+  if (opts && opts.maxBytes) env.VKM_DOWNLOAD_MAX_BYTES = String(opts.maxBytes);
+  return { command: "node", args: [downloadsMcpJs], env };
+}
+
+/**
  * Build argv for `claude mcp add <name> -s <scope> -e K=V ... -- <command> <args...>`.
  * Claude Code registers MCP through its CLI (not an mcp.json file), so the
  * initializer shells out with this — reusing the same server objects as Cursor.
@@ -228,6 +248,22 @@ export function mergeObscuraWebServer(merged, kitRepoAbs, opts = {}) {
   return base;
 }
 
+/**
+ * Add `vkm-downloads` MCP (guarded file-download manager — download_resolve / download_file).
+ * @param {Record<string, unknown>} merged - output of a prior merge (or compatible)
+ * @param {string} kitRepoAbs - absolute path to the kit clone (contains packages/)
+ * @param {{ downloadDir?: string|null, maxBytes?: number|null }} [opts] - passed to downloadsServer
+ */
+export function mergeDownloadsServer(merged, kitRepoAbs, opts = {}) {
+  const base = /** @type {Record<string, unknown>} */ (JSON.parse(JSON.stringify(merged)));
+  if (!base.mcpServers || typeof base.mcpServers !== "object" || Array.isArray(base.mcpServers)) {
+    base.mcpServers = {};
+  }
+  const mcpServers = /** @type {Record<string, unknown>} */ (base.mcpServers);
+  mcpServers["vkm-downloads"] = downloadsServer(path.resolve(kitRepoAbs), opts);
+  return base;
+}
+
 /** @param {string} dir */
 export function hybridMcpPathsFromKitRoot(dir) {
   const root = path.resolve(dir);
@@ -244,6 +280,15 @@ export function obscuraWebMcpPathsFromKitRoot(dir) {
   return {
     root,
     obscuraMcpJs: path.join(root, "packages", "obscura-web", "src", "obscura-mcp.mjs")
+  };
+}
+
+/** @param {string} dir */
+export function downloadsMcpPathsFromKitRoot(dir) {
+  const root = path.resolve(dir);
+  return {
+    root,
+    downloadsMcpJs: path.join(root, "packages", "vkm-downloads", "src", "downloads-mcp.mjs")
   };
 }
 

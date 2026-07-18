@@ -1,0 +1,740 @@
+{
+  "_captured": "2026-07-16T20:37:45.432Z",
+  "_query": "la base de datos se traba cuando dos procesos escriben al mismo tiempo",
+  "_categories": "general",
+  "_n": 22,
+  "results": [
+    {
+      "url": "https://www.reddit.com/r/ExperiencedDevs/comments/1bx8ntw/how_have_you_solved_concurrence_issues_where_the/?tl=es-419",
+      "title": "¿Cómo han resuelto los problemas de concurrencia, donde el ...",
+      "content": "Apr 6, 2024 ... Cuando el proceso se activa dos veces al mismo tiempo, veo la extraña ocasión en la que las comprobaciones de la base de datos ocurren en el ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.reddit.com",
+        "/r/ExperiencedDevs/comments/1bx8ntw/how_have_you_solved_concurrence_issues_where_the/",
+        "",
+        "tl=es-419",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        1,
+        2
+      ],
+      "score": 3,
+      "category": "general"
+    },
+    {
+      "url": "https://www.databricks.com/es/blog/concurrency-control",
+      "title": "Control de Concurrencia en DBMS: Bloqueo, MVCC y Más",
+      "content": "El bloqueo y MVCC adoptan enfoques opuestos para el mismo problema: el bloqueo pesimista bloquea el acceso por adelantado para prevenir conflictos, mientras que ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.databricks.com",
+        "/es/blog/concurrency-control",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        2,
+        1
+      ],
+      "score": 3,
+      "category": "general"
+    },
+    {
+      "url": "https://learn.microsoft.com/es-es/sql/relational-databases/sql-server-transaction-locking-and-row-versioning-guide?view=sql-server-ver17",
+      "title": "Guía de versiones de fila y bloqueo de transacciones - SQL Server",
+      "content": "Apr 22, 2026 ... Cuando varias transacciones intentan modificar datos en una base de datos al mismo tiempo, se debe implementar un sistema de controles para ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "learn.microsoft.com",
+        "/es-es/sql/relational-databases/sql-server-transaction-locking-and-row-versioning-guide",
+        "",
+        "view=sql-server-ver17",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        4,
+        3
+      ],
+      "score": 1.1666666666666665,
+      "category": "general"
+    },
+    {
+      "url": "https://www.ibm.com/docs/es/db2/11.1.0?topic=designing-concurrent-transactions-multi-threaded-database-access",
+      "title": "Transacciones simultáneas y acceso a base de datos de varias ...",
+      "content": "Si es satisfactorio, continúa el proceso. Si no es así (porque una sentencia SQL en otra hebra del mismo contexto ya tiene el mecanismo de cierre), la llamada ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.ibm.com",
+        "/docs/es/db2/11.1.0",
+        "",
+        "topic=designing-concurrent-transactions-multi-threaded-database-access",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        3,
+        6
+      ],
+      "score": 1,
+      "category": "general"
+    },
+    {
+      "url": "http://ual.dyndns.org/biblioteca/Sistemas_Operativos/Pdf/Unidad_05.pdf",
+      "title": "Administración de procesos",
+      "content": "... dos procesos tienen acceso a una base de datos y bloquean registros ... a veces necesitan trabajar con varias partes de la base de datos al mismo tiempo.",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "http",
+        "ual.dyndns.org",
+        "/biblioteca/Sistemas_Operativos/Pdf/Unidad_05.pdf",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        10,
+        5
+      ],
+      "score": 0.6000000000000001,
+      "category": "general"
+    },
+    {
+      "url": "https://www.fdi.ucm.es/profesor/fernan/dbd/apuntestema07.pdf",
+      "title": "7. Transacciones y control de la concurrencia - Iniciar sesión",
+      "content": "El SGBD impone los bloqueos necesarios en cada momento. El gestor de acceso a los datos implementa las restricciones de acceso. En algunos sistemas se permite ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.fdi.ucm.es",
+        "/profesor/fernan/dbd/apuntestema07.pdf",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        8,
+        7
+      ],
+      "score": 0.5357142857142857,
+      "category": "general"
+    },
+    {
+      "url": "https://www.cohesity.com/es-es/glossary/data-synchronization/",
+      "title": "La guía completa de sincronización de datos - Cohesity",
+      "content": "Sincronización por inserción (“insert sync”): El proceso copia nuevos registros de la tabla de origen en la tabla de destino para garantizar que coincidan los ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.cohesity.com",
+        "/es-es/glossary/data-synchronization/",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        6,
+        13
+      ],
+      "score": 0.48717948717948717,
+      "category": "general"
+    },
+    {
+      "url": "https://www.instagram.com/reel/DXesLRwiriT/",
+      "title": "Excel fue útil… hasta que empezó a frenarte. Si tus datos se ...",
+      "content": "Apr 23, 2026 ... SE TRABA, HAY 1.000 VERSIONES LOS DATOS SE DUPLICAN SE PIERDEN LOS PROCESOS ... — Marvaq — Paso 2: Medí el tiempo que consume cada proceso. Sin ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.instagram.com",
+        "/reel/DXesLRwiriT/",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        7,
+        18
+      ],
+      "score": 0.3968253968253968,
+      "category": "general"
+    },
+    {
+      "url": "https://desktop.arcgis.com/es/arcmap/latest/manage-data/geodatabases/concurrency-and-locking.htm",
+      "title": "Simultaneidad y bloqueo—ArcMap | Documentación - ArcGIS Online",
+      "content": "Para ayudar a garantizar la integridad de los datos, todos los sistemas de administración de bases de datos aplican bloqueos a los datos.",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "desktop.arcgis.com",
+        "/es/arcmap/latest/manage-data/geodatabases/concurrency-and-locking.htm",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        5
+      ],
+      "score": 0.2,
+      "category": "general"
+    },
+    {
+      "template": "default.html",
+      "title": "Todo sobre el bloqueo (locking) en SQL Server",
+      "content": "11 abr 2018 ... En esencia, siempre existe un bloqueo compartido a nivel de la base de datos que se impone luego de que una operación se conecta con la base de ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTF-cE0cflEu4eRVwocmIuFale7yCxDO9vB2I1IMcLlBxP8uUfCYruibReC",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        4
+      ],
+      "score": 0.25,
+      "category": "general",
+      "url": "https://www.sqlshack.com/es/todo-sobre-el-bloqueo-en-sql-server/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.sqlshack.com",
+        "/es/todo-sobre-el-bloqueo-en-sql-server/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Descripción y resolución de problemas de bloqueo - SQL Server",
+      "content": "10 ene 2025 ... El bloqueo es una característica inevitable e inherente de cualquier sistema de administración de bases de datos relacionales (RDBMS) con ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTamiYiZkfXbLeih3vADC8SZH3wbbrq_92KFEfjeYjdTxr8-Z0AtOhIt4cS",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        8
+      ],
+      "score": 0.125,
+      "category": "general",
+      "url": "https://learn.microsoft.com/es-es/troubleshoot/sql/database-engine/performance/understand-resolve-blocking",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "learn.microsoft.com",
+        "/es-es/troubleshoot/sql/database-engine/performance/understand-resolve-blocking",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Control de concurrencia - Training GeneXus",
+      "content": "Si se usa el bloqueo, otros usuarios que intenten editar el mismo registro deben esperar hasta que se agote el tiempo de bloqueo del primer usuario. Page 8 ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSs84_3AkG8ln7JXM74qsNHL5q7PDz98Q5a7RepgxEDu580MkTmiz6QG7o",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        9
+      ],
+      "score": 0.1111111111111111,
+      "category": "general",
+      "url": "https://training.genexus.com/es/aprendiendo/pdf/control-de-concurrencia-pdf",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "training.genexus.com",
+        "/es/aprendiendo/pdf/control-de-concurrencia-pdf",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Práctica 5 Admin BD: Acceso Concurrente en Sistemas de Bases de ...",
+      "content": "El gestor de base de datos bloquea un registro mientras una transacción lo ; Tipos de · : ; Compartido (S) ; Exclusivo (X) ; Read Uncommitted: Puede leer cambios no ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQnBsFXwjrkq55KfWms0UcpSjVhpNVFcmPl1DEFlxxzMIV4mL-Y2kKY9QM",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        10
+      ],
+      "score": 0.1,
+      "category": "general",
+      "url": "https://www.studocu.com/es-mx/document/universidad-del-valle-de-mexico/administracion-de-base-de-datos/practica-5-admin-bd-acceso-concurrente-en-sistemas-de-bases-de-datos/125055690",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.studocu.com",
+        "/es-mx/document/universidad-del-valle-de-mexico/administracion-de-base-de-datos/practica-5-admin-bd-acceso-concurrente-en-sistemas-de-bases-de-datos/125055690",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Tema 44 - Técnicas y procedimientos para la seguridad de los datos",
+      "content": "Una condición impuesta sobre un conjunto determinado de datos se suele denominar una restricción o control de integridad. Las restricciones pueden aplicarse ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTejYBq8dgSXi35JyxHNZjDq1ySrTKqSq-iAgmKy2y0hFNrS4GCp_LGUYW9",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        11
+      ],
+      "score": 0.09090909090909091,
+      "category": "general",
+      "url": "https://www.oposinet.com/temario-de-informatica/temario-1-informatica/tema-44-tcnicas-y-procedimientos-para-la-seguridad-de-los-datos/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.oposinet.com",
+        "/temario-de-informatica/temario-1-informatica/tema-44-tcnicas-y-procedimientos-para-la-seguridad-de-los-datos/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Descripción general de los procesos y subprocesos | App quality",
+      "content": "27 jul 2025 ... ... base de datos, bloquea toda la IU. Cuando el subproceso está bloqueado, no se pueden enviar eventos, incluidos los eventos de dibujo. Desde ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTRMQD4ZOCV2rzQ4MiYybpak0CKssC7jOo8Q7_Vn0F-ji1vG1yNnYntUbiG",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        14
+      ],
+      "score": 0.07142857142857142,
+      "category": "general",
+      "url": "https://developer.android.com/guide/components/processes-and-threads?hl=es-419",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "developer.android.com",
+        "/guide/components/processes-and-threads",
+        "",
+        "hl=es-419",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Se cuelga session de TOAD a veces - Toad World® Forums",
+      "content": "21 jul 2022 ... Tal vez sucede porque hay mas que uno sesiones de Toad abierto al mismo tiempo. Es posible hay una cuelga cuando Toad quere escribir en un ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSY0lGfQCN0XE3g9iNsXCU0PfxhtmTEUc_Frjy4O8no90hda6Ov0kRmnfg",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        16
+      ],
+      "score": 0.0625,
+      "category": "general",
+      "url": "https://forums.toadworld.com/t/se-cuelga-session-de-toad-a-veces/55668",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "forums.toadworld.com",
+        "/t/se-cuelga-session-de-toad-a-veces/55668",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Ejercicios resueltos de sincronización entre procesos y concurrencia",
+      "content": "En este caso el único que pude continuar la ejecución es el proceso ligero A con la sentencia 2. Observe que en este caso, cuando el proceso ligero A se bloquea ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQH_GLEJ8Gtf4AXg0UU9KHk9fBziMiqRYmioLdOh5b3RGy7ABGo5bzdgek",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        19
+      ],
+      "score": 0.05263157894736842,
+      "category": "general",
+      "url": "https://ocw.uc3m.es/pluginfile.php/5758/mod_page/content/24/ejercicios-Resueltos.pdf",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "ocw.uc3m.es",
+        "/pluginfile.php/5758/mod_page/content/24/ejercicios-Resueltos.pdf",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "CÓMO REPARAR BASE DE DATOS DE ACCESS DAÑADA",
+      "content": "29 jun 2021 ... No sé Ingles ... procesos en Aplicaciones es la macro. Mis Saludos afectuosos al tiempo de mi agradecimiento personal por tu labor docente.",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSvb92ZYV40Cf1QepG4hhVBBQD7Jv26v6o4V63DZCd6UISXdoLmDzE7d5A",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        20
+      ],
+      "score": 0.05,
+      "category": "general",
+      "url": "https://www.youtube.com/watch?v=tTJJuBwU-Fc",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.youtube.com",
+        "/watch",
+        "",
+        "v=tTJJuBwU-Fc",
+        ""
+      ]
+    },
+    {
+      "url": "https://piazza.com/class_profile/get_resource/hyiw1nus1o81pv/i2lxw195nc051l",
+      "title": "Concurrencia - Piazza",
+      "content": "se utiliza cuando no se requiere actualizar datos, pero se desea impedir ... base de datos dos valores de tiempo (MT):. (i) MT lectura(X): la marca de ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "piazza.com",
+        "/class_profile/get_resource/hyiw1nus1o81pv/i2lxw195nc051l",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        9
+      ],
+      "score": 0.1111111111111111,
+      "category": "general"
+    },
+    {
+      "template": "default.html",
+      "title": "multiprocessing — Paralelismo basado en procesos ...",
+      "content": "2 abr 2026 ... ... escribir en el mismo (same) extremo de la tubería al mismo tiempo. ... datos de uso común que se sincronizarán entre procesos. Esto incluye ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        12
+      ],
+      "score": 0.08333333333333333,
+      "category": "general",
+      "url": "https://docs.python.org/es/3.9/library/multiprocessing.html",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "docs.python.org",
+        "/es/3.9/library/multiprocessing.html",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "TEMA 2: PROCESOS E HILOS: CONCURRENCIA ... - UAL",
+      "content": "La concurrencia es la activación de varios procesos a la vez. La concurrencia se consigue haciendo que: (1) Los procesadores se asignen a distintos procesos ( ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        15
+      ],
+      "score": 0.06666666666666667,
+      "category": "general",
+      "url": "https://www.ual.es/~rguirado/so/tema2.pdf",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.ual.es",
+        "/~rguirado/so/tema2.pdf",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Sistemas Operativos II - UTN",
+      "content": "procesos, que se utilizan para garantizar que dos procesos no se encuentren jamás al mismo tiempo dentro de sus regiones críticas, es decir la excusión mutua.",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        17
+      ],
+      "score": 0.058823529411764705,
+      "category": "general",
+      "url": "https://www.profesores.frc.utn.edu.ar/sistemas/ingsanchez/SOP/Archivos/SOPII.pdf",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.profesores.frc.utn.edu.ar",
+        "/sistemas/ingsanchez/SOP/Archivos/SOPII.pdf",
+        "",
+        "",
+        ""
+      ]
+    }
+  ],
+  "unresponsive_engines": [
+    [
+      "brave",
+      "Suspended: too many requests"
+    ],
+    [
+      "duckduckgo",
+      "CAPTCHA"
+    ],
+    [
+      "wikidata",
+      "Suspended: access denied"
+    ]
+  ]
+}

@@ -6,8 +6,66 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Removed
+
+- **Token-saver `permissions.deny` rules retired; installer now sweeps them away (ADR-0043
+  amendment).** Daily-use evidence: `Read(**/*.lock)` hard-blocked reading `pubspec.lock` in a
+  Flutter session (small file, needed to resolve a dependency constraint) and the auto-deny was
+  indistinguishable from a manual denial. A prompt-less hard block trades a bounded token cost for
+  an unbounded workflow obstruction across heterogeneous projects. `configureTokenSaver` no longer
+  takes a `denyRules` option; the four old rules live on only as `LEGACY_TOKEN_SAVER_DENY_RULES`,
+  a frozen list that every reconcile (install, `--no-token-saver`, `--uninstall`) strips from
+  `~/.claude/settings.json` while leaving user-authored deny rules untouched (new regression test
+  covers the sweep, both with pieces ON and with everything OFF). Token savings on build
+  artifacts remain the job of the compaction hooks, which degrade gracefully instead of refusing.
+
+### Security
+
+- **`obscura_research`'s crawl no longer hands an LLM curator content hidden from every human
+  viewer, unfiltered.** Found while reviewing [Scrapling](https://github.com/D4Vinci/Scrapling) (a
+  Python scraping library) for capabilities worth matching: its own MCP server strips CSS/ARIA-
+  hidden elements before conversion, which this package had no equivalent of. Verified live, not
+  hypothesized — a synthetic page hiding text behind `display:none`/`aria-hidden` had that text
+  pass straight through the real `obscura` binary's `--dump markdown` (and `--dump text`, tried as
+  a cheaper fix-hypothesis and found to fail identically — neither is visibility-aware) as if it
+  were visible, including a prompt-injection-shaped payload that this package's own
+  `scanInjection` heuristic — a visible-text scanner — also failed to flag. Every page
+  `obscura_research` fetches is now parsed with `cheerio` (`packages/obscura-web/src/sanitize.mjs`
+  — the package's first runtime dependency beyond `@modelcontextprotocol/sdk`/`execa`/`zod`, added
+  deliberately for this) and stripped of hidden elements, `<template>` content, and HTML comments
+  before either the heuristic extractor or the local curator sees it. Re-verified live,
+  end-to-end, through the real pipeline against the same synthetic payload: the curated result
+  contained only real, visible content. Scoped to the automated crawl — `obscura_fetch`'s
+  general, single-URL default is unaffected (matching its existing markdown fidelity from
+  sanitized HTML would need a second, unapproved dependency); a class-based hiding rule (versus an
+  element's own inline `style`/`aria-hidden`) is a named, tested, accepted gap, since catching it
+  needs a real browser's computed styles. See ADR-0057's third addendum.
+
 ### Fixed
 
+- **CI red since `b59e4fb` (4 pushes): two independent causes, both reproduced before fixing.**
+  (1) `lint`: `slop-check.mjs` was committed unformatted for the pinned `prettier@3.8.4` —
+  reformatted (installed copy re-synced). (2) `test-python`: the ADR-0038 regression test
+  (`test_usage_boost_decays_stale_credit_so_new_note_not_buried`) was green on Windows and red on
+  ubuntu — retrieval order was **platform-dependent**: `os.walk` returns names sorted on NTFS but
+  hash-ordered on ext4, insertion order decides FTS rowids, and rowids are the hidden tie-breaker
+  when BM25/cosine scores tie exactly; with a tie at the top, the ranks fed into RRF differ per
+  platform and the stale note's residual usage credit (linear taper leaves ~0.022 at 89.5/90
+  days) crossed the ~`w/(k+r)²` one-rank margin, burying the brand-new note the test protects.
+  Root fixes, all five ordering sites + the decay: sorted walk in `_iter_markdown_files`;
+  `ORDER BY score, path` (BM25 FTS query); `ORDER BY dist, path, ordinal` (sqlite-vec path);
+  `heapq.nsmallest` over `(-score, path, ordinal)` (brute-force cosine — same O(n·log k));
+  `(-score, path)` tie-breaks in `reciprocal_rank_fusion` and the post-lever sort; and
+  `usage_counts_decayed` taper linear→**quadratic** so window-edge credit lands two orders below
+  any rank margin instead of inside it. Verified: an adverse-order simulation (reversed
+  insertion, the ext4 condition) reproduced the CI failure locally with the ordering fixes alone
+  and passes with the full set; 197/197 pytest; all four retrieval/token/assemble bench gates
+  exit 0 locally at CI thresholds.
+- **vkm-design `modes/visual-loop.md`: capability-check note for preview panes that only render
+  `file://` inside the project folder.** Two real sessions hit the blank "static snapshot" +
+  "no site open" wall on an outside-the-project file and misread it as a page bug; the mode now
+  prescribes the copy-into-project pattern (dot-named temp, re-copy after each edit, delete at
+  loop end) instead of fighting the pane or skipping the loop.
 - **vkm-design audit scripts: four defects exposed by a real user session log** (a session
   "audited" a roadmap HTML with these scripts and half the tool output was wrong — each fix
   below re-verified against the exact input that failed).
@@ -54,6 +112,183 @@ locked`.** Two simultaneous `vault_hybrid_search` calls with a stale index (repr
 
 ### Added
 
+- **`vkm-downloads`: a guarded file-download manager MCP, opt-in via `--downloads` (ADR-0058).**
+  The user wanted Claude to download files on request (find a URL, save it to disk) — a capability
+  no existing tool had, and one that writes bytes to disk rather than reading the web as DATA. New
+  self-contained package `@vkmikc/vkm-downloads` exposing `download_resolve` (metadata only — HEAD/
+  GET-and-abort, writes nothing, safe to call before asking the user) and `download_file` (streams
+  to `~/Downloads/vkm-kit/`, returns path/size/SHA-256). **Its own installer flag, deliberately NOT
+  in `--full`** (even though `--full` includes `--obscura`): opting into stealth web _reads_ must
+  never silently grant disk _writes_ — consent stays granular. Guardrails, all tested against an
+  injected fake request/response + fake DNS (no sockets, no real DNS): http(s) only; the host is
+  resolved once and **refused if any record is loopback/private/link-local/CGNAT**, with the socket
+  **pinned to the validated IP** (`node:http(s)` + a custom `lookup`, chosen over `fetch` precisely
+  to close the DNS-rebinding TOCTOU that a resolve-then-fetch leaves in that guard — the guard that
+  stops an injected URL from targeting the kit's own loopback services like Ollama `:11434`);
+  redirects followed and **re-validated per hop** (a 302 to `127.0.0.1` is refused); a 500MB cap
+  (`VKM_DOWNLOAD_MAX_BYTES`) enforced by `Content-Length` **and mid-stream**, deleting the partial
+  file on abort; filenames sanitized (`../`, separators, `%2f`, NUL, Windows-illegal + reserved
+  device names) with a `path.resolve` **root-check before writing** and no-overwrite de-dup;
+  extension from the URL/Content-Type, never an unvalidated `Content-Disposition`. Downloaded files
+  are **never opened or executed** (no code path spawns a process — grep-verifiable), and every
+  download is appended to a JSONL audit log (`~/.vkm/downloads/downloads.log`). The tool descriptions
+  steer the agent to resolve-then-confirm-then-download, reinforcing (not replacing) Claude Code's
+  own per-file download-permission rule. Version-locked to the kit (ADR-0042/0051). 38 new tests.
+- **`obscura_research`: the answer was being lost at gather, not at rank (ADR-0057).** User report:
+  "search too little, nothing removes the junk, Claude gets the leftovers." A bench built first and
+  gated on (`evals/research/`, metrics ported from `obsidian-memory-rag`'s `bench_recall.py`) falsified
+  three assumptions in the approved plan before any pipeline code changed — most importantly, that the
+  BM25 rerank ADR-0054/0055 shipped was actively worse than doing nothing: SearXNG already fuses rank
+  across every engine that returned a URL (`results.py#calculate_score`), and re-ranking survivors with
+  BM25 over ~30 tokens of SEO snippet threw that away for -0.115 nDCG@10. The rerank is deleted, not
+  tuned. Separately, the `vocab-mismatch` case ADR-0055 was built for turned out to be a GATHER failure,
+  not a ranking one — the answer was never in the pool to begin with (a colloquial Spanish query
+  returned Instagram reels and Facebook posts; the same question in canonical English technical wording
+  returned the actual OWASP page at rank 4) — so query expansion, not reranking, is what fixes it.
+  - Pipeline: `serp.mjs` preserves SearXNG's own order/score instead of re-ranking (`rankCandidates`
+    stays exported for the no-SearXNG fallback only); fetch runs at bounded concurrency (semaphore,
+    default 4) instead of sequentially; `top_k` default 8→20 (calibrated for the old sequential loop,
+    now the knob deciding whether an expanded, fused pool's answer is read at all); a wall-clock deadline
+    (`OBSCURA_RESEARCH_DEADLINE_MS`, default 50s) returns the best-ranked finished prefix with
+    `partial`/`remaining` rather than losing everything to the MCP SDK's non-negotiable 60s
+    `tools/call` timeout (`resetTimeoutOnProgress` defaults false — the server cannot extend it).
+  - Query expansion (`expandQuery`, `ollama-client.mjs`) turns one question into several
+    canonically-worded, translated sub-queries, run against SearXNG's `general,it,science` categories
+    (`it`/`science` are site APIs — github, mdn, arxiv, semantic scholar — that answer while
+    Google/Brave-backed `general` scrapers are suspended, and don't themselves get suspended; costs zero
+    extra upstream requests, one `/search` call per sub-query). Runs on a separate, more capable model
+    (`OBSCURA_OLLAMA_EXPAND_MODEL`, default `qwen3.5:4b-q4_K_M`) from curation's — expansion is a recall
+    task (does the model already know "hidden instructions on a page" is called prompt injection?), not
+    reading comprehension, and measured phi4-mini at +0 answers found while doubling social-media junk
+    in the pool. Absent that model, the tool correctly does NOT expand rather than expand badly.
+  - The curator (`curatePage`) now returns a banded `relevance: 0-10` + `reason` instead of one bit, and
+    **drops** results below a conservative threshold (`dropped` reported, `include_rejected: true`
+    escapes it) — reversing ADR-0055 §6, which returned `relevant: false` results anyway.
+  - Ban-avoidance, found the hard way (fixture capture + probes suspended every SearXNG-backed engine
+    for 180s-3600s, and a suspended instance answers HTTP 200 + `results: []` — indistinguishable from
+    "no hits" unless `unresponsive_engines` is read): sub-query fan-out throttled
+    (`OBSCURA_SUBQUERY_CONCURRENCY`, default 2); a SearXNG response cache keyed by
+    (query, page, categories) that distinguishes a stable "exhausted" empty from a transient "banned"
+    one (only the former is cached); `enginesUnavailable` surfaced in the response so "no such page
+    exists" reads differently from "come back in 3 minutes"; `bench-capture.mjs` refuses to overwrite
+    good fixtures with empty ones captured against a rate-limited instance.
+  - Resilience hardening adapted from [Scrapling](https://github.com/D4Vinci/Scrapling) (verified
+    against its actual source, not its README): its "adaptive scraping" is `SequenceMatcher.ratio()`
+    scored across DOM element facets (tag/text/attributes/tree path/siblings) — this package has no DOM
+    to fingerprint that way (SERP records are flat, pages are markdown), so only the primitive itself
+    ported (`text-similarity.mjs#similarityRatio`, a from-scratch port pinned against difflib's own
+    canonical example). Used by a new generic, similarity-ranked SERP fallback
+    (`serp.mjs#genericExtractLinks`) engaged when a specific per-engine HTML parser breaks on markup
+    drift — the exact risk ADR-0051 already flagged and had no mitigation for beyond fixtures. Also
+    added: pragmatic robots.txt compliance (`robots.mjs`, fail-open, scoped to the automated crawl only,
+    never `obscura_fetch`) and a page-fetch cache mirroring the search cache one stage later in the
+    pipeline. TLS fingerprint impersonation and proxy rotation were both explicitly declined (the first
+    is redundant with obscura's own real-browser rendering; the second is out of scope for a local,
+    personal-use tool with no measured need).
+  - Bugs fixed in passing: `extraction: "ollama"` no longer lies when the excerpt is empty or the
+    verdict is `false`; a failed fetch reports `relevant: null` instead of hardcoding `true` (it used to
+    outrank a page the curator had actually rejected); `truncated` propagates instead of being silently
+    dropped; `capResults` bounds the response (the prior worst case, ~30k tokens, exceeded
+    `MAX_MCP_OUTPUT_TOKENS`'s 25k default); one URL identity (`url-identity.mjs`, with a frozen,
+    tripwire-tested `hash8` so `RESEARCH/`'s existing notes are never orphaned) replaces three
+    independently-drifted ones.
+  - Mass research now **accumulates across calls** instead of re-covering the same ground:
+    `persist:true` + `topic` reads `RESEARCH/<topic>/sources/` (already a durable, one-file-per-URL
+    record) before crawling and excludes already-banked candidates, so `top_k`'s budget goes to
+    genuinely new pages on a second call — `alreadyCovered` reports how many were skipped.
+  - **Fixed a real deadline bug, found only by running the redesigned pipeline live** against a
+    real SearXNG + Ollama + obscura stack: a call configured with a 50s deadline took **58.3s**
+    wall-clock, within 1.7s of the MCP transport's hard 60s cutoff. The concurrency pool's deadline
+    check only gated picking up new work; an item already in flight ran to its own independent
+    timeout (obscura's fetch ~45s worst case, curation's 30s) instead of the deadline meant to
+    bound the whole call. Each item is now raced against the time actually left, marked
+    `timedOut: true` if it doesn't finish — re-run live with identical parameters: 58.3s → 50.012s.
+    No mock-based test caught this; it took a real run against real services.
+  - Mass research now genuinely **accumulates across sessions, not just calls**: `persist:true` +
+    `topic` reads `RESEARCH/<topic>/sources/` (a durable, one-file-per-URL record) before
+    crawling and excludes already-banked candidates via `excludeHashes` — a second call on a
+    well-covered topic, even from a fresh MCP process days later, reaches further into the pool
+    instead of returning the same top hits (`alreadyCovered` reports how many were skipped).
+  - **A second real deadline gap, found by tracing every caller after the first fix**: the
+    SearXNG gather phase's sub-query fan-out never received the deadline at all (an oversight,
+    not a design gap — `mapWithConcurrency` already supported it), so a degraded SearXNG could
+    burn the whole budget gathering candidates before a single page was ever fetched. Fixed the
+    same way — the deadline now gates both the outer fan-out and the inner per-sub-query page
+    walk — with two new regression tests.
+  - `packages/obscura-web` 239/239 tests. New ADR-0057 (supersedes ADR-0055 §5/§6, reverses
+    ADR-0054's sequential-fetch choice). **Verified live end-to-end**: a real query against the
+    real stack expanded into 5 genuine sub-queries, curated `sqlite.org/lockingv3.html` and
+    `sqlite.org/wal.html` into its top results (relevance 9 and 8), and persisted 8 curated notes
+    to disk as real files. `obscura_fetch` gains an opt-in `css_selector` param and a new sibling
+    tool, `obscura_fetch_many` (bounded-concurrency batch fetch, one URL's failure doesn't sink
+    the rest) — both inspired by reviewing Scrapling's own MCP server tool surface. Full monorepo
+    green running the actual CI command (`npm run test --workspaces --if-present`) from the repo
+    root, not just this package in isolation.
+  - **Quality-based early stop: `target_relevant`.** Left at its default, a call always spent its
+    whole `top_k`/`deadline_ms` budget even after the curator had already confirmed plenty of good
+    pages — the tool had no notion of "enough", only "out of time" or "out of candidates". Set
+    `target_relevant`, and the call stops dispatching further candidates as soon as that many pages
+    have been genuinely curated relevant (a real curator verdict at/above `drop_below`; a heuristic
+    fallback or an unfetched page never counts), returning `targetReached: true` so a short response
+    reads as a deliberate success rather than a cutoff (`partial`/`remaining` can still report
+    alongside it — the two are not exclusive).
+  - **Fixed a real, if narrow, `relevant`/`drop_below` inconsistency found building the above**:
+    `curatePage` has no `dropBelow` parameter and derived its own `relevant` boolean from the
+    module's fixed default, so a call using a non-default `drop_below` could get a per-result
+    `relevant:true` that quietly disagreed with that very call's `kept`/`dropped` filter (relevance
+    5 with `drop_below:7` reported `relevant:true` against curatePage's baked-in 3, even though the
+    result was correctly dropped). `relevant` is now derived once, in `research.mjs`, from THIS
+    call's own `dropBelow` — byte-identical for callers using the default. One stale test asserted
+    the pre-ADR-0057 "not-relevant still returns a result" behavior that was deliberately reversed
+    above; rewritten to exercise the same `extraction` correctness through `include_rejected`
+    instead. `packages/obscura-web` 246/246 tests.
+  - **The curator bake-off fase 3 was approved on (measure, don't assume the model), run — with an
+    honest, inconclusive result.** Built the scorer that didn't exist (`bench-curate.mjs` +
+    a real, labelled golden set anchored on the exact live MDN-false-positive failure above) and
+    ran `phi4-mini:3.8b-q4_K_M` (current default) vs `qwen3.5:4b-q4_K_M` vs `qwen3.5:9b-q4_K_M`
+    as curator. `qwen3.5:9b` is the only one that stopped scoring the MDN pages relevant (0 false
+    positives) but at 40.6s/page with half its calls timing out at 60s it is disqualified by
+    latency alone (removed via `ollama rm`, per this session's own pre-declared bake-off rule).
+    Between the two practical options, `qwen3.5:4b` does not beat `phi4-mini` (lower accuracy,
+    identical false-positive rate on the hard case, slightly slower) — **default stays
+    `phi4-mini`**, and the false-positive failure itself remains open at this model size class on
+    this hardware (a rubric fix — the prompt's own "official documentation" band plausibly
+    rewarding MDN's general authority over its topical relevance — is the next unexplored lever,
+    not attempted this round). n=8 declared small, matching this ADR's existing honesty about the
+    expansion bake-off's own sample size. `DEFAULT_MODEL` (`ollama-client.mjs`) now carries this
+    reasoning inline, matching the doc-comment `DEFAULT_EXPAND_MODEL` already had for its own
+    bake-off — the decision used to live only in the ADR, not at the line of code it governs.
+  - **Fase 4, partially shipped: embeddings wired for near-dup removal + MMR diversity; per-page
+    chunk selection built but NOT wired.** `ollama-client.mjs` gains `embedPassages`
+    (`OBSCURA_OLLAMA_EMBED_MODEL`, default `qwen3-embedding:0.6b`, batched `/api/embed`) and
+    `rank.mjs` gains `mmr`. Both wired into `deepResearch` as two new opt-in params sharing ONE
+    batched embed call over the final kept set (never per-page): `dedupe_similar` (drops a later
+    page whose embedding is near-identical, cosine ≥0.92, to one already kept — an objective
+    redundancy signal, never a relevance judgment; count reported as `dedupedSimilar`) and
+    `diversify` (MMR reorder, `mmr_lambda` default 0.5, off by default per ADR-0028's own
+    precedent). Both skipped when too little `deadline_ms` remains or the embed model isn't
+    pulled, degrading silently to the plain curated order. `chunk.mjs` (sliding-window,
+    paragraph-respecting, overlapping chunking) is also built and tested, but deliberately left
+    UNWIRED into the per-page fetch+curate path — that would need per-page embedding calls inside
+    the deadline-critical hot loop, and there is no bench measuring whether chunk-based passage
+    selection actually beats today's blind 12k-char truncation; wiring something unmeasured into a
+    hard-deadline path is the wrong trade, matching this session's own repeated "a phase that
+    doesn't move the metric doesn't merge" discipline. `packages/obscura-web` 283/283 tests.
+  - **Both remaining gaps attempted directly — both honestly negative, neither shipped.** A
+    domain-check revision to `CURATE_SYSTEM_PROMPT` (name the query's and page's technology; cap
+    the score if they differ) was measured over 3 trials vs 2 on the baseline: false-positive rate
+    improved inconsistently while false-negative rate got WORSE — the same instruction that
+    correctly rejected an MDN page in one trial also made the model reject `sqlite.org/wal.html`
+    itself as off-topic in two of three, the very vocab-mismatch failure ADR-0055 exists to
+    prevent. **Reverted**; the finding lives in the prompt constant's own doc-comment.
+    `selectChunksByRelevance` (`chunk.mjs`) — rank chunks by similarity to the query, keep the
+    best up to the input budget — was tested live against two real long pages with a verified
+    fact buried past the 12k-char truncation point: one case improved (relevance 5→8, on-topic
+    reason emerged), one regressed (relevance 8→5 — greedy similarity selection discarded a
+    page's own orienting introduction that blind truncation keeps for free by being first).
+    **Not wired.** Both negative results are recorded in ADR-0057's seventh addendum in full, not
+    softened — a negative result this session already paid to learn is worth more than a
+    positive one it didn't earn. `packages/obscura-web` 288/288 tests.
 - **`vkm-doctor`: skills-drift check.** Real gap found on the maintainer's own machine: `vkm-design`
   and `vkm-research` existed in the kit's templates but were missing from `~/.claude/skills/`
   (install predated their addition) and nothing noticed. The doctor now compares what the kit

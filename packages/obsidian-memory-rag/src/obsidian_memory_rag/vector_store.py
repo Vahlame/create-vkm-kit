@@ -192,7 +192,7 @@ def _search_chunks_sqlite_vec(
         "SELECT path, ordinal, heading, text, "
         "vec_distance_cosine(vec, ?) AS dist FROM note_chunks "
         f"WHERE embedder = ? AND length(vec) = ?{clause} "
-        "ORDER BY dist ASC LIMIT ?",
+        "ORDER BY dist ASC, path ASC, ordinal ASC LIMIT ?",
         (qblob, embedder, len(query_vec) * 4, *extra, limit),
     ).fetchall()
     return [
@@ -292,4 +292,8 @@ def search_chunks(
                 score,
             )
         )
-    return heapq.nlargest(limit, hits, key=lambda h: h.score)
+    # nsmallest over (-score, path, ordinal): same O(n·log k) bound as nlargest, but
+    # with an explicit deterministic tie-break — bare nlargest(key=score) resolves
+    # equal scores by heap insertion order, i.e. SQL fetch order, i.e. rowid /
+    # filesystem-walk order, which differs across platforms for the same vault.
+    return heapq.nsmallest(limit, hits, key=lambda h: (-h.score, h.path, h.ordinal))

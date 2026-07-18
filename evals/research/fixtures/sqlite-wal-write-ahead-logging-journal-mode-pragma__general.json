@@ -1,0 +1,706 @@
+{
+  "_captured": "2026-07-16T20:37:41.522Z",
+  "_query": "SQLite WAL write-ahead logging journal mode pragma",
+  "_categories": "general",
+  "_n": 21,
+  "results": [
+    {
+      "url": "https://sqlite.org/wal.html",
+      "title": "Write-Ahead Logging - SQLite",
+      "content": "Apr 13, 2026 ... PRAGMA journal_mode=WAL;. The journal_mode pragma returns a string which is the new journal mode. On success, the pragma will return the string ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "sqlite.org",
+        "/wal.html",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        1,
+        1
+      ],
+      "score": 4,
+      "category": "general"
+    },
+    {
+      "url": "https://sqlite.org/pragma.html",
+      "title": "Pragma statements supported by SQLite",
+      "content": "Jun 4, 2026 ... The WAL journaling mode uses a write-ahead log instead of a rollback journal to implement transactions. The WAL journaling mode is ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "sqlite.org",
+        "/pragma.html",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        2,
+        2
+      ],
+      "score": 2,
+      "category": "general"
+    },
+    {
+      "url": "https://mohit-bhalla.medium.com/understanding-wal-mode-in-sqlite-boosting-performance-in-sql-crud-operations-for-ios-5a8bd8be93d2",
+      "title": "Understanding WAL Mode in SQLite: Boosting Performance in SQL ...",
+      "content": "Mar 7, 2025 ... However, its default rollback journal mode can cause performance issues due to frequent disk I/O operations. To optimize performance, Write- ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "mohit-bhalla.medium.com",
+        "/understanding-wal-mode-in-sqlite-boosting-performance-in-sql-crud-operations-for-ios-5a8bd8be93d2",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        3,
+        3
+      ],
+      "score": 1.3333333333333333,
+      "category": "general"
+    },
+    {
+      "url": "https://blog.pecar.me/sqlite-wal/",
+      "title": "SQLite Write-Ahead Logging - Anže's Blog",
+      "content": "Nov 3, 2023 ... shm files. The .wal file records transactions committed but not yet applied to the main database. The .shm file is used for shared memory and ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "blog.pecar.me",
+        "/sqlite-wal/",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        5,
+        4
+      ],
+      "score": 0.9,
+      "category": "general"
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=qf0GqRz-c74",
+      "title": "SQLite's WAL mode is fast fast - YouTube",
+      "content": "Jul 10, 2024 ... Want to learn more SQLite? Check out the full course: https://highperformancesqlite.com. Get your free SQLite reference guide: ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.youtube.com",
+        "/watch",
+        "",
+        "v=qf0GqRz-c74",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        4,
+        14
+      ],
+      "score": 0.6428571428571428,
+      "category": "general"
+    },
+    {
+      "url": "https://blog.sqlite.ai/journal-modes-in-sqlite",
+      "title": "Journal Modes in SQLite",
+      "content": "Jun 26, 2024 ... Journal Mode: Write-Ahead Logging (WAL) ... Write-Ahead Logging (WAL) mode is the most sophisticated journaling method in SQLite. It significantly ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "blog.sqlite.ai",
+        "/journal-modes-in-sqlite",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        7,
+        6
+      ],
+      "score": 0.6190476190476191,
+      "category": "general"
+    },
+    {
+      "url": "https://sqlite.org/walformat.html",
+      "title": "WAL-mode File Format - SQLite",
+      "content": "May 10, 2025 ... db\", \".sqlite\", and \".sqlite3\" seem to be popular choices. 1.2. The Write-Ahead-Log or \"-wal\" ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "sqlite.org",
+        "/walformat.html",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        9,
+        7
+      ],
+      "score": 0.5079365079365079,
+      "category": "general"
+    },
+    {
+      "url": "https://superuser.com/questions/1938008/why-is-sqlite-wal-mode-so-much-faster-than-default-delete-mode-for-concurrent-wr",
+      "title": "Why is SQLite WAL mode so much faster than default DELETE ...",
+      "content": "May 29, 2026 ... After doing some research, I switched the journal mode to WAL (Write-Ahead Logging) using the command \"PRAGMA journal_mode=WAL;\". The write ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "superuser.com",
+        "/questions/1938008/why-is-sqlite-wal-mode-so-much-faster-than-default-delete-mode-for-concurrent-wr",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        8,
+        11
+      ],
+      "score": 0.4318181818181818,
+      "category": "general"
+    },
+    {
+      "url": "https://www.avanderlee.com/swift/write-ahead-logging-wal/",
+      "title": "Write-Ahead Logging (WAL) disabled to force commits in Core Data",
+      "content": "Aug 25, 2020 ... Journaling in Core Data is best explained as the way data transactions are saved into the underlying SQLite store. The WAL mode is significantly ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "www.avanderlee.com",
+        "/swift/write-ahead-logging-wal/",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "google cse",
+        "startpage"
+      ],
+      "positions": [
+        10,
+        9
+      ],
+      "score": 0.4222222222222222,
+      "category": "general"
+    },
+    {
+      "template": "default.html",
+      "title": "Setting up Spring JDBC and SQLite with Write-Ahead-Logging mode",
+      "content": "14 oct 2024 ... This logs every write operation into a .wal file, so that your writes don't block reads. This makes SQLite a viable choice for small to medium ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRM38C4lw1_XJnPaiK4eWYGpHiNN1kdMxtsKk401bffLDLojdM1Hoxc2MM",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        5
+      ],
+      "score": 0.2,
+      "category": "general",
+      "url": "https://jilles.me/setting-up-spring-jdbc-and-sqlite-with-write-ahead-logging-mode/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "jilles.me",
+        "/setting-up-spring-jdbc-and-sqlite-with-write-ahead-logging-mode/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "PHP SQLite PRAGMA journal_mode = wal and readonly users",
+      "content": "2 jun 2017 ... How to enable Write-Ahead Log(WAL) journal mode for SQLite in android? Hot Network Questions · Is this the interaction between Valgavoth and ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRdz5bpS8UTjYhRCyw0EGEhHePvfcnqibPoEEwsMe0bPC5ufFu-rvmh0xDh",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        8
+      ],
+      "score": 0.125,
+      "category": "general",
+      "url": "https://stackoverflow.com/questions/44331249/php-sqlite-pragma-journal-mode-wal-and-readonly-users",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "stackoverflow.com",
+        "/questions/44331249/php-sqlite-pragma-journal-mode-wal-and-readonly-users",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "SQLite recommended PRAGMAs - Database School",
+      "content": "7 sept 2024 ... However, it is highly recommended that the journal mode be set to WAL (Write-Ahead Logging) to improve write performance, which can make a ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQOwwsykG4J0x4G9O3iok1vFUdl6PKZTSnjuJr-ItmUuKqmhl0ayx5Hd_s",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        10
+      ],
+      "score": 0.1,
+      "category": "general",
+      "url": "https://databaseschool.com/articles/sqlite-recommended-pragmas",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "databaseschool.com",
+        "/articles/sqlite-recommended-pragmas",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "PRAGMA Settings - Runnable SQLite Docs - Coddy",
+      "content": "2 may 2026 ... journal_mode = WAL ... The journal mode controls how SQLite makes writes durable. The default, DELETE , uses a rollback journal: writers block ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTBtnfpK4RiOq-RQZXR2DxnMehyoOFjIvWo311OH6265woIv-vwnnFjDkCL",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        12
+      ],
+      "score": 0.08333333333333333,
+      "category": "general",
+      "url": "https://coddy.tech/docs/sqlite/pragma-settings",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "coddy.tech",
+        "/docs/sqlite/pragma-settings",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "With Sqlite what is the default journal mode for ms ef core ... - GitHub",
+      "content": "6 ago 2025 ... If we do not set the journal mode, we get great execution speed, but a WAL file is created. To me it appears that the journal mode is by default ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcS75XhOA-A3muJUoOA7aa5APvnfex_RkmbSdcd1VIzka7_tVXdmSIfsKMHW",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        13
+      ],
+      "score": 0.07692307692307693,
+      "category": "general",
+      "url": "https://github.com/dotnet/efcore/issues/36513",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "github.com",
+        "/dotnet/efcore/issues/36513",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "SQLite WAL Internals: Frames, Commits, Concurrency",
+      "content": "5 may 2026 ... Write-Ahead Logging (WAL) is not just a performance feature, it fundamentally changes how SQLite handles writes, reads, and concurrency.",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQBZOguv2S462SG5WNnPiIVjnGroYigfPZxlgwsbukJytObBz80ZyRv-S0&s=0",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        17
+      ],
+      "score": 0.058823529411764705,
+      "category": "general",
+      "url": "https://www.sqliteforum.com/p/sqlite-wal-internals-frames-commits",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.sqliteforum.com",
+        "/p/sqlite-wal-internals-frames-commits",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "How to Set Up SQLite with WAL Mode on Ubuntu - OneUptime",
+      "content": "2 mar 2026 ... Write-Ahead Logging (WAL) flips this model: changes are appended to a separate WAL file instead of modifying the database file directly. Readers ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSS8Ypca9M8pAXyC8YOU1YMo6GcSqABO9dW1UcL3Sszd4Ljx7B1l9FuA4Wv",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        18
+      ],
+      "score": 0.05555555555555555,
+      "category": "general",
+      "url": "https://oneuptime.com/blog/post/2026-03-02-how-to-set-up-sqlite-with-wal-mode-on-ubuntu/view",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "oneuptime.com",
+        "/blog/post/2026-03-02-how-to-set-up-sqlite-with-wal-mode-on-ubuntu/view",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Sensible SQLite defaults - Brian Douglas",
+      "content": "17 oct 2024 ... SQLite is cool now. DHH ... For your convenience. -- Set the journal mode to Write-Ahead Logging for concurrency PRAGMA journal_mode = WAL ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTyN6T90dmtLK8TNRnf9k5elRfpHBoQtZ63adm8Z4torJYHaLGFzFaJ7Wtw",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        20
+      ],
+      "score": 0.05,
+      "category": "general",
+      "url": "https://briandouglas.ie/sqlite-defaults/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "briandouglas.ie",
+        "/sqlite-defaults/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "url": "https://til.simonwillison.net/sqlite/enabling-wal-mode",
+      "title": "Enabling WAL mode for SQLite database files - Simon Willison: TIL",
+      "content": "This means that turning on WAL is a thing you can do directly to a database file! Here's the incantation: sqlite3 github.db 'PRAGMA journal_mode=WAL;'. I ran ...",
+      "publishedDate": null,
+      "engine": "startpage",
+      "template": "default.html",
+      "parsed_url": [
+        "https",
+        "til.simonwillison.net",
+        "/sqlite/enabling-wal-mode",
+        "",
+        "",
+        ""
+      ],
+      "img_src": "",
+      "thumbnail": "",
+      "priority": "",
+      "engines": [
+        "startpage"
+      ],
+      "positions": [
+        6
+      ],
+      "score": 0.16666666666666666,
+      "category": "general"
+    },
+    {
+      "template": "default.html",
+      "title": "SQLite for Continuous Ingestion — They Do Things Differently There",
+      "content": "WAL mode — Write-Ahead Logging — fixes this at the architecture level. Writes append to a separate WAL file rather than modifying the database directly. Readers ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        15
+      ],
+      "score": 0.06666666666666667,
+      "category": "general",
+      "url": "https://ssushant.me/posts/sqlite_ingestion_defaults_redb/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "ssushant.me",
+        "/posts/sqlite_ingestion_defaults_redb/",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Using WAL mode with multiple processes - SQLite User Forum",
+      "content": "10 ago 2020 ... The WAL journaling mode is persistent; after being set it stays in effect across multiple database connections and after closing and reopening ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        16
+      ],
+      "score": 0.0625,
+      "category": "general",
+      "url": "https://sqlite.org/forum/forumpost/c4dbf6ca17",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "sqlite.org",
+        "/forum/forumpost/c4dbf6ca17",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "template": "default.html",
+      "title": "Copying your SQLite .db file isn't a valid backup when WAL mode is ...",
+      "content": "20 abr 2026 ... Why: WAL mode keeps a separate write-ahead log (.wal file). Until it's checkpointed back into the main database file, committed transactions ...",
+      "img_src": "",
+      "iframe_src": "",
+      "audio_src": "",
+      "thumbnail": "",
+      "publishedDate": null,
+      "pubdate": "",
+      "length": null,
+      "views": "",
+      "author": "",
+      "metadata": "",
+      "priority": "",
+      "engines": [
+        "google cse"
+      ],
+      "open_group": false,
+      "close_group": false,
+      "positions": [
+        19
+      ],
+      "score": 0.05263157894736842,
+      "category": "general",
+      "url": "https://www.reddit.com/r/webdev/comments/1sqs79o/psa_copying_your_sqlite_db_file_isnt_a_valid/",
+      "engine": "google cse",
+      "parsed_url": [
+        "https",
+        "www.reddit.com",
+        "/r/webdev/comments/1sqs79o/psa_copying_your_sqlite_db_file_isnt_a_valid/",
+        "",
+        "",
+        ""
+      ]
+    }
+  ],
+  "unresponsive_engines": [
+    [
+      "brave",
+      "Suspended: too many requests"
+    ],
+    [
+      "duckduckgo",
+      "CAPTCHA"
+    ],
+    [
+      "wikidata",
+      "Suspended: access denied"
+    ]
+  ]
+}

@@ -114,13 +114,20 @@ def usage_counts_decayed(
     worth exactly 1, so a note used heavily near the *start* of the window (stale
     but technically still in-window) keeps full credit right up to the moment it
     ages out — a step function, not a taper. This variant weights each event by
-    its own recency instead: linear decay from 1.0 at age 0 down to 0.0 at
-    ``window_days`` old (``max(0.0, 1.0 - age_days / window_days)``). The usage
-    ranking boost (see ``query.py``) feeds the sum into its ``log1p`` multiplier
-    so an old note's boost genuinely fades once it stops being touched, rather
-    than only fading when the whole window finally rolls past it — this is what
-    lets a brand-new, equally-relevant note compete instead of losing every tie
-    to stale-but-in-window usage credit (ADR-0038's recency-of-memory intent).
+    its own recency instead: QUADRATIC decay from 1.0 at age 0 down to 0.0 at
+    ``window_days`` old (``max(0.0, 1.0 - age_days / window_days) ** 2``). The
+    taper is quadratic, not linear, deliberately: post-fusion scores sit on RRF's
+    ``weight/(k+rank)`` ladder where adjacent ranks differ by only ~``w/(k+r)²``,
+    and a LINEAR taper still leaves window-edge credit (e.g. 4 uses at 89.5/90
+    days ≈ 0.022) big enough for the ``log1p`` multiplier to cross one-rank
+    margins — re-burying the brand-new, equally-relevant note this function
+    exists to protect (caught by CI on ubuntu, 2026-07-18: the platform-dependent
+    candidate order made the near-tie land the other way). Squaring pushes edge
+    credit two orders below any rank margin while leaving fresh usage (age ≈ 0)
+    essentially untouched. The usage ranking boost (see ``query.py``) feeds the
+    sum into its ``log1p`` multiplier so an old note's boost genuinely fades once
+    it stops being touched, rather than only fading when the whole window finally
+    rolls past it (ADR-0038's recency-of-memory intent).
 
     Same zero-on-empty / no-op-on-failure contract as :func:`usage_counts`.
     """
@@ -154,7 +161,7 @@ def usage_counts_decayed(
             # (1.0), letting a skewed timestamp transiently out-rank genuinely
             # fresh usage instead of just being ignored until real time catches up.
             continue
-        weight = max(0.0, 1.0 - (raw_age_days / window_days)) if window_days > 0 else 1.0
+        weight = max(0.0, 1.0 - (raw_age_days / window_days)) ** 2 if window_days > 0 else 1.0
         path = str(r["path"])
         out[path] = out.get(path, 0.0) + weight
     return out

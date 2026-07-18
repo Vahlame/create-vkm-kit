@@ -1,0 +1,32 @@
+# Golden set for the CURATOR bake-off (packages/obscura-web/src/bench-curate.mjs), distinct from
+# queries.jsonl (which scores candidate RANKING, not curation — see bench-research.mjs's own header
+# for why the two need separate scorers: this one needs a live Ollama, so it cannot be a
+# deterministic CI gate the way the ranking bench is).
+#
+# Format: {query, url, label: "relevant"|"irrelevant", note?}. `url` keys a frozen page-text
+# fixture in curation-fixtures/<hash8>.txt (hash8 from url-identity.mjs, the same convention
+# RESEARCH/ notes use) captured by bench-curate-capture.mjs.
+#
+# Every entry here is real and lived through this session's own live pipeline runs — none invented:
+#
+# - The three `relevant` SQLite pages and the `hard-negative` MDN pages are the EXACT case a live
+#   run of this pipeline hit: querying "SQLite WAL concurrent writer locking" with the default
+#   curator (phi4-mini) scored 6 MDN WritableStreamDefaultWriter pages `relevance:9` (the maximum)
+#   — almost certainly fooled by literal "writer"/"lock" overlap with a completely unrelated
+#   JavaScript Streams API. That live failure is why this bench exists at all.
+# - `easy-negative` is a sanity floor: a curator that scores THIS as relevant is broken outright,
+#   not just fooled by keyword overlap — any candidate model failing it is disqualified regardless
+#   of its score on the harder cases.
+# - The second query is the `vocab-mismatch` case from queries.jsonl's own philosophy: same page,
+#   colloquial Spanish wording sharing almost no vocabulary with it — a curator that only pattern
+#   -matches surface words should do WORSE here than on the first query's technical phrasing.
+
+{"query": "SQLite WAL concurrent writer locking", "url": "https://www.sqlite.org/wal.html", "label": "relevant", "note": "the primary source on WAL mode itself"}
+{"query": "SQLite WAL concurrent writer locking", "url": "https://www.sqlite.org/lockingv3.html", "label": "relevant", "note": "SQLite's own locking model doc"}
+{"query": "SQLite WAL concurrent writer locking", "url": "https://jellyfin.org/posts/SQLite-locking/", "label": "relevant", "note": "a real-world writeup of hitting this exact issue"}
+{"query": "SQLite WAL concurrent writer locking", "url": "https://developer.mozilla.org/en-US/docs/Web/API/WritableStreamDefaultWriter", "label": "irrelevant", "note": "hard-negative: the confirmed live false-positive (scored relevance:9 by phi4-mini)"}
+{"query": "SQLite WAL concurrent writer locking", "url": "https://developer.mozilla.org/en-US/docs/Web/API/WritableStreamDefaultWriter/write", "label": "irrelevant", "note": "hard-negative: same MDN family, same confirmed live false-positive"}
+{"query": "SQLite WAL concurrent writer locking", "url": "https://en.wikipedia.org/wiki/Banana", "label": "irrelevant", "note": "easy-negative sanity floor: failing this means broken, not just fooled"}
+
+{"query": "se me traba sqlite cuando dos procesos escriben a la vez", "url": "https://www.sqlite.org/wal.html", "label": "relevant", "note": "vocab-mismatch: same answer page, colloquial Spanish query sharing almost no vocabulary with it"}
+{"query": "se me traba sqlite cuando dos procesos escriben a la vez", "url": "https://developer.mozilla.org/en-US/docs/Web/API/WritableStreamDefaultWriter", "label": "irrelevant", "note": "same hard-negative, under the vocab-mismatch query"}

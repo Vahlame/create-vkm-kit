@@ -62,6 +62,13 @@ const MARKERS = [
     write: (s, v) => s.replace(/("version":\s*")[^"]+(")/, `$1${v}$2`)
   },
   {
+    // Efficiency-suite package, version-locked to the kit (ADR-0058, same call as ADR-0042/0051).
+    name: "vkm-downloads/package.json",
+    file: "packages/vkm-downloads/package.json",
+    read: (s) => JSON.parse(s).version,
+    write: (s, v) => s.replace(/("version":\s*")[^"]+(")/, `$1${v}$2`)
+  },
+  {
     // The forwarding shim published on the pre-rename npm name (ADR-0041/0050).
     name: "create-obsidian-memory-shim/package.json",
     file: "packages/create-obsidian-memory-shim/package.json",
