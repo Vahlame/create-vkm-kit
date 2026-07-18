@@ -1,11 +1,14 @@
 // vkm-doctor skills-drift check (companion to ADR-0049's skill/subagent installer): compares
 // the kit's canonical skills (`SKILL_NAMES` in create-vkm-kit) against what's actually
-// installed under `~/.claude/skills/<name>/SKILL.md`. Reuses `skillAssetFiles` from
+// installed under `~/.claude/skills/<name>/`. Reuses `skillAssetFiles` from
 // create-vkm-kit for the exact {src, dest} pairs, so this check can never disagree with what
 // `configureSkillAssets` actually installs — no duplicated skill list to keep in sync, no
 // separate drift-gate test. Two drift kinds: MISSING (no installed SKILL.md) and STALE
-// (installed content differs from the shipped template — content hash, never mtime: a
-// copy/touch changes mtime independent of bytes, and vice versa).
+// (ANY installed file of the skill differs from the shipped template, or a template file has
+// no installed counterpart — content hash, never mtime: a copy/touch changes mtime independent
+// of bytes, and vice versa). Per-skill EVERY template file is compared, not just SKILL.md:
+// the real 2026-07-18 drift was a stale vkm-discipline/domains/design-ui.md under a byte-
+// identical SKILL.md — the SKILL.md-only version of this check reported "ok" for it.
 //
 // Lives in its own file (same reason as jsonl-fallback.mjs): the deep `@vkmikc/create-vkm-kit`
 // import can fail to resolve (e.g. a pre-ADR-0049 vkm-doctor install without the dependency) —
@@ -44,13 +47,16 @@ export function checkSkillsDrift({
   const stale = [];
   const ok = [];
   for (const name of skillNames) {
-    const dest = path.join(skillsDir, name, "SKILL.md");
-    const rec = files.find((f) => f.dest === dest);
-    if (!rec || !fs.existsSync(rec.dest)) {
+    const skillRoot = path.join(skillsDir, name);
+    const recs = files.filter((f) => f.dest.startsWith(skillRoot + path.sep));
+    const mdRec = recs.find((f) => f.dest === path.join(skillRoot, "SKILL.md"));
+    if (!mdRec || !fs.existsSync(mdRec.dest)) {
       missing.push(name);
-    } else {
-      (sha256(rec.src) === sha256(rec.dest) ? ok : stale).push(name);
+      continue;
     }
+    // Stale if ANY of the skill's template files is absent or differs installed-side.
+    const isStale = recs.some((r) => !fs.existsSync(r.dest) || sha256(r.src) !== sha256(r.dest));
+    (isStale ? stale : ok).push(name);
   }
   return { skipped: false, missing, stale, ok };
 }

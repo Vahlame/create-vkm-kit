@@ -214,6 +214,28 @@ test("checkSkillsDrift flags a stale skill (installed content differs from templ
   assert.match(text, /npx @vkmikc\/create-vkm-kit --ide claude --skills -y/);
 });
 
+test("checkSkillsDrift: a stale non-SKILL.md file (domains/*.md) flags the skill STALE", () => {
+  // The real 2026-07-18 drift: vkm-discipline/domains/design-ui.md stale under a byte-identical
+  // SKILL.md — the SKILL.md-only version of this check reported "ok" for exactly this state.
+  const { home, files } = fakeSkillsFixture({ "vkm-a": "same\n" });
+  fs.mkdirSync(path.dirname(files[0].dest), { recursive: true });
+  fs.copyFileSync(files[0].src, files[0].dest);
+  const src = path.join(path.dirname(files[0].src), "domains", "design-ui.md");
+  fs.mkdirSync(path.dirname(src), { recursive: true });
+  fs.writeFileSync(src, "template v2\n");
+  const dest = path.join(path.dirname(files[0].dest), "domains", "design-ui.md");
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.writeFileSync(dest, "installed v1\n");
+  const withDomain = [...files, { src, dest }];
+  const result = checkSkillsDrift({ home, skillNames: ["vkm-a"], files: withDomain });
+  assert.deepEqual(result.stale, ["vkm-a"]);
+  assert.deepEqual(result.ok, []);
+  // and a template file with NO installed counterpart is also stale, not ok
+  fs.rmSync(dest);
+  const result2 = checkSkillsDrift({ home, skillNames: ["vkm-a"], files: withDomain });
+  assert.deepEqual(result2.stale, ["vkm-a"]);
+});
+
 test("checkSkillsDrift: all skills up to date renders green", () => {
   const { home, files } = fakeSkillsFixture({ "vkm-a": "same\n", "vkm-b": "same2\n" });
   for (const f of files) {

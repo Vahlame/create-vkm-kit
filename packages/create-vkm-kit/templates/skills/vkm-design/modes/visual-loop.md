@@ -46,3 +46,8 @@ stop at "renders without errors" either — rendering is the floor, not the fini
   inside the loop too.
 - Declaring an empty/error state "handled" without rendering it — force the state with real
   conditions (empty dataset, failing request) and capture it.
+- Publishing the fixed page to a NEW artifact/URL while the user still holds the OLD link — they
+  refresh the stale page and report "no changes" (real session: the fix landed on a fresh
+  artifact, the user's bookmarked one never updated). Before publishing a document the user has
+  seen before, list existing artifacts and redeploy to the SAME url; verify at the link the user
+  actually holds.
