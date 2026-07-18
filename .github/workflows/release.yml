@@ -61,7 +61,8 @@ jobs:
   # a manual `npm publish` (the cause of the 3.5.0/3.6.0 marker drift):
   # @vkmikc/create-vkm-kit (the real installer) and @vkmikc/create-obsidian-memory
   # (the forwarding shim kept on the old name — npm has no redirects, ADR-0041/0050).
-  # Runs only when an NPM_TOKEN secret is configured; the other packages stay
+  # FAILS LOUDLY if the NPM_TOKEN secret is missing — a "successful" release that
+  # never reached npm shipped 4.2.0 and 4.3.0 late. The other packages stay
   # private (obsidian-memory-mcp, vkm-doctor, vkm-spec) or pip-only (rag).
   npm-publish:
     needs: publish
@@ -81,8 +82,10 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "NPM_TOKEN not set — skipping publish (configure repo secret to enable)." >&2
-            exit 0
+            echo "::error::NPM_TOKEN not set — npm publish did NOT run. The GitHub release exists" \
+              "but npm is now behind (this silent skip shipped 4.2.0 and 4.3.0 late)." \
+              "Fix: gh secret set NPM_TOKEN, then re-run this workflow." >&2
+            exit 1
           fi
           npm publish --access public
       - name: publish create-obsidian-memory (forwarding shim)
@@ -91,7 +94,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "NPM_TOKEN not set — skipping publish (configure repo secret to enable)." >&2
-            exit 0
+            echo "::error::NPM_TOKEN not set — shim publish did NOT run (see create-vkm-kit step)." >&2
+            exit 1
           fi
           npm publish --access public

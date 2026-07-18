@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **`release.yml` no longer reports success when npm publish silently skipped.** The npm-publish
+  job soft-exited (`exit 0`) when the `NPM_TOKEN` secret was missing, so the workflow went green
+  while npm stayed behind — this shipped 4.2.0 and 4.3.0 to GitHub without their npm counterparts
+  until someone noticed. Both publish steps now emit a `::error::` annotation and **fail the job**
+  when the token is absent; fork runs were already excluded by the repository guard, so the hard
+  fail only ever fires where publishing is actually expected.
+
 ## [4.3.0] - 2026-07-18
 
 ### Removed
