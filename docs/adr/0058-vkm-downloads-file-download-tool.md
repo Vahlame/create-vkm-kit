@@ -52,7 +52,7 @@ the guardrails** as about the mechanism. Constraints carried in from the approve
    bytes, Windows-illegal chars, reserved device names); the extension comes from the URL/name or
    the Content-Type, **never** from an unvalidated `Content-Disposition`. `resolveWithinRoot` runs
    `path.resolve` + a prefix check **before** writing and refuses anything escaping the root, and
-   **never overwrites** — it appends ` (1)`, ` (2)` like a browser (data-loss guard).
+   **never overwrites** — it appends a `(1)`/`(2)`-style numeric suffix like a browser (data-loss guard).
 5. **Never executes or opens the file**, and no code path in the package spawns a process
    (`child_process`/`execa`/shell) — verifiable by grep, and a permanent property, not a current
    omission.
