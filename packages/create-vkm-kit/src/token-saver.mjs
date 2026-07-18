@@ -113,7 +113,9 @@ export async function configureTokenSaver(home, dryRun, { hooks = true, terseSty
         console.log(pc.cyan("[dry-run] would deactivate output style"), TERSE_STYLE_NAME);
       }
       if (hadLegacyDeny) {
-        console.log(pc.cyan("[dry-run] would remove the legacy token-saver permissions.deny rules"));
+        console.log(
+          pc.cyan("[dry-run] would remove the legacy token-saver permissions.deny rules")
+        );
       }
       return;
     }
@@ -198,7 +200,9 @@ export async function configureTokenSaver(home, dryRun, { hooks = true, terseSty
       console.log(pc.green("Output style installed + active:"), pc.dim(styleDest));
     }
     if (hadLegacyDeny) {
-      console.log(pc.green("Removed legacy permissions.deny rules (retired in ADR-0043 amendment)"));
+      console.log(
+        pc.green("Removed legacy permissions.deny rules (retired in ADR-0043 amendment)")
+      );
     }
   } catch (e) {
     console.warn(pc.yellow("Could not configure the token-saver (skipped):"), e?.message || e);
