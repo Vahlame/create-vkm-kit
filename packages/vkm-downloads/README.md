@@ -44,10 +44,46 @@ Returns `{ final_url, filename, content_type, size_bytes, _trust, _note }`. The 
 Stream a file from a public **http(s)** URL to `~/Downloads/vkm-kit/` and return `{ path, filename,
 size_bytes, sha256, content_type, final_url }`. **Side-effecting** — it writes a file to disk.
 
-| Param      | Type   | Notes                                                                                                                                    |
-| ---------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `url`      | string | Absolute **http(s)** URL to download                                                                                                     |
-| `filename` | string | Optional name to save as (sanitized; path components / unsafe chars stripped). Defaults to the name derived from the URL / content type. |
+| Param       | Type   | Notes                                                                                                                                    |
+| ----------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `url`       | string | Absolute **http(s)** URL to download                                                                                                     |
+| `filename`  | string | Optional name to save as (sanitized; path components / unsafe chars stripped). Defaults to the name derived from the URL / content type. |
+| `max_bytes` | int    | Override the size cap for this download (default `VKM_DOWNLOAD_MAX_BYTES`, 500MB). For a truly large/slow file use `download_start`.     |
+
+`download_file` is the **synchronous** path — for a file that finishes within the MCP transport's
+~60s wall. For large or slow downloads, and for **sets** of files, use `download_start`.
+
+### `download_start({ files, max_bytes?, prefer_fastest? })`
+
+Download one or **many** files in the **background** and return a `job_id` immediately, beating the
+~60s wall (a synchronous call would be truncated). Each file may list several **mirror URLs**; with
+`prefer_fastest` (default) the fastest is measured and used. Files stream to `~/Downloads/vkm-kit/`,
+**resume** via HTTP Range if interrupted, are size-capped + **free-disk-space-checked**, and are
+never opened or executed. **Side-effecting** — confirm sources/sizes with the user first, exactly
+as for `download_file`.
+
+| Param            | Type    | Notes                                                                                          |
+| ---------------- | ------- | ---------------------------------------------------------------------------------------------- |
+| `files`          | array   | `[{ urls: string[], filename? }]` — each entry is one output file with one or more mirror URLs |
+| `max_bytes`      | int     | Per-file cap (default: a high ceiling; the real guard for big files is free disk space)        |
+| `prefer_fastest` | boolean | Probe each file's mirrors and download from the fastest (default `true`)                       |
+
+Returns the initial job snapshot `{ job_id, state, files: [...] }`. Poll `download_status(job_id)`.
+
+### `download_status(job_id?)` · `download_cancel(job_id)`
+
+`download_status` reports per-file `state` (queued/probing/downloading/done/failed/cancelled),
+`bytes`, `total`, `speed_bps`, and — when done — `path` + `sha256`; omit `job_id` to list all jobs
+(read-only). `download_cancel` aborts a running job's in-flight transfers and removes their `.part`
+files.
+
+### `probe_mirrors(urls, probe_bytes?)`
+
+Given several candidate URLs for the **same file** (mirrors you found via search), rank them
+**fastest-first** by measured throughput (and latency), so a download runs from the fastest source.
+Reads only ~512 KB per mirror even for a multi-GB file. Returns `{ ranked, fastest }`; a
+`size_mismatch` flag marks a candidate whose size disagrees with the majority (it may not be the
+same file). Read-only. `download_start(prefer_fastest)` does this for you.
 
 ## Guardrails
 
@@ -81,17 +117,23 @@ Node stdlib); the installer only wires the MCP server, which needs a kit clone f
 
 ## Environment
 
-| Var                      | Purpose                                                   |
-| ------------------------ | --------------------------------------------------------- |
-| `VKM_DOWNLOAD_DIR`       | Download root (default `~/Downloads/vkm-kit`)             |
-| `VKM_DOWNLOAD_MAX_BYTES` | Size cap in bytes (default `524288000`, 500MB)            |
-| `VKM_DOWNLOAD_LOG`       | Audit-log path (default `~/.vkm/downloads/downloads.log`) |
+| Var                         | Purpose                                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------------------ |
+| `VKM_DOWNLOAD_DIR`          | Download root (default `~/Downloads/vkm-kit`)                                                    |
+| `VKM_DOWNLOAD_MAX_BYTES`    | **Synchronous** (`download_file`) size cap in bytes (default `524288000`, 500MB)                 |
+| `VKM_DOWNLOAD_MAX_BYTES_BG` | **Background** (`download_start`) per-file ceiling (default 100GB; disk space is the real guard) |
+| `VKM_DOWNLOAD_LOG`          | Audit-log path (default `~/.vkm/downloads/downloads.log`)                                        |
 
-## Known limitation
+## Large files, slow links, and the 60s wall
 
-The MCP transport times out a tool call at ~60s, and this server cannot extend that. A very large
-download over a slow link can exceed that wall; the file still finishes on disk, but the tool
-result may be lost. For big transfers, expect to confirm completion out of band.
+The MCP transport times out a single tool call at ~60s and this server cannot extend that — so a
+large or slow download can't be a synchronous `download_file`. `download_start` runs the transfer in
+the **background** (an async task in this long-lived stdio server — no child process), returning a
+`job_id` at once; you poll `download_status`. A multi-GB ISO over a slow link just takes as long as
+it takes. If a download is interrupted (a `download_cancel`, a network drop, or a Claude Code
+restart that ends the server), its `.part` file lets a re-issued `download_start` **resume** from
+where it stopped via HTTP Range rather than starting over. Background jobs live in the server
+process only: a restart ends in-flight jobs (their `.part` files remain, resumable).
 
 ## Security
 

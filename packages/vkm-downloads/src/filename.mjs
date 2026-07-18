@@ -145,6 +145,26 @@ function decodeURIComponentSafe(s) {
 }
 
 /**
+ * Resolve `filename` under `root` and REFUSE anything that escapes the root — WITHOUT the
+ * no-overwrite de-dup. This is the plain root-check used for a stable `.part` path (a resume must
+ * reuse the exact same partial file, so it must not get a ` (1)` suffix). `resolveWithinRoot` is
+ * this plus de-dup.
+ * @param {string} root
+ * @param {string} filename a sanitized basename
+ * @returns {string} absolute path guaranteed inside `root`
+ * @throws {UnsafePathError}
+ */
+export function safeJoin(root, filename) {
+  const rootAbs = path.resolve(root);
+  const destAbs = path.resolve(rootAbs, filename);
+  const rel = path.relative(rootAbs, destAbs);
+  if (rel === "" || rel.startsWith("..") || path.isAbsolute(rel)) {
+    throw new UnsafePathError(filename);
+  }
+  return destAbs;
+}
+
+/**
  * Resolve `filename` under `root` and REFUSE anything that escapes the root (the hard boundary,
  * checked before any write). Never overwrites: if the target exists, appends ` (1)`, ` (2)`, …
  * like a browser, so a second download of the same name can't silently clobber the first.
@@ -155,12 +175,7 @@ function decodeURIComponentSafe(s) {
  * @throws {UnsafePathError}
  */
 export function resolveWithinRoot(root, filename, existsFn = existsSync) {
-  const rootAbs = path.resolve(root);
-  const destAbs = path.resolve(rootAbs, filename);
-  const rel = path.relative(rootAbs, destAbs);
-  if (rel === "" || rel.startsWith("..") || path.isAbsolute(rel)) {
-    throw new UnsafePathError(filename);
-  }
+  const destAbs = safeJoin(root, filename);
   if (!existsFn(destAbs)) return destAbs;
   const ext = path.extname(destAbs);
   const stem = destAbs.slice(0, destAbs.length - ext.length);
