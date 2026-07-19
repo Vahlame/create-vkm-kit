@@ -86,7 +86,7 @@ export function anchorTerms(query) {
  * Requires `--explain` ranks on the hits; when absent (defensive), corroboration falls
  * back to anchors only.
  * @param {{ path?: string, heading?: string, snippet?: string,
- *           bm25_rank?: number|null, vector_rank?: number|null }} hit
+ *           bm25_rank?: number|null, vector_rank?: number|null, _scoped?: boolean }} hit
  * @param {string[]} anchors
  */
 export function hitMatchesAnchors(hit, anchors) {
@@ -150,7 +150,7 @@ export function applyBudget(ctx, budgetChars) {
 /**
  * @param {object} opts
  * @param {string} [opts.vault] - defaults to BASIC_MEMORY_HOME/OBSIDIAN_MEMORY_VAULT
- * @param {string} opts.query - the task/idea, used for hybrid search
+ * @param {string} [opts.query] - the task/idea, used for hybrid search
  * @param {string} [opts.projectName] - bare project name; scopes observations to
  *   PROJECTS/<name>.md and biases the search toward notes about THIS project
  * @param {number} [opts.budgetChars] - total content-char cap (default 6000)
@@ -217,7 +217,7 @@ export async function assembleContext({
             ragSrc
           )
         )
-      : Promise.resolve({ ok: true, value: { observations: [] } }),
+      : attempt(Promise.resolve({ observations: [] })),
     // The #stack pass is vault-GLOBAL (facts from every project), so it only runs when a
     // project scopes the request. Without one, importing another project's stack into the
     // bundle actively misleads the consumer (real-world failure: "Web3Forms" from an
@@ -227,7 +227,7 @@ export async function assembleContext({
       ? attempt(
           runRagJson(["json-observations", "--vault", v, "--tag", "stack", "--limit", "20"], ragSrc)
         )
-      : Promise.resolve({ ok: true, value: { observations: [] } })
+      : attempt(Promise.resolve({ observations: [] }))
   ]);
 
   const hybridResult = hybridAttempt.ok ? hybridAttempt.value : { hits: [] };

@@ -9,7 +9,7 @@
  * through the same guarded {@link openStream} as a real download (http(s) only, IP-pinned, private
  * ranges refused, redirects re-validated), so probing can't be turned against a local service.
  */
-import { openStream, resolveDeps, DEFAULT_IDLE_MS } from "./download.mjs";
+import { openStream, resolveDeps } from "./download.mjs";
 
 const DEFAULT_PROBE_BYTES = 512 * 1024;
 const DEFAULT_PROBE_IDLE_MS = 15000;
@@ -152,9 +152,11 @@ export async function pickFastest(urls, opts = {}) {
   const ranked = await probeMirrors(urls, opts);
   const best = ranked.find((r) => r.ok);
   if (!best) {
-    const err = new Error(
-      `No mirror responded. Tried: ${(urls || []).join(", ") || "(none)"}. ` +
-        `Check the URLs or fall back to a single-URL download.`
+    const err = /** @type {NodeJS.ErrnoException} */ (
+      new Error(
+        `No mirror responded. Tried: ${(urls || []).join(", ") || "(none)"}. ` +
+          `Check the URLs or fall back to a single-URL download.`
+      )
     );
     err.code = "no_mirror";
     throw err;

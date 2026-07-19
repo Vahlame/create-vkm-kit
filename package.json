@@ -9,6 +9,8 @@
     "setup:dry": "node scripts/agent-install.mjs --dry-run",
     "sync-agents": "npx --yes tsx scripts/sync-agents.ts",
     "sync-agents:check": "npx --yes tsx scripts/sync-agents.ts --check",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.checkjs.json",
     "license:sync": "node scripts/license-sync.mjs",
     "license:sync:check": "node scripts/license-sync.mjs --check",
     "linkcheck": "node scripts/linkcheck.mjs .",
@@ -20,9 +22,13 @@
     "doctor": "node packages/vkm-doctor/src/doctor.mjs"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^26.0.1",
+    "eslint": "^10.7.0",
+    "globals": "^17.7.0",
     "tsx": "^4.19.2",
     "typescript": "^6.0.3",
+    "typescript-eslint": "^8.64.0",
     "yaml": "^2.7.0"
   },
   "engines": {

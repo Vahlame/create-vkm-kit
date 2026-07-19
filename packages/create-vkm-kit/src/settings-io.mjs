@@ -43,8 +43,12 @@ export function stripLeadingUtf8Bom(text) {
  */
 export function hookEntryMatchesStem(h, stem) {
   if (!h || typeof h !== "object") return false;
-  if (typeof h.command === "string" && h.command.includes(stem)) return true;
-  if (Array.isArray(h.args) && h.args.some((a) => typeof a === "string" && a.includes(stem))) {
+  const entry = /** @type {{ command?: unknown, args?: unknown }} */ (h);
+  if (typeof entry.command === "string" && entry.command.includes(stem)) return true;
+  if (
+    Array.isArray(entry.args) &&
+    entry.args.some((a) => typeof a === "string" && a.includes(stem))
+  ) {
     return true;
   }
   return false;
@@ -124,6 +128,7 @@ export function hasManagedHook(hooks, eventName, stem) {
  *   invalidJson: boolean, rawText: string }>}
  */
 export async function readSettingsSafe(settingsFp) {
+  /** @type {Record<string, unknown>} */
   let existing = {};
   let priorBytes = null;
   let invalidJson = false;

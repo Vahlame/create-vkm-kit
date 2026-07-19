@@ -74,7 +74,7 @@ export async function checkOllama({
   model = DEFAULT_MODEL,
   signal
 } = {}) {
-  let version = null;
+  let version;
   try {
     const res = await fetch(`${host}/api/version`, { signal });
     if (!res.ok) return { ok: false, version: null, hasModel: false };
@@ -148,11 +148,14 @@ function buildUserPrompt(idea, context, project, lang) {
 /**
  * Draft the model-authored spec fields from an idea + serialized vault context.
  * @param {object} opts
- * @param {string} opts.idea
+ * @param {string} [opts.idea]
  * @param {string} [opts.context] - compact, pre-serialized vault context
+ * @param {string|null} [opts.project] - project name, if the spec is project-scoped
+ * @param {"es"|"en"} [opts.lang]
  * @param {object} [opts.schema] - JSON schema for Ollama's `format` (default SPEC_JSON_SCHEMA)
  * @param {string} [opts.model]
  * @param {string} [opts.host]
+ * @param {string} [opts.keepAlive] - Ollama `keep_alive` value (default DEFAULT_KEEP_ALIVE / env override)
  * @param {(tokenCountSoFar: number) => void} [opts.onProgress] - called per streamed chunk
  * @param {AbortSignal} [opts.signal] - external cancellation, combined with the timeout
  * @param {number} [opts.timeoutMs] - hard cap; abort → OllamaUnavailableError (default 120000)

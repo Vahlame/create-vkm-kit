@@ -36,7 +36,7 @@ export async function maybeStartOtel() {
     const { OTLPTraceExporter } = await import("@opentelemetry/exporter-trace-otlp-http");
     const exporter = new OTLPTraceExporter();
     const sdk = new NodeSDK({ traceExporter: exporter });
-    await sdk.start();
+    sdk.start();
     log.info("OpenTelemetry SDK started (OTLP HTTP)");
     return true;
   } catch {

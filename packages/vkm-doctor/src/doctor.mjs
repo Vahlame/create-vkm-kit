@@ -16,18 +16,28 @@ const BROKEN_CACHE_RATIO = 0.3;
 const MIN_INPUT_FOR_DIAGNOSIS = 50000;
 
 /**
+ * @typedef {{ byDay: Record<string, Record<string, number>>, byModel: Record<string,
+ *   Record<string, number>>, totals: Record<string, number>, costUSD: number,
+ *   cacheHitRatio: number | null, brokenCache: boolean, sources: string[],
+ *   skillsDrift?: ReturnType<typeof import("./skills-drift.mjs").checkSkillsDrift>
+ *     | { skipped: true, reason: string },
+ *   transcriptEstimate?: ReturnType<typeof import("./jsonl-fallback.mjs").scanTranscripts>
+ *     | { error: string } }} DoctorReport
+ */
+
+/**
  * Aggregate NDJSON telemetry into per-day / per-model / per-type totals.
  * @param {{ dataDir?: string, days?: number }} [opts]
- * @returns {{ byDay: Record<string, Record<string, number>>, byModel: Record<string,
- *   Record<string, number>>, totals: Record<string, number>, costUSD: number,
- *   cacheHitRatio: number | null, brokenCache: boolean, sources: string[] }}
+ * @returns {DoctorReport}
  */
 export function aggregate({ dataDir = defaultDataDir(), days = 30 } = {}) {
+  /** @type {Record<string, Record<string, number>>} */
   const byDay = {};
+  /** @type {Record<string, Record<string, number>>} */
   const byModel = {};
   const totals = { input: 0, output: 0, cacheRead: 0, cacheCreation: 0 };
   let costUSD = 0;
-  let files = [];
+  let files;
   try {
     files = fs
       .readdirSync(dataDir)
@@ -39,7 +49,7 @@ export function aggregate({ dataDir = defaultDataDir(), days = 30 } = {}) {
   }
   for (const name of files) {
     const day = name.slice(0, 10);
-    let lines = [];
+    let lines;
     try {
       lines = fs.readFileSync(path.join(dataDir, name), "utf8").split("\n");
     } catch {
@@ -172,7 +182,7 @@ async function main() {
     return;
   }
   console.log(renderReport(report));
-  if (report.transcriptEstimate && !report.transcriptEstimate.error) {
+  if (report.transcriptEstimate && !("error" in report.transcriptEstimate)) {
     const t = report.transcriptEstimate.totals;
     console.log(
       `\ntranscript ESTIMATE (unstable format — not blended with OTEL): input ${t.input} · output ${t.output} · cacheRead ${t.cacheRead} · cacheCreation ${t.cacheCreation} across ${report.transcriptEstimate.files} transcripts`
@@ -181,4 +191,9 @@ async function main() {
 }
 
 const isEntryPoint = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
-if (isEntryPoint) main();
+if (isEntryPoint) {
+  main().catch((e) => {
+    console.error(e?.message || e);
+    process.exitCode = 1;
+  });
+}
