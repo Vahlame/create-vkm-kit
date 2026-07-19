@@ -31,6 +31,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   4.3.0 — added, including its install mode (opt-in `--downloads`, deliberately not part of
   `--full` because it writes to disk).
 
+- **`ci / links` no longer flakes red on github.com HTTP/2 resets.** lychee fired up to 128
+  concurrent requests; github.com answers such bursts with HTTP/2 GOAWAY/protocol errors — one
+  run failed 10 links that all returned 200 when probed individually, half of them in files the
+  PR never touched. The token/API fallback can't help (it's a transport error, not a 429), so the
+  job now caps `--max-concurrency 32` and retries with backoff (`--max-retries 4`,
+  `--retry-wait-time 2`).
+
 ## [4.3.0] - 2026-07-18
 
 ### Removed
