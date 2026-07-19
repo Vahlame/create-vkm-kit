@@ -131,7 +131,10 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: lycheeverse/lychee-action@8646ba30535128ac92d33dfc9133794bfdd9b411 # v2
         with:
-          args: --no-progress --max-redirects 5 .
+          # github.com answers 128-concurrent HTTP/2 bursts with GOAWAY/protocol errors
+          # (transport-level, so the built-in GITHUB_TOKEN API fallback never applies):
+          # cap concurrency and retry with backoff instead.
+          args: --no-progress --max-redirects 5 --max-concurrency 32 --max-retries 4 --retry-wait-time 2 .
           fail: true
 
   secrets-scan:
