@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="./LICENSE.md"><img src="https://img.shields.io/badge/license-MIT_%2B_attribution-blue.svg" alt="License"></a>
+  <a href="./LICENSE.md"><img src="https://img.shields.io/badge/license-MIT--derived_%2B_attribution_(non--OSI)-blue.svg" alt="License"></a>
   <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v4.3.0-orange.svg" alt="Release"></a>
   <a href="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.npmjs.com/package/@vkmikc/create-vkm-kit"><img src="https://img.shields.io/npm/v/%40vkmikc%2Fcreate-vkm-kit?label=npm&color=cb3837" alt="npm"></a>
@@ -102,15 +102,16 @@ Then paste the **User Rules** and verify. The complete steps (and verification) 
 
 ## What's inside
 
-| Piece                                                            | Language | Role                                                                                                                                                                                                                                                                           |
-| ---------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [`packages/create-vkm-kit/`](packages/create-vkm-kit/)           | Node     | `npx` installer **(npm)**: memory + token-saver + telemetry + skills in one command.                                                                                                                                                                                           |
-| [`packages/obsidian-memory-mcp/`](packages/obsidian-memory-mcp/) | Node     | "Hybrid" MCP **(private; runs from the clone)**: vault tools + lexical/semantic search.                                                                                                                                                                                        |
-| [`packages/obscura-web/`](packages/obscura-web/)                 | Node     | Stealth web MCP **(opt-in `--obscura`; runs from the clone)**: `obscura_fetch` + `obscura_search` (SearXNG → multi-engine SERP → native fallback) + `obscura_research` (deep crawl + BM25 ranking, 100% local, zero extra tokens — ADR-0054) via the obscura headless browser. |
-| [`packages/obsidian-memory-rag/`](packages/obsidian-memory-rag/) | Python   | FTS5/BM25 + vector search engine **(`pip install -e` from source)**; zero dependencies by default.                                                                                                                                                                             |
-| [`packages/vkm-doctor/`](packages/vkm-doctor/)                   | Node     | Local OTLP sink + usage/cache doctor: tokens, cost, and cache health — all on your machine.                                                                                                                                                                                    |
-| [`packages/vkm-spec/`](packages/vkm-spec/)                       | Node     | Idea → vault-grounded XML spec (GUI on `127.0.0.1:4923`; optional Ollama `phi4-mini`, deterministic fallback).                                                                                                                                                                 |
-| [`cmd/obsidian-memoryd/`](cmd/obsidian-memoryd/)                 | Go       | Optional daemon: watches the vault and syncs git.                                                                                                                                                                                                                              |
+| Piece                                                            | Language | Role                                                                                                                                                                                                                                                                                 |
+| ---------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`packages/create-vkm-kit/`](packages/create-vkm-kit/)           | Node     | `npx` installer **(npm)**: memory + token-saver + telemetry + skills in one command.                                                                                                                                                                                                 |
+| [`packages/obsidian-memory-mcp/`](packages/obsidian-memory-mcp/) | Node     | "Hybrid" MCP **(private; runs from the clone)**: vault tools + lexical/semantic search.                                                                                                                                                                                              |
+| [`packages/obscura-web/`](packages/obscura-web/)                 | Node     | Stealth web MCP **(opt-in `--obscura`; runs from the clone)**: `obscura_fetch` + `obscura_search` (SearXNG → multi-engine SERP → native fallback) + `obscura_research` (deep crawl + BM25 ranking, 100% local, zero extra tokens — ADR-0054) via the obscura headless browser.       |
+| [`packages/obsidian-memory-rag/`](packages/obsidian-memory-rag/) | Python   | FTS5/BM25 + vector search engine **(`pip install -e` from source)**; zero dependencies by default.                                                                                                                                                                                   |
+| [`packages/vkm-doctor/`](packages/vkm-doctor/)                   | Node     | Local OTLP sink + usage/cache doctor: tokens, cost, and cache health — all on your machine.                                                                                                                                                                                          |
+| [`packages/vkm-spec/`](packages/vkm-spec/)                       | Node     | Idea → vault-grounded XML spec (GUI on `127.0.0.1:4923`; optional Ollama `phi4-mini`, deterministic fallback).                                                                                                                                                                       |
+| [`packages/vkm-downloads/`](packages/vkm-downloads/)             | Node     | Guarded downloads MCP **(opt-in `--downloads`; deliberately outside `--full` — it writes to disk; runs from the clone)**: `download_resolve` (metadata only) → confirm → download into `~/Downloads/vkm-kit/`; background jobs with resume, sets and fastest-mirror (ADR-0058/0059). |
+| [`cmd/obsidian-memoryd/`](cmd/obsidian-memoryd/)                 | Go       | Optional daemon: watches the vault and syncs git.                                                                                                                                                                                                                                    |
 
 > ℹ️ **obscura** is third-party software under the **Apache-2.0** license ([h4ckf0r0day/obscura](https://github.com/h4ckf0r0day/obscura)). The kit **downloads** the official release and verifies it by SHA-256 — it does **not** bundle or redistribute it. Structured search runs via **on-demand SearXNG** (started only while searching, stopped when idle; optional desktop monitor) — [ADR-0052](docs/adr/0052-searxng-on-demand-lifecycle.md).
 >
@@ -140,4 +141,7 @@ block) — every number has a gate that **breaks the build** if it regresses. De
 
 ## License
 
-Free use with mandatory visible attribution (MIT-based) — see [`LICENSE.md`](LICENSE.md).
+Free use with mandatory visible attribution (MIT-based) — see [`LICENSE.md`](LICENSE.md). **This is
+not standard MIT nor an OSI-approved license**: the mandatory visible-attribution clause falls
+outside the OSI open-source definition. That's why every `package.json` declares it as
+`"license": "SEE LICENSE IN LICENSE.md"` — no scanner should classify it as MIT.

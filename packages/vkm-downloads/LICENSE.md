@@ -1,4 +1,4 @@
-# Licencia de libre uso con atribución obligatoria — obsidian-memory-kit
+# Licencia de libre uso con atribución obligatoria — vkm-kit
 
 _(Basada en la Licencia MIT, con una condición adicional de atribución visible.
 Based on the MIT License, with one additional visible-attribution condition.)_
@@ -22,7 +22,7 @@ furnished to do so, subject to the following conditions:
    **«© Jorge David Hidalgo Oporta (Vahlame) — kit de memoria original»**
 
    together with a link to the original repository
-   (<https://github.com/Vahlame/obsidian-memory-kit>), for example in the
+   (<https://github.com/Vahlame/create-vkm-kit>), for example in the
    README or equivalent primary documentation.
 
    _En español: toda copia, uso, fork o derivado de este proyecto debe incluir
