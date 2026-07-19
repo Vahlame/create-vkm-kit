@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **`go.mod` module path matches the repo slug.** The module still declared
+  `github.com/Vahlame/obsidian-memory-kit`, so importing or `go install`-ing the daemon by its
+  real path (`github.com/Vahlame/create-vkm-kit/cmd/obsidian-memoryd`) failed — latent only
+  because the installer builds locally. `agent.toml`'s `[daemon].module` mirror is updated to
+  match.
+
 - **`release.yml` no longer reports success when npm publish silently skipped.** The npm-publish
   job soft-exited (`exit 0`) when the `NPM_TOKEN` secret was missing, so the workflow went green
   while npm stayed behind — this shipped 4.2.0 and 4.3.0 to GitHub without their npm counterparts
