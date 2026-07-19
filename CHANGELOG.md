@@ -36,7 +36,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   run failed 10 links that all returned 200 when probed individually, half of them in files the
   PR never touched. The token/API fallback can't help (it's a transport error, not a 429), so the
   job now caps `--max-concurrency 32` and retries with backoff (`--max-retries 4`,
-  `--retry-wait-time 2`).
+  `--retry-wait-time 2`). De-flaking then unmasked two deterministic 404s in this changelog's own
+  link definitions — `v3.6.0` was never tagged — fixed by dropping the dead `[3.6.0]` definition,
+  retargeting `[3.7.0]` to `v3.5.0...v3.7.0`, and moving `[Unreleased]` off its stale `v3.12.0`
+  base onto `v4.3.0`.
 
 ## [4.3.0] - 2026-07-18
 
@@ -1791,11 +1794,10 @@ Prior history was undocumented and is summarized only in git log. Highlights:
 - Addition of `AGENTS.md` and `manifest.json` for machine-readable discoverability.
 - Seven hardening fixes for real-world install gaps.
 
-[Unreleased]: https://github.com/Vahlame/create-vkm-kit/compare/v3.12.0...HEAD
+[Unreleased]: https://github.com/Vahlame/create-vkm-kit/compare/v4.3.0...HEAD
 [3.12.0]: https://github.com/Vahlame/create-vkm-kit/compare/v3.11.0...v3.12.0
 [3.10.0]: https://github.com/Vahlame/create-vkm-kit/compare/v3.9.1...v3.10.0
-[3.7.0]: https://github.com/Vahlame/create-vkm-kit/compare/v3.6.0...v3.7.0
-[3.6.0]: https://github.com/Vahlame/create-vkm-kit/compare/v3.5.0...v3.6.0
+[3.7.0]: https://github.com/Vahlame/create-vkm-kit/compare/v3.5.0...v3.7.0
 [3.5.0]: https://github.com/Vahlame/create-vkm-kit/compare/v3.0.0...v3.5.0
 [3.0.0]: https://github.com/Vahlame/create-vkm-kit/compare/v1.1.0...v3.0.0
 [1.1.0]: https://github.com/Vahlame/create-vkm-kit/releases/tag/v1.1.0
