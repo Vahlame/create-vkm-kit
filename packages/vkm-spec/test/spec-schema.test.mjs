@@ -48,6 +48,7 @@ test("currentStateSummary: JSON schema caps 600; zod TRUNCATES instead of reject
   assert.equal(parsed.currentStateSummary.length, 600);
   // And a missing summary defaults to empty rather than rejecting the draft.
   const { currentStateSummary, ...rest } = sample;
+  void currentStateSummary;
   assert.equal(SpecSchema.parse(rest).currentStateSummary, "");
 });
 

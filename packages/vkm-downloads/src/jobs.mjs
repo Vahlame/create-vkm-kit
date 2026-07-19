@@ -79,7 +79,8 @@ function publicJob(job) {
 
 export class JobManager {
   /**
-   * @param {{ deps?, idleMs?: number, now?: () => number, stateDir?: string, concurrency?: number }} [opts]
+   * @param {{ deps?, idleMs?: number, now?: () => number, stateDir?: string, concurrency?: number,
+   *   pickFastest?: typeof pickFastest }} [opts]
    */
   constructor(opts = {}) {
     this._jobs = new Map();
@@ -94,13 +95,15 @@ export class JobManager {
   /**
    * Start a background job. Returns immediately with the job id and the planned files.
    * @param {{ files: Array<{ urls: string[], filename?: string }>, destDir?: string, maxBytes?: number,
-   *           preferFastest?: boolean }} spec
+   *           preferFastest?: boolean, concurrency?: number }} spec
    * @returns {object} the initial public job snapshot (state "running")
    */
   start(spec) {
     const list = Array.isArray(spec.files) ? spec.files : [];
     if (!list.length) {
-      const e = new Error("download_start: `files` must be a non-empty array.");
+      const e = /** @type {NodeJS.ErrnoException} */ (
+        new Error("download_start: `files` must be a non-empty array.")
+      );
       e.code = "no_files";
       throw e;
     }
@@ -273,9 +276,9 @@ export class JobManager {
     const status = res.statusCode || 0;
 
     let base = 0;
-    let writeFlags = "w";
+    let writeFlags;
     let resumed = false;
-    let total = null;
+    let total;
     if (status === 416) {
       // Range Not Satisfiable → the `.part` is already the whole file. Finalize it as-is.
       res.destroy();

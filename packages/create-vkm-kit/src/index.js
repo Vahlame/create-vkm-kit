@@ -45,6 +45,15 @@ import { maybeInstallObscura } from "./obscura-setup.mjs";
 import { restrictFileToOwner } from "./file-perms.mjs";
 import { atomicWriteJson, stripLeadingUtf8Bom } from "./settings-io.mjs";
 
+/**
+ * Shared shape of the optional-server toggles threaded through `writeCursorMcp`,
+ * `registerClaudeCodeMcp` and `registerCodexMcp`.
+ * @typedef {{ withHybrid?: boolean, repoRoot?: string|null, semantic?: boolean, vec?: boolean,
+ *   rerank?: boolean, pinFailures?: boolean, usage?: boolean, obscura?: boolean,
+ *   obscuraBin?: string|null, searxngUrl?: string|null, researchDir?: string|null,
+ *   downloads?: boolean, downloadDir?: string|null }} HybridOpts
+ */
+
 /** Cursor/VS Code workspace defaults: fewer `git` + `conhost` spikes on Windows (SCM polling). */
 const VAULT_VSCODE_GIT_SETTINGS = {
   "git.autoRepositoryDetection": false,
@@ -493,7 +502,7 @@ tags: [research]
  * @param {string} home
  * @param {string} vaultAbs
  * @param {boolean} dryRun
- * @param {{ withHybrid?: boolean, repoRoot?: string | null, semantic?: boolean, vec?: boolean, rerank?: boolean, pinFailures?: boolean, usage?: boolean }} [hybridOpts]
+ * @param {HybridOpts} [hybridOpts]
  */
 async function writeCursorMcp(home, vaultAbs, dryRun, hybridOpts = {}) {
   const dir = path.join(home, ".cursor");
@@ -634,7 +643,7 @@ function idesFromArgs(argv, { full = false } = {}) {
  * entry first. Falls back to printing the command if `claude` isn't on PATH.
  * @param {string} vaultAbs
  * @param {boolean} dryRun
- * @param {{ withHybrid?: boolean, repoRoot?: string|null, semantic?: boolean, vec?: boolean, rerank?: boolean, pinFailures?: boolean, usage?: boolean }} [hybridOpts]
+ * @param {HybridOpts} [hybridOpts]
  */
 async function registerClaudeCodeMcp(vaultAbs, dryRun, hybridOpts = {}) {
   const {
@@ -698,7 +707,7 @@ async function registerClaudeCodeMcp(vaultAbs, dryRun, hybridOpts = {}) {
  * `config.toml` block if `codex` isn't on PATH.
  * @param {string} vaultAbs
  * @param {boolean} dryRun
- * @param {{ withHybrid?: boolean, repoRoot?: string|null, semantic?: boolean, vec?: boolean, rerank?: boolean, pinFailures?: boolean, usage?: boolean }} [hybridOpts]
+ * @param {HybridOpts} [hybridOpts]
  */
 async function registerCodexMcp(vaultAbs, dryRun, hybridOpts = {}) {
   const {

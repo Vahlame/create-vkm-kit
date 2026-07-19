@@ -51,7 +51,8 @@ function attrValue(v) {
 export function parseOtlpJson(body) {
   const points = [];
   let raw = 0;
-  const resourceMetrics = Array.isArray(body?.resourceMetrics) ? body.resourceMetrics : [];
+  const b = /** @type {any} */ (body);
+  const resourceMetrics = Array.isArray(b?.resourceMetrics) ? b.resourceMetrics : [];
   for (const rm of resourceMetrics) {
     const scopeMetrics = Array.isArray(rm?.scopeMetrics) ? rm.scopeMetrics : [];
     for (const sm of scopeMetrics) {
@@ -104,7 +105,7 @@ export function appendRollup(dataDir, points) {
 /** Delete telemetry files older than `days` (best-effort). */
 export function pruneOld(dataDir, days) {
   const cutoff = Date.now() - days * 86400000;
-  let entries = [];
+  let entries;
   try {
     entries = fs.readdirSync(dataDir);
   } catch {
@@ -183,7 +184,7 @@ if (isEntryPoint) {
     process.exit(0); // live sibling already serving
   }
   const server = createSink({ dataDir });
-  server.on("error", (e) => {
+  server.on("error", (/** @type {NodeJS.ErrnoException} */ e) => {
     // Port taken without a readable lock (e.g. another user): nothing to do, exit quietly.
     process.exit(e?.code === "EADDRINUSE" ? 0 : 1);
   });

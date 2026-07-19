@@ -93,7 +93,7 @@ test("safeVaultPath: refuses symlink escape", async () => {
 test("safeVaultPath: allows non-existent target if parent is in vault", async () => {
   const vault = await setupVault();
   try {
-    const p = await safeVaultPath(vault, "STACKS/new-file.md");
+    const _p = await safeVaultPath(vault, "STACKS/new-file.md");
     // Parent dir STACKS/ doesn't exist either — should resolve against vault root
     // OR fail cleanly. Behavior: vault-fs returns the candidate when its parent
     // is in the vault. STACKS/ has no parent yet so the safe parent is vault.

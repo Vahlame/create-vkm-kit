@@ -137,6 +137,7 @@ block) — every number has a gate that **breaks the build** if it regresses. De
 - **Fresh PC (Claude Code):** [fresh-PC install](docs/en/install-fresh-pc.md).
 - **Comparison with alternatives:** [FAQ](docs/en/faq.md).
 - **Contributing:** [`CONTRIBUTING.md`](CONTRIBUTING.md) · **For agents touching this repo:** [`AGENTS.md`](AGENTS.md).
+- **Versioning:** SemVer over the installed contract; majors frozen except unavoidable breaks — [policy](CONTRIBUTING.md#versioning-policy-post-4x).
 - **Privacy / telemetry:** [`docs/observability.md`](docs/observability.md).
 
 ## License

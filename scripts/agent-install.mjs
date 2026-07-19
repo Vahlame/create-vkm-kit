@@ -246,7 +246,7 @@ if (dryRun) {
   }
   if (wired.includes("cursor")) {
     const fp = path.join(HOME, ".cursor", "mcp.json");
-    let ok = false;
+    let ok;
     try {
       ok = existsSync(fp) && /basic-memory/.test(readFileSync(fp, "utf8"));
     } catch {

@@ -35,7 +35,11 @@ export function deriveCurrentState(context) {
   return truncate(parts.join(" · "), CURRENT_STATE_MAX);
 }
 
-/** Compact, LLM-facing serialization of the vault context — bounded, bulleted, no raw dump. */
+/**
+ * Compact, LLM-facing serialization of the vault context — bounded, bulleted, no raw dump.
+ * @param {object} context
+ * @param {{ idea?: string, project?: string|null }} [opts]
+ */
 export function serializeContext(context, { idea, project } = {}) {
   const blocks = [];
   if (context?.historicalDecisions?.length) {
@@ -83,7 +87,7 @@ function contextNote(lang, context) {
 
 /**
  * @param {object} opts
- * @param {string} opts.idea
+ * @param {string} [opts.idea]
  * @param {string|null} [opts.project]
  * @param {string} [opts.vault] - explicit vault root; defaults to BASIC_MEMORY_HOME/OBSIDIAN_MEMORY_VAULT
  * @param {"es"|"en"} [opts.lang]
@@ -135,6 +139,7 @@ export async function buildSpec({
   };
 
   let spec = fallbackSpec;
+  /** @type {"ollama"|"fallback"} */
   let source = "fallback";
   let ollamaError = null;
 

@@ -469,15 +469,22 @@ async function mapWithConcurrency(
  * (`MIN_MS_FOR_EMBED_PASS`) or the embed model is unavailable; both degrade to the plain curated
  * order rather than failing the call.
  * @param {string} query
- * @param {{ maxCandidates?: number, topK?: number, passageChars?: number, stealth?: boolean,
- *           searxngUrl?: string, targetRelevant?: number, dedupeSimilar?: boolean,
- *           diversify?: boolean, mmrLambda?: number }} [opts]
+ * @param {{ maxCandidates?: number, topK?: number, passageChars?: number, concurrency?: number,
+ *           subQueries?: number, expand?: boolean, includeRejected?: boolean, dropBelow?: number,
+ *           stealth?: boolean, searxngUrl?: string, targetRelevant?: number,
+ *           dedupeSimilar?: boolean, diversify?: boolean, mmrLambda?: number,
+ *           excludeHashes?: Set<string>, categories?: string, now?: () => number,
+ *           deadlineMs?: number }} [opts]
  * @param {{ searxngImpl?: typeof searxngSearch, fetchImpl?: typeof obscuraFetch,
  *           searchImpl?: typeof searchWeb, checkOllamaImpl?: typeof checkOllama,
  *           ensureOllamaImpl?: typeof ensureOllamaServer, curateImpl?: typeof curatePage,
+ *           expandImpl?: typeof expandQuery, checkRobotsImpl?: typeof checkRobots,
  *           embedImpl?: typeof embedPassages }} [deps]
- * @returns {Promise<{ source: string, scanned: number, fetched: number, targetReached?: boolean,
- *           dedupedSimilar?: number, results: Array<{ title:string, url:string, score:number,
+ * @returns {Promise<{ source: string, scanned: number, fetched: number, partial?: boolean,
+ *           remaining?: number, targetReached?: boolean, dropped?: number,
+ *           dedupedSimilar?: number, robotsBlocked?: number, alreadyCovered?: number,
+ *           enginesUnavailable?: string[], queries?: string[], concept?: string,
+ *           results: Array<{ title:string, url:string, score:number,
  *           snippet:string, extraction:"ollama"|"heuristic", relevant:boolean,
  *           fetchFailed?:boolean }> }>}
  */

@@ -125,7 +125,10 @@ function serveStatic(req, res) {
 export function createServer({ vault, lang = "es", ollamaHost, model } = {}) {
   const vaultPath = locateVault(vault);
 
-  return http.createServer(async (req, res) => {
+  // The listener itself must stay sync (http.createServer expects `(req, res) => void`); the
+  // async body below already catches everything down to its own `catch`, so this is a safe
+  // fire-and-forget — the `.catch` is just a backstop against a bug in that catch itself.
+  const handleRequest = async (req, res) => {
     try {
       if (req.method === "GET" && req.url.split("?")[0] === "/api/health") {
         return sendJson(res, 200, { version: PKG_VERSION, startedAt: STARTED_AT });
@@ -189,6 +192,10 @@ export function createServer({ vault, lang = "es", ollamaHost, model } = {}) {
     } catch (e) {
       sendJson(res, 500, { error: e?.message || String(e) });
     }
+  };
+
+  return http.createServer((req, res) => {
+    handleRequest(req, res).catch((e) => sendJson(res, 500, { error: e?.message || String(e) }));
   });
 }
 
@@ -324,7 +331,7 @@ function main() {
   }
 
   const server = createServer({ vault, lang, ollamaHost });
-  server.on("error", (e) => {
+  server.on("error", (/** @type {NodeJS.ErrnoException} */ e) => {
     if (e.code === "EADDRINUSE") {
       console.log(`Ya hay una instancia corriendo en ${url} — abriendo el navegador ahí.`);
       // Diagnostic, not a guarantee: a stale process from a prior version (e.g. left

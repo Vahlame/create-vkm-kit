@@ -146,7 +146,7 @@ export async function acquireVaultLock(vaultAbs, opts = {}) {
       if (err.code === "ENOENT" || isLockContentionError(err)) return { stale: true };
       throw err;
     }
-    let info = null;
+    let info;
     try {
       info = JSON.parse(raw);
     } catch {

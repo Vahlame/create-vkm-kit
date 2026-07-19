@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Static analysis now gates the ~32k LOC of shipped JavaScript.** New root ESLint 10 flat
+  config (`@eslint/js` recommended + tuned `no-unused-vars`, `no-shadow`, and the type-aware
+  promise rules `no-floating-promises` / `await-thenable` / `no-misused-promises` via
+  `typescript-eslint`), plus a CI-gated `tsc` `checkJs` pass (`tsconfig.checkjs.json`) over
+  shipped `src` — tests stay covered by ESLint's type-aware rules through
+  `tsconfig.eslint.json`; skill templates are excluded because their optional deps only exist
+  in the user's env. Run with `npm run lint` / `npm run typecheck`; both wired into the
+  `ci / lint` job, and `node:test` runners are allowed via `allowForKnownSafeCalls` instead of
+  a blanket disable. The first sweep took 861 ESLint + 424 `checkJs` findings to zero and fixed
+  real defects along the way: vkm-doctor's CLI `main()` ran unawaited (a crash died as an
+  unhandled rejection instead of a clean non-zero exit), a no-op `await` on the synchronous
+  `NodeSDK.start()`, a dozen wrapper `throw`s that discarded the original error (now
+  `{ cause }`), async HTTP handlers passed where a void listener is expected (now guarded with
+  a `.catch` backstop), dead stores, and producer JSDoc contracts narrower than the values they
+  actually return (e.g. `curatePage`'s undocumented `relevance`/`reason` fields).
+
 ### Changed
 
 - **`CONTRIBUTING.md`'s SemVer section now describes the kit, not the v1 prompt, and adds an

@@ -61,7 +61,7 @@ export async function safeVaultPath(vaultAbs, userPath) {
       try {
         const probeReal = await realpath(probe);
         if (probeReal !== vaultReal && !probeReal.startsWith(vaultReal + sep)) {
-          throw new Error(`path escapes vault: ${userPath}`);
+          throw new Error(`path escapes vault: ${userPath}`, { cause: err });
         }
         // TOCTOU note: there is a theoretical window between validating this
         // existing ancestor and the caller's later write — a symlink swapped in
@@ -74,7 +74,7 @@ export async function safeVaultPath(vaultAbs, userPath) {
         probe = dirname(probe);
       }
     }
-    throw new Error(`could not resolve any ancestor of: ${userPath}`);
+    throw new Error(`could not resolve any ancestor of: ${userPath}`, { cause: err });
   }
   if (canonical !== vaultReal && !canonical.startsWith(vaultReal + sep)) {
     throw new Error(`path escapes vault (after symlink resolution): ${userPath}`);
@@ -173,7 +173,8 @@ async function assertEtagMatches(fp, ifMatch) {
     if (err.code === "ENOENT") {
       throw new Error(
         `precondition failed: file does not exist but ifMatch "${ifMatch}" was given — ` +
-          `re-read (or omit ifMatch to create it)`
+          `re-read (or omit ifMatch to create it)`,
+        { cause: err }
       );
     }
     throw err;
@@ -623,9 +624,12 @@ export async function vaultFrontmatterSet(vaultAbs, relPath, opts = {}) {
     const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
     await writeFile(tmp, finalText, "utf8");
     await rename(tmp, fp);
-    const result = { path: fp, ...applied, etag: fileEtag(finalText) };
-    if (warnings.length) result.warnings = warnings;
-    return result;
+    return {
+      path: fp,
+      ...applied,
+      etag: fileEtag(finalText),
+      ...(warnings.length ? { warnings } : {})
+    };
   });
 }
 
@@ -657,7 +661,7 @@ export async function vaultDeleteFile(vaultAbs, relPath, opts = {}) {
     try {
       st = await stat(fp);
     } catch (err) {
-      if (err.code === "ENOENT") throw new Error(`file not found: ${rel}`);
+      if (err.code === "ENOENT") throw new Error(`file not found: ${rel}`, { cause: err });
       throw err;
     }
     if (!st.isFile()) {
@@ -745,7 +749,7 @@ export async function vaultMoveFile(vaultAbs, fromPath, toPath, opts = {}) {
     try {
       st = await stat(from);
     } catch (err) {
-      if (err.code === "ENOENT") throw new Error(`file not found: ${fromRel}`);
+      if (err.code === "ENOENT") throw new Error(`file not found: ${fromRel}`, { cause: err });
       throw err;
     }
     if (!st.isFile()) {

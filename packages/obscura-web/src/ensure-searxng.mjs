@@ -100,10 +100,12 @@ function hookExit() {
   process.once("exit", stopSearxng);
   // Defer the hard exit one tick after kill(): on Windows, exiting in the same tick a child handle
   // is closing trips a libuv assertion (UV_HANDLE_CLOSING). setImmediate lets the handle finish.
-  for (const [sig, code] of [
+  /** @type {[NodeJS.Signals, number][]} */
+  const signals = [
     ["SIGINT", 130],
     ["SIGTERM", 143]
-  ]) {
+  ];
+  for (const [sig, code] of signals) {
     process.once(sig, () => {
       stopSearxng();
       setImmediate(() => process.exit(code));

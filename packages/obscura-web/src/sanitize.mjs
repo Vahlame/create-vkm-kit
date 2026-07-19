@@ -40,7 +40,7 @@ const HIDDEN_STYLE_RE = /display\s*:\s*none|visibility\s*:\s*hidden/i;
  * word joiner, and the Unicode "tag" block sometimes used to smuggle hidden text into otherwise
  * visible strings. Stripped from the text that survives element-level removal, not just from
  * hidden elements — this class of character is invisible regardless of its container. */
-const INVISIBLE_CHARS_RE = /[​-‏⁠﻿\u{E0000}-\u{E007F}]/gu;
+const INVISIBLE_CHARS_RE = /[\u200B-\u200F\u2060\uFEFF\u{E0000}-\u{E007F}]/gu;
 
 /**
  * Parse `html`, remove elements that are hidden from every human viewer, and return the

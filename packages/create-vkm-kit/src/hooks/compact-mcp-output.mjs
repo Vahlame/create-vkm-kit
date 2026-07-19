@@ -45,9 +45,10 @@ export function compactMcpResponse(toolResponse) {
   if (!toolResponse || typeof toolResponse !== "object" || Array.isArray(toolResponse)) {
     return null;
   }
-  if (!Array.isArray(toolResponse.content)) return null;
+  const resp = /** @type {{ content?: unknown }} */ (toolResponse);
+  if (!Array.isArray(resp.content)) return null;
   let changed = false;
-  const content = toolResponse.content.map((block) => {
+  const content = resp.content.map((block) => {
     if (block && typeof block === "object" && block.type === "text") {
       const compact = compactJsonText(block.text);
       if (compact !== null) {
@@ -57,7 +58,7 @@ export function compactMcpResponse(toolResponse) {
     }
     return block;
   });
-  return changed ? { ...toolResponse, content } : null;
+  return changed ? { ...resp, content } : null;
 }
 
 function main() {

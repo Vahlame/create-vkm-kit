@@ -28,7 +28,8 @@ export function locateVault(explicit) {
     if (existsSync(path.join(candidate, ".obsidian"))) return candidate;
     throw new Error(
       `${envError.message}\n  (also probed the default location: ${candidate} — not a vault; ` +
-        `pass --vault <path> or set VKM_VAULT)`
+        `pass --vault <path> or set VKM_VAULT)`,
+      { cause: envError }
     );
   }
 }
