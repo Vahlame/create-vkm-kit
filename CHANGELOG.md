@@ -15,6 +15,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   when the token is absent; fork runs were already excluded by the repository guard, so the hard
   fail only ever fires where publishing is actually expected.
 
+- **Stale `obsidian-memory-kit` URLs swept from every functional link.** `LICENSE.md` (root + the
+  package mirrors via `license:sync`), `SECURITY.md`'s source-verification step and this
+  changelog's compare/release link definitions still pointed at `Vahlame/obsidian-memory-kit`;
+  the GitHub redirect masks it today, but a redirect dies the day the old slug is re-registered.
+  Historical mentions of the rename stay as written.
+
+- **License labeling stopped implying plain MIT.** Both README badges now read
+  "MIT-derived + attribution (non-OSI)" and the License sections state explicitly that the
+  mandatory visible-attribution clause is outside the OSI open-source definition — matching what
+  `package.json` already declares (`"license": "SEE LICENSE IN LICENSE.md"`). Labeling only; the
+  license terms are unchanged.
+
+- **`vkm-downloads` was missing from both README "What's inside" tables** despite shipping since
+  4.3.0 — added, including its install mode (opt-in `--downloads`, deliberately not part of
+  `--full` because it writes to disk).
+
 ## [4.3.0] - 2026-07-18
 
 ### Removed
@@ -1768,12 +1784,12 @@ Prior history was undocumented and is summarized only in git log. Highlights:
 - Addition of `AGENTS.md` and `manifest.json` for machine-readable discoverability.
 - Seven hardening fixes for real-world install gaps.
 
-[Unreleased]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.12.0...HEAD
-[3.12.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.11.0...v3.12.0
-[3.10.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.9.1...v3.10.0
-[3.7.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.6.0...v3.7.0
-[3.6.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.5.0...v3.6.0
-[3.5.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v3.0.0...v3.5.0
-[3.0.0]: https://github.com/Vahlame/obsidian-memory-kit/compare/v1.1.0...v3.0.0
-[1.1.0]: https://github.com/Vahlame/obsidian-memory-kit/releases/tag/v1.1.0
-[1.0.0]: https://github.com/Vahlame/obsidian-memory-kit/releases/tag/v1.0.0
+[Unreleased]: https://github.com/Vahlame/create-vkm-kit/compare/v3.12.0...HEAD
+[3.12.0]: https://github.com/Vahlame/create-vkm-kit/compare/v3.11.0...v3.12.0
+[3.10.0]: https://github.com/Vahlame/create-vkm-kit/compare/v3.9.1...v3.10.0
+[3.7.0]: https://github.com/Vahlame/create-vkm-kit/compare/v3.6.0...v3.7.0
+[3.6.0]: https://github.com/Vahlame/create-vkm-kit/compare/v3.5.0...v3.6.0
+[3.5.0]: https://github.com/Vahlame/create-vkm-kit/compare/v3.0.0...v3.5.0
+[3.0.0]: https://github.com/Vahlame/create-vkm-kit/compare/v1.1.0...v3.0.0
+[1.1.0]: https://github.com/Vahlame/create-vkm-kit/releases/tag/v1.1.0
+[1.0.0]: https://github.com/Vahlame/create-vkm-kit/releases/tag/v1.0.0
