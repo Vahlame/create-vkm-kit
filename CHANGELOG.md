@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **`CONTRIBUTING.md`'s SemVer section now describes the kit, not the v1 prompt, and adds an
+  explicit post-4.x versioning policy.** The MAJOR/MINOR/PATCH definitions still spoke of
+  "prompt section numbers"; they are rewritten in terms of the installed contract (CLI flags,
+  MCP tools, vault layout/hooks), and the new policy freezes majors except for unavoidable
+  contract breaks — batched into one planned major with its migration doc. README links the
+  policy from "Más · More".
+
 ### Fixed
 
 - **`go.mod` module path matches the repo slug.** The module still declared
