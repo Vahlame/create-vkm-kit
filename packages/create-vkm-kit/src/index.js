@@ -39,11 +39,14 @@ import {
 } from "./claude-native-memory.mjs";
 import { configureTokenSaver, uninstallTokenSaver } from "./token-saver.mjs";
 import { configureTelemetry, uninstallTelemetry } from "./telemetry.mjs";
-import { configureSkillAssets, uninstallSkillAssets } from "./skills-install.mjs";
+import { configureSkillAssets, uninstallSkillAssets, skillAssetFiles } from "./skills-install.mjs";
 import { maybeInstallOllama } from "./ollama-setup.mjs";
 import { maybeInstallObscura } from "./obscura-setup.mjs";
 import { restrictFileToOwner } from "./file-perms.mjs";
 import { atomicWriteJson, stripLeadingUtf8Bom } from "./settings-io.mjs";
+import { ASSETS_SIDECAR_BASENAME } from "./asset-install.mjs";
+import { buildUpdatePlan, applyUpdatePlan, summarizePlan, readKitVersion } from "./update-plan.mjs";
+import { fetchLatestVersion, updateBanner } from "./version-check.mjs";
 
 /**
  * Shared shape of the optional-server toggles threaded through `writeCursorMcp`,
@@ -1352,6 +1355,21 @@ Claude Code native-memory override (when --ide includes claude):
   --downloads / --no-downloads Wire vkm-downloads / skip it (default off; not enabled by --full).
   --download-dir <dir>         Override VKM_DOWNLOAD_DIR (default ~/Downloads/vkm-kit).
 
+  Self-update (ADR-0061) — checks/refreshes the skill + subagent template assets this kit
+  manages under ~/.claude/skills/ and ~/.claude/agents/ (the same set --skills/--agents
+  install), plus reports whether a newer create-vkm-kit is on npm. Safety contract in one
+  sentence: files you edited are never overwritten without --force.
+  --check-update  Read-only: prints the installed and npm-latest versions (offline/registry
+                  failure prints an honest "skipped" line, never an error) and a summary of
+                  which managed files are up to date, missing, or locally modified. Writes
+                  nothing; always exits 0 — a version check must never fail a script.
+  --update        Applies the plan --check-update reported: installs the managed files that are
+                  missing or that this kit has changed since your install. Any file whose
+                  content YOU changed is left untouched and listed by name at the end —
+                  whether or not the kit also changed it. Combine with --force to reset those
+                  files to the versions this kit ships (this DISCARDS your local edits to
+                  them), or with --dry-run to preview the whole plan with no writes.
+
   Uninstall: --no-native-memory-override / --no-memory-enforcement / --no-effort-gate on a
   re-run now ACTIVELY REMOVE the matching pieces this kit previously installed (not just
   skip adding them) — a symmetric install/remove path, so toggling a flag off actually
@@ -1367,6 +1385,58 @@ Claude Code native-memory override (when --ide includes claude):
                   install steps run).
 
   --help          This message`);
+    return;
+  }
+
+  if (argv.includes("--check-update")) {
+    const cwd = process.cwd();
+    const home = process.env.HOME || process.env.USERPROFILE || cwd;
+    const sidecarFp = path.join(home, ".claude", ASSETS_SIDECAR_BASENAME);
+    const current = readKitVersion();
+    const latest = await fetchLatestVersion();
+    console.log(pc.cyan("Installed version:"), current);
+    if (latest === null) {
+      console.log(pc.dim("Could not reach the npm registry (offline?) — skipped."));
+    } else {
+      console.log(pc.cyan("Latest on npm:"), latest);
+      const banner = updateBanner({ current, latest });
+      if (banner) console.log(banner);
+    }
+    const files = skillAssetFiles(home, { skills: true, agents: true });
+    const plan = await buildUpdatePlan({ home, files, sidecarFp });
+    console.log(summarizePlan(plan));
+    return;
+  }
+
+  if (argv.includes("--update")) {
+    const cwd = process.cwd();
+    const home = process.env.HOME || process.env.USERPROFILE || cwd;
+    const sidecarFp = path.join(home, ".claude", ASSETS_SIDECAR_BASENAME);
+    const dryRun = dryRunFromArgs();
+    const force = argv.includes("--force");
+    if (dryRun) console.log(pc.dim("[dry-run] no files will be written"));
+    const files = skillAssetFiles(home, { skills: true, agents: true });
+    const plan = await buildUpdatePlan({ home, files, sidecarFp });
+    console.log(summarizePlan(plan));
+    const { applied, skipped, removed } = await applyUpdatePlan({ plan, sidecarFp, force, dryRun });
+    console.log(
+      pc.green(`Applied: ${applied.length}`),
+      pc.dim(`Skipped: ${skipped.length}`),
+      pc.dim(`Removed: ${removed.length}`)
+    );
+    // Both "conflict" (you edited it AND the kit changed it) and "local-only" (you edited it,
+    // the kit did not) are, from the user's side, the same fact: a managed file carrying your
+    // edits that this run deliberately left alone. Report them together — counting only
+    // conflicts would stay silent about the far more common local-only case.
+    const yours = skipped.filter((e) => e.state === "conflict" || e.state === "local-only");
+    if (yours.length) {
+      console.log(
+        pc.yellow(
+          `${yours.length} file(s) left untouched because you edited them locally. Re-run with --force to reset them to the versions this kit ships — this DISCARDS your local edits to those files.`
+        )
+      );
+      for (const entry of yours) console.log(pc.dim(`  ${entry.dest}`));
+    }
     return;
   }
 

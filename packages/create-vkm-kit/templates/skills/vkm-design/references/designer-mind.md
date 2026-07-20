@@ -5,6 +5,14 @@ is exactly what "generic" means. A trained designer's head runs different machin
 in perception, a process that front-loads thinking, and a critique loop with precise vocabulary.
 This file operationalizes that machinery. Run it explicitly; do not trust the autopilot.
 
+## Contents
+
+- What the education installed
+- The process — run these steps in order
+- The crit vocabulary — so you can SEE
+- Taste heuristics that separate trained from generated
+- Fake ten thousand hours — the pre-flight
+
 ## What the education installed
 
 The internalized curriculum of a top design program, distilled to what changes your output:
