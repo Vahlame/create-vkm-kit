@@ -76,7 +76,9 @@ test("waiter succeeds once the holder releases", async () => {
   try {
     const release = await acquireVaultLock(vault);
     holderReleased = new Promise((resolve, reject) => {
-      setTimeout(() => release().then(resolve, reject), 80);
+      setTimeout(() => {
+        release().then(resolve, reject);
+      }, 80);
     });
     const release2 = await acquireVaultLock(vault, { waitMs: 2000 });
     await release2();

@@ -159,7 +159,7 @@ export async function configureTokenSaver(home, dryRun, { hooks = true, terseSty
       existing && typeof existing === "object" && !Array.isArray(existing) ? { ...existing } : {};
     const hadHooks =
       merged.hooks && typeof merged.hooks === "object" && !Array.isArray(merged.hooks);
-    let hookMap = hadHooks ? merged.hooks : {};
+    let hookMap = hadHooks ? /** @type {Record<string, unknown>} */ (merged.hooks) : {};
     if (hooks) {
       hookMap = mergeManagedHook(
         hookMap,

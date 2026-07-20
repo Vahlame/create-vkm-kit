@@ -67,6 +67,7 @@ async function defaultRun(bin, args, { timeoutMs }) {
   });
   if (res.failed || res.exitCode !== 0) {
     const detail = String(res.stderr || res.shortMessage || `exit ${res.exitCode}`).trim();
+    /** @type {Error & { code?: string, exitCode?: number|null }} */
     const err = new Error(detail);
     if (res.code) err.code = res.code;
     err.exitCode = res.exitCode ?? null;

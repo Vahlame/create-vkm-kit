@@ -89,7 +89,7 @@ export async function removeManagedAssets({ sidecarFp, dests, dryRun = false }) 
   for (const dest of targets) {
     const entry = manifest.assets[dest];
     if (!entry) continue;
-    let unmodified = false;
+    let unmodified;
     try {
       unmodified = sha256(await fse.readFile(dest)) === entry.hash;
     } catch {

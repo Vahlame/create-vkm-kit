@@ -38,6 +38,7 @@ const expectThrow = (input) => {
   }
 };
 
+/** @type {Array<[string, () => boolean]>} */
 const cases = [
   ["basic", () => expectEq("1-5,8,11-13", [1, 2, 3, 4, 5, 8, 11, 12, 13])],
   ["single", () => expectEq("5", [5])],
@@ -63,7 +64,7 @@ const cases = [
 const fails = [];
 let passed = 0;
 for (const [name, fn] of cases) {
-  let ok = false;
+  let ok;
   try {
     ok = fn();
   } catch {

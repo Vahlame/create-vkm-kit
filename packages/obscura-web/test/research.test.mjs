@@ -172,7 +172,7 @@ test("deepResearch: no SearXNG (searxngUrl empty) degrades to the scrape-chain f
   const searxngImpl = async () => {
     throw new Error("must not be called when searxngUrl is empty");
   };
-  const searchImpl = async (q, opts) => ({
+  const searchImpl = async (_q, _opts) => ({
     source: "duckduckgo",
     results: [{ title: "DDG result", url: "https://ddg-a", snippet: "cats via ddg" }]
   });

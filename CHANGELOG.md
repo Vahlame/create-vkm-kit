@@ -6,6 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Static analysis now gates the ~32k LOC of shipped JavaScript.** New root ESLint 10 flat
+  config (`@eslint/js` recommended + tuned `no-unused-vars`, `no-shadow`, and the type-aware
+  promise rules `no-floating-promises` / `await-thenable` / `no-misused-promises` via
+  `typescript-eslint`), plus a CI-gated `tsc` `checkJs` pass (`tsconfig.checkjs.json`) over
+  shipped `src` — tests stay covered by ESLint's type-aware rules through
+  `tsconfig.eslint.json`; skill templates are excluded because their optional deps only exist
+  in the user's env. Run with `npm run lint` / `npm run typecheck`; both wired into the
+  `ci / lint` job, and `node:test` runners are allowed via `allowForKnownSafeCalls` instead of
+  a blanket disable. The first sweep took 861 ESLint + 424 `checkJs` findings to zero and fixed
+  real defects along the way: vkm-doctor's CLI `main()` ran unawaited (a crash died as an
+  unhandled rejection instead of a clean non-zero exit), a no-op `await` on the synchronous
+  `NodeSDK.start()`, a dozen wrapper `throw`s that discarded the original error (now
+  `{ cause }`), async HTTP handlers passed where a void listener is expected (now guarded with
+  a `.catch` backstop), dead stores, and producer JSDoc contracts narrower than the values they
+  actually return (e.g. `curatePage`'s undocumented `relevance`/`reason` fields).
+
+- **Drift gate for the repo's own Cursor memory rule.** The committed
+  `.cursor/rules/obsidian-memory.mdc` is fresh-install output of the installer
+  (`installRules(["cursor"], "es")`), not an `agents-manifest.yaml` artifact — so no check
+  covered it and it silently kept the pre-rename `obsidian-memory:start/end` sentinels and
+  `create-obsidian-memory` branding across the vkm-kit rename (ADR-0041). `sync-agents.ts` now
+  renders the fresh-install output (the newly exported `CURSOR_RULE_FRONTMATTER` +
+  `memoryRulesBlock("es")` through the real `mergeManagedBlock`) and byte-compares it under
+  `--check` (already in CI), failing with a "rerun the generator: npm run sync-agents" hint;
+  write mode regenerates the file. The committed copy is regenerated to the current block, and a
+  package test pins generator output ≡ gate expectation so the two can never diverge.
+
+### Changed
+
+- **`CONTRIBUTING.md`'s SemVer section now describes the kit, not the v1 prompt, and adds an
+  explicit post-4.x versioning policy.** The MAJOR/MINOR/PATCH definitions still spoke of
+  "prompt section numbers"; they are rewritten in terms of the installed contract (CLI flags,
+  MCP tools, vault layout/hooks), and the new policy freezes majors except for unavoidable
+  contract breaks — batched into one planned major with its migration doc. README links the
+  policy from "Más · More".
+
 ### Fixed
 
 - **The repo's own `.cursor/rules/obsidian-memory.mdc` no longer ships the pre-rename block.** The
@@ -14,9 +52,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   por `create-obsidian-memory`", the `(obsidian-memory-kit)` frontmatter description, and it
   predated the `RESEARCH/` and discipline sections. Regenerated with the current generator
   (`installRules`, fresh-install path), asserting the ADR-0041 legacy-sentinel migration produces
-  the identical managed block. The cursor `newFilePrefix` in `rules-merge.mjs` now writes the
-  `(vkm-kit)` description for new installs too — the last v2-branded string the installer still
-  emitted.
+  the identical managed block. The cursor frontmatter (`CURSOR_RULE_FRONTMATTER` in
+  `rules-merge.mjs`, the drift gate's single source) now writes the `(vkm-kit)` description for
+  new installs too — the last v2-branded string the installer still emitted.
+
+- **`go.mod` module path matches the repo slug.** The module still declared
+  `github.com/Vahlame/obsidian-memory-kit`, so importing or `go install`-ing the daemon by its
+  real path (`github.com/Vahlame/create-vkm-kit/cmd/obsidian-memoryd`) failed — latent only
+  because the installer builds locally. `agent.toml`'s `[daemon].module` mirror is updated to
+  match.
 
 - **`release.yml` no longer reports success when npm publish silently skipped.** The npm-publish
   job soft-exited (`exit 0`) when the `NPM_TOKEN` secret was missing, so the workflow went green

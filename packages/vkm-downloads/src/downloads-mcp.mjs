@@ -53,7 +53,8 @@ const pkgVersion = (() => {
  * Build the McpServer with both tools registered (no transport connected) so tests can drive the
  * real handlers over an in-memory transport. `deps` injects fake download/resolve/log so no real
  * network or filesystem is touched.
- * @param {{ downloadImpl?: typeof downloadTo, resolveImpl?: typeof resolveMetadata, logImpl?: typeof logDownload }} [deps]
+ * @param {{ downloadImpl?: typeof downloadTo, resolveImpl?: typeof resolveMetadata, logImpl?: typeof logDownload,
+ *   probeImpl?: typeof probeMirrors, manager?: import("./jobs.mjs").JobManager }} [deps]
  * @returns {McpServer}
  */
 export function buildServer(deps = {}) {

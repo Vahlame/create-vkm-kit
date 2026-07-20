@@ -204,7 +204,7 @@ export async function installFromSpec(spec, opts = {}, deps = {}) {
  * Ensure the obscura binary is available. Never throws; returns a status the caller prints
  * plus the resolved binary path (null → obscura-web should fall back to `obscura` on PATH).
  * @param {boolean} dryRun
- * @param {{ enable?: boolean, platform?: string, arch?: string }} [opts]
+ * @param {{ enable?: boolean, platform?: NodeJS.Platform, arch?: NodeJS.Architecture }} [opts]
  * @param {{ isRunnable?: typeof isRunnable, installImpl?: typeof installFromSpec }} [deps]
  * @returns {Promise<{ status: "ready"|"manual"|"skipped"|"failed", binPath: string|null }>}
  */
