@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **First query against a cold vault could crash with `database is locked`.** `store.connect()` set
+  `PRAGMA journal_mode=WAL` before `PRAGMA busy_timeout`, but the ordering was never the real
+  problem: converting a database _into_ WAL takes a brief EXCLUSIVE lock on a sqlite code path
+  (`pagerExclusiveLock`) that does **not** consult the busy handler, so `busy_timeout` does not
+  apply to that one statement however large it is or how early it is set. Measured: with
+  `busy_timeout=3000` already in effect, a contended transition raises in **0.000s**, while the same
+  pragma against an already-WAL database returns `wal` in 0.008s taking no lock at all. That second
+  measurement is why a bounded retry is the fix and not a band-aid — the only way to lose this race
+  is another connection converting the same database, so once any one of them wins, every later
+  attempt is a lock-free no-op and the loop exits immediately. The trigger was never exotic:
+  `assembleContext` fans out three rag processes over one vault at once, so the first query against
+  a fresh index has three processes creating the same database concurrently. It surfaced as a flaky
+  `vkm-spec` pipeline test in CI, but it was a user-facing cold-start bug, not a test artifact.
+  `connect()` now also closes the handle if setup fails partway instead of leaking it.
 - **The old npm name never forwarded, and four releases of docs said it did.** `release.yml` no
   longer publishes `@vkmikc/create-obsidian-memory`, and every user-facing claim about it is
   corrected: what the registry actually serves under that name is the **last real v3 kit, 3.15.0**
