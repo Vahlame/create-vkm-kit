@@ -77,6 +77,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **The `agent.toml` schema check no longer rides on an unpinned interpreter.** `tomllib` is stdlib
   only from 3.11 and the `lint` job had no `setup-python`; it is now pinned to 3.12 like the other
   Python jobs. The network-bound `links` and `mcp-smoke` jobs get timeouts instead of the 6h default.
+- **`version.mjs` could never fix — or even report — a drifted `-ldflags` version.** The Go daemon
+  carries the kit version twice (`var version` and the example `-ldflags` in the build comment),
+  and they were one marker whose `read` looked only at the first. Three things then compounded:
+  `set` skips a file whose `read` already matches, so once `var version` was right the second
+  replace never ran again; the "refusing partial write" guard compares the whole file, so a no-op
+  second replace is invisible whenever the first one changed something; and `check` only ever
+  inspected what `read` returned. The documented build command could print a stale version forever
+  with both `set` and `check` silent. Now two independent markers — surveyed, checked and written
+  separately — with a regression test that also pins every marker's `read`/`write` as inverses, so
+  a regex that writes a shape its own reader cannot parse can't create self-inflicted drift.
 - **First query against a cold vault could crash with `database is locked`.** `store.connect()` set
   `PRAGMA journal_mode=WAL` before `PRAGMA busy_timeout`, but the ordering was never the real
   problem: converting a database _into_ WAL takes a brief EXCLUSIVE lock on a sqlite code path
