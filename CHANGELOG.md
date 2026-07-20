@@ -8,6 +8,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **A tagged release published to npm having run zero tests.** `ci.yml` triggers only on
+  push-to-main and `pull_request`, and **neither fires on a tag push** — so `release.yml` reached
+  `npm publish` gated on nothing but the version, changelog-section and license-mirror checks.
+  `workflow_dispatch` was worse: it releases whatever `main` currently is, equally untested. `ci.yml`
+  is now `workflow_call`-able and `release.yml` requires the whole matrix at the ref being released.
+- **A skipped `npm-publish` job reports green, and the guard that would have said so is inside it.**
+  The job's condition matched the full `owner/name`, so a repo rename silently disarmed publishing
+  while the workflow still reported success — the exact failure that shipped 4.2.0 and 4.3.0 late,
+  and this repo has already been renamed once (`obsidian-memory-kit` → `create-vkm-kit`). Now keyed
+  on the owner. `release` also takes a `concurrency` group (never cancel-in-progress — aborting
+  mid-publish is worse than queueing) so two dispatches cannot race the same `npm publish`.
+- **markdownlint never saw any file inside a dot-directory.** `**/*.md` does not match them, so
+  `.agents/rules/*.md`, `.continue/rules/*.md` and `.github/PULL_REQUEST_TEMPLATE.md` were silently
+  unlinted — which is also why `.markdownlintignore` listed a `.github` file the glob could never
+  have reached. All ten were already clean; the gate now actually covers them.
+- **The `basic-memory` pin CI verifies is no longer hand-copied.** `scripts/mcp-smoke.mjs` imports
+  `BASIC_MEMORY_VERSION` instead of repeating the literal, so the smoke test can no longer certify a
+  server users never receive — the drift its own comment warned about but did not prevent.
+- **The `agent.toml` schema check no longer rides on an unpinned interpreter.** `tomllib` is stdlib
+  only from 3.11 and the `lint` job had no `setup-python`; it is now pinned to 3.12 like the other
+  Python jobs. The network-bound `links` and `mcp-smoke` jobs get timeouts instead of the 6h default.
 - **First query against a cold vault could crash with `database is locked`.** `store.connect()` set
   `PRAGMA journal_mode=WAL` before `PRAGMA busy_timeout`, but the ordering was never the real
   problem: converting a database _into_ WAL takes a brief EXCLUSIVE lock on a sqlite code path

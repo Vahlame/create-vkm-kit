@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Callable so `release.yml` can require the SAME gates before it publishes.
+  # Neither trigger above fires on a tag push, so before this a tagged release
+  # reached npm having run nothing but the version/changelog/license checks.
+  workflow_call:
 
 permissions:
   contents: read
@@ -21,12 +25,22 @@ jobs:
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 24
+      # `tomllib` is stdlib only from 3.11, and the agent.toml step below is the
+      # single schema check on that file — don't let it ride on whatever `python`
+      # the runner image happens to expose. Pinned like test-python/retrieval-bench.
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
       - name: install
         run: npm ci
       - name: version consistency (badge == packages == CHANGELOG)
         run: node scripts/version.mjs check
+      # `**/*.md` does NOT match inside dot-directories, so the second pattern is
+      # load-bearing: without it .agents/rules/*.md, .continue/rules/*.md and
+      # .github/PULL_REQUEST_TEMPLATE.md were silently unlinted — which is also why
+      # .markdownlintignore lists a .github file that could never have been reached.
       - name: markdownlint
-        run: npx --yes markdownlint-cli@0.49.0 "**/*.md" --ignore-path .markdownlintignore
+        run: npx --yes markdownlint-cli@0.49.0 "**/*.md" ".*/**/*.md" --ignore-path .markdownlintignore
       - name: prettier
         run: npx --yes prettier@3.8.4 --check "**/*.{json,yml,yaml,md,mjs,js,cjs,ts}"
       - name: eslint (incl. type-aware promise rules over all JS)
@@ -131,6 +145,7 @@ jobs:
 
   links:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: lycheeverse/lychee-action@8646ba30535128ac92d33dfc9133794bfdd9b411 # v2
@@ -164,6 +179,7 @@ jobs:
 
   mcp-smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
