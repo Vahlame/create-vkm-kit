@@ -59,7 +59,7 @@ npx @vkmikc/create-vkm-kit -y              # no questions → ~/Documents/obsidi
 npx @vkmikc/create-vkm-kit "<PATH>" -y     # no questions, at the path you choose
 ```
 
-The old npm name still works: `npx @vkmikc/create-obsidian-memory` is a shim that forwards to the new package.
+The old npm name (`@vkmikc/create-obsidian-memory`) is **deprecated and frozen on the v3 kit (3.15.0)** — it does not forward to the new package, so repoint any pinned script to `@vkmikc/create-vkm-kit`.
 
 > ⚡ **The whole stack in one command — `--full`.**
 > Focused **on Codex and Claude Code first**, with **every feature on by default**: it registers

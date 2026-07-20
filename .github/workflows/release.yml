@@ -57,12 +57,23 @@ jobs:
           draft: false
           prerelease: false
 
-  # Publishes the two public packages to npm so a tagged release no longer requires
-  # a manual `npm publish` (the cause of the 3.5.0/3.6.0 marker drift):
-  # @vkmikc/create-vkm-kit (the real installer) and @vkmikc/create-obsidian-memory
-  # (the forwarding shim kept on the old name — npm has no redirects, ADR-0041/0050).
+  # Publishes THE public package to npm so a tagged release no longer requires a
+  # manual `npm publish` (the cause of the 3.5.0/3.6.0 marker drift):
+  # @vkmikc/create-vkm-kit, the real installer.
+  #
+  # The old name @vkmikc/create-obsidian-memory is NO LONGER PUBLISHED (ADR-0050
+  # amendment, 2026-07-20). The forwarding shim ADR-0041/0050 designed never
+  # actually reached npm: every attempt since 4.0.0 failed because the granular
+  # NPM_TOKEN only covers the new name, and npm reports that as a 404 ("not found
+  # or you do not have permission"), which read like a missing package. Meanwhile
+  # the old name was deprecated — so it serves the last real v3 kit (3.15.0) and
+  # publishing 4.x to it would silently UN-deprecate the latest version. One
+  # signpost, not two live entry points: the old name stays frozen + deprecated,
+  # and packages/create-obsidian-memory-shim/ stays in-tree, unpublished.
+  #
   # FAILS LOUDLY if the NPM_TOKEN secret is missing — a "successful" release that
-  # never reached npm shipped 4.2.0 and 4.3.0 late. The other packages stay
+  # never reached npm shipped 4.2.0 and 4.3.0 late, and 4.4.0 hit the same wall
+  # with a secret that existed but held an empty value. The other packages stay
   # private (obsidian-memory-mcp, vkm-doctor, vkm-spec) or pip-only (rag).
   npm-publish:
     needs: publish
@@ -85,16 +96,6 @@ jobs:
             echo "::error::NPM_TOKEN not set — npm publish did NOT run. The GitHub release exists" \
               "but npm is now behind (this silent skip shipped 4.2.0 and 4.3.0 late)." \
               "Fix: gh secret set NPM_TOKEN, then re-run this workflow." >&2
-            exit 1
-          fi
-          npm publish --access public
-      - name: publish create-obsidian-memory (forwarding shim)
-        working-directory: packages/create-obsidian-memory-shim
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "::error::NPM_TOKEN not set — shim publish did NOT run (see create-vkm-kit step)." >&2
             exit 1
           fi
           npm publish --access public

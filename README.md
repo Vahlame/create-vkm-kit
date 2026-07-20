@@ -63,7 +63,7 @@ npx @vkmikc/create-vkm-kit -y              # sin preguntas → ~/Documents/obsid
 npx @vkmikc/create-vkm-kit "<RUTA>" -y     # sin preguntas, en la ruta que elijas
 ```
 
-El nombre npm antiguo sigue funcionando: `npx @vkmikc/create-obsidian-memory` es un shim que reenvía al paquete nuevo. · The old npm name still works: it forwards to the new package.
+El nombre npm antiguo (`@vkmikc/create-obsidian-memory`) está **deprecado y congelado en el kit v3 (3.15.0)**: no reenvía al nuevo, así que si lo tienes fijado en un script, cámbialo a `@vkmikc/create-vkm-kit`. · The old npm name is **deprecated and frozen on the v3 kit (3.15.0)** — it does not forward; repoint any pinned script to `@vkmikc/create-vkm-kit`.
 
 > ⚡ **Todo su potencial, en un solo comando · the whole stack in one command — `--full`.**
 > Enfocado **primero en Codex y Claude Code**, con **todas las funciones activas por defecto ·
