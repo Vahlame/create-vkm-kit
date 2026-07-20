@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="./LICENSE.md"><img src="https://img.shields.io/badge/license-MIT--derived_%2B_attribution_(non--OSI)-blue.svg" alt="License"></a>
-  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v4.3.0-orange.svg" alt="Release"></a>
+  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v4.4.0-orange.svg" alt="Release"></a>
   <a href="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.npmjs.com/package/@vkmikc/create-vkm-kit"><img src="https://img.shields.io/npm/v/%40vkmikc%2Fcreate-vkm-kit?label=npm&color=cb3837" alt="npm"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A5%2020-43853d.svg" alt="Node ≥ 20">
@@ -76,6 +76,13 @@ The old npm name still works: `npx @vkmikc/create-obsidian-memory` is a shim tha
 >
 > If no clone is at hand, `--full` **does not abort**: it falls back to `basic-memory` (no hybrid)
 > and warns.
+
+🔄 **Keep it current (ADR-0061).**
+`npx @vkmikc/create-vkm-kit --check-update` compares your version against npm and reports which
+skill/subagent templates the kit changed — it **writes nothing and never fails** (offline it prints
+a "skipped" line and exits 0). `--update` applies that plan: it installs what is missing or what the
+kit changed, and **leaves any file you edited untouched** (listed by name; `--force` overwrites it
+and **discards your edits**, `--dry-run` previews with zero writes).
 
 Prefer an **agent to install it**? Tell it _"link the repo and install it with all its tools and
 capabilities"_: it clones and runs `npm install` then `npm run setup` — dependency preflight →

@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="./LICENSE.md"><img src="https://img.shields.io/badge/licencia-MIT--derivada_%2B_atribuci%C3%B3n_(no_OSI)-blue.svg" alt="Licencia"></a>
-  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v4.3.0-orange.svg" alt="Release"></a>
+  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v4.4.0-orange.svg" alt="Release"></a>
   <a href="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.npmjs.com/package/@vkmikc/create-vkm-kit"><img src="https://img.shields.io/npm/v/%40vkmikc%2Fcreate-vkm-kit?label=npm&color=cb3837" alt="npm"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A5%2020-43853d.svg" alt="Node ≥ 20">
@@ -80,6 +80,14 @@ El nombre npm antiguo sigue funcionando: `npx @vkmikc/create-obsidian-memory` es
 > ```
 >
 > Si no hay clon a mano, `--full` **no aborta**: cae a `basic-memory` (sin híbrido) y avisa.
+
+🔄 **Mantenerlo al día · keep it current (ADR-0061).**
+`npx @vkmikc/create-vkm-kit --check-update` compara tu versión con la de npm y dice qué plantillas
+de skills/subagentes cambiaron — **no escribe nada y nunca falla** (sin red imprime "skipped" y
+sale 0). `--update` aplica ese plan: instala lo que falta o lo que cambió el kit, y **deja intacto
+cualquier archivo que hayas editado tú** (lo lista por nombre; `--force` lo pisa y **descarta tus
+cambios**, `--dry-run` previsualiza sin escribir). · _`--check-update` reports, `--update` applies;
+your edits are never overwritten without `--force`._
 
 ¿Prefieres que **un agente lo instale**? Dile _«linkea el repo e instálalo con todas sus
 herramientas y capacidades»_: clona y ejecuta `npm install` + `npm run setup` — preflight de
