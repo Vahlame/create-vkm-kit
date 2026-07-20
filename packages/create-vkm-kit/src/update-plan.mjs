@@ -265,7 +265,12 @@ export function summarizePlan(plan) {
  * @param {boolean} [opts.dryRun] - compute and return the same shape; write nothing
  * @param {(src: string, dest: string) => Promise<void>} [opts.copyImpl]
  * @param {(dest: string) => Promise<void>} [opts.removeImpl]
- * @param {(sidecarFp: string, manifest: unknown) => Promise<void>} [opts.writeSidecarImpl]
+ * @param {(sidecarFp: string,
+ *   manifest: { version: 1, assets: Record<string, unknown>, kitVersion?: string | null }
+ *   ) => Promise<void>} [opts.writeSidecarImpl] - `unknown` here would be unsound, not lenient:
+ *   parameters are contravariant, so declaring a wider parameter than the default impl
+ *   (`writeSidecarManifest`, which dereferences `manifest.assets`) accepts promises callers
+ *   something the default cannot honour. An impl taking `unknown` is still assignable to this.
  * @returns {Promise<{ applied: string[], skipped: Array<{ dest: string, state: string }>, removed: string[] }>}
  */
 export async function applyUpdatePlan({
