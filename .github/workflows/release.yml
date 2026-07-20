@@ -14,9 +14,26 @@ on:
 permissions:
   contents: write
 
+# Two workflow_dispatch runs (or a dispatch racing a tag push) would otherwise
+# reach `npm publish` concurrently for the same version. Never cancel in
+# progress: aborting midway through a publish is worse than queueing behind it.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
+  # The full CI matrix, at the ref being released. ci.yml triggers only on
+  # push-to-main and pull_request, and NEITHER fires for a tag push — so before
+  # this gate a tagged release published to npm having run zero tests, zero
+  # lint and zero typecheck. workflow_dispatch was worse still: it releases
+  # whatever main currently is, also untested.
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   publish:
+    needs: ci
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: guard — tag matches every version marker
@@ -78,7 +95,14 @@ jobs:
   npm-publish:
     needs: publish
     runs-on: ubuntu-latest
-    if: ${{ github.repository == 'Vahlame/create-vkm-kit' }}
+    timeout-minutes: 15
+    # Keyed on the OWNER, not the full `owner/name`. A skipped job reports GREEN,
+    # so this condition is the one place a silent no-publish can still hide — and
+    # the loud NPM_TOKEN guard below lives *inside* the job it skips, so it cannot
+    # fire to warn anyone. This repo has already been renamed once
+    # (obsidian-memory-kit -> create-vkm-kit); matching the full name would have
+    # re-armed exactly the silent skip that shipped 4.2.0 and 4.3.0 late.
+    if: ${{ github.repository_owner == 'Vahlame' }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
