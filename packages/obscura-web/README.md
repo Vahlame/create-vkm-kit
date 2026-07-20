@@ -10,9 +10,10 @@ Code, Codex and Cursor by the installer under `--obscura` / `--full`. See
 [ADR-0052](../../docs/adr/0052-searxng-on-demand-lifecycle.md),
 [ADR-0054](../../docs/adr/0054-obscura-research-local-deep-crawl.md),
 [ADR-0055](../../docs/adr/0055-obscura-research-local-llm-curation.md),
-[ADR-0056](../../docs/adr/0056-research-knowledge-bank.md), and
-[ADR-0057](../../docs/adr/0057-obscura-research-gather-over-rank.md) (current design — supersedes
-ADR-0055 §5/§6).
+[ADR-0056](../../docs/adr/0056-research-knowledge-bank.md),
+[ADR-0057](../../docs/adr/0057-obscura-research-gather-over-rank.md) (supersedes ADR-0055 §5/§6),
+and [ADR-0060](../../docs/adr/0060-obscura-deep-research-background-job.md) (background jobs,
+current design).
 
 ## Why
 
@@ -241,6 +242,95 @@ calls (synonyms, sub-aspects) to widen coverage rather than re-running the ident
 tool call under the same 60 s/`deadline_ms` limits above — there is no separate long-running mode,
 job handle, or background process to manage.
 
+**There is now also an actual background mode** — see `obscura_research_start` below — for when
+15-30 unattended minutes matter more than keeping the calling agent free between rounds.
+
+### `obscura_research_start` / `obscura_research_status` / `obscura_research_stop` — background deep-research jobs (ADR-0060)
+
+A background job that runs **inside the MCP server process** for minutes at a time, the way a
+human researcher works a hard question over an afternoon: start from a few seed topics, then
+iteratively branch into subtopics, correlated areas, cross-domain analogies, and application/
+improvement ideas — every branch generated and filtered against one stated objective, never just
+keyword-matched to the seed topics' own wording. `obscura_research_start` returns **immediately**
+(a `job_id`, in milliseconds) — the MCP transport's 60 s wall never applies here, because nothing
+waits on the wire; the loop runs detached and only reports progress when polled.
+
+```js
+obscura_research_start({
+  objective:
+    "Evaluate whether MMR diversification is worth adding to obscura_research's kept results",
+  topics: [
+    "maximal marginal relevance search",
+    "diversity vs relevance trade-off IR",
+    "MMR reranking benchmarks"
+  ],
+  topic: "mmr-for-research",
+  budget_minutes: 15
+});
+// -> { job_id: "deep-...", state: "running", topic: "mmr-for-research", ... }
+
+obscura_research_status({ job_id }); // cheap, instant, in-memory snapshot — poll as often as you like
+obscura_research_stop({ job_id }); // optional: graceful early stop
+```
+
+| Param            | Type             | Default                               | Notes                                                                                                                         |
+| ---------------- | ---------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `objective`      | string           | —                                     | The goal every generated subtopic/analogy/application lead is filtered against — not just the seed topics' literal wording    |
+| `topics`         | string[]         | —                                     | 1-6 seed queries; each becomes a root of the run's query genealogy                                                            |
+| `topic`          | string           | —                                     | Slug (`^[\w][\w-]*$`) grouping the run under `RESEARCH/<topic>/` — same rule as `obscura_research`'s `persist` topic          |
+| `budget_minutes` | int 3-30         | 15                                    | Total wall-clock budget for the whole job; winds down gracefully once elapsed (the in-flight round still finishes)            |
+| `round_ms`       | int 20000-300000 | env `OBSCURA_DEEP_ROUND_MS` or 100000 | Deadline for a single round (one query's crawl+curate) — lower to cycle more queries, raise to let each dig deeper            |
+| `pace_ms`        | int 0-120000     | env `OBSCURA_DEEP_PACE_MS` or 15000   | Politeness pause between rounds — doubles automatically once a round looks banned (see below)                                 |
+| `max_depth`      | int 0-4          | 2                                     | How many lead-generation hops from a seed topic the job still follows; `0` = research only the seed topics, generate no leads |
+| `top_k`          | int 1-50         | 12                                    | Pages fetched + excerpted per round (same knob as `obscura_research`, lower default since a job runs many rounds)             |
+| `max_candidates` | int 1-300        | 60                                    | Candidates scanned per round before ranking                                                                                   |
+| `sub_queries`    | int 1-10         | 4                                     | Max query-expansion sub-queries per round                                                                                     |
+| `drop_below`     | number 0-10      | 3                                     | Curator relevance floor below which a page is dropped                                                                         |
+| `passage_chars`  | int 200-4000     | 800                                   | Max chars of excerpted passage per result                                                                                     |
+| `categories`     | string           | `general,it,science`                  | SearXNG categories per round                                                                                                  |
+| `stealth`        | boolean          | on                                    | Anti-detection when fetching                                                                                                  |
+
+**Each round reuses `deepResearch` whole** — same expansion, gather, curation, sanitization,
+ranking, and `excludeHashes` accumulation described above for `obscura_research`; nothing about the
+crawl itself is reimplemented. What's new is the loop around it: after a round finds curated-
+relevant results, a local model call (`generateLeads`, zero-shot, running on the same
+`OBSCURA_OLLAMA_EXPAND_MODEL` used for query expansion — proposing new directions is a recall task,
+not reading comprehension, the same reasoning ADR-0057 §5 already applied to expansion) reads the
+objective plus the round's findings and proposes up to 5 next queries, each typed as exactly one of
+`subtopic` (digs deeper into something the findings surfaced), `related` (a correlated area not yet
+covered), `analogy` (a technique from a different field that plausibly transfers), or `application`
+(a concrete use/improvement/feature idea) — each with a one-line `why` tying it back to the
+objective. A proposed lead that's a near-duplicate of anything already searched or queued (text
+similarity ≥0.85) is dropped rather than queued again.
+
+**Pacing and ban-avoidance escalate together (ADR-0057 §6, applied to a much longer run).** A round
+that comes back `scanned:0` with engines reported unavailable counts as banned — a fully-suspended
+SearXNG answers HTTP 200 + empty results, indistinguishable from "no hits" otherwise. Two banned
+rounds in a row stop the whole job (`engines_suspended`) instead of grinding a banned machine for
+whatever budget remains; `pace_ms` doubles the moment the first one happens. **Only one job runs at
+a time** — starting a second while one is active is rejected outright, since an unattended job's
+own fan-out is exactly the volume that gets this machine banned by search engines in the first
+place.
+
+**Requires `OBSCURA_RESEARCH_DIR`**, checked and failed fast at `start` — the same requirement
+`persist:true` has above, but checked immediately rather than only discovered when an
+already-running 15-30 minute job reaches its own report-write step.
+
+**Every round persists as it finishes** (a killed MCP process loses only the round in flight, never
+already-banked work), and a run report is written to `RESEARCH/<topic>/runs/<timestamp>.md` on
+**every** exit path — a clean finish, a graceful stop, budget exhaustion, the round cap, engine
+suspension, or an outright failure. The report has a round-by-round table, a query genealogy
+(which lead spawned which query, and why), the top curated findings, and an "Unexplored leads"
+section — always present, even when empty — listing whatever was still queued when the job
+stopped, which is where an application or improvement idea the job generated but never got to
+chase actually surfaces. Once a job finishes, `obscura_research_status`'s response points at the
+report and reminds you to run `/vkm-research <topic>` to consolidate it, the same second half of
+dual consolidation `obscura_consolidate` (below) already uses.
+
+New env knobs, both optional: `OBSCURA_DEEP_ROUND_MS` (default `100000`) and
+`OBSCURA_DEEP_PACE_MS` (default `15000`) — both are also overridable per call (`round_ms`/
+`pace_ms`) without touching the environment.
+
 ### `obscura_consolidate(topic, force?)`
 
 The local, 0-token half of dual consolidation (ADR-0056) — the other half is Claude's own
@@ -285,33 +375,35 @@ tools simply steer to the native ones — the install never breaks.
 
 ## Environment
 
-| Var                                                        | Purpose                                                                                         |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `OBSCURA_BIN`                                              | Absolute obscura binary path (installer sets it; else `obscura` on PATH)                        |
-| `OBSCURA_STEALTH=0`                                        | Disable anti-detection (default on)                                                             |
-| `OBSCURA_FETCH_TIMEOUT_MS`                                 | Per-fetch navigation budget (default 30000)                                                     |
-| `OBSCURA_FETCH_MAX_CHARS`                                  | Cap on returned page size (default 60000)                                                       |
-| `OBSCURA_SEARCH_ENGINES`                                   | Comma list overriding the scrape chain (default `duckduckgo`; `bing`/`brave`/`bing-rss` opt-in) |
-| `OBSCURA_SEARXNG_URL`                                      | Point search at a SearXNG directly (`""` disables; bypasses on-demand)                          |
-| `OBSCURA_SEARXNG_{PORT,PY,SRC,SETTINGS,IDLE_MS,AUTOSTART}` | On-demand SearXNG paths/timing (see `searxng/README.md`)                                        |
-| `OBSCURA_RESEARCH_OLLAMA=0`                                | Disable local-LLM curation in `obscura_research` (default on, auto-detected)                    |
-| `OBSCURA_OLLAMA_HOST`                                      | Ollama host (default `http://127.0.0.1:11434` — same as `vkm-spec`)                             |
-| `OBSCURA_OLLAMA_MODEL`                                     | Curation model (default `phi4-mini:3.8b-q4_K_M` — chosen by bake-off, ADR-0057 fifth addendum)  |
-| `OBSCURA_OLLAMA_EXPAND_MODEL`                              | Query-expansion model (default `qwen3.5:4b-q4_K_M` — deliberately not the curation model)       |
-| `OBSCURA_OLLAMA_EMBED_MODEL`                               | Embedding model for `dedupe_similar`/`diversify` (default `qwen3-embedding:0.6b`)               |
-| `OBSCURA_OLLAMA_KEEP_ALIVE`                                | How long Ollama keeps the model loaded after a research call (default `5m`)                     |
-| `OBSCURA_RESEARCH_DEADLINE_MS`                             | Wall-clock budget for one `obscura_research` call (default `50000`; the MCP wall is 60000)      |
-| `OBSCURA_RESEARCH_CONCURRENCY`                             | Concurrent page fetches during research (default 4)                                             |
-| `OBSCURA_RESEARCH_HOST_CAP`                                | Max candidates any one host may hold in the fused pool's head (default 3; 0 disables)           |
-| `OBSCURA_RESEARCH_NEAR_DUP_THRESHOLD`                      | Cosine similarity above which `dedupe_similar` treats two pages as duplicates (default 0.92)    |
-| `OBSCURA_SUBQUERY_CONCURRENCY`                             | Concurrent SearXNG sub-queries during expansion (default 2 — ban-avoidance, not just speed)     |
-| `OBSCURA_SEARXNG_CATEGORIES`                               | Default SearXNG categories for research (default `general,it,science`)                          |
-| `OBSCURA_RESEARCH_DROP_BELOW`                              | Curator relevance floor below which a page is dropped (default `3` of 10)                       |
-| `OBSCURA_SEARXNG_CACHE_TTL_MS`                             | How long a SearXNG search response is cached inside `obscura_research` (default `600000`)       |
-| `OBSCURA_RESEARCH_FETCH_CACHE_TTL_MS`                      | How long a fetched page is cached inside `obscura_research` (default `300000`)                  |
-| `OBSCURA_RESPECT_ROBOTS=0`                                 | Disable robots.txt compliance in the research crawl (default on; never affects `obscura_fetch`) |
-| `OBSCURA_ROBOTS_CACHE_TTL_MS`                              | How long a host's robots.txt is cached (default `3600000`, 1h)                                  |
-| `OBSCURA_RESEARCH_DIR`                                     | Root for `persist`/`obscura_consolidate` writes (installer defaults it to `<vault>/RESEARCH`)   |
+| Var                                                        | Purpose                                                                                                                |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `OBSCURA_BIN`                                              | Absolute obscura binary path (installer sets it; else `obscura` on PATH)                                               |
+| `OBSCURA_STEALTH=0`                                        | Disable anti-detection (default on)                                                                                    |
+| `OBSCURA_FETCH_TIMEOUT_MS`                                 | Per-fetch navigation budget (default 30000)                                                                            |
+| `OBSCURA_FETCH_MAX_CHARS`                                  | Cap on returned page size (default 60000)                                                                              |
+| `OBSCURA_SEARCH_ENGINES`                                   | Comma list overriding the scrape chain (default `duckduckgo`; `bing`/`brave`/`bing-rss` opt-in)                        |
+| `OBSCURA_SEARXNG_URL`                                      | Point search at a SearXNG directly (`""` disables; bypasses on-demand)                                                 |
+| `OBSCURA_SEARXNG_{PORT,PY,SRC,SETTINGS,IDLE_MS,AUTOSTART}` | On-demand SearXNG paths/timing (see `searxng/README.md`)                                                               |
+| `OBSCURA_RESEARCH_OLLAMA=0`                                | Disable local-LLM curation in `obscura_research` (default on, auto-detected)                                           |
+| `OBSCURA_OLLAMA_HOST`                                      | Ollama host (default `http://127.0.0.1:11434` — same as `vkm-spec`)                                                    |
+| `OBSCURA_OLLAMA_MODEL`                                     | Curation model (default `phi4-mini:3.8b-q4_K_M` — chosen by bake-off, ADR-0057 fifth addendum)                         |
+| `OBSCURA_OLLAMA_EXPAND_MODEL`                              | Query-expansion model (default `qwen3.5:4b-q4_K_M` — deliberately not the curation model)                              |
+| `OBSCURA_OLLAMA_EMBED_MODEL`                               | Embedding model for `dedupe_similar`/`diversify` (default `qwen3-embedding:0.6b`)                                      |
+| `OBSCURA_OLLAMA_KEEP_ALIVE`                                | How long Ollama keeps the model loaded after a research call (default `5m`)                                            |
+| `OBSCURA_RESEARCH_DEADLINE_MS`                             | Wall-clock budget for one `obscura_research` call (default `50000`; the MCP wall is 60000)                             |
+| `OBSCURA_RESEARCH_CONCURRENCY`                             | Concurrent page fetches during research (default 4)                                                                    |
+| `OBSCURA_RESEARCH_HOST_CAP`                                | Max candidates any one host may hold in the fused pool's head (default 3; 0 disables)                                  |
+| `OBSCURA_RESEARCH_NEAR_DUP_THRESHOLD`                      | Cosine similarity above which `dedupe_similar` treats two pages as duplicates (default 0.92)                           |
+| `OBSCURA_SUBQUERY_CONCURRENCY`                             | Concurrent SearXNG sub-queries during expansion (default 2 — ban-avoidance, not just speed)                            |
+| `OBSCURA_SEARXNG_CATEGORIES`                               | Default SearXNG categories for research (default `general,it,science`)                                                 |
+| `OBSCURA_RESEARCH_DROP_BELOW`                              | Curator relevance floor below which a page is dropped (default `3` of 10)                                              |
+| `OBSCURA_SEARXNG_CACHE_TTL_MS`                             | How long a SearXNG search response is cached inside `obscura_research` (default `600000`)                              |
+| `OBSCURA_RESEARCH_FETCH_CACHE_TTL_MS`                      | How long a fetched page is cached inside `obscura_research` (default `300000`)                                         |
+| `OBSCURA_RESPECT_ROBOTS=0`                                 | Disable robots.txt compliance in the research crawl (default on; never affects `obscura_fetch`)                        |
+| `OBSCURA_ROBOTS_CACHE_TTL_MS`                              | How long a host's robots.txt is cached (default `3600000`, 1h)                                                         |
+| `OBSCURA_DEEP_ROUND_MS`                                    | Default per-round deadline for `obscura_research_start` jobs (default `100000`; range 20000-300000)                    |
+| `OBSCURA_DEEP_PACE_MS`                                     | Default pause between rounds for `obscura_research_start` jobs (default `15000`; doubles on a banned round)            |
+| `OBSCURA_RESEARCH_DIR`                                     | Root for `persist`/`obscura_consolidate`/`obscura_research_start` writes (installer defaults it to `<vault>/RESEARCH`) |
 
 ## Security
 
@@ -338,7 +430,12 @@ crawl (injected clock, no real sleeping), ban-avoidance (caching, throttling, ca
 all measured against a live rate-limit this feature's own development triggered), and the MCP
 handlers over an in-memory transport, including the ADR-0057 param surface (`expand`/`sub_queries`/
 `categories`/`drop_below`/`deadline_ms`) and response fields (`partial`/`enginesUnavailable`/
-`robotsBlocked`). A separate offline CI gate (`test/bench-gate.test.mjs`) runs the real crawl over
+`robotsBlocked`). The background job registry (`obscura_research_start`/`_status`/`_stop`) has its
+own suite — injected clock and `deepResearch`/`generateLeads`/persist implementations, no real
+timers or network — covering round pacing, lead near-dup filtering, the singleton-job guard,
+`engines_suspended` detection, and `renderRunReport`'s output on every exit path
+(`test/deep-research.test.mjs`, `test/deep-research-mcp.test.mjs`, `test/generate-leads.test.mjs`,
+`test/run-report.test.mjs`). A separate offline CI gate (`test/bench-gate.test.mjs`) runs the real crawl over
 frozen SearXNG fixtures (`evals/research/`) and asserts it holds its measured retrieval floor — see
 `packages/obscura-web/src/bench-run.mjs` for the full per-arm decomposition and
 `docs/adr/0057-obscura-research-gather-over-rank.md` for what it measured.
