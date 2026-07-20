@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [4.4.0] - 2026-07-20
+
 ### Added
 
 - **`obscura_research` gains a background deep-research mode: three new tools, an unattended
@@ -87,6 +89,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   contract breaks — batched into one planned major with its migration doc. README links the
   policy from "Más · More".
 
+- **Repo face: a social-preview card, and the measured claims now name their substrate.**
+  `docs/assets/social-preview.png` (1280×640, on the `hero.svg` design language) gives GitHub's
+  social preview and link unfurls a real card instead of a cropped avatar. The READMEs'
+  token-economy paragraph now states what those numbers are measured against — a fixed labelled
+  corpus and a deterministic embedder, i.e. reproducible regression floors, not leaderboard
+  claims — and the hybrid-memory chip marks semantic search as the local opt-in it is. The code
+  already said both (`embeddings.py`, `ci.yml` comments); the front page now matches it.
+
 ### Fixed
 
 - **The repo's own `.cursor/rules/obsidian-memory.mdc` no longer ships the pre-rename block.** The
@@ -137,6 +147,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   link definitions — `v3.6.0` was never tagged — fixed by dropping the dead `[3.6.0]` definition,
   retargeting `[3.7.0]` to `v3.5.0...v3.7.0`, and moving `[Unreleased]` off its stale `v3.12.0`
   base onto `v4.3.0`.
+
+- **`ci / secrets-scan` no longer fails on a third-party licence server.** `gitleaks-action` v3
+  validates a licence against gitleaks.io on every run; while that endpoint answered "No server is
+  currently available" the job failed with "missing gitleaks license" on a leak-free tree — that is
+  what turned PRs #67 and #68 red. The gitleaks binary itself is MIT and needs no licence, so CI
+  installs v8.30.1 directly (sha256-verified, retry on download) and runs the same full-history
+  scan (236 commits, no leaks, exit 0).
 
 ## [4.3.0] - 2026-07-18
 
@@ -1891,7 +1908,8 @@ Prior history was undocumented and is summarized only in git log. Highlights:
 - Addition of `AGENTS.md` and `manifest.json` for machine-readable discoverability.
 - Seven hardening fixes for real-world install gaps.
 
-[Unreleased]: https://github.com/Vahlame/create-vkm-kit/compare/v4.3.0...HEAD
+[Unreleased]: https://github.com/Vahlame/create-vkm-kit/compare/v4.4.0...HEAD
+[4.4.0]: https://github.com/Vahlame/create-vkm-kit/compare/v4.3.0...v4.4.0
 [3.12.0]: https://github.com/Vahlame/create-vkm-kit/compare/v3.11.0...v3.12.0
 [3.10.0]: https://github.com/Vahlame/create-vkm-kit/compare/v3.9.1...v3.10.0
 [3.7.0]: https://github.com/Vahlame/create-vkm-kit/compare/v3.5.0...v3.7.0
