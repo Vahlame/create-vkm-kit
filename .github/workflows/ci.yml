@@ -13,6 +13,14 @@ on:
 permissions:
   contents: read
 
+# Rapid pushes to a PR branch otherwise run overlapping full matrices (13 jobs each,
+# 3 OSes). Superseded runs tell you nothing, so cancel them — but never on main or
+# when called from release.yml, where every commit's result is a record worth having
+# and a cancelled run would masquerade as a release gate that "did not fail".
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 # All third-party actions are pinned to a commit SHA (with version comment) to
 # guard the supply chain. To bump, resolve the new SHA with:
 #   gh api repos/<owner>/<repo>/git/refs/tags/<vN> --jq '.object.sha'
