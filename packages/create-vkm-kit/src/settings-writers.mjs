@@ -108,10 +108,10 @@ export function removeManagedPermissions(existing, { deny = [], allow = [] } = {
     return settings;
   }
   const permissions = { ...settings.permissions };
-  for (const [key, ours] of [
+  for (const [key, ours] of /** @type {[string, string[]][]} */ ([
     ["deny", deny],
     ["allow", allow]
-  ]) {
+  ])) {
     if (!Array.isArray(permissions[key])) continue;
     const kept = permissions[key].filter((rule) => !ours.includes(rule));
     if (kept.length) permissions[key] = kept;

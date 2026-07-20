@@ -39,7 +39,7 @@ export async function loadCurationSet(path = CURATION_QUERIES_PATH) {
     try {
       obj = JSON.parse(line);
     } catch (err) {
-      throw new Error(`bench-curate: malformed line: ${line} (${err.message})`);
+      throw new Error(`bench-curate: malformed line: ${line} (${err.message})`, { cause: err });
     }
     if (!obj.query || !obj.url || !["relevant", "irrelevant"].includes(obj.label)) {
       throw new Error(`bench-curate: line missing query/url/label(relevant|irrelevant): ${line}`);

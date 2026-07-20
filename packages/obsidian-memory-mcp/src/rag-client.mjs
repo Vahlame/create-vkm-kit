@@ -81,7 +81,8 @@ export function defaultRagTimeoutMs() {
  * @param {string} command
  * @param {string[]} spawnArgs
  * @param {{env?: NodeJS.ProcessEnv, timeoutMs?: number}} [opts]
- * @returns {Promise<unknown>}
+ * @returns {Promise<any>} whatever JSON.parse(stdout) yields — shape is defined by the
+ *   Python backend's subcommand, not statically known here; callers narrow as needed.
  */
 export async function runRagJsonRaw(command, spawnArgs, opts = {}) {
   const timeoutMs = opts.timeoutMs ?? defaultRagTimeoutMs();
@@ -119,7 +120,8 @@ export async function runRagJsonRaw(command, spawnArgs, opts = {}) {
   } catch (e) {
     const head = (r.stdout || "").slice(0, 400);
     throw new Error(
-      `obsidian-memory-rag returned non-JSON output (${e.message}). First 400 chars: ${head}`
+      `obsidian-memory-rag returned non-JSON output (${e.message}). First 400 chars: ${head}`,
+      { cause: e }
     );
   }
 }
@@ -129,7 +131,7 @@ export async function runRagJsonRaw(command, spawnArgs, opts = {}) {
  * @param {string[]} args
  * @param {string} [ragSrc] - defaults to {@link defaultRagSrc}
  * @param {{timeoutMs?: number}} [opts]
- * @returns {Promise<unknown>}
+ * @returns {Promise<any>} see {@link runRagJsonRaw}
  */
 export async function runRagJson(args, ragSrc = defaultRagSrc(), opts = {}) {
   const py = defaultPython();

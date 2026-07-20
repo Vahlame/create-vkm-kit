@@ -118,7 +118,7 @@ export async function checkOllama({
   model = DEFAULT_MODEL,
   signal
 } = {}) {
-  let version = null;
+  let version;
   try {
     const res = await fetch(`${host}/api/version`, { signal });
     if (!res.ok) return { ok: false, version: null, hasModel: false };
@@ -350,7 +350,7 @@ async function chatJSON({
  * local heuristic extractor.
  * @param {{ markdown: string, query: string, model?: string, host?: string, keepAlive?: string,
  *           maxInputChars?: number, signal?: AbortSignal, timeoutMs?: number }} opts
- * @returns {Promise<{ relevant: boolean, excerpt: string, truncated: boolean }>}
+ * @returns {Promise<{ relevance: number, reason: string, excerpt: string, relevant: boolean, truncated: boolean }>}
  */
 export async function curatePage({
   markdown,

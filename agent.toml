@@ -9,7 +9,7 @@ vaultEnvVar = "BASIC_MEMORY_HOME"
 
 [daemon]
 binary = "obsidian-memoryd"
-module = "github.com/Vahlame/obsidian-memory-kit/cmd/obsidian-memoryd"
+module = "github.com/Vahlame/create-vkm-kit/cmd/obsidian-memoryd"
 
 [topics]
 tags = [

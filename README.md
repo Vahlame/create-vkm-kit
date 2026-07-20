@@ -162,6 +162,7 @@ si regresa. Detalle · detail: [🇪🇸 cómo funciona](docs/es/como-funciona.m
 - **PC nuevo · Fresh PC (Claude Code):** [🇪🇸 instalar en PC nueva](docs/es/instalar-pc-nueva.md) · [🇬🇧 fresh-PC install](docs/en/install-fresh-pc.md).
 - **Comparación con alternativas:** [FAQ 🇪🇸](docs/es/faq.md) · [FAQ 🇬🇧](docs/en/faq.md).
 - **Contribuir:** [`CONTRIBUTING.md`](CONTRIBUTING.md) · **Para agentes que tocan este repo:** [`AGENTS.md`](AGENTS.md).
+- **Versionado · Versioning:** SemVer sobre el contrato instalado; majors congelados salvo ruptura inevitable — [política](CONTRIBUTING.md#versioning-policy-post-4x).
 - **Privacidad / telemetría:** [`docs/observability.md`](docs/observability.md).
 
 ## Licencia · License

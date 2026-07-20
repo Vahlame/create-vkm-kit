@@ -111,6 +111,7 @@ Use a private git vault (example layout in `examples/`):
 ## Testing
 
 - **Agents sync:** `npm run sync-agents:check` (must exit 0 in CI).
+- **Static analysis:** `npm run lint` (ESLint 10 flat config, incl. type-aware promise rules) and `npm run typecheck` (strict TS scripts + `checkJs` over shipped JS via `tsconfig.checkjs.json`); both gate CI.
 - **Go daemon:** `go test ./...` from repo root (`go.mod`).
 - **Node packages:** `npm test` in each `packages/*` workspace.
 - **Python RAG:** `pytest` under `packages/obsidian-memory-rag/`.

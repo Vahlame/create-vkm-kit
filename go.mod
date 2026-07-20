@@ -1,4 +1,4 @@
-module github.com/Vahlame/obsidian-memory-kit
+module github.com/Vahlame/create-vkm-kit
 
 go 1.22
 

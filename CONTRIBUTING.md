@@ -84,11 +84,15 @@ The maintainer cuts releases. The release process is:
 3. Tag `vX.Y.Z` and push.
 4. GitHub Actions publishes a Release with notes copied from `CHANGELOG.md`.
 
-SemVer interpretation for this repo:
+SemVer interpretation for this repo (rewritten for the kit era — the original wording predated the prompt→kit pivot):
 
-- **MAJOR**: prompt section numbers change, or the agent contract breaks (e.g., a new mandatory parameter the user must provide).
-- **MINOR**: new optional sections, new scripts, new docs, new known-error entries.
-- **PATCH**: typos, wording, internal cleanups.
+- **MAJOR**: the installed contract breaks — a CLI flag or default removed/renamed, an MCP tool renamed or removed, a vault-layout or hook change that forces the user to migrate. Every major ships with a migration guide (`docs/en/migration-X.md` / `docs/es/migracion-X.md`).
+- **MINOR**: new tools, flags, docs or install modes, backwards-compatible.
+- **PATCH**: fixes, wording, internal cleanups.
+
+### Versioning policy (post-4.x)
+
+The 1.x→4.x run in two months tracked a product pivot — v1 operational prompt → v2 vault+MCP stack → v3 script-free kit → v4 rename ([ADR-0041](docs/adr/0041-vkm-kit-rename-and-back-compat.md)) — not API instability. From 4.x on, **majors are frozen** except for unavoidable contract breaks: breaking changes are batched into a single planned major with its migration doc, never dripped across releases. When in doubt whether a change is MAJOR, open an issue first (see the ADR table above).
 
 ## Security
 

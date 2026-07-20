@@ -139,6 +139,7 @@ function parseFrontmatter(text) {
   if (!m) return { data: {}, body: text };
   const body = text.slice(m[0].length);
   const raw = m[1].split(/\r?\n/);
+  /** @type {Record<string, unknown>} */
   const data = {};
   for (let i = 0; i < raw.length; i++) {
     const km = raw[i].match(/^([A-Za-z0-9_]+):\s*(.*)$/);
@@ -247,7 +248,11 @@ async function updateHub(root, topic, query, sourceCount) {
   const { data, body } = parseFrontmatter(text);
   data.sources = sourceCount;
   const newBody = appendUnderHeading(body, "## Queries", `${nowIso} — ${query}`);
-  await atomicWrite(fp, renderFrontmatter(data) + newBody);
+  // `data` is `Record<string, unknown>` (parseFrontmatter's honest return type — a round-tripped
+  // frontmatter value could in principle be anything); in practice every value this module ever
+  // writes is a scalar/string-array, matching renderFrontmatter's stricter input type.
+  const scalarData = /** @type {Record<string, string|number|boolean|string[]>} */ (data);
+  await atomicWrite(fp, renderFrontmatter(scalarData) + newBody);
 }
 
 /** Rewrite `<root>/_index.md`'s one row for `topic` (create the table if this is the first
@@ -322,16 +327,21 @@ export async function listCoveredHashes(topic, researchDir) {
  * note is meant to hold). Dedup is by normalized-URL hash: a URL already in `sources/`
  * updates that same file in place (fresh `retrieved`, extract replaced if it changed) rather
  * than ever creating a second note for it.
- * @param {{ topic: string, query: string, results: Array<{url:string,title?:string,
+ * @param {{ topic?: unknown, query?: string, results?: Array<{url:string,title?:string,
  *           snippet?:string,extraction?:string,relevant?:boolean,fetchFailed?:boolean}>,
- *           researchDir?: string }} args
+ *           researchDir?: string }} [args] `topic` is `unknown`, not `string`: a missing/invalid
+ *           topic is a caller error {@link validateTopic} rejects with a typed message, not a
+ *           destructuring crash — so this must accept whatever a caller hands it, including {}.
  * @returns {Promise<{ topic: string, written: number, updated: number, dir: string }>}
  */
 export async function persistResults({ topic, query, results, researchDir } = {}) {
-  validateTopic(topic);
+  // A new binding, not a reassignment of `topic`: TS's control-flow narrowing does not carry an
+  // `unknown` parameter's reassigned type through to later reads in checkJs (verified — a
+  // `topic = validateTopic(topic)` reassignment still leaves `topic` typed `unknown` below).
+  const topicSlug = validateTopic(topic);
   const root = resolveResearchRoot(researchDir);
-  const topicDir = safeResearchPath(root, topic);
-  const sourcesDir = safeResearchPath(root, topic, "sources");
+  const topicDir = safeResearchPath(root, topicSlug);
+  const sourcesDir = safeResearchPath(root, topicSlug, "sources");
   await mkdir(sourcesDir, { recursive: true });
 
   let written = 0;
@@ -343,7 +353,7 @@ export async function persistResults({ topic, query, results, researchDir } = {}
     const h8 = hash8(r.url);
     const existingName = await findSourceByHash(sourcesDir, h8);
     const filename = existingName ?? `${h8}-${slugifyTitle(r.title)}.md`;
-    const fp = safeResearchPath(root, topic, "sources", filename);
+    const fp = safeResearchPath(root, topicSlug, "sources", filename);
 
     let prevData = {};
     if (existingName) {
@@ -366,10 +376,10 @@ export async function persistResults({ topic, query, results, researchDir } = {}
     else written++;
   }
 
-  await updateHub(root, topic, query, await countSources(sourcesDir));
-  await updateGlobalIndex(root, topic);
+  await updateHub(root, topicSlug, query, await countSources(sourcesDir));
+  await updateGlobalIndex(root, topicSlug);
 
-  return { topic, written, updated, dir: topicDir };
+  return { topic: topicSlug, written, updated, dir: topicDir };
 }
 
 // ── obscura_consolidate (R7'/R8): local map-reduce draft summary ───────────────────────────
@@ -430,7 +440,8 @@ async function summarizeAll(notes, topic, maxChars, summarizeImpl) {
  * overwrite it, `force` or not. No heuristic fallback: without Ollama this throws
  * {@link OllamaUnavailableError} outright (a summary a small model didn't actually write would
  * be worse than none).
- * @param {{ topic: string, force?: boolean, researchDir?: string, maxInputChars?: number }} args
+ * @param {{ topic?: unknown, force?: boolean, researchDir?: string, maxInputChars?: number }} [args]
+ *           `topic` is `unknown`, not `string` — see {@link persistResults}'s same choice.
  * @param {{ checkOllamaImpl?: typeof checkOllama, ensureOllamaImpl?: typeof ensureOllamaServer,
  *           summarizeImpl?: typeof summarizeNotes }} [deps]
  * @returns {Promise<{ sources_read: number, truncated: boolean, model: string, wrote: string }>}
@@ -445,10 +456,11 @@ export async function consolidateTopic(
     summarizeImpl = summarizeNotes
   } = deps;
 
-  validateTopic(topic);
+  // A new binding, not a reassignment: see the same note in `persistResults`.
+  const topicSlug = validateTopic(topic);
   const root = resolveResearchRoot(researchDir);
-  const sourcesDir = safeResearchPath(root, topic, "sources");
-  const summaryPath = safeResearchPath(root, topic, "summary.md");
+  const sourcesDir = safeResearchPath(root, topicSlug, "sources");
+  const summaryPath = safeResearchPath(root, topicSlug, "summary.md");
 
   let files;
   try {
@@ -498,14 +510,14 @@ export async function consolidateTopic(
   const notes = [];
   for (const f of files) {
     const { data, body } = parseFrontmatter(
-      await readFile(safeResearchPath(root, topic, "sources", f), "utf8")
+      await readFile(safeResearchPath(root, topicSlug, "sources", f), "utf8")
     );
     notes.push({
       text: `## ${f}\nurl: ${data.url ?? ""}\ntitle: ${data.title ?? ""}\n\n${body.trim()}`
     });
   }
 
-  const { summary, truncated } = await summarizeAll(notes, topic, maxInputChars, summarizeImpl);
+  const { summary, truncated } = await summarizeAll(notes, topicSlug, maxInputChars, summarizeImpl);
 
   const fm = renderFrontmatter({
     status: "draft-local",
@@ -514,7 +526,7 @@ export async function consolidateTopic(
     sources: files
   });
   await atomicWrite(summaryPath, `${fm}\n${summary.trim()}\n`);
-  await updateGlobalIndex(root, topic);
+  await updateGlobalIndex(root, topicSlug);
 
   return { sources_read: files.length, truncated, model: DEFAULT_MODEL, wrote: summaryPath };
 }
