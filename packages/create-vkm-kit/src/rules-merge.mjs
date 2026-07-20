@@ -16,7 +16,7 @@ import {
 // single source for the repo's own dogfooding drift gate (scripts/sync-agents.ts
 // byte-compares .cursor/rules/obsidian-memory.mdc against this + memoryRulesBlock).
 export const CURSOR_RULE_FRONTMATTER =
-  "---\ndescription: Markdown vault memory protocol (obsidian-memory-kit)\nalwaysApply: true\n---\n\n";
+  "---\ndescription: Markdown vault memory protocol (vkm-kit)\nalwaysApply: true\n---\n\n";
 
 /**
  * Merge a managed block into existing text.
