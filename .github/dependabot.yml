@@ -1,4 +1,9 @@
 version: 2
+
+# Four ecosystems ship in this repo — npm (root + packages/*), Go (the daemon), pip
+# (packages/obsidian-memory-rag) and the workflows' own actions. Only the last was
+# covered, while ci.yml's banner presents SHA-pinning as *the* supply-chain control:
+# that guards how actions are fetched, not what the dependency trees contain.
 updates:
   - package-ecosystem: github-actions
     directory: /
@@ -10,3 +15,40 @@ updates:
       - dependencies
       - ci
     open-pull-requests-limit: 5
+
+  # One entry covers the root manifest and every packages/* workspace: npm workspaces
+  # resolve from the root lockfile.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: chore
+    labels:
+      - dependencies
+    open-pull-requests-limit: 5
+    groups:
+      dev-dependencies:
+        dependency-type: development
+
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: chore
+    labels:
+      - dependencies
+      - go
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: pip
+    directory: /packages/obsidian-memory-rag
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: chore
+    labels:
+      - dependencies
+      - python
+    open-pull-requests-limit: 3

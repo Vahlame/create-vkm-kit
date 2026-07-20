@@ -32,7 +32,7 @@ npx prettier@3.8.4 --check "**/*.{json,yml,yaml,md,mjs,js,cjs,ts}"
 # Link check
 npx lychee --no-progress .
 
-# Go tests (requires Go 1.22+)
+# Go tests (requires Go 1.25+ — go-git v5.19 raised the floor)
 go test ./...
 go test ./... -race   # CI also runs the race detector on Linux
 
