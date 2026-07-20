@@ -485,7 +485,8 @@ async function mapWithConcurrency(
  *           dedupedSimilar?: number, robotsBlocked?: number, alreadyCovered?: number,
  *           enginesUnavailable?: string[], queries?: string[], concept?: string,
  *           results: Array<{ title:string, url:string, score:number,
- *           snippet:string, extraction:"ollama"|"heuristic", relevant:boolean,
+ *           snippet:string, extraction:"ollama"|"heuristic", relevant:boolean|null,
+ *           relevance?:number, reason?:string, truncated?:boolean,
  *           fetchFailed?:boolean }> }>}
  */
 export async function deepResearch(query, opts = {}, deps = {}) {

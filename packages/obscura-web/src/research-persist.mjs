@@ -382,6 +382,46 @@ export async function persistResults({ topic, query, results, researchDir } = {}
   return { topic: topicSlug, written, updated, dir: topicDir };
 }
 
+// ── writeRunReport — deep-research job trace ────────────────────────────────────────────────
+
+/** Filename shape `writeRunReport` accepts when a caller supplies one explicitly: must start
+ * with a word char, then word chars/dots/hyphens only, and end in `.md`. That charset excludes
+ * every path separator (`/`, `\`) and the leading-dot `..` traversal shape outright — see the
+ * doc comment on {@link writeRunReport} for why this regex exists at all. */
+const RUN_REPORT_FILENAME_RE = /^[\w][\w.-]*\.md$/;
+
+/**
+ * Write a background deep-research job's rendered run report to `<topic>/runs/<filename>`.
+ *
+ * Run reports are the durable trace of a background deep-research job (one file per run under
+ * `<topic>/runs/`), append-only history — a new run never overwrites an old report because the
+ * timestamped default filename (`new Date().toISOString()` with `:`/`.` swapped for `-`, so it
+ * survives as a filename on every OS this kit targets) is unique per run. The filename regex
+ * exists because `filename` is the ONE path segment a caller can influence here — `topic` is
+ * already `validateTopic`-locked and `"runs"` is fixed by this function, unlike `persistResults`
+ * where every segment is either regex-locked or derived by the module itself (hash8+slug); given
+ * that, {@link safeResearchPath}'s root-containment check below is the second line of defense,
+ * not the first.
+ * @param {{ topic?: unknown, content?: string, filename?: string, researchDir?: string }} [args]
+ *   `topic` is `unknown`, not `string` — see the same note on {@link persistResults}.
+ * @returns {Promise<{ path: string, filename: string }>} the absolute path written and the
+ *   filename actually used (echoes the generated default back when the caller didn't supply one).
+ */
+export async function writeRunReport({ topic, content, filename, researchDir } = {}) {
+  const topicSlug = validateTopic(topic);
+  const root = resolveResearchRoot(researchDir);
+  const name = filename ?? `${new Date().toISOString().replace(/[:.]/g, "-")}.md`;
+  if (!RUN_REPORT_FILENAME_RE.test(name)) {
+    throw new ResearchPersistError(
+      `invalid run report filename "${name}" — must match ${RUN_REPORT_FILENAME_RE}`,
+      "invalid_filename"
+    );
+  }
+  const fp = safeResearchPath(root, topicSlug, "runs", name);
+  await atomicWrite(fp, content ?? "");
+  return { path: fp, filename: name };
+}
+
 // ── obscura_consolidate (R7'/R8): local map-reduce draft summary ───────────────────────────
 
 /** Chunk pre-formatted note texts so no chunk's joined text exceeds `maxChars` — a note is
