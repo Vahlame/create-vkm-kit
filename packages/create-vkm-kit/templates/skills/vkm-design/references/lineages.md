@@ -6,6 +6,26 @@ somewhere specific. Typeface names are real and free (Google Fonts / Fontshare) 
 availability and current version are verified online at use-time like any library. Color values
 are seeds: run them through `scripts/palette.mjs` / `scripts/contrast.mjs` before shipping.
 
+## Contents
+
+- Swiss / International
+- Editorial print
+- Bauhaus / geometric
+- Brutalist / raw
+- Humanist minimal
+- Terminal / instrument
+- Art deco / ornament with geometry
+- Retro-digital
+- Naturalist / field guide
+- Heritage / workwear
+- Y2K chrome
+- Groovy 70s
+- Sci-fi HUD
+- Scandinavian folk
+- Collage / zine
+- Soft dimensional / clay
+- Using a capsule
+
 ## Swiss / International
 
 - **Essence:** objective clarity; the grid is visible in the result even when no line is drawn.

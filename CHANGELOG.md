@@ -8,6 +8,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **`obscura_research` gains a background deep-research mode: three new tools, an unattended
+  multi-round crawl, and a per-run report (ADR-0060).**
+  `obscura_research_start(objective, topics, topic, …)` launches a job that runs INSIDE the MCP
+  server process for up to 30 minutes, the way a human researcher iterates on a hard question —
+  each round reuses `deepResearch` whole, then a
+  local model (`generateLeads`, zero-shot, the same `qwen3.5:4b-q4_K_M` expand model curation
+  already uses for recall tasks) proposes typed next queries (`subtopic`/`related`/`analogy`/
+  `application`) anchored to the stated objective rather than the seed topics' literal wording. The
+  call itself returns in milliseconds: the MCP transport's 60s `tools/call` wall is client-side and
+  unavoidable for one call (ADR-0057 §5), so depth now lives entirely off the wire instead of
+  costing an agent round-trip per increment, the way the prior `persist:true`+`excludeHashes` loop
+  did (still supported, unchanged). Poll progress with `obscura_research_status`, stop early with
+  `obscura_research_stop`; only one job runs at a time — the same fan-out ban risk ADR-0057 §6
+  measured live applies at greater scale to an unattended run. Every round persists to
+  `RESEARCH/<topic>/` as it finishes (a killed process loses only the round in flight), and a run
+  report lands in `RESEARCH/<topic>/runs/<timestamp>.md` on every exit path — including an
+  "Unexplored leads" section naming application/improvement ideas the job never got to chase —
+  ready for `/vkm-research <topic>` to consolidate. New, optional env knobs:
+  `OBSCURA_DEEP_ROUND_MS` (default 100000) and `OBSCURA_DEEP_PACE_MS` (default 15000). This is the
+  "background continuation" mechanism ADR-0057's fourth addendum explicitly declined, pending "a
+  use case [that] ever needs progress with no caller ever returning" — the trigger it named,
+  firing. `packages/obscura-web` 326/326 tests, no regressions.
 - **Static analysis now gates the ~32k LOC of shipped JavaScript.** New root ESLint 10 flat
   config (`@eslint/js` recommended + tuned `no-unused-vars`, `no-shadow`, and the type-aware
   promise rules `no-floating-promises` / `await-thenable` / `no-misused-promises` via
@@ -24,6 +46,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   a `.catch` backstop), dead stores, and producer JSDoc contracts narrower than the values they
   actually return (e.g. `curatePage`'s undocumented `relevance`/`reason` fields).
 
+- **A safe self-update path for installed skill/subagent templates, plus an opt-in version
+  check (ADR-0061).** `npx @vkmikc/create-vkm-kit --check-update` reports the installed vs.
+  npm-latest version and a plan for every managed file under `~/.claude/skills/` and
+  `~/.claude/agents/`, without writing anything or ever failing on a network error (offline
+  degrades to an honest "skipped" line). `--update` applies that plan: new/missing/kit-only-changed
+  files install, a file you edited locally is left alone and reported as `conflict` (only
+  `--force` overwrites it, and it says so — that DISCARDS the local edit), and both accept
+  `--dry-run` to preview with zero writes. The classification is three-way (template vs. the
+  sidecar's recorded install-time hash vs. what's on disk now — chezmoi's
+  source/target/destination model), because the sidecar already recorded the ancestor hash for
+  uninstall's benefit; that is what makes "you edited this" and "the kit changed this"
+  distinguishable instead of both looking like "disk differs from template." v1 covers the
+  hash-guarded asset layer only — managed rule blocks and MCP registrations still need a normal
+  installer re-run.
+- **Structure gate for the shipped skill templates, against Anthropic's published
+  skill-authoring checklist (ADR-0061).** New `test/skill-structure.test.mjs` enforces, over all
+  four shipped skills: `SKILL.md` body ≤500 lines, a `## Contents` heading on any reference file
+  over 100 lines, one-level reference nesting (no new relative `.md`-to-`.md` link inside a
+  skill, past a small named baseline of four pre-existing ones), forward-slash link paths, and a
+  valid non-branded frontmatter `name`. `vkm-design`'s eight reference files over 100 lines gained
+  a Contents heading as part of landing this gate.
 - **Drift gate for the repo's own Cursor memory rule.** The committed
   `.cursor/rules/obsidian-memory.mdc` is fresh-install output of the installer
   (`installRules(["cursor"], "es")`), not an `agents-manifest.yaml` artifact — so no check

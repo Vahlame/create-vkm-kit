@@ -3,6 +3,17 @@
 Professional finish comes from real, current tools — not hand-rolled approximations of them. This
 file is a **map of categories and strong candidates**, deliberately unversioned.
 
+## Contents
+
+- The hard rule — verify libraries online before use
+- Web — styling & components
+- Mobile native
+- Desktop native
+- Terminal (TUI)
+- Dataviz
+- Brand / print / slides
+- Choosing when the project has nothing yet
+
 ## The hard rule
 
 > Before using ANY library below: verify its current major version, install command and API

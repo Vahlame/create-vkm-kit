@@ -659,6 +659,170 @@ export async function expandQuery({
   return { concept: String(validated.data.concept ?? "").trim(), queries };
 }
 
+// ── Lead generation (ADR-0057) ────────────────────────────────────────────────────────────
+//
+// Zero-shot ON PURPOSE — the exact lesson EXPAND_SYSTEM_PROMPT above already paid for. Two
+// earlier drafts of THAT prompt with few-shot examples both measured worse than the
+// example-free version on a 3.8B: golden-answer examples get copied out regardless of fit, and
+// unrelated-domain examples cross-bleed into the answer. Nothing about proposing leads makes
+// that finding not apply, so no examples were added here either. Runs on DEFAULT_EXPAND_MODEL,
+// not DEFAULT_MODEL, for the same reason expansion does: proposing NEW search directions the
+// session has not tried yet is a recall task, not a reading-comprehension one — the same
+// bake-off result as expansion (phi4-mini cannot do this, qwen3.5:4b can).
+/** @type {readonly ["subtopic", "related", "analogy", "application"]} */
+export const LEAD_KINDS = ["subtopic", "related", "analogy", "application"];
+
+const LEADS_SYSTEM_PROMPT = [
+  "You plan the NEXT web searches of an ongoing research session, like a human researcher who",
+  "reads what the last round found and decides where to dig next.",
+  "You are given the session OBJECTIVE, the queries ALREADY SEARCHED, and compact FINDINGS from",
+  "the latest round. Propose the next searches, each typed as exactly one kind:",
+  '  - "subtopic": digs deeper into something the findings surfaced.',
+  '  - "related": a correlated area the findings point at that the session has not covered yet.',
+  '  - "analogy": a technique or pattern from a DIFFERENT field that plausibly transfers to the',
+  "    objective.",
+  '  - "application": a concrete use, improvement, or feature idea for the objective, worth',
+  "    researching.",
+  "Rules:",
+  "  - ENGLISH keywords, 3-8 words. No sentences, no articles, no 'how do I'.",
+  "  - Every lead must plausibly advance the OBJECTIVE. Do not chase findings that drifted",
+  "    off-topic.",
+  "  - Never repeat or trivially rephrase an ALREADY SEARCHED query.",
+  "  - DO NOT INVENT specifics you were not given: no fabricated product names, versions, error",
+  "    codes or standard IDs. Vague-but-true beats precise-but-invented.",
+  "  - Prefer diversity: at most 2 leads of the same kind.",
+  '  - "why": ONE short clause tying the lead to the objective.',
+  "Respond ONLY with a JSON object matching the requested schema."
+].join("\n");
+
+const LeadsSchema = z.object({
+  leads: z
+    .array(
+      z.object({
+        query: z.string(),
+        kind: z.enum(LEAD_KINDS),
+        why: z.string().optional().default("")
+      })
+    )
+    .default([])
+});
+
+const LEADS_JSON_SCHEMA = {
+  type: "object",
+  properties: {
+    leads: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          query: { type: "string" },
+          kind: { type: "string", enum: LEAD_KINDS },
+          why: { type: "string" }
+        },
+        required: ["query", "kind", "why"]
+      }
+    }
+  },
+  required: ["leads"]
+};
+
+/** Join formatted bullet lines with "\n", dropping WHOLE lines from the FRONT once the result
+ * would exceed `capChars` — keeps the most recently pushed entries. For `done` that keeps the
+ * queries just searched (the ones a "don't repeat yourself" prompt needs most) over turn-one
+ * history; for `findings` (always a single round, no recency to speak of) it is a harmless
+ * plain cap. Always keeps at least one line, even one longer than the whole budget, rather than
+ * ever returning empty text for a non-empty input. */
+function capLines(lines, capChars) {
+  const kept = [];
+  let total = 0;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const sep = kept.length ? 1 : 0; // the joining "\n" this line would add
+    if (total + sep + lines[i].length > capChars && kept.length > 0) break;
+    kept.unshift(lines[i]);
+    total += sep + lines[i].length;
+  }
+  return kept.join("\n");
+}
+
+/**
+ * Propose the next searches for an ongoing `deepResearch` session (ADR-0057's iterative
+ * subtopic/related/analogy/application expansion), reading the latest round's curated findings
+ * the same way a human researcher decides where to dig next. An enhancement over the crawl,
+ * never a dependency — same contract as {@link expandQuery}: {@link OllamaUnavailableError}
+ * degrades to "no new leads this round", not a failed research round.
+ *
+ * @param {{ objective: string, findings: Array<{ title: string, note: string }>,
+ *           done?: string[], max?: number, model?: string, host?: string, keepAlive?: string,
+ *           signal?: AbortSignal, timeoutMs?: number }} opts
+ * @returns {Promise<{ leads: Array<{ query: string, kind: "subtopic"|"related"|"analogy"|"application", why: string }> }>}
+ * @throws {OllamaUnavailableError} on any failure — the caller degrades to zero new leads
+ */
+export async function generateLeads({
+  objective,
+  findings,
+  done = [],
+  max = 5,
+  model = DEFAULT_EXPAND_MODEL,
+  host = DEFAULT_OLLAMA_HOST,
+  keepAlive = DEFAULT_KEEP_ALIVE,
+  signal,
+  timeoutMs = 30_000
+}) {
+  const trimmedObjective = String(objective ?? "").trim();
+  if (!trimmedObjective) return { leads: [] };
+
+  const doneLines = (done ?? []).map((q) => `- ${String(q ?? "")}`);
+  const findingLines = (findings ?? []).map(
+    (f) => `- ${String(f?.title ?? "")} — ${String(f?.note ?? "")}`
+  );
+  const userContent =
+    `OBJECTIVE: ${trimmedObjective}\n\n` +
+    `ALREADY SEARCHED:\n${capLines(doneLines, 2000)}\n\n` +
+    `LATEST FINDINGS:\n${capLines(findingLines, 6000)}\n\n` +
+    `Emit at most ${max} leads.`;
+
+  const parsed = await chatJSON({
+    host,
+    model,
+    keepAlive,
+    systemPrompt: LEADS_SYSTEM_PROMPT,
+    userContent,
+    jsonSchema: LEADS_JSON_SCHEMA,
+    signal,
+    timeoutMs
+  });
+  const validated = LeadsSchema.safeParse(parsed);
+  if (!validated.success) {
+    throw new OllamaUnavailableError(
+      `Ollama leads output failed schema validation: ${validated.error.message}`,
+      "schema_reject"
+    );
+  }
+
+  // Post-filter, same spirit as expandQuery's dedupe loop above: a small model asked for N
+  // leads will happily repeat something already searched, or repeat itself within one batch —
+  // each duplicate would cost a real SearXNG round-trip downstream for zero new candidates.
+  const doneSet = new Set(
+    (done ?? []).map((q) =>
+      String(q ?? "")
+        .trim()
+        .toLowerCase()
+    )
+  );
+  const seen = new Set();
+  const leads = [];
+  for (const raw of validated.data.leads) {
+    const query = String(raw.query ?? "").trim();
+    if (!query || query.length > 200) continue; // a "query" that long is a sentence leaked in
+    const key = query.toLowerCase();
+    if (doneSet.has(key) || seen.has(key)) continue;
+    seen.add(key);
+    leads.push({ query, kind: raw.kind, why: String(raw.why ?? "").trim() });
+    if (leads.length >= max) break;
+  }
+  return { leads };
+}
+
 const SUMMARIZE_SYSTEM_PROMPT = [
   "You are a careful research librarian. You are shown research notes — verbatim excerpts from",
   "web pages — about a TOPIC, and must write (or extend) a synthesized draft summary.",
