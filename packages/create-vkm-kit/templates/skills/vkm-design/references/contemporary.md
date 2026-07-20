@@ -10,6 +10,26 @@ Award-level work adds one or two **moves** — deliberate, high-intensity compos
 on top of a quiet, gate-passing system. This file is the menu of moves that are alive right now,
 each with an executable recipe and its slop-version to avoid.
 
+## Contents
+
+- The boldness budget (rule, not vibe)
+- The moves — recipes and their slop versions
+  1. Typographic statement
+  2. Exposed structure
+  3. Color-field flips
+  4. Editorial overlap
+  5. Marquee strip
+  6. Scroll narrative
+  7. Cinematic block + grain
+  8. Micro-interactions that move
+  9. Retro-digital quote
+  10. Immersive/3D touch (declare the budget)
+  11. Image treatment as identity
+  12. Sticker & badge layer
+  13. Giant cropped wordmark
+  14. Custom cursor & selection
+- Where this plugs in
+
 ## The boldness budget (rule, not vibe)
 
 Every new surface gets **1–2 moves at full intensity, everything else stays quiet**. Zero moves =

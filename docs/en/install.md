@@ -376,6 +376,22 @@ npx @vkmikc/create-vkm-kit "<VAULT>" -y
 
 Also compare your User Rules with the **Step 4** block in case it changed.
 
+### Keeping the kit up to date (skills & subagents)
+
+Once installed, skills and subagent templates live under `~/.claude/skills/` and
+`~/.claude/agents/` as files you own and may edit. Two flags keep them current without the
+whole-installer re-run above:
+
+```bash
+npx @vkmikc/create-vkm-kit --check-update   # read-only: installed vs. npm-latest + a plan
+npx @vkmikc/create-vkm-kit --update         # applies it (add --dry-run to preview first)
+```
+
+**Safety contract in one sentence:** files you edited are never overwritten without `--force` — a
+locally-modified file is reported as a `conflict` and left alone; `--force` overwrites it anyway,
+which **discards your edit**. `--check-update` writes nothing and never fails on a network error
+(offline prints an honest "skipped" line). See ADR-0061.
+
 ---
 
 ## Advanced verification (optional)

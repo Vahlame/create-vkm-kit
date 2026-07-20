@@ -4,6 +4,16 @@ A compressed, real pass through generate mode. Every validator line below is act
 the scripts in this skill, not invented. Use this as the pattern to match; do not copy its
 direction into unrelated briefs (that would be slop with extra steps).
 
+## Contents
+
+- Brief — the example client brief
+- Step 0 — name the default, ban it
+- Three directions (axes per `references/direction.md`, capsules per `references/lineages.md`)
+- System before screens — tokens, generated then verified
+- Build notes that follow from the direction
+- One crit round (vocabulary from `references/designer-mind.md`)
+- Deliver — the final handoff summary
+
 ## Brief
 
 "Dashboard for a bike-repair shop POS: today's work orders, parts stock alerts, cash summary.

@@ -60,6 +60,11 @@ Each file in this directory captures one design decision: what was chosen, what 
 | [ADR-0054](./0054-obscura-research-local-deep-crawl.md)            | `obscura_research`: deep web research as local CPU/RAM work, not tokens                   | Accepted |
 | [ADR-0055](./0055-obscura-research-local-llm-curation.md)          | `obscura_research` curates pages with a local Ollama model, not keyword overlap           | Accepted |
 | [ADR-0056](./0056-research-knowledge-bank.md)                      | `RESEARCH/`: persistent web-research knowledge bank in the same vault, section-filtered   | Accepted |
+| [ADR-0057](./0057-obscura-research-gather-over-rank.md)            | `obscura_research`: the answer is lost at gather, not at rank                             | Accepted |
+| [ADR-0058](./0058-vkm-downloads-file-download-tool.md)             | vkm-downloads: a guarded file-download manager MCP                                        | Accepted |
+| [ADR-0059](./0059-vkm-downloads-background-jobs-and-mirrors.md)    | vkm-downloads: background jobs, sets, resume, and fastest-mirror selection                | Accepted |
+| [ADR-0060](./0060-obscura-deep-research-background-job.md)         | Background deep-research jobs: depth that outlives an agent-loop turn                     | Accepted |
+| [ADR-0061](./0061-kit-update-and-skill-structure-gate.md)          | Kit update path (three-way hash classification) + skill-structure gate                    | Accepted |
 
 ## Template
 
