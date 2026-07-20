@@ -41,6 +41,13 @@ async function connectedClient(defaultVault) {
   return {
     client,
     async cleanup() {
+      // Close BEFORE restoring the env, and actually close: this used to restore
+      // BASIC_MEMORY_HOME only, leaving a connected client+server pair alive per
+      // call (~15 per run of this file). The vault is resolved lazily from the
+      // environment on every call, so a surviving server that handles anything
+      // after the restore resolves against the AMBIENT vault — the developer's
+      // real one — instead of this test's fixture.
+      await Promise.allSettled([client.close(), server.close()]);
       if (prevHome === undefined) delete process.env.BASIC_MEMORY_HOME;
       else process.env.BASIC_MEMORY_HOME = prevHome;
     }

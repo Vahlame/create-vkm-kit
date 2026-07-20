@@ -118,12 +118,22 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-2022, macos-14]
+        node: [24]
+        # `engines: node >=20` is declared in five manifests and advertised in the
+        # README badge, and until this leg existed nothing verified it: every job
+        # pinned 24, and there is no runtime guard either. One ubuntu leg on the
+        # declared floor is enough to keep the claim honest without tripling the
+        # matrix — if it ever fails, either the code or the claim is wrong, and
+        # both are worth knowing.
+        include:
+          - os: ubuntu-latest
+            node: 20
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: 24
+          node-version: ${{ matrix.node }}
       - run: npm ci
       - run: npm test --workspaces --if-present
 

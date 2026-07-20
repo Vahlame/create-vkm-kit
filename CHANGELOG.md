@@ -77,6 +77,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **The `agent.toml` schema check no longer rides on an unpinned interpreter.** `tomllib` is stdlib
   only from 3.11 and the `lint` job had no `setup-python`; it is now pinned to 3.12 like the other
   Python jobs. The network-bound `links` and `mcp-smoke` jobs get timeouts instead of the 6h default.
+- **`engines: node >=20` was declared in five manifests, advertised in the README badge, and
+  verified nowhere** — every CI job pinned Node 24 and there is no runtime guard. `test-node` now
+  includes one ubuntu leg on the declared floor, enough to keep the claim honest without tripling
+  the matrix.
+- **Latent test flakes, fixed at the mechanism rather than by widening a tolerance.**
+  `hybrid-mcp.test.mjs`'s `cleanup()` restored `BASIC_MEMORY_HOME` but never closed the client or
+  server, leaking a connected pair per call (~15 per run); since the vault is resolved lazily from
+  the environment on every call, a surviving server that handled anything after the restore would
+  resolve against the _ambient_ vault — the developer's real one. It now closes both, before
+  restoring the env. And `ollama-resources.test.mjs` asserted `elapsed < 1000ms` against a closed
+  port as a proxy for "it short-circuited" — a proxy a loaded runner, a GC pause, or a firewall
+  that DROPs rather than RSTs can blow. It now points `ensureOllamaServer` at a **reachable** fake
+  Ollama and asserts it _still_ returns false: an implementation that probed would find
+  `/api/version` answering and return true, so only a real short-circuit passes. Deterministic, and
+  a stronger claim than the timing check ever made.
 - **The installer reported its own version as `v2 / v3`.** A hardcoded banner string on a 4.x kit —
   the one place every user sees a version was the one place guaranteed to be wrong. It now prints
   `readKitVersion()`, already the source of truth for `--check-update` and the sidecar's
