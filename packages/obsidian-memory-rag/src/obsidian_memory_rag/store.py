@@ -3,7 +3,15 @@
 from __future__ import annotations
 
 import sqlite3
+import time
 from pathlib import Path
+
+# Budget for a lock-taking connection-setup step. Used twice, deliberately: as
+# `PRAGMA busy_timeout` (sqlite's own blocking retry, which covers ordinary
+# statements) and as the ceiling for the manual WAL-transition retry below,
+# which that handler does NOT cover. Bounded, not indefinite: a genuinely stuck
+# writer still surfaces OperationalError instead of hanging forever.
+BUSY_TIMEOUT_MS = 30_000
 
 # Bump whenever a *derived* table's shape or how it is populated changes, so the
 # indexer knows to rebuild it. The knowledge-graph tables (relations/observations)
@@ -74,28 +82,82 @@ CREATE INDEX IF NOT EXISTS idx_recall_log_path ON recall_log(path, event, at_ns)
 """
 
 
+def _enable_wal(conn: sqlite3.Connection) -> None:
+    """Switch the database to WAL, retrying while a competing writer blocks it.
+
+    Why this cannot just be ``conn.execute("PRAGMA journal_mode=WAL;")``:
+    converting a database *into* WAL needs a brief EXCLUSIVE lock, and sqlite
+    takes it on a code path (``pagerExclusiveLock``) that does NOT consult the
+    busy handler. So ``PRAGMA busy_timeout`` — however large, and even when set
+    first — does not apply to this one statement: a contended transition fails
+    *instantly* with "database is locked". Measured, not assumed: with
+    busy_timeout=3000 already set, a transition contended by an open write
+    transaction raises in 0.000s, while the same pragma against an
+    already-WAL database returns 'wal' in 0.008s taking no lock at all.
+
+    That second measurement is what makes a plain retry the right fix rather
+    than a band-aid: the *only* way to lose this race is for another connection
+    to be converting the same database, and once any one of them wins, every
+    subsequent attempt is a lock-free no-op. So the loop converges as soon as
+    the winner commits, instead of spinning for the full budget.
+
+    The trigger in practice is a cold vault, not an exotic edge case:
+    ``assembleContext`` fans out three rag processes over one vault at once, so
+    the first query against a fresh index has three processes creating the same
+    database concurrently.
+
+    A non-lock failure is re-raised immediately. So is a lock failure past the
+    budget — with the original error, which is the useful diagnostic. A database
+    that simply cannot do WAL (some network filesystems) reports the old mode as
+    the pragma's *result* rather than raising, and is left alone exactly as
+    before: this function only ever retries a genuine lock.
+    """
+    deadline = time.monotonic() + BUSY_TIMEOUT_MS / 1000
+    delay = 0.005
+    while True:
+        try:
+            conn.execute("PRAGMA journal_mode=WAL;")
+            return
+        except sqlite3.OperationalError as exc:
+            # "database is locked" (SQLITE_BUSY) / "database table is locked"
+            # (SQLITE_LOCKED). Anything else is not contention — fail loudly.
+            if "locked" not in str(exc).lower():
+                raise
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise
+            time.sleep(min(delay, remaining))
+            delay = min(delay * 2, 0.1)
+
+
 def connect(db_path: Path) -> sqlite3.Connection:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path, isolation_level=None)
-    conn.row_factory = sqlite3.Row
-    # WAL + mmap improve read-heavy agent workloads on large vaults.
-    conn.execute("PRAGMA journal_mode=WAL;")
-    conn.execute("PRAGMA synchronous=NORMAL;")
-    conn.execute("PRAGMA temp_store=MEMORY;")
-    conn.execute("PRAGMA mmap_size=268435456;")
-    # Two concurrent ensure_fresh() calls (e.g. two overlapping MCP requests) each
-    # open their own connection and take a writer lock via BEGIN IMMEDIATE
-    # (index_vault/index_vectors). Without this, sqlite3.connect()'s own implicit
-    # ~5s busy wait is the only thing standing between a second writer and an
-    # instant "database is locked" — and it is silently too short once a single
-    # commit batch (batch_commit_every notes, each re-embedded) legitimately holds
-    # the lock longer, e.g. under a real (non-hashing) embedder. Make the wait
-    # explicit and generous instead of relying on that undocumented default;
-    # sqlite's own busy handler blocks-and-retries BEGIN IMMEDIATE transparently,
-    # so no manual retry loop is needed on top (verified empirically — see
-    # tests/test_concurrent_ensure_fresh.py). Bounded, not indefinite: a genuinely
-    # stuck writer still surfaces OperationalError after this many ms.
-    conn.execute("PRAGMA busy_timeout=30000;")
+    try:
+        conn.row_factory = sqlite3.Row
+        # FIRST, before any statement that can take a lock: two concurrent
+        # ensure_fresh() calls (e.g. two overlapping MCP requests) each open their
+        # own connection and take a writer lock via BEGIN IMMEDIATE
+        # (index_vault/index_vectors). Without this, sqlite3.connect()'s own
+        # implicit ~5s busy wait is the only thing standing between a second
+        # writer and an instant "database is locked" — and it is silently too
+        # short once a single commit batch (batch_commit_every notes, each
+        # re-embedded) legitimately holds the lock longer, e.g. under a real
+        # (non-hashing) embedder. Make the wait explicit and generous instead of
+        # relying on that undocumented default; sqlite's busy handler then
+        # blocks-and-retries BEGIN IMMEDIATE transparently, so no manual retry
+        # loop is needed for *those* (verified — tests/test_concurrent_ensure_fresh.py).
+        conn.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_MS};")
+        # WAL + mmap improve read-heavy agent workloads on large vaults. WAL needs
+        # its own retry: the busy handler above does not cover the transition.
+        _enable_wal(conn)
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        conn.execute("PRAGMA temp_store=MEMORY;")
+        conn.execute("PRAGMA mmap_size=268435456;")
+    except BaseException:
+        # Never leak the handle (and its locks) when setup fails partway.
+        conn.close()
+        raise
     return conn
 
 
