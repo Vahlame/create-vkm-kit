@@ -65,9 +65,24 @@ test("draftSpec honors an explicit keepAlive override", async () => {
   }
 });
 
-test("ensureOllamaServer never spawns for a custom (user-managed) host", async () => {
-  const started = Date.now();
-  const up = await ensureOllamaServer({ host: "http://127.0.0.1:1" });
-  assert.equal(up, false);
-  assert.ok(Date.now() - started < 1000, "must return immediately, no spawn/poll");
+test("ensureOllamaServer never spawns or probes for a custom (user-managed) host", async () => {
+  // Proven by behaviour, not by the clock. This used to assert `elapsed < 1000ms`
+  // against a closed port — a proxy for "it short-circuited", but one a loaded
+  // runner, a GC pause, or a firewall that DROPs instead of RSTs can blow.
+  //
+  // Pointing it at a REACHABLE fake Ollama is a stronger and fully deterministic
+  // check: an implementation that probed would find /api/version answering and
+  // return true. Only a real short-circuit can still return false here.
+  const { server } = fakeOllama();
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const host = `http://127.0.0.1:${server.address().port}`;
+  try {
+    assert.equal(
+      await ensureOllamaServer({ host }),
+      false,
+      "a custom host is user-managed: never spawned, and never probed either"
+    );
+  } finally {
+    server.close();
+  }
 });
