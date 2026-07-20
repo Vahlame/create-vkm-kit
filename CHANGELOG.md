@@ -44,7 +44,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   broken the job with `ERR_MODULE_NOT_FOUND`.
 - `scripts/linkcheck.mjs` finally runs in CI. It validates relative links **and `#anchor`
   fragments against real heading slugs** — coverage the lychee job does not provide — and was
-  written, wired into `package.json`, and then never invoked by any workflow.
+  written, wired into `package.json`, and then never invoked by any workflow. Turning it on
+  immediately caught a cross-platform hazard: `CLAUDE.md`, `.clinerules` and
+  `.github/copilot-instructions.md` are **symlinks to `AGENTS.md`** so each agent tool finds its
+  own filename, and following one re-resolves AGENTS.md's relative links from the alias's
+  directory — `./docs/en/install.md` becomes `.github/docs/en/install.md`. It passed on Windows
+  and failed only on Linux CI, because a Windows checkout without symlink support stores those
+  three as ordinary ~12-byte files containing the target path. `walk()` now skips symlinks: an
+  alias's links are already validated once at the target's real location, the only place its
+  relative paths mean anything.
 
 ### Fixed
 

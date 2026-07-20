@@ -12,10 +12,24 @@ import { join, resolve, dirname, extname, relative } from "node:path";
 const ROOT = resolve(process.argv[2] ?? ".");
 const IGNORE_DIRS = new Set([".git", "node_modules", ".pytest_cache", "bin"]);
 
-/** Recursively collect *.md files under ROOT, skipping ignored dirs. */
+/** Recursively collect *.md files under ROOT, skipping ignored dirs and symlinks.
+ *
+ * Symlinked docs are ALIASES, not documents: this repo points `CLAUDE.md`,
+ * `.clinerules` and `.github/copilot-instructions.md` at `AGENTS.md` so each agent
+ * tool finds its own filename. Following them would re-resolve AGENTS.md's relative
+ * links from the alias's directory — so `./docs/en/install.md`, correct at the root,
+ * is looked up as `.github/docs/en/install.md` and reported missing. The content is
+ * already checked once at its real location, which is the only place its relative
+ * paths mean anything.
+ *
+ * Platform note: on a Windows checkout without symlink support these are ordinary
+ * ~13-byte files containing the target path, so they contain no links and pass
+ * either way. That divergence is exactly why this was invisible locally and only
+ * failed on Linux CI. */
 function walk(dir) {
   const out = [];
   for (const e of readdirSync(dir, { withFileTypes: true })) {
+    if (e.isSymbolicLink()) continue;
     if (e.isDirectory()) {
       if (IGNORE_DIRS.has(e.name)) continue;
       out.push(...walk(join(dir, e.name)));
