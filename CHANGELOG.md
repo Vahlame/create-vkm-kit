@@ -24,6 +24,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   a `.catch` backstop), dead stores, and producer JSDoc contracts narrower than the values they
   actually return (e.g. `curatePage`'s undocumented `relevance`/`reason` fields).
 
+- **Drift gate for the repo's own Cursor memory rule.** The committed
+  `.cursor/rules/obsidian-memory.mdc` is fresh-install output of the installer
+  (`installRules(["cursor"], "es")`), not an `agents-manifest.yaml` artifact — so no check
+  covered it and it silently kept the pre-rename `obsidian-memory:start/end` sentinels and
+  `create-obsidian-memory` branding across the vkm-kit rename (ADR-0041). `sync-agents.ts` now
+  renders the fresh-install output (the newly exported `CURSOR_RULE_FRONTMATTER` +
+  `memoryRulesBlock("es")` through the real `mergeManagedBlock`) and byte-compares it under
+  `--check` (already in CI), failing with a "rerun the generator: npm run sync-agents" hint;
+  write mode regenerates the file. The committed copy is regenerated to the current block, and a
+  package test pins generator output ≡ gate expectation so the two can never diverge.
+
 ### Changed
 
 - **`CONTRIBUTING.md`'s SemVer section now describes the kit, not the v1 prompt, and adds an
