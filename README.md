@@ -47,7 +47,7 @@ is the MCP server; everything else (semantic search, sync daemon) is optional.
 > [**Cómo funciona**](docs/es/como-funciona.md) · [**How it works**](docs/en/how-it-works.md).
 
 <p align="center">
-  🧠 <b>Memoria híbrida</b> BM25 + semántica + grafo&ensp;·&ensp;💸 <b>Token-saver</b> (gate CI ≥30 %)&ensp;·&ensp;🩺 <b>vkm-doctor</b> — tokens y caché, 100 % local&ensp;·&ensp;📝 <b>vkm-spec</b> idea → spec&ensp;·&ensp;🛠️ <b>Skills</b> <code>/vkm-discipline</code> · <code>/vkm-spec</code> · <code>/vkm-design</code> · <code>/vkm-research</code>&ensp;·&ensp;🕶️ <b>Web sigilosa</b> (obscura, opt-in)
+  🧠 <b>Memoria híbrida</b> BM25 + semántica local (opt-in) + grafo&ensp;·&ensp;💸 <b>Token-saver</b> (gate CI ≥30 %)&ensp;·&ensp;🩺 <b>vkm-doctor</b> — tokens y caché, 100 % local&ensp;·&ensp;📝 <b>vkm-spec</b> idea → spec&ensp;·&ensp;🛠️ <b>Skills</b> <code>/vkm-discipline</code> · <code>/vkm-spec</code> · <code>/vkm-design</code> · <code>/vkm-research</code>&ensp;·&ensp;🕶️ <b>Web sigilosa</b> (obscura, opt-in)
 </p>
 
 ---
@@ -149,7 +149,8 @@ passage-first **−62%** vs leer notas enteras (coste real del wire, k=3), `asse
 **−68% de tokens de wire (mediana)** vs encadenar búsquedas (gate CI 0.60/0.90), token-saver
 **≥30% de compactación con cero pérdida de diagnóstico** (gate CI) y **≈ −1.300 tokens/sesión**
 de renta fija (schemas + hook + bloque de reglas) — cada número tiene un gate que **rompe el build**
-si regresa. Detalle · detail: [🇪🇸 cómo funciona](docs/es/como-funciona.md) ·
+si regresa (corpus fijo etiquetado + embedder determinista: pisos de regresión reproducibles,
+no un leaderboard). Detalle · detail: [🇪🇸 cómo funciona](docs/es/como-funciona.md) ·
 [🇬🇧 how it works](docs/en/how-it-works.md) · [`evals/`](evals/).
 
 ---
