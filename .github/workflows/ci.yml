@@ -45,10 +45,17 @@ jobs:
         run: npx --yes prettier@3.8.4 --check "**/*.{json,yml,yaml,md,mjs,js,cjs,ts}"
       - name: eslint (incl. type-aware promise rules over all JS)
         run: npm run lint
-      - name: typecheck (strict TS scripts + checkJs over shipped JS)
+      # "strict" is exact, not aspirational: the TS pass is fully strict; the checkJs
+      # pass enables every strict sub-flag measured to cost zero (see the //strict note
+      # in tsconfig.checkjs.json for the three still off and what each would cost).
+      - name: typecheck (strict TS scripts + partially-strict checkJs over shipped JS)
         run: npm run typecheck
       - name: sync agents
         run: npm run sync-agents:check
+      # Relative links AND #anchor fragments against real heading slugs — coverage the
+      # lychee job does not provide. Was written, wired into package.json, and never run.
+      - name: linkcheck (in-repo links + anchors)
+        run: npm run linkcheck
       - name: license mirrors (packages/* == root LICENSE.md)
         run: npm run license:sync:check
       - name: validate agent.toml (tomllib)
@@ -78,6 +85,26 @@ jobs:
         if: matrix.os == 'ubuntu-22.04'
         shell: bash
         run: test $(wc -c < obsidian-memoryd) -lt 20971520
+
+  # The shipped daemon's dependency tree had NO automation asking whether it carried
+  # advisories: dependabot covered only actions, and nothing ran govulncheck. It was
+  # carrying 10 REACHABLE vulnerabilities (called, not merely present) across go-git,
+  # circl and x/crypto — all with published fixes. This gate is what keeps that at zero.
+  #
+  # Deliberately a hard gate, not informational: a `continue-on-error` security step is
+  # the silent-pass antipattern. `stable` rather than go-version-file on purpose — most
+  # advisories here are Go stdlib ones, fixed by the toolchain, and pinning to the
+  # go.mod directive would report vulns it is impossible to act on from this repo.
+  govulncheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: stable
+      - name: govulncheck (reachable advisories in the shipped daemon)
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
   test-node:
     strategy:

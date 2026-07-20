@@ -1,5 +1,5 @@
 {
-  "//": "Type surface for typescript-eslint only (promise rules need type info). Not a gate — the CI-gated checkJs pass is tsconfig.checkjs.json, which scopes down to shipped src.",
+  "//": "Type surface for typescript-eslint (promise rules need type info). Not itself a gate — the CI-gated checkJs pass is tsconfig.checkjs.json, which scopes down to shipped src. But note it EXTENDS this file, so the `strict: false` below is the gate's inherited baseline, not a lint-only setting; tsconfig.checkjs.json re-enables, flag by flag, every strict option measured to cost zero. Tighten strictness there, not here, unless you mean to move the lint surface too.",
   "compilerOptions": {
     "target": "ES2022",
     "module": "NodeNext",

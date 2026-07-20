@@ -1,6 +1,6 @@
 ## Stack (repo)
 
-- **Languages:** Markdown (vault + docs), TypeScript (tooling), Go 1.22+ (`obsidian-memoryd`), Python 3.11+ (optional RAG).
+- **Languages:** Markdown (vault + docs), TypeScript (tooling), Go 1.25+ (`obsidian-memoryd`), Python 3.11+ (optional RAG).
 - **Runtimes:** Node 20+, Bun or `npx tsx` for maintainer scripts; `uv` for `basic-memory`.
 - **Primary MCP:** `uvx basic-memory mcp` with `BASIC_MEMORY_HOME=<vault>` (**stdio** in `mcp.json`; recommended default).
 - **Optional transport:** Streamable HTTP URL for `basic-memory` (e.g. `http://127.0.0.1:8765/mcp`) requires a **separate always-on listener** you run (terminal or Task Scheduler action you define; see `docs/en/sync.md`); see `config/mcp/basic-memory-streamable-http.json`. Default port **8765** avoids collisions with common dev servers on **8000** / **8080** / **3000** (see ADR-0016).

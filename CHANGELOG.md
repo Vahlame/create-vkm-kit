@@ -6,6 +6,54 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+
+- **The shipped daemon was carrying 10 reachable vulnerabilities.** Not merely present in the
+  module graph — `govulncheck` traced them to real call paths across `go-git/v5` (6), `circl` (2)
+  and `x/crypto` (1), plus one Go stdlib advisory. Every one had a published fix. Nothing in the
+  repo was positioned to notice: Dependabot covered only `github-actions`, and no vulnerability
+  scanner ran at all, while `ci.yml`'s banner presented SHA-pinning as _the_ supply-chain control —
+  which governs how actions are fetched, not what the dependency trees contain. `go-git` → v5.19.1
+  and `circl` → v1.6.3 (letting `x/crypto`/`x/net` float up rather than pinning them to their exact
+  minimums, which silently _downgraded_ `go-git` past four of its own fixes). **Reachable count:
+  10 → 1**, the survivor being a stdlib `crypto/tls` advisory fixed by the toolchain, not by
+  `go.mod`. A `govulncheck` job now gates this — a hard gate, not `continue-on-error`, since a
+  security check that cannot fail the build is the silent-pass antipattern.
+- Dependabot now covers all four ecosystems that ship here (`npm`, `gomod`, `pip`, `github-actions`)
+  instead of only the last.
+
+### Changed
+
+- **Building the daemon from source now needs Go 1.25+** (was 1.22), the floor `go-git` v5.19
+  requires. Only affects contributors compiling `obsidian-memoryd`.
+- **The `typecheck` gate no longer overstates itself.** It advertised "strict TS + checkJs over
+  shipped JS", but the checkJs half inherited `strict: false` through `tsconfig.eslint.json` — a
+  file that self-described as _"Not a gate"_ while being the gate's actual `compilerOptions` source.
+  Rather than flip `strict: true` (measured: **944 errors**, 601 of them implicit-`any` parameters —
+  a codebase-wide JSDoc decision, not a fix), every strict sub-flag measured at **zero** cost is now
+  enabled explicitly: `noImplicitThis`, `alwaysStrict`, `strictBindCallApply`, `strictFunctionTypes`,
+  `noImplicitOverride`, `noFallthroughCasesInSwitch`. Each is a ratchet — it pins a property the code
+  already has. The three still off are recorded with their exact cost, `strictNullChecks` (37) being
+  the best next candidate. `strictFunctionTypes` required one real fix: `applyUpdatePlan`'s
+  `writeSidecarImpl` was declared as taking `manifest: unknown`, which is unsound rather than
+  lenient — parameters are contravariant, so a wider declared parameter promises callers something
+  the default impl (which dereferences `manifest.assets`) cannot honour.
+- `scripts/mcp-smoke.mjs`'s `@modelcontextprotocol/sdk` import is now a declared root
+  devDependency. It had been resolving purely by npm hoisting it out of three **private**
+  workspaces — dropping or renaming any of them, or installing without hoisting, would have
+  broken the job with `ERR_MODULE_NOT_FOUND`.
+- `scripts/linkcheck.mjs` finally runs in CI. It validates relative links **and `#anchor`
+  fragments against real heading slugs** — coverage the lychee job does not provide — and was
+  written, wired into `package.json`, and then never invoked by any workflow. Turning it on
+  immediately caught a cross-platform hazard: `CLAUDE.md`, `.clinerules` and
+  `.github/copilot-instructions.md` are **symlinks to `AGENTS.md`** so each agent tool finds its
+  own filename, and following one re-resolves AGENTS.md's relative links from the alias's
+  directory — `./docs/en/install.md` becomes `.github/docs/en/install.md`. It passed on Windows
+  and failed only on Linux CI, because a Windows checkout without symlink support stores those
+  three as ordinary ~12-byte files containing the target path. `walk()` now skips symlinks: an
+  alias's links are already validated once at the target's real location, the only place its
+  relative paths mean anything.
+
 ### Fixed
 
 - **A tagged release published to npm having run zero tests.** `ci.yml` triggers only on

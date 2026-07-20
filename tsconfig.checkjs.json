@@ -1,6 +1,15 @@
 {
   "//": "CI-gated checkJs pass over shipped JS. Tests stay covered by ESLint (incl. type-aware promise rules via tsconfig.eslint.json); templates ship to the user's env where their optional deps exist, so they can't typecheck here.",
   "extends": "./tsconfig.eslint.json",
+  "//strict": "This gate inherits `strict: false` from tsconfig.eslint.json — which is why the flags below are enabled one at a time instead of via `strict: true`. Every one was MEASURED at zero errors before being turned on, so each is a ratchet: it pins a property the codebase already has and cannot silently lose. The three still off are the ones with real work behind them, with their exact cost as of 2026-07-20: noImplicitAny (877 errors), useUnknownInCatchVariables (67), strictNullChecks (37 — the smallest, and the one most likely to surface real null-deref bugs, so the best next candidate). strictPropertyInitialization cannot be set without strictNullChecks. To re-measure one: tsc -p a config that extends this and adds the single flag.",
+  "compilerOptions": {
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "strictBindCallApply": true,
+    "strictFunctionTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true
+  },
   "include": [
     "*.mjs",
     "packages/**/*.js",
