@@ -95,7 +95,7 @@ export async function configureTelemetry(home, dryRun, { enable = true, kitRoot 
       : removeManagedEnv(existing, TELEMETRY_ENV);
     const hadHooks =
       merged.hooks && typeof merged.hooks === "object" && !Array.isArray(merged.hooks);
-    let hookMap = hadHooks ? merged.hooks : {};
+    let hookMap = hadHooks ? /** @type {Record<string, unknown>} */ (merged.hooks) : {};
     hookMap = enable
       ? mergeManagedHook(
           hookMap,

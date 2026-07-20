@@ -74,7 +74,7 @@ async function listDir(absDir, urlPath) {
 <h1 style="font-size:16px">${esc(urlPath)}</h1>${up}<ul>${rows}</ul></body>`;
 }
 
-const server = createServer(async (req, res) => {
+async function handleRequest(req, res) {
   try {
     if (req.method !== "GET" && req.method !== "HEAD") {
       res.statusCode = 405;
@@ -105,6 +105,11 @@ const server = createServer(async (req, res) => {
     res.statusCode = 500;
     res.end("error");
   }
+}
+
+const server = createServer((req, res) => {
+  // handleRequest catches everything itself; this is a last-resort socket guard
+  handleRequest(req, res).catch(() => res.destroy());
 });
 
 server.listen(PORT, "127.0.0.1", () => {

@@ -55,8 +55,6 @@ import { fileURLToPath } from "node:url";
 import { getIncrementalState } from "./_transcript-cache.mjs";
 
 const SUBSTANTIVE_TOOLS = /^(Write|Edit|MultiEdit|NotebookEdit)$/;
-/** Below this many PRIOR substantive calls, the gate stays out of the way entirely. */
-const MIN_SUBSTANTIVE_CALLS = 2;
 /** Matches ONLY the literal marker the model is told to print — see reason() below. */
 const MARKER_RE = /\[!\]\s*(recomendaci[oó]n de esfuerzo|effort recommendation)/i;
 

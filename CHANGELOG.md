@@ -6,7 +6,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Static analysis now gates the ~32k LOC of shipped JavaScript.** New root ESLint 10 flat
+  config (`@eslint/js` recommended + tuned `no-unused-vars`, `no-shadow`, and the type-aware
+  promise rules `no-floating-promises` / `await-thenable` / `no-misused-promises` via
+  `typescript-eslint`), plus a CI-gated `tsc` `checkJs` pass (`tsconfig.checkjs.json`) over
+  shipped `src` — tests stay covered by ESLint's type-aware rules through
+  `tsconfig.eslint.json`; skill templates are excluded because their optional deps only exist
+  in the user's env. Run with `npm run lint` / `npm run typecheck`; both wired into the
+  `ci / lint` job, and `node:test` runners are allowed via `allowForKnownSafeCalls` instead of
+  a blanket disable. The first sweep took 861 ESLint + 424 `checkJs` findings to zero and fixed
+  real defects along the way: vkm-doctor's CLI `main()` ran unawaited (a crash died as an
+  unhandled rejection instead of a clean non-zero exit), a no-op `await` on the synchronous
+  `NodeSDK.start()`, a dozen wrapper `throw`s that discarded the original error (now
+  `{ cause }`), async HTTP handlers passed where a void listener is expected (now guarded with
+  a `.catch` backstop), dead stores, and producer JSDoc contracts narrower than the values they
+  actually return (e.g. `curatePage`'s undocumented `relevance`/`reason` fields).
+
+### Changed
+
+- **`CONTRIBUTING.md`'s SemVer section now describes the kit, not the v1 prompt, and adds an
+  explicit post-4.x versioning policy.** The MAJOR/MINOR/PATCH definitions still spoke of
+  "prompt section numbers"; they are rewritten in terms of the installed contract (CLI flags,
+  MCP tools, vault layout/hooks), and the new policy freezes majors except for unavoidable
+  contract breaks — batched into one planned major with its migration doc. README links the
+  policy from "Más · More".
+
 ### Fixed
+
+- **`go.mod` module path matches the repo slug.** The module still declared
+  `github.com/Vahlame/obsidian-memory-kit`, so importing or `go install`-ing the daemon by its
+  real path (`github.com/Vahlame/create-vkm-kit/cmd/obsidian-memoryd`) failed — latent only
+  because the installer builds locally. `agent.toml`'s `[daemon].module` mirror is updated to
+  match.
 
 - **`release.yml` no longer reports success when npm publish silently skipped.** The npm-publish
   job soft-exited (`exit 0`) when the `NPM_TOKEN` secret was missing, so the workflow went green

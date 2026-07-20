@@ -35,7 +35,7 @@ export async function evaluateCuration({ entries, fixtures, curate, dropBelow = 
     const wantRelevant = e.label === "relevant";
     const t0 = Date.now();
     let relevance = null;
-    let reason = "";
+    let reason;
     let errored = false;
     try {
       const curated = await curate({ markdown, query: e.query });

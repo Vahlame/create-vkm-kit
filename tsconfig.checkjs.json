@@ -1,0 +1,13 @@
+{
+  "//": "CI-gated checkJs pass over shipped JS. Tests stay covered by ESLint (incl. type-aware promise rules via tsconfig.eslint.json); templates ship to the user's env where their optional deps exist, so they can't typecheck here.",
+  "extends": "./tsconfig.eslint.json",
+  "include": [
+    "*.mjs",
+    "packages/**/*.js",
+    "packages/**/*.mjs",
+    "scripts/**/*.mjs",
+    "evals/**/*.mjs",
+    "evals/**/*.cjs"
+  ],
+  "exclude": ["**/node_modules", "**/test/**", "packages/create-vkm-kit/templates/**"]
+}

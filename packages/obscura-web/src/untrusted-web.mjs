@@ -133,7 +133,7 @@ export function wrapUntrustedWeb(text, url) {
  * Mutate a search-results array to flag any {title, snippet} that looks like embedded
  * prompt-injection (sets `injectionFlagged: true` on the offending result) and return
  * how many were flagged. Search hits are untrusted web DATA, same as fetched pages.
- * @param {Array<{ title?: string, snippet?: string, url?: string }>} results
+ * @param {Array<{ title?: string, snippet?: string, url?: string, injectionFlagged?: boolean }>} results
  * @returns {{ flaggedCount: number }}
  */
 export function flagResultInjection(results) {
