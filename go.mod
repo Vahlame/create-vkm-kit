@@ -6,7 +6,7 @@ require (
 	github.com/adrg/xdg v0.5.3
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/go-git/go-git/v5 v5.19.1
-	github.com/kardianos/service v1.2.2
+	github.com/kardianos/service v1.3.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
