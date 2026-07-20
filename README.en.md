@@ -42,7 +42,7 @@ server; everything else (semantic search, sync daemon) is optional.
 > [**How it works**](docs/en/how-it-works.md).
 
 <p align="center">
-  🧠 <b>Hybrid memory</b> BM25 + semantic + graph&ensp;·&ensp;💸 <b>Token-saver</b> (CI gate ≥30%)&ensp;·&ensp;🩺 <b>vkm-doctor</b> — tokens & cache, 100% local&ensp;·&ensp;📝 <b>vkm-spec</b> idea → spec&ensp;·&ensp;🛠️ <b>Skills</b> <code>/vkm-discipline</code> · <code>/vkm-spec</code> · <code>/vkm-design</code> · <code>/vkm-research</code>&ensp;·&ensp;🕶️ <b>Stealth web</b> (obscura, opt-in)
+  🧠 <b>Hybrid memory</b> BM25 + local semantic (opt-in) + graph&ensp;·&ensp;💸 <b>Token-saver</b> (CI gate ≥30%)&ensp;·&ensp;🩺 <b>vkm-doctor</b> — tokens & cache, 100% local&ensp;·&ensp;📝 <b>vkm-spec</b> idea → spec&ensp;·&ensp;🛠️ <b>Skills</b> <code>/vkm-discipline</code> · <code>/vkm-spec</code> · <code>/vkm-design</code> · <code>/vkm-research</code>&ensp;·&ensp;🕶️ <b>Stealth web</b> (obscura, opt-in)
 </p>
 
 ---
@@ -124,7 +124,8 @@ decision: [`docs/adr/`](docs/adr/).
 (true wire cost, k=3), `assemble_context` **−68% median wire tokens** vs chaining searches
 (CI gate 0.60/0.90), the token-saver compacts noisy output **≥30% with zero diagnostic loss**
 (CI gate), plus **≈ −1,300 tokens/session** of fixed rent (schemas + hook + rules
-block) — every number has a gate that **breaks the build** if it regresses. Detail:
+block) — every number has a gate that **breaks the build** if it regresses (fixed labelled
+corpus + deterministic embedder: reproducible regression floors, not leaderboard claims). Detail:
 [how it works](docs/en/how-it-works.md) · [`evals/`](evals/).
 
 ---
