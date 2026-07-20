@@ -236,7 +236,7 @@ export async function resolveMetadata(url, opts = {}) {
   const deps = resolveDeps(opts);
   const idleMs = opts.idleMs || DEFAULT_IDLE_MS;
 
-  let hop = null;
+  let hop;
   try {
     hop = await openStream(url, { method: "HEAD", deps, idleMs });
   } catch (e) {

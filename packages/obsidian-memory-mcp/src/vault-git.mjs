@@ -45,7 +45,9 @@ async function runGit(vaultReal, args) {
     });
   } catch (e) {
     if (e && e.code === "ENOENT") {
-      throw new Error("git executable not found on PATH — vault_git_history needs git installed");
+      throw new Error("git executable not found on PATH — vault_git_history needs git installed", {
+        cause: e
+      });
     }
     throw e;
   }

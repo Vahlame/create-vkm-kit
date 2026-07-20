@@ -81,7 +81,7 @@ export async function loadQueries(path) {
     try {
       obj = JSON.parse(line);
     } catch (err) {
-      throw new Error(`bench: malformed query line: ${line} (${err.message})`);
+      throw new Error(`bench: malformed query line: ${line} (${err.message})`, { cause: err });
     }
     if (!obj.query || !Array.isArray(obj.relevant)) {
       throw new Error(`bench: query line missing 'query'/'relevant': ${line}`);

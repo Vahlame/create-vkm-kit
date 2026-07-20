@@ -6,6 +6,9 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
+    // sync-agents.ts imports the installer's shipped .mjs (single-source drift gate);
+    // JSDoc gives them types here, and tsconfig.checkjs.json already type-checks their bodies.
+    "allowJs": true,
     "types": ["node"]
   },
   "include": ["scripts/**/*.ts"]

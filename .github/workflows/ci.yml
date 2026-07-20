@@ -29,6 +29,10 @@ jobs:
         run: npx --yes markdownlint-cli@0.49.0 "**/*.md" --ignore-path .markdownlintignore
       - name: prettier
         run: npx --yes prettier@3.8.4 --check "**/*.{json,yml,yaml,md,mjs,js,cjs,ts}"
+      - name: eslint (incl. type-aware promise rules over all JS)
+        run: npm run lint
+      - name: typecheck (strict TS scripts + checkJs over shipped JS)
+        run: npm run typecheck
       - name: sync agents
         run: npm run sync-agents:check
       - name: license mirrors (packages/* == root LICENSE.md)
@@ -138,14 +142,25 @@ jobs:
           fail: true
 
   secrets-scan:
+    # The gitleaks CLI (MIT) is invoked directly: gitleaks-action v3 phones home
+    # to a license server on every run, so an outage there fails the job even
+    # with zero leaks. Pinned by version + sha256, same default ruleset.
     runs-on: ubuntu-latest
+    env:
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: install gitleaks (checksum-verified)
+        run: |
+          curl -fsSL --retry 3 -o gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks
+      - name: scan full git history
+        run: ./gitleaks git --redact --no-banner .
 
   mcp-smoke:
     runs-on: ubuntu-latest

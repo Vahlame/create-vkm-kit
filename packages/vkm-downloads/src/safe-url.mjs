@@ -69,11 +69,10 @@ export function assertHttpUrl(raw) {
 function ipv6ToBytes(s) {
   let str = s;
   const v4mapped = str.match(/^(.*:)(\d+\.\d+\.\d+\.\d+)$/);
-  let tail = [];
   if (v4mapped) {
     const octets = v4mapped[2].split(".").map(Number);
     if (octets.some((o) => !Number.isInteger(o) || o < 0 || o > 255)) return null;
-    tail = [(octets[0] << 8) | octets[1], (octets[2] << 8) | octets[3]];
+    const tail = [(octets[0] << 8) | octets[1], (octets[2] << 8) | octets[3]];
     str = v4mapped[1] + (tail.length ? tail.map((h) => h.toString(16)).join(":") : "");
   }
   const halves = str.split("::");
