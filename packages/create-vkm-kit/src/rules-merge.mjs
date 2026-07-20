@@ -98,7 +98,7 @@ export async function installRules(targets, lang, { home, cwd, dryRun = false })
   if (targets.includes("cursor")) {
     const fp = path.join(cwd, ".cursor", "rules", "obsidian-memory.mdc");
     const frontmatter =
-      "---\ndescription: Markdown vault memory protocol (obsidian-memory-kit)\nalwaysApply: true\n---\n\n";
+      "---\ndescription: Markdown vault memory protocol (vkm-kit)\nalwaysApply: true\n---\n\n";
     await installRulesFile(fp, block, { dryRun, newFilePrefix: frontmatter });
     written.push(fp);
   }
