@@ -77,6 +77,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **The `agent.toml` schema check no longer rides on an unpinned interpreter.** `tomllib` is stdlib
   only from 3.11 and the `lint` job had no `setup-python`; it is now pinned to 3.12 like the other
   Python jobs. The network-bound `links` and `mcp-smoke` jobs get timeouts instead of the 6h default.
+- **The installer reported its own version as `v2 / v3`.** A hardcoded banner string on a 4.x kit —
+  the one place every user sees a version was the one place guaranteed to be wrong. It now prints
+  `readKitVersion()`, already the source of truth for `--check-update` and the sidecar's
+  `kitVersion`. Relatedly, `--version` / `-v` used to fall through to the interactive wizard, so
+  the standard way to answer "which version are you on?" **started an install**; it now prints the
+  version and exits.
+- **The issue and PR templates were from the deleted v1 project, and blocked filing.** `bug_report`
+  **required** a PowerShell version (`$PSVersionTable`) in a repo with no `.ps1` file, **required** a
+  Cursor version, asked for `Doctor.ps1` / `Vault-Doctor.ps1` output (neither exists), and made
+  "I read `docs/troubleshooting.md`" a **required** checkbox for a path that does not exist — the
+  real file is `docs/en/troubleshooting.md`. `feature_request` required agreeing that "this is not a
+  runnable codebase" and that "scripts live inside the prompt as literal text", both false for a
+  repo with a Go daemon, eight npm workspaces and a Python package. Rewritten around what actually
+  ships: kit version via `--version`, the real component list, the six agent surfaces, `vkm-doctor`
+  output, and Windows/macOS/Linux rather than Windows-only.
+- **`CONTRIBUTING.md`'s "local checks" claimed to mirror CI and did not.** It omitted `version.mjs
+check`, `lint`, `typecheck`, `license:sync:check`, `linkcheck`, the `agent.toml` parse and the
+  whole Node test suite, while listing `npx lychee` — lychee is a **Rust** binary, so that command
+  installs an unrelated npm package. Now the `lint` job verbatim and in order, with an explicit
+  note about which gates (lychee, gitleaks, govulncheck, mcp-smoke, the benches) are CI-only and
+  why. The PR template's checklist points at it instead of drifting a third variant.
 - **`version.mjs` could never fix — or even report — a drifted `-ldflags` version.** The Go daemon
   carries the kit version twice (`var version` and the example `-ldflags` in the build comment),
   and they were one marker whose `read` looked only at the first. Three things then compounded:

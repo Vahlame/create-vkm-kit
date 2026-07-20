@@ -10,31 +10,38 @@ Keep PRs focused: one change per PR.
 ## Type of change
 
 - [ ] Typo / wording / clarification
-- [ ] Script / daemon fix (`cmd/`, `packages/`)
-- [ ] New known-error entry (`docs/troubleshooting.md`)
-- [ ] New design decision (includes ADR in `docs/adr/`)
-- [ ] Cross-platform / MCP / initializer change
+- [ ] Installer / wizard (`packages/create-vkm-kit`)
+- [ ] MCP server (`packages/obsidian-memory-mcp`, `obscura-web`, `vkm-downloads`, `vkm-spec`)
+- [ ] Sync daemon (`cmd/obsidian-memoryd`)
+- [ ] RAG / retrieval (`packages/obsidian-memory-rag`)
+- [ ] New troubleshooting entry (`docs/en/troubleshooting.md`)
+- [ ] New design decision (includes an ADR in `docs/adr/`)
 - [ ] Docs only
 - [ ] CI / tooling
 
 ## Validation
 
-- [ ] `npm ci && npm run sync-agents:check` passes
-- [ ] `npx markdownlint-cli "**/*.md" --ignore-path .markdownlintignore` passes
-- [ ] `npx prettier --check "**/*.{json,yml,yaml,md}"` passes
-- [ ] `npx lychee --no-progress --exclude-mail .` passes
+See `CONTRIBUTING.md` → **Local checks** for the exact commands (they mirror the
+`lint` job in order).
+
+- [ ] `npm ci` then the full **Local checks** block passes
+- [ ] `npm test --workspaces --if-present` passes
 - [ ] `go test ./...` passes (if Go code touched)
+- [ ] `pytest packages/obsidian-memory-rag/tests` passes (if Python touched)
+- [ ] Retrieval benches still meet their floors (if retrieval touched — see `evals/`)
 - [ ] I updated `CHANGELOG.md` under `[Unreleased]`
-- [ ] If this is a breaking change, I bumped `version` in `agent.toml`
+
+<!-- The external link check (lychee), gitleaks, govulncheck, mcp-smoke and the
+benches run in CI; you are not expected to reproduce all of them locally. -->
 
 ## Tested on
 
-<!-- If you touched the prompt or any generated script, paste the OS / PS / Node versions you tested with. -->
+<!-- If you touched anything platform-sensitive (paths, hooks, the daemon, the
+installer), say where you actually ran it. -->
 
 - OS:
-- PowerShell:
 - Node:
-- Cursor:
+- Agent (Claude Code / Cursor / Codex / Cline / Continue / Copilot):
 
 ## Checklist
 

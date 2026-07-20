@@ -1211,6 +1211,13 @@ async function runNonInteractive(argv) {
 
 async function main() {
   const argv = process.argv;
+  // Before --help and before anything interactive: `--version` used to fall through
+  // to the wizard, so the standard way to answer "which version are you on?" started
+  // an install instead of printing a version — including in the bug-report template.
+  if (argv.includes("--version") || argv.includes("-v")) {
+    console.log(readKitVersion());
+    return;
+  }
   if (argv.includes("--help")) {
     console.log(`Usage: create-vkm-kit [vault] [options]
 
@@ -1384,6 +1391,8 @@ Claude Code native-memory override (when --ide includes claude):
                   Combine with --dry-run to preview. Exits immediately after (no other
                   install steps run).
 
+  --version, -v   Print the installed kit version and exit
+
   --help          This message`);
     return;
   }
@@ -1459,7 +1468,11 @@ Claude Code native-memory override (when --ide includes claude):
   const lang = langFromArgs();
   const dryRun = dryRunFromArgs();
   const t = messages[lang];
-  console.log(pc.cyan(t.title), pc.dim("v2 / v3"));
+  // The real installed version, not a hardcoded string: this banner still read
+  // "v2 / v3" on a 4.x kit, so the one place every user sees a version was the one
+  // place guaranteed to be wrong. readKitVersion() is already the source of truth
+  // for --check-update and the sidecar's kitVersion.
+  console.log(pc.cyan(t.title), pc.dim(`v${readKitVersion()}`));
   if (dryRun) console.log(pc.dim("dry-run: Cursor mcp.json will not be written"));
 
   const cwd = process.cwd();
