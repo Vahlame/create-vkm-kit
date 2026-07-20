@@ -3,6 +3,15 @@
 Rules with numbers, not vibes. Every value here is a defensible default you deviate from
 _deliberately_ (per the committed direction), never by accident.
 
+## Contents
+
+- Typography
+- Spacing & layout
+- Color
+- Depth & surface
+- Motion
+- Accessibility gate
+
 ## Typography
 
 - **Scale, not ad-hoc sizes.** Pick a ratio and derive every size from a base (usually 16px):

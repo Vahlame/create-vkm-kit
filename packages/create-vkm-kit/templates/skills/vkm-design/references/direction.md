@@ -5,6 +5,15 @@ design. This protocol makes the default visible, bans it, and forces a deliberat
 BEFORE any tokens, CSS, or components exist. It costs minutes and is the single highest-leverage
 step in this skill.
 
+## Contents
+
+- Step 0 — name your default, then ban it
+- The slop fingerprint — banned as defaults
+- The variety sampler (generative, not restrictive)
+- The axes — where directions come from
+- The protocol — generate, score, commit, record
+- The innovation guardrail
+
 ## Step 0 — name your default, then ban it
 
 Write one sentence describing exactly what you would produce on autopilot for this brief ("dark

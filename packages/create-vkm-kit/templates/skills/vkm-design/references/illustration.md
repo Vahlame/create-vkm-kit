@@ -5,6 +5,17 @@ a species, an animal mascot, a product, a landmark, a portrait, a tool, custom i
 anything that exists. This is the single place a model most reliably ships something confidently
 wrong, and where "draw an SVG" is usually the WRONG first move.
 
+## Contents
+
+- The failure, and its root cause (real, from this kit's own bench)
+- Step 1 — think: what makes this subject recognizable, and which technique fits?
+- Step 2 — the faithful trace pipeline (`scripts/trace-svg.mjs`)
+- Step 2b — treat the photo (`scripts/treat-photo.mjs`) when you can't trace it
+- Step 3 — verify by overlay (the objective fidelity gate)
+- Step 4 — placing several illustrations together (alignment / "desfase")
+- Legal & honest use of references
+- Where this plugs in
+
 ## The failure, and its root cause (real, from this kit's own bench)
 
 Asked for a **guapote** (a deep-bodied cichlid) on a fishing page, the model hand-wrote SVG bézier
