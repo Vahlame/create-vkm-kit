@@ -7,6 +7,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+// The pin users actually receive. Imported, not re-typed: this smoke test exists
+// to certify the server the installer wires up, and a hand-copied version string
+// lets it certify a different one (see the note at its definition).
+import { BASIC_MEMORY_VERSION } from "../packages/create-vkm-kit/src/mcp-merge.mjs";
 
 const REQUIRED_TOOLS = ["read_note", "write_note", "search_notes"];
 const TIMEOUT_MS = 60_000;
@@ -22,12 +26,9 @@ async function main() {
   const vault = await mkdtemp(path.join(tmpdir(), "obs-mem-smoke-"));
   await writeFile(path.join(vault, "START_HERE.md"), "# smoke\n", "utf8");
 
-  // Pin must match BASIC_MEMORY_VERSION in packages/create-vkm-kit/src/mcp-merge.mjs.
-  // Keep both in sync; bumping one without the other lets CI pass with a different
-  // server than users actually receive.
   const transport = new StdioClientTransport({
     command: "uvx",
-    args: ["--from", "basic-memory==0.21.4", "basic-memory", "mcp"],
+    args: ["--from", `basic-memory==${BASIC_MEMORY_VERSION}`, "basic-memory", "mcp"],
     env: { ...process.env, BASIC_MEMORY_HOME: vault }
   });
   const client = new Client({ name: "ci-smoke", version: "1.0.0" }, { capabilities: {} });

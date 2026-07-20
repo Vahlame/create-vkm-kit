@@ -17,9 +17,10 @@ export function flagValue(argv, name) {
 // Pinned basic-memory version. Bumping requires:
 //   1. update this constant
 //   2. update config/mcp/basic-memory.json
-//   3. update scripts/mcp-smoke.mjs
-//   4. update docs/es/instalacion.md + docs/en/install.md (User Rules) + docs/{es,en}/install-with-agent.md
-//   5. mention the bump in CHANGELOG.md (with rationale: CVE? new tool? compat?)
+//   3. update docs/es/instalacion.md + docs/en/install.md (User Rules) + docs/{es,en}/install-with-agent.md
+//   4. mention the bump in CHANGELOG.md (with rationale: CVE? new tool? compat?)
+// scripts/mcp-smoke.mjs imports this constant, so the CI smoke test always
+// exercises whatever is pinned here — it is not a step to remember.
 // Rationale for pinning: `uvx <pkg> mcp` without a version pin pulls latest from
 // PyPI on every Cursor restart — a supply-chain RCE if the package is taken over.
 export const BASIC_MEMORY_VERSION = "0.21.4";
