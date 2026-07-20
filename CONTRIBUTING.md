@@ -17,31 +17,46 @@ Thanks for considering a contribution. This repository ships **cross-platform** 
 
 ## Local checks
 
+These are the same gates `.github/workflows/ci.yml` runs, in the same order as the
+`lint` job. All must pass.
+
 ```bash
 npm ci
-npm run sync-agents:check
 
-# Markdown lint (version pinned to match .github/workflows/ci.yml exactly — an
-# unpinned `npx markdownlint-cli` can silently resolve a newer release with different
-# formatting rules than CI enforces, passing locally and failing in CI)
-npx markdownlint-cli@0.49.0 "**/*.md" --ignore-path .markdownlintignore
+# --- the `lint` job, end to end ---
+node scripts/version.mjs check          # every version marker agrees with CHANGELOG
+
+# Markdown lint (version pinned to match ci.yml exactly — an unpinned
+# `npx markdownlint-cli` can silently resolve a newer release with different rules
+# than CI enforces, passing locally and failing in CI). The second glob is NOT
+# redundant: `**/*.md` does not match inside dot-directories, so without it
+# .agents/rules, .continue/rules and .github/*.md go unchecked.
+npx markdownlint-cli@0.49.0 "**/*.md" ".*/**/*.md" --ignore-path .markdownlintignore
 
 # Formatting (version pinned for the same reason)
 npx prettier@3.8.4 --check "**/*.{json,yml,yaml,md,mjs,js,cjs,ts}"
 
-# Link check
-npx lychee --no-progress .
+npm run lint                            # eslint, incl. type-aware promise rules
+npm run typecheck                       # strict TS + checkJs over shipped JS
+npm run sync-agents:check               # agent rule files match their source
+npm run linkcheck                       # in-repo links AND #anchor fragments
+npm run license:sync:check              # packages/*/LICENSE.md == root
 
-# Go tests (requires Go 1.25+ — go-git v5.19 raised the floor)
-go test ./...
-go test ./... -race   # CI also runs the race detector on Linux
+# --- test jobs ---
+npm test --workspaces --if-present      # Node suites across every workspace
 
-# Python RAG tests
+go test ./...                           # requires Go 1.25+ (go-git v5.19's floor)
+go test ./... -race                     # CI runs the race detector on Linux only
+
 pip install -e ./packages/obsidian-memory-rag
 pytest packages/obsidian-memory-rag/tests
 ```
 
-All must pass. CI mirrors these in `.github/workflows/ci.yml`.
+Not reproduced here, because each needs a tool or network CI provides: the external
+link check (`lychee` — a **Rust** binary, so `npx lychee` installs an unrelated npm
+package and is not the same tool), `gitleaks`, `govulncheck`, the `mcp-smoke`
+handshake, and the retrieval/token benches. If you touch retrieval, run the benches
+locally — see `evals/`.
 
 ## Previewing visual assets (SVG diagrams)
 

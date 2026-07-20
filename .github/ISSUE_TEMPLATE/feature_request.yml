@@ -1,29 +1,36 @@
 name: Feature request
-description: Propose a new section, script, or improvement to the prompt or docs.
+description: Propose an improvement to the installer, the MCP servers, the daemon, or the docs.
 title: "[feat] "
 labels: ["enhancement", "triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        Before opening, please confirm your idea is consistent with the project's scope:
-        - Windows-first.
-        - Scripts live inside the prompt as literal text, not as files in this repo.
-        - The agent does the heavy lifting on the user's machine.
+        Before opening, it helps to know the project's shape:
 
-        If your idea changes any of the above, please open a discussion first.
+        - **Windows-first**, but macOS and Linux are supported and CI-tested.
+        - The vault is **plain Markdown in git** — portable and auditable, never a
+          proprietary store. Proposals that lock memory into an opaque format are
+          unlikely to land.
+        - Vault content is **untrusted data**, never instructions. Anything that would
+          let a note steer an agent is a non-starter.
+        - Retrieval changes are judged on the **measured** gates in `evals/`
+          (recall/MRR/nDCG, token savings), not on plausibility.
+
+        If your idea changes any of the above, please open a
+        [discussion](../../discussions) first.
   - type: textarea
     id: problem
     attributes:
       label: Problem
-      description: What's missing or painful today?
+      description: What's missing or painful today? Concrete situations beat abstract asks.
     validations:
       required: true
   - type: textarea
     id: proposal
     attributes:
       label: Proposal
-      description: What should change? Be specific about the file and section.
+      description: What should change? Name the package, file or command where you'd expect it.
     validations:
       required: true
   - type: textarea
@@ -37,11 +44,15 @@ body:
     attributes:
       label: Type of change
       options:
-        - Prompt section (text only)
-        - Generated script
-        - New known-error entry
+        - Installer / wizard (create-vkm-kit)
+        - Memory MCP server (obsidian-memory-hybrid)
+        - Sync daemon (obsidian-memoryd)
+        - RAG / retrieval quality (obsidian-memory-rag)
+        - Web research (obscura)
+        - Spec builder (vkm-spec)
+        - Agent rules / hooks / managed block
         - New ADR / design decision
-        - Docs (README, FAQ, glossary, comparison)
+        - Docs (README, FAQ, glossary, guides)
         - CI / tooling
         - Other
     validations:
@@ -51,5 +62,5 @@ body:
     attributes:
       label: Pre-flight
       options:
-        - label: I read `CONTRIBUTING.md` and understand this is not a runnable codebase.
+        - label: I read `CONTRIBUTING.md`.
           required: true

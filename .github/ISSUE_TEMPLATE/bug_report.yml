@@ -1,52 +1,76 @@
 name: Bug report
-description: Something in the prompt or generated scripts is broken.
+description: Something in the installer, the MCP servers, the daemon or the RAG package is broken.
 title: "[bug] "
 labels: ["bug", "triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting. Before filing, please check `docs/troubleshooting.md` or open a discussion for v2 (`AGENTS.md`).
+        Thanks for reporting. Quick checks that often resolve it faster than an issue:
+        [`docs/en/troubleshooting.md`](../../blob/main/docs/en/troubleshooting.md) and
+        [`docs/en/faq.md`](../../blob/main/docs/en/faq.md). For "how do I…?", prefer a
+        [discussion](../../discussions).
   - type: input
-    id: prompt-version
+    id: kit-version
     attributes:
-      label: Prompt version
-      description: Tag, commit SHA, or "main".
-      placeholder: v1.1.0
+      label: Kit version
+      description: Output of `npx @vkmikc/create-vkm-kit --version`, or the commit SHA if running from source.
+      placeholder: 4.4.0
     validations:
       required: true
   - type: dropdown
     id: os
     attributes:
       label: Operating System
+      description: Windows is the primary target, but macOS and Linux are supported and CI-tested.
       options:
         - Windows 11
         - Windows 10
-        - Other (please describe)
-    validations:
-      required: true
-  - type: input
-    id: powershell
-    attributes:
-      label: PowerShell version
-      description: Output of `$PSVersionTable.PSVersion`.
-      placeholder: 5.1.22621.4391
+        - macOS
+        - Linux
+        - Other (please describe below)
     validations:
       required: true
   - type: input
     id: node
     attributes:
       label: Node version
+      description: Output of `node --version`. The kit requires Node 20 or newer.
       placeholder: v20.11.0
     validations:
       required: true
-  - type: input
-    id: cursor
+  - type: dropdown
+    id: component
     attributes:
-      label: Cursor version
-      placeholder: 0.45.x
+      label: Which part is broken?
+      description: A best guess is fine — triage will correct it.
+      options:
+        - Installer / wizard (create-vkm-kit)
+        - Memory MCP server (obsidian-memory-hybrid) — search, recall, writes
+        - Sync daemon (obsidian-memoryd)
+        - RAG / indexing (Python, obsidian-memory-rag)
+        - Web research (obscura)
+        - Spec builder (vkm-spec)
+        - Agent rules / hooks / managed block
+        - Docs
+        - Not sure
     validations:
       required: true
+  - type: dropdown
+    id: agent
+    attributes:
+      label: Which agent are you using?
+      description: The kit installs rules for several; pick where you saw the problem.
+      options:
+        - Claude Code
+        - Cursor
+        - Codex
+        - Cline
+        - Continue
+        - GitHub Copilot
+        - Other / not agent-specific
+    validations:
+      required: false
   - type: textarea
     id: what-happened
     attributes:
@@ -58,14 +82,16 @@ body:
     id: logs
     attributes:
       label: Relevant output
-      description: Paste `Doctor.ps1` and/or `Vault-Doctor.ps1` output, scheduled task output, or terminal errors. Redact paths and any sensitive info.
+      description: |
+        Paste `npx vkm-doctor` output where relevant, plus any terminal errors or stack
+        traces. Redact absolute paths and anything sensitive.
       render: shell
+    validations:
+      required: false
   - type: checkboxes
     id: checks
     attributes:
       label: Pre-flight
       options:
         - label: I removed any secrets, tokens, or absolute paths that identify me.
-          required: true
-        - label: I read `docs/troubleshooting.md` and section 11 of the prompt.
           required: true
