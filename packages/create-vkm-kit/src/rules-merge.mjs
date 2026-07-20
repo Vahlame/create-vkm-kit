@@ -12,6 +12,12 @@ import {
   memoryRulesBlock
 } from "./memory-rules.mjs";
 
+// Frontmatter a fresh Cursor install writes above the managed block. Exported as the
+// single source for the repo's own dogfooding drift gate (scripts/sync-agents.ts
+// byte-compares .cursor/rules/obsidian-memory.mdc against this + memoryRulesBlock).
+export const CURSOR_RULE_FRONTMATTER =
+  "---\ndescription: Markdown vault memory protocol (obsidian-memory-kit)\nalwaysApply: true\n---\n\n";
+
 /**
  * Merge a managed block into existing text.
  * - If both sentinels are present → replace everything between them (inclusive).
@@ -97,9 +103,7 @@ export async function installRules(targets, lang, { home, cwd, dryRun = false })
   }
   if (targets.includes("cursor")) {
     const fp = path.join(cwd, ".cursor", "rules", "obsidian-memory.mdc");
-    const frontmatter =
-      "---\ndescription: Markdown vault memory protocol (obsidian-memory-kit)\nalwaysApply: true\n---\n\n";
-    await installRulesFile(fp, block, { dryRun, newFilePrefix: frontmatter });
+    await installRulesFile(fp, block, { dryRun, newFilePrefix: CURSOR_RULE_FRONTMATTER });
     written.push(fp);
   }
   return written;

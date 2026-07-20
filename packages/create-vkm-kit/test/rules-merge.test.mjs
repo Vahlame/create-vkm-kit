@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mergeManagedBlock } from "../src/rules-merge.mjs";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { mergeManagedBlock, installRules, CURSOR_RULE_FRONTMATTER } from "../src/rules-merge.mjs";
 import { memoryRulesBlock, RULES_START, RULES_END } from "../src/memory-rules.mjs";
 
 const block = memoryRulesBlock("en");
@@ -34,4 +37,22 @@ test("mergeManagedBlock: idempotent (running twice yields the same result)", () 
   const once = mergeManagedBlock("# Mine\n", block);
   const twice = mergeManagedBlock(once, block);
   assert.equal(twice, once);
+});
+
+// Pins the contract the repo's dogfooding drift gate relies on (scripts/sync-agents.ts):
+// what a fresh cursor install actually writes must equal the gate's rendered expectation,
+// CURSOR_RULE_FRONTMATTER + memoryRulesBlock("es") through mergeManagedBlock — otherwise
+// the gate would demand a file the generator can never produce.
+test("installRules cursor fresh install: byte-equal to frontmatter + managed block", async () => {
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "rules-merge-cursor-"));
+  try {
+    const written = await installRules(["cursor"], "es", { home: cwd, cwd });
+    const fp = path.join(cwd, ".cursor", "rules", "obsidian-memory.mdc");
+    assert.deepEqual(written, [fp], "cursor target writes exactly one file");
+    const got = fs.readFileSync(fp, "utf8");
+    assert.equal(got, mergeManagedBlock(CURSOR_RULE_FRONTMATTER, memoryRulesBlock("es")));
+    assert.ok(got.startsWith(CURSOR_RULE_FRONTMATTER), "frontmatter survives verbatim on top");
+  } finally {
+    fs.rmSync(cwd, { recursive: true, force: true });
+  }
 });

@@ -3,6 +3,7 @@
  * (a) AGENTS.md autogen block from .agents/rules/*.md (lexicographic)
  * (b) .cursor/rules/*.mdc from agents-manifest.yaml
  * (c) .continue/rules/*.md from agents-manifest.yaml
+ * (d) .cursor/rules/obsidian-memory.mdc from the installer's fresh-install render
  *
  * Usage: npx tsx scripts/sync-agents.ts [--check]
  */
@@ -10,6 +11,11 @@ import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync } from 
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
+import { memoryRulesBlock } from "../packages/create-vkm-kit/src/memory-rules.mjs";
+import {
+  mergeManagedBlock,
+  CURSOR_RULE_FRONTMATTER
+} from "../packages/create-vkm-kit/src/rules-merge.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
@@ -47,10 +53,11 @@ function writeText(path: string, content: string): void {
   }
 }
 
-function ensureEqual(path: string, next: string, label: string): void {
+function ensureEqual(path: string, next: string, label: string, hint?: string): void {
+  const suffix = hint ? ` — ${hint}` : "";
   if (!existsSync(path)) {
     if (CHECK) {
-      console.error(`[check] missing ${label}: ${relative(ROOT, path)}`);
+      console.error(`[check] missing ${label}: ${relative(ROOT, path)}${suffix}`);
       process.exit(1);
     }
     writeText(path, next);
@@ -58,7 +65,7 @@ function ensureEqual(path: string, next: string, label: string): void {
   }
   const cur = readText(path);
   if (cur !== next) {
-    console.error(`[check] drift in ${label}: ${relative(ROOT, path)}`);
+    console.error(`[check] drift in ${label}: ${relative(ROOT, path)}${suffix}`);
     process.exit(1);
   }
 }
@@ -113,6 +120,27 @@ function syncCursor(manifest: Manifest): void {
   }
 }
 
+// (d) Dogfooding drift gate: the committed .cursor/rules/obsidian-memory.mdc is the
+// fresh-install output of installRules(["cursor"], "es") — CURSOR_RULE_FRONTMATTER +
+// memoryRulesBlock rendered through the real mergeManagedBlock. It is not manifest-driven
+// (its source is installer code, not .agents/rules/*.md), which is how it drifted silently
+// across the v2 -> vkm-kit sentinel rename (ADR-0041) until 2026-07-19. Same gate pattern
+// as ADR-0036: write mode regenerates, --check makes drift fail CI.
+function syncMemoryRule(): void {
+  const out = join(ROOT, ".cursor", "rules", "obsidian-memory.mdc");
+  const next = mergeManagedBlock(CURSOR_RULE_FRONTMATTER, memoryRulesBlock("es"));
+  if (CHECK) {
+    ensureEqual(
+      out,
+      next,
+      "memory rule (installer dogfood)",
+      "rerun the generator: npm run sync-agents"
+    );
+  } else {
+    writeText(out, next);
+  }
+}
+
 function syncContinue(manifest: Manifest): void {
   for (const rule of manifest.continueRules) {
     const out = join(ROOT, ".continue", "rules", rule.output);
@@ -140,6 +168,7 @@ function main(): void {
 
   syncCursor(manifest);
   syncContinue(manifest);
+  syncMemoryRule();
 
   if (CHECK) {
     console.log("sync-agents: OK (no drift)");
