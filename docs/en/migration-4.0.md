@@ -12,7 +12,7 @@ and the technical detail: ADR-0041 and ADR-0050 in [`docs/adr/`](../adr/).
 | Before                                         | Now                                                                                                     |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | Repo `github.com/Vahlame/obsidian-memory-kit`  | `github.com/Vahlame/create-vkm-kit` (the old URL redirects)                                             |
-| npm `@vkmikc/create-obsidian-memory`           | `@vkmikc/create-vkm-kit` (the old name keeps working as a shim)                                         |
+| npm `@vkmikc/create-obsidian-memory`           | `@vkmikc/create-vkm-kit` (the old name is deprecated and frozen on the v3 kit; it does **not** forward) |
 | Bin `create-obsidian-memory`                   | Bins `create-vkm-kit` plus the short alias `vkm`                                                        |
 | Directory `packages/create-obsidian-memory/`   | `packages/create-vkm-kit/`                                                                              |
 | Sentinels `<!-- obsidian-memory:start/end -->` | `<!-- vkm-kit:start/end -->` (a 3.x block is migrated **in place**: one block after upgrade, never two) |
@@ -46,8 +46,9 @@ npx @vkmikc/create-vkm-kit --full
 
 It recognizes what 3.x installed and **migrates it in place**: rewrites the managed block with
 the new sentinels (never duplicating it), reconciles the hooks, and keeps your configuration.
-If you have scripts pinned to the old name, `npx @vkmikc/create-obsidian-memory` keeps working:
-it is a shim that forwards to the new package (deprecated with a pointer, never unpublished).
+If you have scripts pinned to the old name, **you must repoint them**:
+`@vkmikc/create-obsidian-memory` is deprecated and frozen on the v3 kit (3.15.0) — it was never
+unpublished, but it does not forward either, so it would keep installing the old kit silently.
 Afterwards, restart Claude Code / Codex (or reload the Cursor window) so the next session picks
 up the changes.
 

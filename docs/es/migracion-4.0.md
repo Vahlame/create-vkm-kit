@@ -13,7 +13,7 @@ instalaciones dependen**. El porqué y el detalle técnico: ADR-0041 y ADR-0050 
 | Antes                                           | Ahora                                                                                                   |
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | Repo `github.com/Vahlame/obsidian-memory-kit`   | `github.com/Vahlame/create-vkm-kit` (la URL antigua redirige)                                           |
-| npm `@vkmikc/create-obsidian-memory`            | `@vkmikc/create-vkm-kit` (el nombre antiguo sigue funcionando como shim)                                |
+| npm `@vkmikc/create-obsidian-memory`            | `@vkmikc/create-vkm-kit` (el nombre antiguo queda deprecado y congelado en el kit v3; **no** reenvía)   |
 | Bin `create-obsidian-memory`                    | Bins `create-vkm-kit` y el alias corto `vkm`                                                            |
 | Carpeta `packages/create-obsidian-memory/`      | `packages/create-vkm-kit/`                                                                              |
 | Marcadores `<!-- obsidian-memory:start/end -->` | `<!-- vkm-kit:start/end -->` (el bloque 3.x se migra **in place**: uno solo tras actualizar, nunca dos) |
@@ -46,8 +46,9 @@ npx @vkmikc/create-vkm-kit --full
 
 Reconoce lo instalado por 3.x y lo **migra in place**: reescribe el bloque gestionado con los
 marcadores nuevos (sin duplicarlo), reconcilia los hooks y conserva tu configuración. Si tienes
-scripts fijados al nombre antiguo, `npx @vkmikc/create-obsidian-memory` sigue funcionando: es un
-shim que reenvía al paquete nuevo (deprecado con aviso, nunca retirado). Después, reinicia
+scripts fijados al nombre antiguo, **tienes que cambiarlos**: `@vkmikc/create-obsidian-memory` está
+deprecado y congelado en el kit v3 (3.15.0) — no se retiró de npm, pero tampoco reenvía al paquete
+nuevo, así que seguiría instalándote el kit viejo en silencio. Después, reinicia
 Claude Code / Codex (o recarga la ventana de Cursor) para que la sesión nueva vea los cambios.
 
 ## Novedades de 4.0.0, en un párrafo

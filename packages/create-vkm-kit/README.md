@@ -39,7 +39,7 @@ npx @vkmikc/create-vkm-kit@latest ./my-vault -y
 npx @vkmikc/create-vkm-kit@latest ./my-vault -y --minimal
 ```
 
-The old npm name still works: `npx @vkmikc/create-obsidian-memory` is a shim that forwards to the new package.
+The old npm name (`@vkmikc/create-obsidian-memory`) is **deprecated and frozen on the v3 kit (3.15.0)** — it does not forward to this package, so repoint any pinned script to `@vkmikc/create-vkm-kit`.
 
 **The install is the full stack BY DEFAULT (default since v3.8.1)** — hybrid + semantic + sqlite-vec + index +
 rules, the same set `--full` ships. That wires the knowledge graph + memory reports (automatic once

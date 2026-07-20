@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **The old npm name never forwarded, and four releases of docs said it did.** `release.yml` no
+  longer publishes `@vkmikc/create-obsidian-memory`, and every user-facing claim about it is
+  corrected: what the registry actually serves under that name is the **last real v3 kit, 3.15.0**
+  (published 2026-07-09, all sixteen versions deprecated with npm's generic message) — the
+  forwarding shim ADR-0041/0050 designed exists only in-tree and was never published. Two causes,
+  both invisible from the repo: the granular `NPM_TOKEN` grants write on the new name only, and npm
+  answers an unauthorized publish with `404 … could not be found or you do not have permission`,
+  which reads like a missing package; and deprecation being per-version means publishing 4.x to
+  that name would have created a _non-deprecated_ latest, quietly reviving the name the deprecation
+  retired. The shim package stays in-tree (version-locked, tested) but unpublished; both READMEs,
+  the package README and both migration guides now say **deprecated, frozen on the v3 kit, does not
+  forward, repoint your scripts**. ADR-0050 carries the amendment and the lesson: the source of
+  truth for what users receive is the registry packument, never the source tree.
+
 ## [4.4.0] - 2026-07-20
 
 ### Added
