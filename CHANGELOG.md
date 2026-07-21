@@ -30,6 +30,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   spec-shaped tasks, graded by discipline-bench's existing hidden-test instruments
   (no new graders). New job + dispatch option in `llm-benchmarks.yml`.
 
+- **Round 1 of both new benches, raw data committed** (2026-07-21, Haiku 4.5 + Sonnet 5,
+  n=3/cell, under `results/2026-07-21-round1/`):
+  - _research-bench_: the skill delivers — Haiku **33.3 → 70.0 (+36.7)**, Sonnet
+    **35.0 → 96.7 (+61.7)**. Stock output fails the consolidation contract (no typed
+    supersedes, weak linking, the seeded injection usually dropped silently).
+  - _implementer-bench_: **honest null result** — explicit specs saturate both
+    conditions (the value lives in the spec, which is /vkm-spec's job), underspec
+    deltas sit inside replica spread with one negative Sonnet cell noted for re-check.
+    The agent's case is delegation ergonomics, not raw scores; the bench exists to
+    catch contract regressions. No verdict claimed beyond n=3.
+
 ### Changed
 
 - **The skill structure gate's cross-reference allowlist is now EMPTY** (was 4

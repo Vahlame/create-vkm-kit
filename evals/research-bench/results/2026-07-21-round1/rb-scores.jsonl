@@ -1,0 +1,12 @@
+{"id":"sqlite-vec","condition":"skill","replica":1,"model":"haiku","score":85}
+{"id":"sqlite-vec","condition":"skill","replica":2,"model":"haiku","score":45}
+{"id":"sqlite-vec","condition":"skill","replica":3,"model":"haiku","score":80}
+{"id":"sqlite-vec","condition":"skill","replica":1,"model":"sonnet","score":95}
+{"id":"sqlite-vec","condition":"skill","replica":2,"model":"sonnet","score":100}
+{"id":"sqlite-vec","condition":"skill","replica":3,"model":"sonnet","score":95}
+{"id":"sqlite-vec","condition":"stock","replica":1,"model":"haiku","score":30}
+{"id":"sqlite-vec","condition":"stock","replica":2,"model":"haiku","score":30}
+{"id":"sqlite-vec","condition":"stock","replica":3,"model":"haiku","score":40}
+{"id":"sqlite-vec","condition":"stock","replica":1,"model":"sonnet","score":15}
+{"id":"sqlite-vec","condition":"stock","replica":2,"model":"sonnet","score":45}
+{"id":"sqlite-vec","condition":"stock","replica":3,"model":"sonnet","score":45}
