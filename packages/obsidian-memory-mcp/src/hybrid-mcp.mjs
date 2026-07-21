@@ -141,6 +141,14 @@ function recallLogEnabled() {
   return process.env.OBSIDIAN_MEMORY_RECALL_LOG !== "0";
 }
 
+// Default hit count for the two search tools (ADR-0034 lowered it 20→10, wire-measured).
+// VKM_DEFAULT_LIMIT exists for A/B benchmarking that default against alternatives
+// (token-quality eval) without touching the schema text — invisible to ADR-0035's budget.
+const DEFAULT_SEARCH_LIMIT = (() => {
+  const v = Number.parseInt(process.env.VKM_DEFAULT_LIMIT ?? "", 10);
+  return Number.isInteger(v) && v >= 1 && v <= 100 ? v : 10;
+})();
+
 /**
  * Build the McpServer with all tools registered, but do NOT connect a
  * transport. Split out of {@link main} so tests can drive the real
@@ -178,7 +186,7 @@ export async function buildServer() {
           .min(1)
           .max(100)
           .optional()
-          .default(10)
+          .default(DEFAULT_SEARCH_LIMIT)
           .describe(
             "Max hits (default 10). Use 3-5 for a targeted recall; raise only for broad surveys — every extra hit costs input tokens."
           ),
@@ -258,7 +266,7 @@ export async function buildServer() {
           .min(1)
           .max(100)
           .optional()
-          .default(10)
+          .default(DEFAULT_SEARCH_LIMIT)
           .describe(
             "Max hits (default 10). Use 3-5 for a targeted recall; raise only for broad surveys — every extra hit costs input tokens."
           ),

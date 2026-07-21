@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The token-saver's Bash compaction was provably losing diagnostic DETAIL.** The new
+  adversarial-fixture gate (`test/compact-diagnostics.test.mjs`: real 650–1,100-line
+  failure logs with the decisive error buried mid-stream) caught it before any live A/B:
+  the rescue pass kept lines matching the diagnostic regex but dropped their neighbors —
+  the `TS2339:` detail under an `ERROR in …` header, the `state.go:161` stack frame under
+  `WARNING: DATA RACE`. `compactText` now rescues context **blocks** (1 line before,
+  3 after each match, overlaps merged, `[...]` separators, cap raised 40→60 lines) so a
+  diagnosis-from-compacted-output is possible. The gate stays in CI to keep it that way.
 - **Docs no longer under-report the tool surface.** The installer `--help`, `ARCHITECTURE.md`
   and `docs/{en,es}/how-it-works.md` described obscura-web as 2 tools (it registers **8** —
   `obscura_fetch`/`_fetch_many`, `obscura_search`, `obscura_research` + `_start`/`_status`/`_stop`,
@@ -20,92 +28,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   to the v4 identity (historical version anchors like "since v3.8.1" are kept — they're history,
   not drift). ADR-0046's body no longer claims a "Proposed" status for a deletion that shipped in
   4.0.0, and the ADR index now surfaces ADR-0050's amendment instead of a bare "Accepted".
-
-### Added
-
-- **`/vkm-spec` grew from a 33-line monolith into a full skill** (Anthropic
-  skill-authoring practices: progressive disclosure, worked example, executable feedback
-  loop): rewritten SKILL.md with a copyable checklist, trigger phrases in the description
-  and a degradation ladder; `references/spec-template.md` — the orchestration template
-  the description always promised, now an actual file; `references/field-guide.md`
-  (weak-vs-strong example per field); `examples/worked-example.md` (vague idea →
-  validated, approved spec); and `scripts/validate_spec.mjs`, a zero-dep validator
-  (six sections, 3–7 testable requirements, per-constraint source citations or an
-  explicit `(assumption)` marker, ≤600-char current_state, ≥2 binary criteria, vague-word
-  detection) with fix-me error messages — it doubles as the deterministic grader for the
-  upcoming spec-bench.
-- **`/vkm-discipline` gets executable evidence**: `scripts/evidence-gates.sh` detects and
-  runs the project's own gates (npm test/lint/typecheck, `go test` + gofmt, pytest,
-  cargo, make test) and prints one pass/fail block — step 5 ("Show it works") now has a
-  tool instead of prose; `examples/dial-examples.md` adds two complete worked passes
-  (trivial rename vs irreversible table drop) for the dial, the skill's hardest
-  calibration; description rewritten to third person with trigger terms.
-- **Skills triggering-accuracy eval** (`evals/skills-triggering/`): 52 labelled ES+EN
-  prompts (10 should-trigger per skill + 12 `none` distractors, including the
-  obscura_research-vs-/vkm-research near-miss), a runner that builds the listing from the
-  real template frontmatter, and deterministic grading with per-skill gates (hit ≥ 0.9,
-  false-positive ≤ 0.1). Modes: `--emit-prompts`/`--grade` for external subjects,
-  `--provider api` for direct runs.
-- **Architecture deep dive** (`docs/en/architecture-deep-dive.md` + `docs/es/arquitectura-a-fondo.md`):
-  the full as-built walkthrough — system flowchart, five per-operation sequence diagrams (recall,
-  write, close ritual, sync, research), a mind map of the kit's channels, a decision map tracing
-  every load-bearing behavior to its ADR, the condensed 22+8+6 tool surface, and an ownership map
-  of who writes what. All 14 mermaid blocks are render-verified; the tool tables are covered by the
-  `tool-doc-drift.test.mjs` gate (now checking the deep-dives in both languages, not just the MCP
-  README). Linked from both READMEs, both doc indexes and `ARCHITECTURE.md`.
-- **Spanish mirrors for the last English-only user docs**: `docs/es/observabilidad.md` and
-  `docs/security/mcp-remote-rce.es.md`, plus a new `docs/security/README.{md,es.md}` index with
-  the kit's threat model in one paragraph. Both doc indexes now link Observability and Security —
-  full ES/EN parity across every user-facing doc.
-
-- **The shipped daemon was carrying 10 reachable vulnerabilities.** Not merely present in the
-  module graph — `govulncheck` traced them to real call paths across `go-git/v5` (6), `circl` (2)
-  and `x/crypto` (1), plus one Go stdlib advisory. Every one had a published fix. Nothing in the
-  repo was positioned to notice: Dependabot covered only `github-actions`, and no vulnerability
-  scanner ran at all, while `ci.yml`'s banner presented SHA-pinning as _the_ supply-chain control —
-  which governs how actions are fetched, not what the dependency trees contain. `go-git` → v5.19.1
-  and `circl` → v1.6.3 (letting `x/crypto`/`x/net` float up rather than pinning them to their exact
-  minimums, which silently _downgraded_ `go-git` past four of its own fixes). **Reachable count:
-  10 → 1**, the survivor being a stdlib `crypto/tls` advisory fixed by the toolchain, not by
-  `go.mod`. A `govulncheck` job now gates this — a hard gate, not `continue-on-error`, since a
-  security check that cannot fail the build is the silent-pass antipattern.
-- Dependabot now covers all four ecosystems that ship here (`npm`, `gomod`, `pip`, `github-actions`)
-  instead of only the last.
-
-### Changed
-
-- **Building the daemon from source now needs Go 1.25+** (was 1.22), the floor `go-git` v5.19
-  requires. Only affects contributors compiling `obsidian-memoryd`.
-- **The `typecheck` gate no longer overstates itself.** It advertised "strict TS + checkJs over
-  shipped JS", but the checkJs half inherited `strict: false` through `tsconfig.eslint.json` — a
-  file that self-described as _"Not a gate"_ while being the gate's actual `compilerOptions` source.
-  Rather than flip `strict: true` (measured: **944 errors**, 601 of them implicit-`any` parameters —
-  a codebase-wide JSDoc decision, not a fix), every strict sub-flag measured at **zero** cost is now
-  enabled explicitly: `noImplicitThis`, `alwaysStrict`, `strictBindCallApply`, `strictFunctionTypes`,
-  `noImplicitOverride`, `noFallthroughCasesInSwitch`. Each is a ratchet — it pins a property the code
-  already has. The three still off are recorded with their exact cost, `strictNullChecks` (37) being
-  the best next candidate. `strictFunctionTypes` required one real fix: `applyUpdatePlan`'s
-  `writeSidecarImpl` was declared as taking `manifest: unknown`, which is unsound rather than
-  lenient — parameters are contravariant, so a wider declared parameter promises callers something
-  the default impl (which dereferences `manifest.assets`) cannot honour.
-- `scripts/mcp-smoke.mjs`'s `@modelcontextprotocol/sdk` import is now a declared root
-  devDependency. It had been resolving purely by npm hoisting it out of three **private**
-  workspaces — dropping or renaming any of them, or installing without hoisting, would have
-  broken the job with `ERR_MODULE_NOT_FOUND`.
-- `scripts/linkcheck.mjs` finally runs in CI. It validates relative links **and `#anchor`
-  fragments against real heading slugs** — coverage the lychee job does not provide — and was
-  written, wired into `package.json`, and then never invoked by any workflow. Turning it on
-  immediately caught a cross-platform hazard: `CLAUDE.md`, `.clinerules` and
-  `.github/copilot-instructions.md` are **symlinks to `AGENTS.md`** so each agent tool finds its
-  own filename, and following one re-resolves AGENTS.md's relative links from the alias's
-  directory — `./docs/en/install.md` becomes `.github/docs/en/install.md`. It passed on Windows
-  and failed only on Linux CI, because a Windows checkout without symlink support stores those
-  three as ordinary ~12-byte files containing the target path. `walk()` now skips symlinks: an
-  alias's links are already validated once at the target's real location, the only place its
-  relative paths mean anything.
-
-### Fixed
-
 - **A tagged release published to npm having run zero tests.** `ci.yml` triggers only on
   push-to-main and `pull_request`, and **neither fires on a tag push** — so `release.yml` reached
   `npm publish` gated on nothing but the version, changelog-section and license-mirror checks.
@@ -200,6 +122,112 @@ check`, `lint`, `typecheck`, `license:sync:check`, `linkcheck`, the `agent.toml`
   the package README and both migration guides now say **deprecated, frozen on the v3 kit, does not
   forward, repoint your scripts**. ADR-0050 carries the amendment and the lesson: the source of
   truth for what users receive is the registry packument, never the source tree.
+
+### Added
+
+- **End-to-end smoke** (`scripts/e2e-smoke.mjs`, new CI job `e2e-smoke`): real installer
+  → real Python index → real hybrid MCP over stdio → search a seeded fact →
+  `vault_write_file` → reindex → find the written note. The wiring proof no
+  per-component bench provides.
+- **Latency floor**: `bench-recall` now measures per-query search wall-clock (p50/p95/
+  mean, index build excluded) and supports `--assert-p95-ms`; CI gates at a loose 500 ms
+  (measured ~3 ms on the fixture corpus) — an accidental-O(n²) detector, not a hardware
+  benchmark.
+- **Neural retrieval floor** (`.github/workflows/nightly-benchmarks.yml`, nightly +
+  dispatch): the same labelled corpus on the **fastembed** embedder, with the
+  pin-failures lever arm — the measured gate the semantic upgrade never had. Floors
+  provisional until the first green run; then ratcheted in a reviewed PR.
+- **Token-economy ratchet**: `--assert-answered` 0.95 → **1.0** (measured: 100% of
+  labelled queries answered under passage-first at k=5 — the gate now pins it).
+- **`VKM_DEFAULT_LIMIT`** env override for the two search tools' default hit count in
+  `hybrid-mcp.mjs` — exists for A/B-benchmarking ADR-0034's 10-hit default
+  (token-quality eval) without touching schema text; behavior unchanged when unset.
+- **Spec-validator self-test** (`test/validate-spec-selftest.test.mjs`): the vkm-spec
+  grader passes a reference good spec and catches six seeded defects by name
+  (mutation-style), plus the XML envelope path — a grader that can't discriminate
+  grades nothing.
+- **`/vkm-spec` grew from a 33-line monolith into a full skill** (Anthropic
+  skill-authoring practices: progressive disclosure, worked example, executable feedback
+  loop): rewritten SKILL.md with a copyable checklist, trigger phrases in the description
+  and a degradation ladder; `references/spec-template.md` — the orchestration template
+  the description always promised, now an actual file; `references/field-guide.md`
+  (weak-vs-strong example per field); `examples/worked-example.md` (vague idea →
+  validated, approved spec); and `scripts/validate_spec.mjs`, a zero-dep validator
+  (six sections, 3–7 testable requirements, per-constraint source citations or an
+  explicit `(assumption)` marker, ≤600-char current_state, ≥2 binary criteria, vague-word
+  detection) with fix-me error messages — it doubles as the deterministic grader for the
+  upcoming spec-bench.
+- **`/vkm-discipline` gets executable evidence**: `scripts/evidence-gates.sh` detects and
+  runs the project's own gates (npm test/lint/typecheck, `go test` + gofmt, pytest,
+  cargo, make test) and prints one pass/fail block — step 5 ("Show it works") now has a
+  tool instead of prose; `examples/dial-examples.md` adds two complete worked passes
+  (trivial rename vs irreversible table drop) for the dial, the skill's hardest
+  calibration; description rewritten to third person with trigger terms.
+- **Skills triggering-accuracy eval** (`evals/skills-triggering/`): 52 labelled ES+EN
+  prompts (10 should-trigger per skill + 12 `none` distractors, including the
+  obscura_research-vs-/vkm-research near-miss), a runner that builds the listing from the
+  real template frontmatter, and deterministic grading with per-skill gates (hit ≥ 0.9,
+  false-positive ≤ 0.1). Modes: `--emit-prompts`/`--grade` for external subjects,
+  `--provider api` for direct runs.
+- **Architecture deep dive** (`docs/en/architecture-deep-dive.md` + `docs/es/arquitectura-a-fondo.md`):
+  the full as-built walkthrough — system flowchart, five per-operation sequence diagrams (recall,
+  write, close ritual, sync, research), a mind map of the kit's channels, a decision map tracing
+  every load-bearing behavior to its ADR, the condensed 22+8+6 tool surface, and an ownership map
+  of who writes what. All 14 mermaid blocks are render-verified; the tool tables are covered by the
+  `tool-doc-drift.test.mjs` gate (now checking the deep-dives in both languages, not just the MCP
+  README). Linked from both READMEs, both doc indexes and `ARCHITECTURE.md`.
+- **Spanish mirrors for the last English-only user docs**: `docs/es/observabilidad.md` and
+  `docs/security/mcp-remote-rce.es.md`, plus a new `docs/security/README.{md,es.md}` index with
+  the kit's threat model in one paragraph. Both doc indexes now link Observability and Security —
+  full ES/EN parity across every user-facing doc.
+
+### Security
+
+- **The shipped daemon was carrying 10 reachable vulnerabilities.** Not merely present in the
+  module graph — `govulncheck` traced them to real call paths across `go-git/v5` (6), `circl` (2)
+  and `x/crypto` (1), plus one Go stdlib advisory. Every one had a published fix. Nothing in the
+  repo was positioned to notice: Dependabot covered only `github-actions`, and no vulnerability
+  scanner ran at all, while `ci.yml`'s banner presented SHA-pinning as _the_ supply-chain control —
+  which governs how actions are fetched, not what the dependency trees contain. `go-git` → v5.19.1
+  and `circl` → v1.6.3 (letting `x/crypto`/`x/net` float up rather than pinning them to their exact
+  minimums, which silently _downgraded_ `go-git` past four of its own fixes). **Reachable count:
+  10 → 1**, the survivor being a stdlib `crypto/tls` advisory fixed by the toolchain, not by
+  `go.mod`. A `govulncheck` job now gates this — a hard gate, not `continue-on-error`, since a
+  security check that cannot fail the build is the silent-pass antipattern.
+- Dependabot now covers all four ecosystems that ship here (`npm`, `gomod`, `pip`, `github-actions`)
+  instead of only the last.
+
+### Changed
+
+- **Building the daemon from source now needs Go 1.25+** (was 1.22), the floor `go-git` v5.19
+  requires. Only affects contributors compiling `obsidian-memoryd`.
+- **The `typecheck` gate no longer overstates itself.** It advertised "strict TS + checkJs over
+  shipped JS", but the checkJs half inherited `strict: false` through `tsconfig.eslint.json` — a
+  file that self-described as _"Not a gate"_ while being the gate's actual `compilerOptions` source.
+  Rather than flip `strict: true` (measured: **944 errors**, 601 of them implicit-`any` parameters —
+  a codebase-wide JSDoc decision, not a fix), every strict sub-flag measured at **zero** cost is now
+  enabled explicitly: `noImplicitThis`, `alwaysStrict`, `strictBindCallApply`, `strictFunctionTypes`,
+  `noImplicitOverride`, `noFallthroughCasesInSwitch`. Each is a ratchet — it pins a property the code
+  already has. The three still off are recorded with their exact cost, `strictNullChecks` (37) being
+  the best next candidate. `strictFunctionTypes` required one real fix: `applyUpdatePlan`'s
+  `writeSidecarImpl` was declared as taking `manifest: unknown`, which is unsound rather than
+  lenient — parameters are contravariant, so a wider declared parameter promises callers something
+  the default impl (which dereferences `manifest.assets`) cannot honour.
+- `scripts/mcp-smoke.mjs`'s `@modelcontextprotocol/sdk` import is now a declared root
+  devDependency. It had been resolving purely by npm hoisting it out of three **private**
+  workspaces — dropping or renaming any of them, or installing without hoisting, would have
+  broken the job with `ERR_MODULE_NOT_FOUND`.
+- `scripts/linkcheck.mjs` finally runs in CI. It validates relative links **and `#anchor`
+  fragments against real heading slugs** — coverage the lychee job does not provide — and was
+  written, wired into `package.json`, and then never invoked by any workflow. Turning it on
+  immediately caught a cross-platform hazard: `CLAUDE.md`, `.clinerules` and
+  `.github/copilot-instructions.md` are **symlinks to `AGENTS.md`** so each agent tool finds its
+  own filename, and following one re-resolves AGENTS.md's relative links from the alias's
+  directory — `./docs/en/install.md` becomes `.github/docs/en/install.md`. It passed on Windows
+  and failed only on Linux CI, because a Windows checkout without symlink support stores those
+  three as ordinary ~12-byte files containing the target path. `walk()` now skips symlinks: an
+  alias's links are already validated once at the target's real location, the only place its
+  relative paths mean anything.
 
 ## [4.4.0] - 2026-07-20
 
