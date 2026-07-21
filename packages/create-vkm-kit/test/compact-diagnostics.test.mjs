@@ -19,7 +19,11 @@ const FIXTURES = path.join(path.dirname(fileURLToPath(import.meta.url)), "compac
 const DECISIVE = {
   "npm-build-fail.txt": "TS2339: Property 'retryCount' does not exist on type 'RequestConfig'.",
   "pytest-fail.txt": "E       AssertionError: assert 'conflict' == 'clean'",
-  "go-race-fail.txt": "WARNING: DATA RACE"
+  "go-race-fail.txt": "WARNING: DATA RACE",
+  // Adversarial: a silent-drift "success" log whose decisive lines carry none of the
+  // classic error keywords — the case that CAUGHT the pre-drift-keywords regex dropping
+  // reconciliation output entirely (round-3 diversification finding).
+  "etl-silent-drift.txt": "[etl] reconciliation: ledger total 97531, report total 97532"
 };
 
 test("every fixture actually triggers compaction (they are adversarial, not trivial)", () => {
@@ -42,7 +46,8 @@ test("file:line locations named in the failure survive compaction", () => {
   const locations = {
     "npm-build-fail.txt": "src/api/client.ts:47",
     "pytest-fail.txt": "tests/test_sync.py:88",
-    "go-race-fail.txt": "state.go:161"
+    "go-race-fail.txt": "state.go:161",
+    "etl-silent-drift.txt": "row 4412"
   };
   for (const [name, loc] of Object.entries(locations)) {
     const raw = readFileSync(path.join(FIXTURES, name), "utf8");

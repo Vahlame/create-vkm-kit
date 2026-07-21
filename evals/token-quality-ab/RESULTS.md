@@ -3,6 +3,23 @@
 Newest first. Decision rule is pre-registered in `README.md`; raw answers under
 `results/<date-round>/`.
 
+## 2026-07-21 · round 2 · ADVERSARIAL diag fixture (etl-silent-drift) + Opus
+
+The new fixture's decisive lines carry NO classic error keyword — it caught the hook
+dropping them outright before any model ran (fixed: drift-shaped keywords + block
+rescue; the CI gate now pins it). This round measures the FIXED hook. n=2/cell,
+three models. Raw data: `results/2026-07-21-round2/`.
+
+| Model  | A (compacted) | B (raw)       | delta   |
+| ------ | ------------- | ------------- | ------- |
+| haiku  | 25 [50,0]     | 25 [50,0]     | **0.0** |
+| sonnet | 100 [100,100] | 100 [100,100] | **0.0** |
+| opus   | 100 [100,100] | 100 [100,100] | **0.0** |
+
+Verdict unchanged: **KEEP**. Haiku's low absolute scores are symmetric across arms —
+task difficulty (a one-cent silent drift), not information loss; compaction again cost
+zero diagnostic ability, now including the adversarial no-keyword case.
+
 ## 2026-07-21 · round 1 · mechanism #5 `compact-tool-output` (in-session, Agent-tool subjects)
 
 - **Method**: subjects saw ONLY the failure log — condition A exactly as the shipped

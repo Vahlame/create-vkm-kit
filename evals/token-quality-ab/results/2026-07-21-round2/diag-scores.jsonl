@@ -1,0 +1,12 @@
+{"id":"diag-etl","condition":"compacted","replica":1,"model":"haiku","score":50}
+{"id":"diag-etl","condition":"compacted","replica":2,"model":"haiku","score":0}
+{"id":"diag-etl","condition":"compacted","replica":1,"model":"opus","score":100}
+{"id":"diag-etl","condition":"compacted","replica":2,"model":"opus","score":100}
+{"id":"diag-etl","condition":"compacted","replica":1,"model":"sonnet","score":100}
+{"id":"diag-etl","condition":"compacted","replica":2,"model":"sonnet","score":100}
+{"id":"diag-etl","condition":"raw","replica":1,"model":"haiku","score":50}
+{"id":"diag-etl","condition":"raw","replica":2,"model":"haiku","score":0}
+{"id":"diag-etl","condition":"raw","replica":1,"model":"opus","score":100}
+{"id":"diag-etl","condition":"raw","replica":2,"model":"opus","score":100}
+{"id":"diag-etl","condition":"raw","replica":1,"model":"sonnet","score":100}
+{"id":"diag-etl","condition":"raw","replica":2,"model":"sonnet","score":100}

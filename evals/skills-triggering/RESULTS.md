@@ -2,6 +2,23 @@
 
 Newest first. Raw answers live under `results/<date-round>/`.
 
+## 2026-07-21 · round 2 (12 HARD cases — near-miss, multi-skill, tool-vs-skill)
+
+The saturation fix: 12 deliberately confusable prompts (spec-about-research,
+research-about-specs, diagram-vs-code, tool-vs-skill, questions about the skills).
+One batch per model. Raw data: `results/2026-07-21-round2/`.
+
+| Model  | Hard-set accuracy | Misses                                                                                                               |
+| ------ | ----------------- | -------------------------------------------------------------------------------------------------------------------- |
+| haiku  | 11/12             | hard-06: "research which CSS framework..." → vkm-discipline (expected none — gathering is the obscura_research TOOL) |
+| sonnet | 12/12             | —                                                                                                                    |
+| opus   | 11/12             | hard-11: "pinta un diagrama de arquitectura" → vkm-discipline (expected vkm-design)                                  |
+
+Reading: the bench now teaches again. Both misses are boundary calls a human could
+argue; neither is a false-invoke of an unrelated skill. Description tweaks to consider
+next round: obscura_research-vs-research phrasing in vkm-research (Haiku's miss) and
+"diagram" as an explicit vkm-design trigger term (Opus's miss).
+
 ## 2026-07-21 · round 1 (in-session, Agent-tool subjects)
 
 - **Method**: subjects spawned as Claude Code subagents (the discipline-bench method),

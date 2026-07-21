@@ -6,3 +6,6 @@ CLAUDE.md
 # Captured model-output deliverables (design-bench eval evidence) — not hand-authored prose,
 # never rewritten for style so the sample stays an exact record of what was generated.
 evals/design-bench/samples/**
+# Research-bench fixtures reproduce raw pipeline output (bare url: seams are the
+# POINT — the validator detects them); captured evidence, never linted as prose.
+evals/*/fixtures/

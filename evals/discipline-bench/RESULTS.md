@@ -1,5 +1,27 @@
 # Results — /vkm-discipline mini-bench
 
+## 2026-07-21 · round 2 (NEW under-specified tasks incl. held-out, + Opus)
+
+Two new instruments (parse-duration good=100/naive=44; merge-intervals good=100/naive=71,
+**held-out** — written after the skill's last edit). n=2/cell.
+Raw data: `results/2026-07-21-round2/`.
+
+| Task                       | Model  | stock        | +discipline   | Δ                    |
+| -------------------------- | ------ | ------------ | ------------- | -------------------- |
+| parse-duration             | haiku  | 47.0 [50,44] | 44.0 [44,44]  | −3.0 (within spread) |
+| parse-duration             | sonnet | 78.0 [75,81] | 97.0 [94,100] | **+19.0**            |
+| parse-duration             | opus   | 69.0 [50,88] | 100 [100,100] | **+31.0**            |
+| merge-intervals (held-out) | haiku  | 71.0 [71,71] | 71.5 [64,79]  | +0.5 (noise)         |
+| merge-intervals (held-out) | sonnet | 79.0 [79,79] | 100 [100,100] | **+21.0**            |
+| merge-intervals (held-out) | opus   | 75.0 [71,79] | 100 [100,100] | **+25.0**            |
+
+New and honest: on these HARDER hidden contracts the big models gain strongly
+(including on the held-out task — no tuning contamination), while Haiku is flat to
+slightly negative (within spread). Contrast with dedupe-emails (round 1: Haiku +44.7):
+where the inferred contract is within the small model's reach, discipline rescues it;
+where it isn't, the doctrine neither helps nor hurts it. Both effects are what the
+dial predicts.
+
 ## 2026-07-21 · round with the UPGRADED skill (executable evidence + dial examples)
 
 First round after the skill gained `scripts/evidence-gates.sh`, `examples/dial-examples.md`

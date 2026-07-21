@@ -46,6 +46,14 @@ export const DIAG_TASKS = [
     intro: "A Go test job failed. Below is the full output of `go test -race ./...`.",
     errorId: "DATA RACE",
     fileLine: "state.go:161"
+  },
+  {
+    id: "diag-etl",
+    fixture: "etl-silent-drift.txt",
+    intro:
+      "A nightly ETL job 'succeeded' but the report total is wrong by one cent. Below is its full log.",
+    errorId: "12,50",
+    fileLine: "row 4412"
   }
 ];
 

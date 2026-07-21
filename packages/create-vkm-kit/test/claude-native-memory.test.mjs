@@ -1239,7 +1239,7 @@ test("effort-gate hook denies when a level was proposed but not yet confirmed", 
   assert.equal(r.status, 0, r.stderr);
   const parsed = JSON.parse(r.stdout);
   assert.equal(parsed.hookSpecificOutput.permissionDecision, "deny");
-  assert.match(parsed.hookSpecificOutput.permissionDecisionReason, /already proposed/);
+  assert.match(parsed.hookSpecificOutput.permissionDecisionReason, /proposed an effort level/);
 });
 
 test("effort-gate hook allows once a level was proposed AND the user replied", () => {

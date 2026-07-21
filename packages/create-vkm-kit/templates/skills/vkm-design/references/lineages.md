@@ -249,6 +249,6 @@ are seeds: run them through `scripts/palette.mjs` / `scripts/contrast.mjs` befor
    seeds are starting points, gates are gates.
 3. Deviate deliberately: change ONE thing the capsule prescribes and name why (that deviation
    is usually where the signature lives).
-4. Cross with one contemporary current ([`contemporary.md`](contemporary.md)): the capsule is
+4. Cross with one contemporary current (`contemporary.md`, this folder): the capsule is
    the language, the current is the move — a capsule executed with zero moves ships a museum
    piece, not a page someone remembers.

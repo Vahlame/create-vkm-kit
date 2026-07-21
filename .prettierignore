@@ -12,3 +12,6 @@ evals/research/fixtures/*.json
 # Raw live-bench evidence (subject solutions + graded rows, committed per round) —
 # verbatim model output; reformatting would falsify the record.
 evals/*/results/**
+# Grader-written subject solutions (regenerable from results/*.jsonl via --grade) —
+# verbatim model output, never reformatted.
+evals/*/solutions/**
