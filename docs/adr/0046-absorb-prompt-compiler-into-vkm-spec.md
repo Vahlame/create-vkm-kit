@@ -1,6 +1,6 @@
 # ADR-0046: absorb `obsidian-prompt-compiler` into vkm-spec and delete the package
 
-- **Status:** Accepted
+- **Status:** Accepted (implemented in the 4.0.0 train — the package is deleted; see ADR-0050 for the train and its Amendment)
 - **Date:** 2026-07-10
 - **Deciders:** maintainer
 
@@ -16,7 +16,7 @@ Meanwhile its individual modules — XML compilation, prompt defaults, project r
 
 ## Decision
 
-Absorb, don't keep: the compiler's **pure modules move to `vkm-spec`** essentially verbatim, with their tests (`compile-xml.mjs`, `prompt-defaults.mjs`, `project-resolve.mjs`, `clipboard.mjs`, `review.mjs`); its **retrieval engine relocates to the MCP server** as `context-assemble.mjs`, becoming the `assemble_context` tool (ADR-0045) — the layer where the security envelope and wire measurement already live; its GUI shell pattern (`node:http` + vanilla JS, no framework) is reused by the vkm-spec server on a new port (ADR-0048). Then **`packages/obsidian-prompt-compiler/` is deleted** in the 4.0.0 train, with a reference sweep; during the transition `context-search.mjs` survives only as a re-export shim. Status is Proposed because the deletion is gated on vkm-spec fully landing in the train (ADR-0050) — the absorption targets, not the funeral, are the reviewable part.
+Absorb, don't keep: the compiler's **pure modules move to `vkm-spec`** essentially verbatim, with their tests (`compile-xml.mjs`, `prompt-defaults.mjs`, `project-resolve.mjs`, `clipboard.mjs`, `review.mjs`); its **retrieval engine relocates to the MCP server** as `context-assemble.mjs`, becoming the `assemble_context` tool (ADR-0045) — the layer where the security envelope and wire measurement already live; its GUI shell pattern (`node:http` + vanilla JS, no framework) is reused by the vkm-spec server on a new port (ADR-0048). Then **`packages/obsidian-prompt-compiler/` is deleted** in the 4.0.0 train, with a reference sweep; during the transition `context-search.mjs` survives only as a re-export shim. The deletion was gated on vkm-spec fully landing in the train (ADR-0050) and executed with 4.0.0 — the absorption targets, not the funeral, were the reviewable part.
 
 ## Alternatives considered
 

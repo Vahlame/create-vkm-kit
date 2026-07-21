@@ -2,7 +2,7 @@
 
 # Troubleshooting
 
-A calm, step-by-step reference for fixing problems with the **v3 kit** (the
+A calm, step-by-step reference for fixing problems with the **kit** (the
 `basic-memory` connection, optional hybrid search, and the optional always-on
 HTTP server). Each entry follows the same shape: the **symptom** you see, the
 **Cause**, and the exact **Fix** to type.
@@ -167,7 +167,7 @@ Reload Window**. To open vault notes, use the MCP tools (`read_note`,
 the `-H windowsgui` flag), or its `git` subprocesses do not carry the
 `CREATE_NO_WINDOW` flag (this is pre-v3 behaviour).
 
-**Fix (v3 kit).** Build it as a windowless app:
+**Fix (kit v3+).** Build it as a windowless app:
 
 ```bash
 go build -ldflags="-H windowsgui" -o bin/obsidian-memoryd.exe ./cmd/obsidian-memoryd

@@ -42,7 +42,10 @@ const DEFAULTS = {
   /** Identical-line runs longer than this collapse to one line + a repeat marker. */
   repeatThreshold: 3,
   /** Cap on rescued diagnostic lines re-inserted from an elided middle section. */
-  maxRescued: 40,
+  maxRescued: 60,
+  /** Context lines carried with each rescued diagnostic (detail rarely repeats the keyword). */
+  rescueBefore: 1,
+  rescueAfter: 3,
   /** Below this many saved characters the hook stays silent (not worth a rewrite). */
   minSavedChars: 500
 };
@@ -87,18 +90,35 @@ export function compactText(input, opts = {}) {
   if (run >= cfg.repeatThreshold) collapsed.push(`  [... repeated ${run} more times]`);
   else for (let r = 0; r < run; r++) collapsed.push(cleaned[cleaned.length - 1]);
 
-  // 3. Head+tail windowing, rescuing diagnostic lines from the elided middle.
+  // 3. Head+tail windowing, rescuing diagnostic BLOCKS from the elided middle.
+  //    A diagnostic marker's detail usually lives on neighboring lines with no keyword
+  //    of their own (a TS error code under "ERROR in …", a stack frame under
+  //    "WARNING: DATA RACE") — rescuing the matched line alone provably lost the
+  //    decisive detail (see test/compact-diagnostics.test.mjs), so each match carries
+  //    `rescueBefore`/`rescueAfter` context lines with it, overlapping blocks merged.
   let windowed = collapsed;
   if (collapsed.length > cfg.maxLines) {
     const head = collapsed.slice(0, cfg.headLines);
     const tail = collapsed.slice(-cfg.tailLines);
     const middle = collapsed.slice(cfg.headLines, -cfg.tailLines);
-    const rescued = middle.filter((l) => MUST_KEEP_RE.test(l)).slice(0, cfg.maxRescued);
+    const keep = new Set();
+    for (let i = 0; i < middle.length; i++) {
+      if (!MUST_KEEP_RE.test(middle[i])) continue;
+      const from = Math.max(0, i - cfg.rescueBefore);
+      const to = Math.min(middle.length - 1, i + cfg.rescueAfter);
+      for (let j = from; j <= to; j++) keep.add(j);
+    }
+    const rescued = [...keep].sort((a, b) => a - b).slice(0, cfg.maxRescued);
+    const rescuedLines = [];
+    for (let n = 0; n < rescued.length; n++) {
+      if (n > 0 && rescued[n] !== rescued[n - 1] + 1) rescuedLines.push("  [...]");
+      rescuedLines.push(middle[rescued[n]]);
+    }
     const elided = middle.length - rescued.length;
     windowed = [
       ...head,
       `[vkm token-saver: ${elided} low-signal lines elided; ${rescued.length} diagnostic lines preserved below]`,
-      ...rescued,
+      ...rescuedLines,
       ...tail
     ];
   }

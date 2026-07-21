@@ -26,10 +26,13 @@ The whole user guide, in the recommended reading order.
 | [Glossary](glossary.md)                                      | What each term means (MCP, vault, FTS5…).                                            |
 | [Troubleshooting](troubleshooting.md)                        | Typical errors and how to fix them.                                                  |
 | [Web access (obscura)](../../packages/obscura-web/README.md) | Optional stealth web fetch + on-demand SearXNG search (`--obscura`).                 |
+| [Observability](../observability.md)                         | Daemon health, token/cache usage (`vkm-doctor`) and vault health — all local.        |
+| [Security](../security/README.md)                            | Threat model in one paragraph + deep-dive security notes.                            |
 
 ## For kit contributors
 
-- Technical architecture: [`ARCHITECTURE.md`](../../ARCHITECTURE.md)
+- **Architecture deep dive** (every piece, every connection, with diagrams): [architecture-deep-dive.md](architecture-deep-dive.md)
+- Technical architecture (short map): [`ARCHITECTURE.md`](../../ARCHITECTURE.md)
 - Design decisions: [`docs/adr/`](../adr/)
 - How to contribute: [`CONTRIBUTING.md`](../../CONTRIBUTING.md)
 - Older versions (historical): [`docs/legacy/`](../legacy/)

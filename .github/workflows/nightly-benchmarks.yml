@@ -1,0 +1,51 @@
+name: nightly-benchmarks
+
+# Deterministic-but-heavy gates that don't belong in every PR's path: the neural
+# (fastembed) retrieval floor needs a model download (~100 MB, cached between runs).
+# Same corpus + queries as CI's retrieval-bench, different embedder — this is the
+# gate ADR-0026/0017 never had: the semantic upgrade measured, not assumed.
+#
+# Floors below are PROVISIONAL (network policy in the authoring environment blocked
+# huggingface.co, so they could not be measured before shipping the job): set safely
+# under the hashing-embedder floors. After the first green run, tighten them to
+# (measured − 0.02) in a reviewed PR — same ratchet discipline as evals/README.md.
+
+on:
+  schedule:
+    - cron: "17 6 * * *" # nightly, off the :00 rush
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  retrieval-bench-semantic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: cache fastembed model
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/fastembed
+          key: fastembed-${{ runner.os }}-paraphrase-multilingual-MiniLM-L12-v2
+      - run: pip install -e './packages/obsidian-memory-rag[semantic]'
+      - name: neural retrieval floor (fastembed, same labelled corpus as CI)
+        run: |
+          python -m obsidian_memory_rag bench-recall \
+            --corpus evals/retrieval/corpus \
+            --queries evals/retrieval/queries.jsonl \
+            --embedder fastembed \
+            --assert-recall 0.90 --assert-mrr 0.85 --assert-hit1 0.80 \
+            --assert-ndcg 0.88 --assert-map 0.88 --assert-p95-ms 2000
+      - name: neural + pin-failures lever (ADR-0038 on the neural embedder)
+        run: |
+          python -m obsidian_memory_rag bench-recall \
+            --corpus evals/retrieval/corpus \
+            --queries evals/retrieval/queries.jsonl \
+            --embedder fastembed --pin-failures \
+            --assert-recall 0.90 --assert-mrr 0.85 --assert-hit1 0.80 \
+            --assert-ndcg 0.88 --assert-map 0.88

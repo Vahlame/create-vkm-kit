@@ -165,7 +165,7 @@ jobs:
             --corpus evals/retrieval/corpus \
             --queries evals/retrieval/queries.jsonl \
             --assert-recall 0.95 --assert-mrr 0.90 --assert-hit1 0.90 \
-            --assert-ndcg 0.93 --assert-map 0.93
+            --assert-ndcg 0.93 --assert-map 0.93 --assert-p95-ms 500
       - name: learning-effectiveness gate — same corpus with the pin-failures lever (ADR-0038)
         run: |
           python -m obsidian_memory_rag bench-recall \
@@ -179,7 +179,7 @@ jobs:
           python -m obsidian_memory_rag bench-tokens \
             --corpus evals/tokens/corpus \
             --queries evals/tokens/queries.jsonl \
-            --assert-savings 0.40 --assert-answered 0.95 \
+            --assert-savings 0.40 --assert-answered 1.0 \
             --assert-wire-savings 0.30
       - name: assemble-context gate (one-call bundle vs naive multi-call, completeness-gated, ADR-0045)
         run: |
@@ -234,6 +234,24 @@ jobs:
       - run: npm ci
       - name: basic-memory MCP handshake (real JSON-RPC, lists tools)
         run: node scripts/mcp-smoke.mjs
+
+  e2e-smoke:
+    # Full-stack smoke the per-component benches can't provide: real installer →
+    # real Python index → real hybrid MCP over stdio → search / write / search-again.
+    # Proves the pieces are wired, not just individually green.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 24
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - run: npm ci
+      - name: install → index → search → write → search-again (real stdio MCP)
+        run: node scripts/e2e-smoke.mjs
 
   eval-harness-smoke:
     # NOT a model adherence eval. This verifies the eval *harness* runs end-to-end

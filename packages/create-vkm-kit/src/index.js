@@ -1342,8 +1342,11 @@ Claude Code native-memory override (when --ide includes claude):
 
   Obscura web (ADR-0051, opt-in via --obscura or --full) — routes web access through the
   local obscura headless browser (anti-detection) instead of the native tools: an MCP
-  (obscura-web) exposing obscura_fetch (stealth URL fetch) and obscura_search (SearXNG JSON →
-  obscura-rendered multi-engine SERP → native fallback). Soft enforcement — obscura is
+  (obscura-web) exposing eight tools — obscura_fetch / obscura_fetch_many (stealth URL
+  fetch, single/batch), obscura_search (SearXNG JSON → obscura-rendered multi-engine SERP →
+  native fallback), obscura_research + obscura_research_start/status/stop (local deep-crawl,
+  foreground or background job — ADR-0054/0060) and obscura_consolidate (distill persisted
+  research into a draft summary — ADR-0056). Soft enforcement — obscura is
   preferred, native WebFetch/WebSearch stay as the fallback. The pinned obscura binary is
   downloaded + SHA-256-verified into ~/.vkm/obscura/ (needs a kit clone for the MCP bridge).
   --obscura / --no-obscura     Install + wire obscura-web (on under --full) / skip it.
@@ -1354,8 +1357,10 @@ Claude Code native-memory override (when --ide includes claude):
                                 (ADR-0056).
 
   Downloads (ADR-0058, opt-in via --downloads only — deliberately NOT in --full, since it writes
-  files to disk) — a guarded file-download manager MCP (vkm-downloads) exposing download_resolve
-  (metadata only, no write) and download_file (streams to ~/Downloads/vkm-kit/). http(s) only;
+  files to disk) — a guarded file-download manager MCP (vkm-downloads) exposing six tools:
+  download_resolve (metadata only, no write), download_file (streams to ~/Downloads/vkm-kit/),
+  probe_mirrors (rank candidate mirrors, no write), and download_start/status/cancel
+  (background jobs for large files — ADR-0059). http(s) only;
   URLs resolving to private/loopback addresses are refused; a 500MB cap aborts oversize files
   mid-stream; downloaded files are never opened or executed. Pure stdlib (no binary to install);
   needs a kit clone for the MCP bridge.

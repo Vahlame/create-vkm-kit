@@ -1,0 +1,157 @@
+name: llm-benchmarks
+
+# Live-model benches — the ones a deterministic CI gate cannot be. Everything here
+# needs ANTHROPIC_API_KEY (repo secret, opt-in); every job no-ops with a clear notice
+# when the secret is absent, so forks never fail. Results are uploaded as artifacts;
+# RESULTS.md files are updated by a human-reviewed PR, never auto-committed — a green
+# badge should never mean less than it says.
+#
+# Cost control: workflow_dispatch chooses the bench + n; the nightly schedule rotates
+# ONE cheap smoke (triggering accuracy on Haiku) rather than the full sweep.
+
+on:
+  schedule:
+    - cron: "43 7 * * *"
+  workflow_dispatch:
+    inputs:
+      bench:
+        description: "Which bench to run"
+        type: choice
+        options: [triggering, adherence, token-quality-ab, spec-bench]
+        default: triggering
+      mechanism:
+        description: "token-quality-ab only: mechanism under A/B"
+        type: string
+        default: compact-tool-output
+      n:
+        description: "replicas per cell"
+        type: string
+        default: "3"
+      model:
+        description: "model id for single-model benches"
+        type: string
+        default: "claude-haiku-4-5-20251001"
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      has_key: ${{ steps.check.outputs.has_key }}
+    steps:
+      - id: check
+        run: |
+          if [ -n "${{ secrets.ANTHROPIC_API_KEY }}" ]; then
+            echo "has_key=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_key=false" >> "$GITHUB_OUTPUT"
+            echo "ANTHROPIC_API_KEY not configured — live benches skipped (this is the opt-in design, not a failure)."
+          fi
+
+  triggering:
+    needs: guard
+    if: needs.guard.outputs.has_key == 'true' && (github.event_name == 'schedule' || inputs.bench == 'triggering')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 24
+      - name: skills triggering accuracy (gate hit>=0.9, FP<=0.1 per skill)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          node evals/skills-triggering/run.mjs --provider api \
+            --model "${{ inputs.model || 'claude-haiku-4-5-20251001' }}" | tee triggering.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: triggering-results
+          path: triggering.txt
+
+  adherence:
+    needs: guard
+    if: needs.guard.outputs.has_key == 'true' && inputs.bench == 'adherence'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 24
+      - run: npm ci
+      - name: REAL adherence (live model, kills the stub-1.0 blind spot)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ADHERENCE_PROVIDER: real
+          ADHERENCE_MODEL: ${{ inputs.model }}
+        run: node evals/run-adherence-ci.mjs | tee adherence.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: adherence-results
+          path: adherence.txt
+
+  token-quality-ab:
+    needs: guard
+    if: needs.guard.outputs.has_key == 'true' && inputs.bench == 'token-quality-ab'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 24
+      - name: install Claude Code CLI (headless subjects)
+        run: npm install -g @anthropic-ai/claude-code
+      - name: A/B — ${{ inputs.mechanism }} (quality vs saving; decision rule pre-registered in evals/token-quality-ab/README.md)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          node evals/token-quality-ab/run.mjs \
+            --mechanism "${{ inputs.mechanism }}" \
+            --models claude-haiku-4-5-20251001,claude-sonnet-5 \
+            --n "${{ inputs.n }}" | tee ab-results.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: token-quality-ab-${{ inputs.mechanism }}
+          path: ab-results.txt
+
+  spec-bench:
+    needs: guard
+    if: needs.guard.outputs.has_key == 'true' && inputs.bench == 'spec-bench'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 24
+      - name: install Claude Code CLI (headless subjects)
+        run: npm install -g @anthropic-ai/claude-code
+      - name: spec-bench (skill vs stock, validator-graded)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          node evals/spec-bench/run.mjs --emit-prompts --n "${{ inputs.n }}" > prompts.jsonl
+          : > answers.jsonl
+          while IFS= read -r line; do
+            id=$(echo "$line" | node -e "process.stdin.once('data',d=>console.log(JSON.parse(d).id))")
+            cond=$(echo "$line" | node -e "process.stdin.once('data',d=>console.log(JSON.parse(d).condition))")
+            rep=$(echo "$line" | node -e "process.stdin.once('data',d=>console.log(JSON.parse(d).replica))")
+            prompt=$(echo "$line" | node -e "process.stdin.once('data',d=>console.log(JSON.parse(d).prompt))")
+            ans=$(claude -p --output-format json --model "${{ inputs.model }}" "$prompt" | node -e "process.stdin.once('data',d=>console.log(JSON.stringify(JSON.parse(d).result)))")
+            printf '{"id":"%s","condition":"%s","replica":%s,"model":"%s","answer":%s}\n' "$id" "$cond" "$rep" "${{ inputs.model }}" "$ans" >> answers.jsonl
+          done < prompts.jsonl
+          node evals/spec-bench/run.mjs --grade answers.jsonl | tee spec-results.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: spec-bench-results
+          path: |
+            spec-results.txt
+            answers.jsonl

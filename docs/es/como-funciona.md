@@ -443,13 +443,16 @@ flowchart LR
 `basic-memory` y la búsqueda híbrida cubren **tus propias** notas. A veces el agente también necesita
 la **web abierta** — traer una página o buscar. El kit trae una capa web **opt-in**,
 [**obscura**](https://github.com/h4ckf0r0day/obscura): un navegador headless que renderiza páginas como
-un navegador de verdad (anti-detección, JS real), expuesto como dos tools MCP que el agente prefiere
+un navegador de verdad (anti-detección, JS real), expuesto como ocho tools MCP que el agente prefiere
 sobre las nativas.
 
-| Tool                    | Qué hace                                                                                                             |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `obscura_fetch(url)`    | Trae/renderiza una página vía obscura, devuelta como markdown limpio — DATOS web no confiables, nunca instrucciones. |
-| `obscura_search(query)` | Búsqueda web con un backend por capas, no frágil.                                                                    |
+| Tool                                           | Qué hace                                                                                                                           |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `obscura_fetch(url)` / `obscura_fetch_many`    | Trae/renderiza páginas vía obscura (una o en lote), devueltas como markdown limpio — DATOS web no confiables, nunca instrucciones. |
+| `obscura_search(query)`                        | Búsqueda web con un backend por capas, no frágil.                                                                                  |
+| `obscura_research(topic)`                      | Crawl profundo + rankeo BM25 100% local (cero tokens extra — ADR-0054); `persist:true` guarda en `RESEARCH/`.                      |
+| `obscura_research_start` / `_status` / `_stop` | La misma investigación como job en segundo plano, hasta 30 min (ADR-0060).                                                         |
+| `obscura_consolidate(topic)`                   | Destila las fuentes persistidas en un borrador de `summary.md` (ADR-0056).                                                         |
 
 **La analogía de la búsqueda.** Scrapear una página de resultados gratis es como leer el diario por el
 ojo de una cerradura: lo que agarrás es angosto y se rompe cuando mueven los muebles. Un **SearXNG**

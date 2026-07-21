@@ -110,6 +110,28 @@ chars, ADR-0035) and
 `packages/create-vkm-kit/test/memory-rules-budget.test.mjs` (rules block
 budget + load-bearing phrases + docs drift, ADR-0036).
 
+### End-to-end, latency, and the neural floor
+
+Three surfaces added on top of the per-component gates:
+
+- **`e2e-smoke`** (CI, every push): `scripts/e2e-smoke.mjs` runs the REAL stack in
+  sequence — installer → Python index → hybrid MCP over stdio → search a seeded fact →
+  `vault_write_file` a new note → reindex → find it. Proves the wiring, which no
+  per-component bench can.
+- **Latency**: `bench-recall --assert-p95-ms 500` gates per-query search p95 inside the
+  `retrieval-bench` job (measured ~3 ms locally on the fixture corpus; the ceiling is
+  deliberately loose — it catches accidental O(n²) ranking work, it is not a hardware
+  benchmark).
+- **Neural floor** (`.github/workflows/nightly-benchmarks.yml`, nightly + dispatch):
+  the same corpus/queries on the **fastembed** embedder — the measured gate the
+  semantic upgrade (ADR-0017/0026) never had. Floors are provisional until the first
+  green run establishes the measured numbers; then they ratchet to (measured − 0.02).
+- **Diagnostic preservation**: `packages/create-vkm-kit/test/compact-diagnostics.test.mjs`
+  drives the token-saver's `compactText` over adversarial real-failure logs (error buried
+  mid-stream in 900-line noisy output) and asserts the decisive line, its file:line, and
+  every early diagnostic block survive. Shipping proof: this gate CAUGHT a real loss
+  (detail lines adjacent to a keyword line were dropped) and forced the block-rescue fix.
+
 ## 3. Adherence harness (smoke only)
 
 > The CI job **`eval-harness-smoke`** is **not** a model-adherence evaluation — it verifies the eval harness itself runs end-to-end with a deterministic stub provider that echoes the expected token. The gate is always **1.0** unless the harness pipeline breaks (missing yaml, broken require, etc.). Do **not** treat a green badge here as evidence that any agent follows the vault User Rules.

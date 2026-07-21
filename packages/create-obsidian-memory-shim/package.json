@@ -1,6 +1,6 @@
 {
   "name": "@vkmikc/create-obsidian-memory",
-  "version": "4.4.0",
+  "version": "4.5.0",
   "description": "RENAMED: this package is now @vkmikc/create-vkm-kit (the vkm-kit installer). This shim forwards every invocation there — update your scripts.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -20,7 +20,7 @@
     "access": "public"
   },
   "dependencies": {
-    "execa": "^10.0.0",
+    "execa": "^9.6.1",
     "picocolors": "^1.1.1"
   }
 }

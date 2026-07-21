@@ -1,6 +1,6 @@
 ---
 name: vkm-research
-description: Consolidate a RESEARCH/<topic> bank into a quality summary.md — read the hub + unconsolidated sources, synthesize with wikilinks and supersedes, mark what's done. Also the import path for external research reports. Invoke for "consolidate <topic>" or "write up the research on X".
+description: Consolidates a RESEARCH/<topic> bank into a quality summary.md — reads hub + unconsolidated sources, synthesizes with wikilinks and supersedes, marks done. Also imports external reports. Invoke for "consolidate <topic>", "write up the research on X", or after obscura_research persisted sources.
 user-invocable: true
 ---
 

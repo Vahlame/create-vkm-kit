@@ -1,3 +1,5 @@
+> [🇪🇸 Español](./mcp-remote-rce.es.md) · 🇬🇧 English
+
 # mcp-remote RCE pin (>= 0.1.16)
 
 ## Context

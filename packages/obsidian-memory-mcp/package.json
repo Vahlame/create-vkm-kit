@@ -1,6 +1,6 @@
 {
   "name": "@vkmikc/obsidian-memory-mcp",
-  "version": "4.4.0",
+  "version": "4.5.0",
   "private": true,
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "execa": "^10.0.0",
+    "execa": "^9.6.1",
     "pino": "^10.3.1",
     "zod": "^4.4.3"
   },

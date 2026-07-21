@@ -279,6 +279,13 @@ def main() -> None:
         br.add_argument("--assert-hit1", type=float, default=None)
         br.add_argument("--assert-ndcg", type=float, default=None)
         br.add_argument("--assert-map", type=float, default=None)
+        br.add_argument(
+            "--assert-p95-ms",
+            type=float,
+            default=None,
+            help="Fail if per-query search p95 exceeds this many ms (loose ceiling; "
+            "regression detector, not a hardware benchmark)",
+        )
 
     for name, helptext in (
         (
@@ -708,6 +715,10 @@ def main() -> None:
             failures.append(f"nDCG@{report.k} {report.ndcg_at_k:.3f} < {args.assert_ndcg}")
         if args.assert_map is not None and report.map < args.assert_map:
             failures.append(f"MAP {report.map:.3f} < {args.assert_map}")
+        if args.assert_p95_ms is not None:
+            p95 = (report.latency_ms or {}).get("p95", 0.0)
+            if p95 > args.assert_p95_ms:
+                failures.append(f"latency p95 {p95:.1f}ms > {args.assert_p95_ms}ms")
         if failures:
             print("RETRIEVAL GATE FAILED: " + "; ".join(failures), file=sys.stderr)
             raise SystemExit(1)

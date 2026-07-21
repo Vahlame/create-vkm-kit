@@ -2,7 +2,7 @@
 
 # Solución de problemas
 
-Una referencia tranquila y paso a paso para arreglar problemas del **kit v3**
+Una referencia tranquila y paso a paso para arreglar problemas del **kit**
 (la conexión `basic-memory`, la búsqueda híbrida opcional y el servidor HTTP
 opcional siempre encendido). Cada entrada tiene la misma forma: el **síntoma**
 que ves, la **Causa** y la **Solución** exacta que debes escribir.
@@ -170,7 +170,7 @@ git por sí sola.
 (sin el flag `-H windowsgui`), o sus subprocesos `git` no llevan el flag
 `CREATE_NO_WINDOW` (esto es comportamiento pre-v3).
 
-**Solución (kit v3).** Compílalo como app sin ventana:
+**Solución (kit v3+).** Compílalo como app sin ventana:
 
 ```bash
 go build -ldflags="-H windowsgui" -o bin/obsidian-memoryd.exe ./cmd/obsidian-memoryd

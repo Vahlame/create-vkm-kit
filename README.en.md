@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="./LICENSE.md"><img src="https://img.shields.io/badge/license-MIT--derived_%2B_attribution_(non--OSI)-blue.svg" alt="License"></a>
-  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v4.4.0-orange.svg" alt="Release"></a>
+  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v4.5.0-orange.svg" alt="Release"></a>
   <a href="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.npmjs.com/package/@vkmikc/create-vkm-kit"><img src="https://img.shields.io/npm/v/%40vkmikc%2Fcreate-vkm-kit?label=npm&color=cb3837" alt="npm"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A5%2020-43853d.svg" alt="Node ≥ 20">
@@ -39,7 +39,8 @@ bridge between the editor and your files). No cloud service. The only required p
 server; everything else (semantic search, sync daemon) is optional.
 
 > How does information flow? The diagram above sums it up; the visual detail is in
-> [**How it works**](docs/en/how-it-works.md).
+> [**How it works**](docs/en/how-it-works.md). For every piece and every connection,
+> with per-operation sequence diagrams: [**Architecture deep dive**](docs/en/architecture-deep-dive.md).
 
 <p align="center">
   🧠 <b>Hybrid memory</b> BM25 + local semantic (opt-in) + graph&ensp;·&ensp;💸 <b>Token-saver</b> (CI gate ≥30%)&ensp;·&ensp;🩺 <b>vkm-doctor</b> — tokens & cache, 100% local&ensp;·&ensp;📝 <b>vkm-spec</b> idea → spec&ensp;·&ensp;🛠️ <b>Skills</b> <code>/vkm-discipline</code> · <code>/vkm-spec</code> · <code>/vkm-design</code> · <code>/vkm-research</code>&ensp;·&ensp;🕶️ <b>Stealth web</b> (obscura, opt-in)
@@ -134,6 +135,16 @@ decision: [`docs/adr/`](docs/adr/).
 block) — every number has a gate that **breaks the build** if it regresses (fixed labelled
 corpus + deterministic embedder: reproducible regression floors, not leaderboard claims). Detail:
 [how it works](docs/en/how-it-works.md) · [`evals/`](evals/).
+
+**And with live models (2026-07-21 round, Haiku 4.5 + Sonnet 5, raw data committed):** all
+4 skills route with **100% hit-rate and 0% false-positives** (104 ES+EN cases); the
+token-saver's pre-registered A/B showed **0.0 quality delta** with the log **~81% smaller**
+(verdict: keep — and the rule says a mechanism that degrades **gets removed**);
+`/vkm-discipline` lifts Haiku **from 47.0 to 91.7 (+44.7)** on the under-specified task with
+Sonnet unaffected. A CI **e2e smoke** also proves the whole stack over real stdio
+(install → index → search → write → search-again), and per-query latency is gated
+(measured p95 ~3 ms). All reproducible: [`evals/skills-triggering/`](evals/skills-triggering/) ·
+[`evals/token-quality-ab/`](evals/token-quality-ab/) · [`evals/discipline-bench/`](evals/discipline-bench/).
 
 ---
 

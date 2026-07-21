@@ -15,7 +15,12 @@ import { parse } from "yaml";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
-const Provider = require("./adherence-provider.cjs");
+// ADHERENCE_PROVIDER=real swaps the stub for the live-LLM provider (needs
+// ANTHROPIC_API_KEY; used by the llm-benchmarks workflow, never by core CI).
+const Provider =
+  process.env.ADHERENCE_PROVIDER === "real"
+    ? require("./adherence-real-provider.cjs")
+    : require("./adherence-provider.cjs");
 
 const yamlPath = path.join(__dirname, "adherence.yaml");
 const doc = parse(fs.readFileSync(yamlPath, "utf8"));
