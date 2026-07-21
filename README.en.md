@@ -39,7 +39,8 @@ bridge between the editor and your files). No cloud service. The only required p
 server; everything else (semantic search, sync daemon) is optional.
 
 > How does information flow? The diagram above sums it up; the visual detail is in
-> [**How it works**](docs/en/how-it-works.md).
+> [**How it works**](docs/en/how-it-works.md). For every piece and every connection,
+> with per-operation sequence diagrams: [**Architecture deep dive**](docs/en/architecture-deep-dive.md).
 
 <p align="center">
   🧠 <b>Hybrid memory</b> BM25 + local semantic (opt-in) + graph&ensp;·&ensp;💸 <b>Token-saver</b> (CI gate ≥30%)&ensp;·&ensp;🩺 <b>vkm-doctor</b> — tokens & cache, 100% local&ensp;·&ensp;📝 <b>vkm-spec</b> idea → spec&ensp;·&ensp;🛠️ <b>Skills</b> <code>/vkm-discipline</code> · <code>/vkm-spec</code> · <code>/vkm-design</code> · <code>/vkm-research</code>&ensp;·&ensp;🕶️ <b>Stealth web</b> (obscura, opt-in)

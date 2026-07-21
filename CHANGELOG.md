@@ -23,6 +23,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Architecture deep dive** (`docs/en/architecture-deep-dive.md` + `docs/es/arquitectura-a-fondo.md`):
+  the full as-built walkthrough — system flowchart, five per-operation sequence diagrams (recall,
+  write, close ritual, sync, research), a mind map of the kit's channels, a decision map tracing
+  every load-bearing behavior to its ADR, the condensed 22+8+6 tool surface, and an ownership map
+  of who writes what. All 14 mermaid blocks are render-verified; the tool tables are covered by the
+  `tool-doc-drift.test.mjs` gate (now checking the deep-dives in both languages, not just the MCP
+  README). Linked from both READMEs, both doc indexes and `ARCHITECTURE.md`.
 - **Spanish mirrors for the last English-only user docs**: `docs/es/observabilidad.md` and
   `docs/security/mcp-remote-rce.es.md`, plus a new `docs/security/README.{md,es.md}` index with
   the kit's threat model in one paragraph. Both doc indexes now link Observability and Security —

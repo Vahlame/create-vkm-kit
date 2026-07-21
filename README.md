@@ -45,6 +45,8 @@ is the MCP server; everything else (semantic search, sync daemon) is optional.
 
 > ¿Cómo fluye la información? El diagrama de arriba lo resume; el detalle visual está en
 > [**Cómo funciona**](docs/es/como-funciona.md) · [**How it works**](docs/en/how-it-works.md).
+> Para cada pieza y cada conexión, con diagramas de secuencia por operación:
+> [**Arquitectura a fondo**](docs/es/arquitectura-a-fondo.md) · [**Architecture deep dive**](docs/en/architecture-deep-dive.md).
 
 <p align="center">
   🧠 <b>Memoria híbrida</b> BM25 + semántica local (opt-in) + grafo&ensp;·&ensp;💸 <b>Token-saver</b> (gate CI ≥30 %)&ensp;·&ensp;🩺 <b>vkm-doctor</b> — tokens y caché, 100 % local&ensp;·&ensp;📝 <b>vkm-spec</b> idea → spec&ensp;·&ensp;🛠️ <b>Skills</b> <code>/vkm-discipline</code> · <code>/vkm-spec</code> · <code>/vkm-design</code> · <code>/vkm-research</code>&ensp;·&ensp;🕶️ <b>Web sigilosa</b> (obscura, opt-in)

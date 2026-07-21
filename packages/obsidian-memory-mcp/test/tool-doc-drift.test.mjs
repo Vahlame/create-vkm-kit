@@ -18,6 +18,10 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = path.join(ROOT, "src", "hybrid-mcp.mjs");
 const README = path.join(ROOT, "README.md");
+const DEEP_DIVES = [
+  path.join(ROOT, "..", "..", "docs", "en", "architecture-deep-dive.md"),
+  path.join(ROOT, "..", "..", "docs", "es", "arquitectura-a-fondo.md")
+];
 
 function registeredTools(src) {
   const re = /registerTool\(\s*\n?\s*"([a-z0-9_]+)"/g;
@@ -52,6 +56,19 @@ test("the README does not document tools that no longer exist", () => {
       tools.has(name),
       `README.md names "${name}" but hybrid-mcp.mjs no longer registers it — remove or rename it`
     );
+  }
+});
+
+test("the architecture deep-dives list every registered tool", () => {
+  const tools = registeredTools(readFileSync(SRC, "utf8"));
+  for (const dive of DEEP_DIVES) {
+    const documented = documentedTools(readFileSync(dive, "utf8"));
+    for (const tool of tools) {
+      assert.ok(
+        documented.has(tool),
+        `tool "${tool}" is registered in hybrid-mcp.mjs but missing from ${path.basename(dive)}`
+      );
+    }
   }
 });
 

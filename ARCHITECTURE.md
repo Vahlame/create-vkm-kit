@@ -3,7 +3,10 @@
 This document is the **map** of the repository: what the pieces are, how data
 flows between them, and the design patterns they share. The **rationale** for
 each decision lives in [`docs/adr/`](./docs/adr/) — when this document says
-"because X", the ADR is where "X" is argued in full. For agent-facing operating
+"because X", the ADR is where "X" is argued in full. The full walkthrough with
+per-operation sequence diagrams, a mind map and a decision map is
+[`docs/en/architecture-deep-dive.md`](./docs/en/architecture-deep-dive.md)
+([ES](./docs/es/arquitectura-a-fondo.md)). For agent-facing operating
 instructions see [`AGENTS.md`](./AGENTS.md); for human onboarding see
 [`docs/en/install.md`](./docs/en/install.md).
 

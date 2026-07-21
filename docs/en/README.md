@@ -31,7 +31,8 @@ The whole user guide, in the recommended reading order.
 
 ## For kit contributors
 
-- Technical architecture: [`ARCHITECTURE.md`](../../ARCHITECTURE.md)
+- **Architecture deep dive** (every piece, every connection, with diagrams): [architecture-deep-dive.md](architecture-deep-dive.md)
+- Technical architecture (short map): [`ARCHITECTURE.md`](../../ARCHITECTURE.md)
 - Design decisions: [`docs/adr/`](../adr/)
 - How to contribute: [`CONTRIBUTING.md`](../../CONTRIBUTING.md)
 - Older versions (historical): [`docs/legacy/`](../legacy/)

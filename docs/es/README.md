@@ -31,7 +31,8 @@ Toda la guía de usuario, en orden de lectura recomendado.
 
 ## Para quien contribuye al kit
 
-- Arquitectura técnica: [`ARCHITECTURE.md`](../../ARCHITECTURE.md) (inglés)
+- **Arquitectura a fondo** (cada pieza, cada conexión, con diagramas): [arquitectura-a-fondo.md](arquitectura-a-fondo.md)
+- Arquitectura técnica (mapa corto): [`ARCHITECTURE.md`](../../ARCHITECTURE.md) (inglés)
 - Decisiones de diseño: [`docs/adr/`](../adr/) (inglés)
 - Cómo contribuir: [`CONTRIBUTING.md`](../../CONTRIBUTING.md)
 - Versiones anteriores (histórico): [`docs/legacy/`](../legacy/)
