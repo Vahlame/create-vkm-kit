@@ -157,7 +157,7 @@ const tests = [
 const fails = [];
 let passed = 0;
 for (const [name, fn] of /** @type {[string, () => boolean][]} */ (tests)) {
-  let ok = false;
+  let ok;
   try {
     ok = fn();
   } catch {
