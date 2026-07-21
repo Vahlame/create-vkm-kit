@@ -30,6 +30,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   spec-shaped tasks, graded by discipline-bench's existing hidden-test instruments
   (no new graders). New job + dispatch option in `llm-benchmarks.yml`.
 
+- **design-bench auto round 1** (mechanical score from the skill's own validators;
+  raw HTML committed under `results/2026-07-21-round1/`): Sonnet **+60** on the
+  slop-attractor brief (stock: 15) and **+30** on the held-out brief; Opus (n=1)
+  **+60/+40** — stock Opus scored **0** on facturio (full slop fingerprint + failing
+  contrast). Haiku flat, dial-consistent. Judgment axes stay in the manual protocol.
 - **Effort gate auto-match (ADR-0031 amendment)**: the `PreToolUse` effort gate now
   detects the session's current effort (`CLAUDE_EFFORT` inherited by the hook) and
   opens itself when the model's proposed level equals it — no pause when there is
