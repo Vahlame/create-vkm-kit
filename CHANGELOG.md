@@ -30,6 +30,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   spec-shaped tasks, graded by discipline-bench's existing hidden-test instruments
   (no new graders). New job + dispatch option in `llm-benchmarks.yml`.
 
+- **Diversified round (round 2/3 of the live benches), Opus added at reduced n** —
+  raw data under each eval's `results/2026-07-21-round2/`:
+  - _research-bench_: the skill's gain GENERALIZES — held-out domain topic
+    (container-queries: Haiku +35, Sonnet +52.5, Opus +50) and Opus on sqlite-vec
+    (+45); stock Opus still fails the consolidation contract.
+  - _discipline-bench_ on the new harder tasks (incl. the held-out instrument):
+    Sonnet +19/+21, Opus +25/+31; Haiku flat-to-−3 within spread — where the hidden
+    contract exceeds the small model's reach, the doctrine neither helps nor hurts,
+    exactly what the dial predicts.
+  - _token-quality-ab_ adversarial fixture (no-keyword decisive lines): delta **0.0**
+    on all three models measuring the FIXED hook — verdict stays KEEP.
+  - _skills-triggering_ hard set (12 near-miss/multi-skill/tool-vs-skill cases):
+    Haiku 11/12, Sonnet 12/12, Opus 11/12 — desaturated, both misses are arguable
+    boundary calls, logged with the description tweaks to try next round.
 - **Round 1 of both new benches, raw data committed** (2026-07-21, Haiku 4.5 + Sonnet 5,
   n=3/cell, under `results/2026-07-21-round1/`):
   - _research-bench_: the skill delivers — Haiku **33.3 → 70.0 (+36.7)**, Sonnet

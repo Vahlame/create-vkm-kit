@@ -2,6 +2,22 @@
 
 Newest first. Raw subject outputs + graded rows under `results/<date-round>/`.
 
+## 2026-07-21 · round 2 (diversified: topic 2 held-out domain + Opus)
+
+- **New**: `container-queries` topic (non-DB domain, staleness-shaped contradiction),
+  Opus 4.x added at n=2; same grading. Raw data: `results/2026-07-21-round2/`.
+
+| Model  | Topic             | skill         | stock        | Δ         |
+| ------ | ----------------- | ------------- | ------------ | --------- |
+| haiku  | container-queries | 90.0 [90,90]  | 55.0 [55,55] | **+35.0** |
+| sonnet | container-queries | 97.5 [95,100] | 45.0 [45,45] | **+52.5** |
+| opus   | container-queries | 100 [100,100] | 50.0 [45,55] | **+50.0** |
+| opus   | sqlite-vec        | 100 [100,100] | 55.0 [55,55] | **+45.0** |
+
+The skill's gain GENERALIZES: new domain, different contradiction shape, and a third
+model all reproduce round 1's direction — and Opus saturates the skill condition on
+both topics while stock Opus still fails the consolidation contract.
+
 ## 2026-07-21 · round 1 (in-session, Agent-tool subjects)
 
 - **Method**: subjects got the full synthetic bank (hub, draft-local summary, 3 raw
