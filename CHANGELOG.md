@@ -6,7 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+
+- **Personal phone number removed from every LICENSE.md** (root + the 8 package
+  mirrors, `license:sync`-verified). Found by the pre-promotion privacy sweep — the
+  license contact stays email-only. Residual exposure noted honestly: the number
+  remains in old git blobs and in the already-published npm tarballs (≤4.5.0); the
+  current tree, the next release, and everything a visitor reads going forward are
+  clean. Full-history rewrite deliberately NOT done — it would break every clone,
+  tag and PR reference for marginal gain.
+
 ### Added
+
+- **Bench results visualized in the READMEs** — a static dumbbell chart
+  (`docs/assets/bench-results.svg` + a dark-mode variant, selected via
+  `<picture>`/`prefers-color-scheme`) of the committed 2026-07-21 live-round
+  numbers: skill vs stock per bench × model (research / design / discipline ×
+  Haiku / Sonnet / Opus), with direct value labels and deltas on every row.
+  Palette CVD-validated for both surfaces. Pure rendering of data already under
+  `evals/*/results/` — no benchmark execution involved. Embedded in
+  `README.md`, `README.en.md` and `evals/README.md`.
 
 - **`/vkm-research` grew from a 68-line monolith into a full skill** (same standard as
   the 4.5.0 vkm-spec rebuild): rewritten SKILL.md with a copyable checklist and a

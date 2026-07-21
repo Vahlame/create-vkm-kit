@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="596" viewBox="0 0 920 596" font-family="system-ui,-apple-system,'Segoe UI',sans-serif">
+<rect width="920" height="596" fill="#1a1a19" rx="8"/>
+<text x="24" y="34" font-size="17" font-weight="700" fill="#ffffff">Skills del kit — con skill vs stock (graders deterministas, 0–100)</text>
+<text x="24" y="54" font-size="12" fill="#c3c2b7">Rondas vivas 2026-07-21 · sujetos Claude Code · n=1–3 por celda (media) · datos crudos: evals/*/results/</text>
+<circle cx="29" cy="74" r="5" fill="#3987e5"/>
+<text x="38" y="78" font-size="11.5" fill="#ffffff">Haiku 4.5</text>
+<circle cx="118.6" cy="74" r="5" fill="#d95926"/>
+<text x="127.6" y="78" font-size="11.5" fill="#ffffff">Sonnet 5</text>
+<circle cx="201.8" cy="74" r="5" fill="#199e70"/>
+<text x="210.8" y="78" font-size="11.5" fill="#ffffff">Opus 4.x</text>
+<circle cx="285" cy="74" r="5" fill="none" stroke="#c3c2b7" stroke-width="2"/>
+<text x="294" y="78" font-size="11.5" fill="#c3c2b7">stock</text>
+<circle cx="349" cy="74" r="5" fill="#c3c2b7"/>
+<text x="358" y="78" font-size="11.5" fill="#c3c2b7">con skill</text>
+<line x1="150" y1="94" x2="150" y2="512" stroke="#33322f" stroke-width="1"/>
+<text x="150" y="528" font-size="11" fill="#c3c2b7" text-anchor="middle">0</text>
+<line x1="313" y1="94" x2="313" y2="512" stroke="#33322f" stroke-width="1"/>
+<text x="313" y="528" font-size="11" fill="#c3c2b7" text-anchor="middle">25</text>
+<line x1="476" y1="94" x2="476" y2="512" stroke="#33322f" stroke-width="1"/>
+<text x="476" y="528" font-size="11" fill="#c3c2b7" text-anchor="middle">50</text>
+<line x1="639" y1="94" x2="639" y2="512" stroke="#33322f" stroke-width="1"/>
+<text x="639" y="528" font-size="11" fill="#c3c2b7" text-anchor="middle">75</text>
+<line x1="802" y1="94" x2="802" y2="512" stroke="#33322f" stroke-width="1"/>
+<text x="802" y="528" font-size="11" fill="#c3c2b7" text-anchor="middle">100</text>
+<text x="20" y="108" font-size="12.5" font-weight="700" fill="#ffffff">research-bench</text>
+<text x="150" y="108" font-size="10.5" fill="#c3c2b7">consolidación RESEARCH/ · 2 topics (1 held-out)</text>
+<text x="140" y="137" font-size="11.5" fill="#ffffff" text-anchor="end">Haiku 4.5</text>
+<line x1="438.184" y1="133" x2="671.6" y2="133" stroke="#3987e5" stroke-width="2" opacity="0.55"/>
+<circle cx="438.184" cy="133" r="6" fill="#1a1a19" stroke="#3987e5" stroke-width="2.5"/>
+<circle cx="671.6" cy="133" r="6.5" fill="#3987e5" stroke="#1a1a19" stroke-width="2"/>
+<text x="426.184" y="137" font-size="11" fill="#c3c2b7" text-anchor="end">44.2</text>
+<text x="683.6" y="137" font-size="11" font-weight="600" fill="#ffffff" text-anchor="start">80  (+35.8)</text>
+<text x="140" y="167" font-size="11.5" fill="#ffffff" text-anchor="end">Sonnet 5</text>
+<line x1="410.8" y1="163" x2="783.092" y2="163" stroke="#d95926" stroke-width="2" opacity="0.55"/>
+<circle cx="410.8" cy="163" r="6" fill="#1a1a19" stroke="#d95926" stroke-width="2.5"/>
+<circle cx="783.092" cy="163" r="6.5" fill="#d95926" stroke="#1a1a19" stroke-width="2"/>
+<text x="398.8" y="167" font-size="11" fill="#c3c2b7" text-anchor="end">40</text>
+<text x="795.092" y="167" font-size="11" font-weight="600" fill="#ffffff" text-anchor="start">97.1  (+57.1)</text>
+<text x="140" y="197" font-size="11.5" fill="#ffffff" text-anchor="end">Opus 4.x</text>
+<line x1="492.3" y1="193" x2="802" y2="193" stroke="#199e70" stroke-width="2" opacity="0.55"/>
+<circle cx="492.3" cy="193" r="6" fill="#1a1a19" stroke="#199e70" stroke-width="2.5"/>
+<circle cx="802" cy="193" r="6.5" fill="#199e70" stroke="#1a1a19" stroke-width="2"/>
+<text x="480.3" y="197" font-size="11" fill="#c3c2b7" text-anchor="end">52.5</text>
+<text x="814" y="197" font-size="11" font-weight="600" fill="#ffffff" text-anchor="start">100  (+47.5)</text>
+<text x="20" y="254" font-size="12.5" font-weight="700" fill="#ffffff">design-bench</text>
+<text x="150" y="254" font-size="10.5" fill="#c3c2b7">validadores propios de la skill · 2 briefs (1 held-out)</text>
+<text x="140" y="283" font-size="11.5" fill="#ffffff" text-anchor="end">Haiku 4.5</text>
+<line x1="508.6" y1="279" x2="524.9" y2="279" stroke="#3987e5" stroke-width="2" opacity="0.55"/>
+<circle cx="508.6" cy="279" r="6" fill="#1a1a19" stroke="#3987e5" stroke-width="2.5"/>
+<circle cx="524.9" cy="279" r="6.5" fill="#3987e5" stroke="#1a1a19" stroke-width="2"/>
+<text x="496.6" y="283" font-size="11" fill="#c3c2b7" text-anchor="end">55</text>
+<text x="536.9" y="283" font-size="11" font-weight="600" fill="#ffffff" text-anchor="start">57.5  (+2.5)</text>
+<text x="140" y="313" font-size="11.5" fill="#ffffff" text-anchor="end">Sonnet 5</text>
+<line x1="329.3" y1="309" x2="622.7" y2="309" stroke="#d95926" stroke-width="2" opacity="0.55"/>
+<circle cx="329.3" cy="309" r="6" fill="#1a1a19" stroke="#d95926" stroke-width="2.5"/>
+<circle cx="622.7" cy="309" r="6.5" fill="#d95926" stroke="#1a1a19" stroke-width="2"/>
+<text x="317.3" y="313" font-size="11" fill="#c3c2b7" text-anchor="end">27.5</text>
+<text x="634.7" y="313" font-size="11" font-weight="600" fill="#ffffff" text-anchor="start">72.5  (+45)</text>
+<text x="140" y="343" font-size="11.5" fill="#ffffff" text-anchor="end">Opus 4.x</text>
+<line x1="345.6" y1="339" x2="671.6" y2="339" stroke="#199e70" stroke-width="2" opacity="0.55"/>
+<circle cx="345.6" cy="339" r="6" fill="#1a1a19" stroke="#199e70" stroke-width="2.5"/>
+<circle cx="671.6" cy="339" r="6.5" fill="#199e70" stroke="#1a1a19" stroke-width="2"/>
+<text x="333.6" y="343" font-size="11" fill="#c3c2b7" text-anchor="end">30</text>
+<text x="683.6" y="343" font-size="11" font-weight="600" fill="#ffffff" text-anchor="start">80  (+50)</text>
+<text x="20" y="400" font-size="12.5" font-weight="700" fill="#ffffff">discipline-bench</text>
+<text x="150" y="400" font-size="10.5" fill="#c3c2b7">tareas subespecificadas, tests ocultos (1 held-out)</text>
+<text x="140" y="429" font-size="11.5" fill="#ffffff" text-anchor="end">Haiku 4.5</text>
+<line x1="508.6" y1="425" x2="600.5319999999999" y2="425" stroke="#3987e5" stroke-width="2" opacity="0.55"/>
+<circle cx="508.6" cy="425" r="6" fill="#1a1a19" stroke="#3987e5" stroke-width="2.5"/>
+<circle cx="600.5319999999999" cy="425" r="6.5" fill="#3987e5" stroke="#1a1a19" stroke-width="2"/>
+<text x="496.6" y="429" font-size="11" fill="#c3c2b7" text-anchor="end">55</text>
+<text x="612.5319999999999" y="429" font-size="11" font-weight="600" fill="#ffffff" text-anchor="start">69.1  (+14.1)</text>
+<text x="140" y="459" font-size="11.5" fill="#ffffff" text-anchor="end">Sonnet 5</text>
+<line x1="671.6" y1="455" x2="758.3159999999999" y2="455" stroke="#d95926" stroke-width="2" opacity="0.55"/>
+<circle cx="671.6" cy="455" r="6" fill="#1a1a19" stroke="#d95926" stroke-width="2.5"/>
+<circle cx="758.3159999999999" cy="455" r="6.5" fill="#d95926" stroke="#1a1a19" stroke-width="2"/>
+<text x="659.6" y="459" font-size="11" fill="#c3c2b7" text-anchor="end">80</text>
+<text x="770.3159999999999" y="459" font-size="11" font-weight="600" fill="#ffffff" text-anchor="start">93.3  (+13.3)</text>
+<text x="140" y="489" font-size="11.5" fill="#ffffff" text-anchor="end">Opus 4.x</text>
+<line x1="619.44" y1="485" x2="802" y2="485" stroke="#199e70" stroke-width="2" opacity="0.55"/>
+<circle cx="619.44" cy="485" r="6" fill="#1a1a19" stroke="#199e70" stroke-width="2.5"/>
+<circle cx="802" cy="485" r="6.5" fill="#199e70" stroke="#1a1a19" stroke-width="2"/>
+<text x="607.44" y="489" font-size="11" fill="#c3c2b7" text-anchor="end">72</text>
+<text x="814" y="489" font-size="11" font-weight="600" fill="#ffffff" text-anchor="start">100  (+28)</text>
+<text x="24" y="560" font-size="10.5" fill="#c3c2b7">Graders: validate_summary.mjs · slop-check + audit-css de la propia skill · tests ocultos por tarea.</text>
+<text x="24" y="576" font-size="10.5" fill="#c3c2b7">Aparte en evals/: token-saver A/B (delta de calidad 0.0 × 3 modelos con logs ~81% menores) y triggering (34/36 en el set difícil).</text>
+</svg>

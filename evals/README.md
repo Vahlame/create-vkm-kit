@@ -1,5 +1,12 @@
 # Evaluations
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="../docs/assets/bench-results-dark.svg">
+    <img src="../docs/assets/bench-results.svg" alt="Dumbbell chart: puntuación con skill vs stock por bench y modelo — research-bench, design-bench y discipline-bench suben con la skill en Sonnet y Opus; Haiku plano en design" width="880">
+  </picture>
+</p>
+
 Three distinct things live here. Keep them separate:
 
 1. **Retrieval quality (`retrieval/`)** — a **real, measured** benchmark of the
