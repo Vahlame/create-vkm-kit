@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+
+- **Personal phone number removed from every LICENSE.md** (root + the 8 package
+  mirrors, `license:sync`-verified). Found by the pre-promotion privacy sweep — the
+  license contact stays email-only. Residual exposure noted honestly: the number
+  remains in old git blobs and in the already-published npm tarballs (≤4.5.0); the
+  current tree, the next release, and everything a visitor reads going forward are
+  clean. Full-history rewrite deliberately NOT done — it would break every clone,
+  tag and PR reference for marginal gain.
+
 ### Added
 
 - **`/vkm-research` grew from a 68-line monolith into a full skill** (same standard as

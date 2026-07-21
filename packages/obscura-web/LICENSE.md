@@ -41,4 +41,4 @@ SOFTWARE.
 
 _Este es el único proyecto de Vahlame de libre uso; todos los demás son
 propietarios y todo uso se acuerda directamente con el titular:
-<vahlame@gmail.com> · (+506) 8610-8287._
+<vahlame@gmail.com>._
