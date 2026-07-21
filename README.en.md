@@ -70,6 +70,8 @@ The old npm name (`@vkmikc/create-obsidian-memory`) is **deprecated and frozen o
 > - **Full engine (`--full`, hybrid + semantic + skills)** → **clone the repo** and run it from
 >   there (or pass `--repo-root <clone>`). This is the **canonical path** for every feature.
 
+<!-- -->
+
 > ⚡ **The whole stack in one command — `--full`.**
 > Focused **on Codex and Claude Code first**, with **every feature on by default**: it registers
 > the MCP in both, enables hybrid search (BM25, semantic, and graph), the **knowledge graph**

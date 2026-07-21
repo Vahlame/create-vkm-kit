@@ -81,18 +81,11 @@ const MARKERS = [
     read: (s) => (s.match(/^version\s*=\s*"([^"]+)"/m) || [])[1],
     write: (s, v) => s.replace(/^(version\s*=\s*")[^"]+(")/m, `$1${v}$2`)
   },
-  {
-    name: "README.md (release badge)",
-    file: "README.md",
-    read: (s) => (s.match(/release-v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)-orange/) || [])[1],
-    write: (s, v) => s.replace(/(release-v)\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(-orange)/, `$1${v}$2`)
-  },
-  {
-    name: "README.en.md (release badge)",
-    file: "README.en.md",
-    read: (s) => (s.match(/release-v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)-orange/) || [])[1],
-    write: (s, v) => s.replace(/(release-v)\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(-orange)/, `$1${v}$2`)
-  },
+  // The READMEs no longer carry a literal version. Both release badges are now
+  // dynamic (img.shields.io/github/v/release/…), reading straight from the latest
+  // GitHub release — so there is nothing in the READMEs left to drift, and nothing
+  // for `set` to rewrite. The git tag `set` reminds you to push remains the single
+  // source those badges render.
   {
     name: "agent.toml",
     file: "agent.toml",
