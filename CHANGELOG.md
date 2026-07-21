@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [4.5.1] - 2026-07-21
+
 ### Security
 
 - **Personal phone number removed from every LICENSE.md** (root + the 8 package
@@ -2242,7 +2244,8 @@ Prior history was undocumented and is summarized only in git log. Highlights:
 - Addition of `AGENTS.md` and `manifest.json` for machine-readable discoverability.
 - Seven hardening fixes for real-world install gaps.
 
-[Unreleased]: https://github.com/Vahlame/create-vkm-kit/compare/v4.5.0...HEAD
+[Unreleased]: https://github.com/Vahlame/create-vkm-kit/compare/v4.5.1...HEAD
+[4.5.1]: https://github.com/Vahlame/create-vkm-kit/compare/v4.5.0...v4.5.1
 [4.5.0]: https://github.com/Vahlame/create-vkm-kit/compare/v4.4.0...v4.5.0
 [4.4.0]: https://github.com/Vahlame/create-vkm-kit/compare/v4.3.0...v4.4.0
 [3.12.0]: https://github.com/Vahlame/create-vkm-kit/compare/v3.11.0...v3.12.0
