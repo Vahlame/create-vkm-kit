@@ -3,16 +3,16 @@
 </p>
 
 <h1 align="center">🧠 Persistent memory for your AI agent</h1>
-<h3 align="center">Memoria persistente para tu agente de IA</h3>
 
 <p align="center">
-  <em>Your notes in Markdown + git. The model reads &amp; writes them via MCP. All local, all yours.</em><br>
-  <em>Tus notas en Markdown + git. El modelo las lee y escribe vía MCP. Todo local, todo tuyo.</em>
+  <em>Your notes in Markdown + git. The model reads &amp; writes them via MCP. All local, all yours.</em>
 </p>
+
+<!-- DEMO: drop docs/assets/demo.gif here once recorded — recipe in docs/assets/DEMO.md -->
 
 <p align="center">
   <a href="./LICENSE.md"><img src="https://img.shields.io/badge/license-MIT--derived_%2B_attribution_(non--OSI)-blue.svg" alt="License"></a>
-  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v4.4.0-orange.svg" alt="Release"></a>
+  <a href="https://github.com/Vahlame/create-vkm-kit/releases"><img src="https://img.shields.io/github/v/release/Vahlame/create-vkm-kit?label=release&color=orange" alt="Release"></a>
   <a href="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.npmjs.com/package/@vkmikc/create-vkm-kit"><img src="https://img.shields.io/npm/v/%40vkmikc%2Fcreate-vkm-kit?label=npm&color=cb3837" alt="npm"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A5%2020-43853d.svg" alt="Node ≥ 20">
@@ -33,10 +33,11 @@
 
 ## What is this?
 
-**vkm-kit**: a **cross-platform kit** that gives your AI (Cursor, Claude Code…) **memory that survives across
-chats**: a folder of Markdown notes under git that the agent reads and writes through **MCP** (the
-bridge between the editor and your files). No cloud service. The only required piece is the MCP
-server; everything else (semantic search, sync daemon) is optional.
+**vkm-kit** (_Vahlame Knowledge Memory_): a **cross-platform kit** that gives your AI (Cursor,
+Claude Code…) **memory that survives across chats**: a folder of Markdown notes under git that the
+agent reads and writes through **MCP** (the bridge between the editor and your files). No cloud
+service. The only required piece is the MCP server; everything else (semantic search, sync daemon)
+is optional.
 
 > How does information flow? The diagram above sums it up; the visual detail is in
 > [**How it works**](docs/en/how-it-works.md).
@@ -60,6 +61,14 @@ npx @vkmikc/create-vkm-kit "<PATH>" -y     # no questions, at the path you choos
 ```
 
 The old npm name (`@vkmikc/create-obsidian-memory`) is **deprecated and frozen on the v3 kit (3.15.0)** — it does not forward to the new package, so repoint any pinned script to `@vkmikc/create-vkm-kit`.
+
+> 📦 **Two paths, and one of them needs the repo cloned.** The installer lives on npm, but the
+> **full hybrid engine** (the `obsidian-memory-mcp` MCP, `obscura-web`, the Python backend) **runs
+> from a clone of the kit**, not from npm. So:
+>
+> - **npx only** → basic memory via `basic-memory` (no hybrid). Zero clone.
+> - **Full engine (`--full`, hybrid + semantic + skills)** → **clone the repo** and run it from
+>   there (or pass `--repo-root <clone>`). This is the **canonical path** for every feature.
 
 > ⚡ **The whole stack in one command — `--full`.**
 > Focused **on Codex and Claude Code first**, with **every feature on by default**: it registers
@@ -139,8 +148,8 @@ corpus + deterministic embedder: reproducible regression floors, not leaderboard
 
 ## More
 
-- **After installing:** [usage + situational guide](docs/en/usage.md) ([🇪🇸 guía de uso](docs/es/guia-de-uso.md)).
-- **Coming from 3.x?** [4.0 migration](docs/en/migration-4.0.md) ([🇪🇸 migración a 4.0](docs/es/migracion-4.0.md)).
+- **After installing:** [usage + situational guide](docs/en/usage.md).
+- **Coming from 3.x?** [4.0 migration](docs/en/migration-4.0.md).
 - **Security / trust:** [`SECURITY.md`](SECURITY.md) — the vault is **data**, not instructions.
 - **Fresh PC (Claude Code):** [fresh-PC install](docs/en/install-fresh-pc.md).
 - **Comparison with alternatives:** [FAQ](docs/en/faq.md).
