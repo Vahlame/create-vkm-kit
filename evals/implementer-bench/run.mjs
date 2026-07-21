@@ -28,7 +28,7 @@ const AGENT_MD = path.join(
   "vkm-implementer.md"
 );
 
-export const TASKS = ["parse-range", "dedupe-emails"];
+export const TASKS = ["parse-range", "dedupe-emails", "parse-duration", "merge-intervals"];
 
 function specFor(task) {
   // The task's explicit PROMPT (or underspec fallback) reframed as the spec the

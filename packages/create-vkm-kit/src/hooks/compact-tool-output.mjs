@@ -24,7 +24,7 @@ import { pathToFileURL } from "node:url";
  * `!` followed by a space is not a word boundary — and `\w*` before `error|exception`
  * catches joined names like `TypeError` / `HttpException`. */
 export const MUST_KEEP_RE =
-  /\b\w*(?:error|exception)s?\b|\berr!|npm ERR!|\b(?:warn|warning|fail|failed|failure|fatal|panic|traceback|assert|denied|refused|timeout|timed out|exit code|exited with)\b|✖|✗|⨯/i;
+  /\b\w*(?:error|exception)s?\b|\berr!|npm ERR!|\b(?:warn|warning|fail|failed|failure|fatal|panic|traceback|assert|denied|refused|timeout|timed out|exit code|exited with|mismatch(?:ed|es)?|reconcil\w*|discrepan\w*)\b|\bexpected\b[^\n]{0,80}\bgot\b|✖|✗|⨯/i;
 
 /** ANSI CSI/OSC escape sequences (colors, cursor movement, titles). */
 const ANSI_RE = new RegExp(
