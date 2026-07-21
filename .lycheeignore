@@ -18,3 +18,6 @@ https://github\.com/Vahlame/obsidian-memory-kit/blob/main/docs/adr/.*
 # the README can't be machine-verified. The badge itself (img.shields.io/npm/v/…)
 # rendering a version number next to it is the living proof the package exists.
 https://www\.npmjs\.com/package/.*
+# Keep-a-Changelog compare links reference the release tag BEFORE it exists (the cut
+# lands in the PR, the tag lands at release) — structurally 404 until tagging, every release.
+https://github.com/Vahlame/create-vkm-kit/compare/.*
