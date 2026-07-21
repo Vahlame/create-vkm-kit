@@ -30,6 +30,7 @@ import json
 import math
 import shutil
 import tempfile
+import time
 from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -113,6 +114,10 @@ class BenchReport:
     # cut-off drops every candidate).
     negatives: dict = field(default_factory=dict)
     results: list[QueryResult] = field(default_factory=list)
+    # Wall-clock of each hybrid_search call (index build excluded): p50/p95/mean in ms.
+    # Runner-dependent, so CI gates on a LOOSE ceiling (--assert-p95-ms) — a regression
+    # detector for accidental O(n²) ranking work, not a hardware benchmark.
+    latency_ms: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -157,8 +162,10 @@ def evaluate(
     queries (non-empty ``relevant``); negatives are summarized separately.
     """
     results: list[QueryResult] = []
+    timings_ms: list[float] = []
     for q in queries:
         relevant = set(q["relevant"])
+        t0 = time.perf_counter()
         hits = hybrid_search(
             vault,
             q["query"],
@@ -171,6 +178,7 @@ def evaluate(
             mmr=mmr,
             reranker=reranker,
         )
+        timings_ms.append((time.perf_counter() - t0) * 1000.0)
         retrieved = [h.path for h in hits]
         topk = retrieved[:k]
         first_rank: int | None = None
@@ -237,6 +245,20 @@ def evaluate(
         else 0.0,
     }
 
+    sorted_ms = sorted(timings_ms)
+
+    def pct(p: float) -> float:
+        if not sorted_ms:
+            return 0.0
+        idx = min(len(sorted_ms) - 1, max(0, round(p * (len(sorted_ms) - 1))))
+        return sorted_ms[idx]
+
+    latency_ms = {
+        "p50": round(pct(0.50), 2),
+        "p95": round(pct(0.95), 2),
+        "mean": round(sum(sorted_ms) / len(sorted_ms), 2) if sorted_ms else 0.0,
+    }
+
     return BenchReport(
         k=k,
         n=len(results),
@@ -250,6 +272,7 @@ def evaluate(
         by_kind=by_kind,
         negatives=neg_summary,
         results=results,
+        latency_ms=latency_ms,
     )
 
 
@@ -336,6 +359,12 @@ def format_report(report: BenchReport) -> str:
             f"  negatives:   n={int(neg['n'])} "
             f"mean_top_score={neg['mean_top_score']:.4f} "
             f"abstain_rate={neg['abstain_rate']:.3f}"
+        )
+    lat = report.latency_ms or {}
+    if lat:
+        lines.append(
+            f"  latency/query: p50={lat['p50']:.1f}ms p95={lat['p95']:.1f}ms "
+            f"mean={lat['mean']:.1f}ms (search only, index build excluded)"
         )
     # Only positive queries can "miss" — a negative query has no relevant note.
     misses = [r for r in report.results if r.relevant and r.first_rank is None]

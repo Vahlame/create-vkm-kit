@@ -436,13 +436,16 @@ flowchart LR
 `basic-memory` and the hybrid search cover your **own** notes. Sometimes the agent also needs the
 **open web** — to fetch a page or search it. The kit ships an **opt-in** web layer,
 [**obscura**](https://github.com/h4ckf0r0day/obscura): a headless browser that renders pages like a
-real browser (anti-detection, real JS), exposed as two MCP tools the agent prefers over the built-in
+real browser (anti-detection, real JS), exposed as eight MCP tools the agent prefers over the built-in
 ones.
 
-| Tool                    | What it does                                                                                                 |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `obscura_fetch(url)`    | Fetch/render a page through obscura, handed back as clean markdown — untrusted web DATA, never instructions. |
-| `obscura_search(query)` | Web search with a layered, non-fragile backend.                                                              |
+| Tool                                           | What it does                                                                                                                  |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `obscura_fetch(url)` / `obscura_fetch_many`    | Fetch/render pages through obscura (single or batch), handed back as clean markdown — untrusted web DATA, never instructions. |
+| `obscura_search(query)`                        | Web search with a layered, non-fragile backend.                                                                               |
+| `obscura_research(topic)`                      | Deep crawl + 100% local BM25 ranking (zero extra tokens — ADR-0054); `persist:true` saves into `RESEARCH/`.                   |
+| `obscura_research_start` / `_status` / `_stop` | The same research as a background job, up to 30 min (ADR-0060).                                                               |
+| `obscura_consolidate(topic)`                   | Distills the persisted sources into a draft `summary.md` (ADR-0056).                                                          |
 
 **The analogy for search.** Scraping a search page for free is like reading a newspaper through a
 keyhole: what you can grab is narrow and breaks when they move the furniture. A local **SearXNG** is

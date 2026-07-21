@@ -3,7 +3,10 @@
 This document is the **map** of the repository: what the pieces are, how data
 flows between them, and the design patterns they share. The **rationale** for
 each decision lives in [`docs/adr/`](./docs/adr/) — when this document says
-"because X", the ADR is where "X" is argued in full. For agent-facing operating
+"because X", the ADR is where "X" is argued in full. The full walkthrough with
+per-operation sequence diagrams, a mind map and a decision map is
+[`docs/en/architecture-deep-dive.md`](./docs/en/architecture-deep-dive.md)
+([ES](./docs/es/arquitectura-a-fondo.md)). For agent-facing operating
 instructions see [`AGENTS.md`](./AGENTS.md); for human onboarding see
 [`docs/en/install.md`](./docs/en/install.md).
 
@@ -187,10 +190,10 @@ each IDE's format.
 ### 7. `obscura-web` — stealth web MCP sidecar (Node, opt-in)
 
 The agent's window onto the **open web**, opt-in via `--obscura`/`--full` (ADR-0051/0052). Stdio MCP
-server exposing two tools, backed by the local
+server exposing eight tools, backed by the local
 [obscura](https://github.com/h4ckf0r0day/obscura) headless browser.
 
-- **Entry point:** [`src/obscura-mcp.mjs`](./packages/obscura-web/src/obscura-mcp.mjs) — registers `obscura_fetch` (stealth URL fetch/render) and `obscura_search`, with the same `main()` guard so importing for tests never spawns the transport.
+- **Entry point:** [`src/obscura-mcp.mjs`](./packages/obscura-web/src/obscura-mcp.mjs) — registers `obscura_fetch` / `obscura_fetch_many` (stealth URL fetch/render, single/batch), `obscura_search`, `obscura_research` + `obscura_research_start`/`_status`/`_stop` (local deep-crawl, foreground or background job — ADR-0054/0060) and `obscura_consolidate` (distill persisted research — ADR-0056), with the same `main()` guard so importing for tests never spawns the transport.
 - **Fetch:** [`obscura-cli.mjs`](./packages/obscura-web/src/obscura-cli.mjs) invokes `obscura fetch` per request (argv only, no shell, no open port; only http(s) URLs accepted). Pages are size-capped and wrapped as untrusted web DATA + injection-flagged ([`untrusted-web.mjs`](./packages/obscura-web/src/untrusted-web.mjs)).
 - **Layered search:** [`serp.mjs`](./packages/obscura-web/src/serp.mjs) tries a structured SearXNG JSON backend first, then obscura-rendered DuckDuckGo/Bing/Brave SERPs (resilient per-engine parsers + per-query cache), then steers to the native `WebSearch`.
 - **On-demand SearXNG (ADR-0052):** [`ensure-searxng.mjs`](./packages/obscura-web/src/ensure-searxng.mjs) starts a local SearXNG only while searching and stops it after an idle window — it never keeps the MCP loop alive (`unref`), is killed on exit, and an externally-run instance is used but never killed. Each search is logged ([`search-log.mjs`](./packages/obscura-web/src/search-log.mjs)) for the stdlib-only desktop monitor ([`searxng/searxng-gui.pyw`](./packages/obscura-web/searxng/searxng-gui.pyw)).

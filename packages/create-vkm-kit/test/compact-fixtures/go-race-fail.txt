@@ -1,0 +1,1134 @@
+=== RUN   TestWatcher_0
+--- PASS: TestWatcher_0 (0.00s)
+=== RUN   TestWatcher_1
+--- PASS: TestWatcher_1 (0.01s)
+=== RUN   TestWatcher_2
+--- PASS: TestWatcher_2 (0.02s)
+=== RUN   TestWatcher_3
+--- PASS: TestWatcher_3 (0.03s)
+=== RUN   TestWatcher_4
+--- PASS: TestWatcher_4 (0.04s)
+=== RUN   TestWatcher_5
+--- PASS: TestWatcher_5 (0.05s)
+=== RUN   TestWatcher_6
+--- PASS: TestWatcher_6 (0.06s)
+=== RUN   TestWatcher_7
+--- PASS: TestWatcher_7 (0.07s)
+=== RUN   TestWatcher_8
+--- PASS: TestWatcher_8 (0.08s)
+=== RUN   TestWatcher_9
+--- PASS: TestWatcher_9 (0.09s)
+=== RUN   TestWatcher_10
+--- PASS: TestWatcher_10 (0.00s)
+=== RUN   TestWatcher_11
+--- PASS: TestWatcher_11 (0.01s)
+=== RUN   TestWatcher_12
+--- PASS: TestWatcher_12 (0.02s)
+=== RUN   TestWatcher_13
+--- PASS: TestWatcher_13 (0.03s)
+=== RUN   TestWatcher_14
+--- PASS: TestWatcher_14 (0.04s)
+=== RUN   TestWatcher_15
+--- PASS: TestWatcher_15 (0.05s)
+=== RUN   TestWatcher_16
+--- PASS: TestWatcher_16 (0.06s)
+=== RUN   TestWatcher_17
+--- PASS: TestWatcher_17 (0.07s)
+=== RUN   TestWatcher_18
+--- PASS: TestWatcher_18 (0.08s)
+=== RUN   TestWatcher_19
+--- PASS: TestWatcher_19 (0.09s)
+=== RUN   TestWatcher_20
+--- PASS: TestWatcher_20 (0.00s)
+=== RUN   TestWatcher_21
+--- PASS: TestWatcher_21 (0.01s)
+=== RUN   TestWatcher_22
+--- PASS: TestWatcher_22 (0.02s)
+=== RUN   TestWatcher_23
+--- PASS: TestWatcher_23 (0.03s)
+=== RUN   TestWatcher_24
+--- PASS: TestWatcher_24 (0.04s)
+=== RUN   TestWatcher_25
+--- PASS: TestWatcher_25 (0.05s)
+=== RUN   TestWatcher_26
+--- PASS: TestWatcher_26 (0.06s)
+=== RUN   TestWatcher_27
+--- PASS: TestWatcher_27 (0.07s)
+=== RUN   TestWatcher_28
+--- PASS: TestWatcher_28 (0.08s)
+=== RUN   TestWatcher_29
+--- PASS: TestWatcher_29 (0.09s)
+=== RUN   TestWatcher_30
+--- PASS: TestWatcher_30 (0.00s)
+=== RUN   TestWatcher_31
+--- PASS: TestWatcher_31 (0.01s)
+=== RUN   TestWatcher_32
+--- PASS: TestWatcher_32 (0.02s)
+=== RUN   TestWatcher_33
+--- PASS: TestWatcher_33 (0.03s)
+=== RUN   TestWatcher_34
+--- PASS: TestWatcher_34 (0.04s)
+=== RUN   TestWatcher_35
+--- PASS: TestWatcher_35 (0.05s)
+=== RUN   TestWatcher_36
+--- PASS: TestWatcher_36 (0.06s)
+=== RUN   TestWatcher_37
+--- PASS: TestWatcher_37 (0.07s)
+=== RUN   TestWatcher_38
+--- PASS: TestWatcher_38 (0.08s)
+=== RUN   TestWatcher_39
+--- PASS: TestWatcher_39 (0.09s)
+=== RUN   TestWatcher_40
+--- PASS: TestWatcher_40 (0.00s)
+=== RUN   TestWatcher_41
+--- PASS: TestWatcher_41 (0.01s)
+=== RUN   TestWatcher_42
+--- PASS: TestWatcher_42 (0.02s)
+=== RUN   TestWatcher_43
+--- PASS: TestWatcher_43 (0.03s)
+=== RUN   TestWatcher_44
+--- PASS: TestWatcher_44 (0.04s)
+=== RUN   TestWatcher_45
+--- PASS: TestWatcher_45 (0.05s)
+=== RUN   TestWatcher_46
+--- PASS: TestWatcher_46 (0.06s)
+=== RUN   TestWatcher_47
+--- PASS: TestWatcher_47 (0.07s)
+=== RUN   TestWatcher_48
+--- PASS: TestWatcher_48 (0.08s)
+=== RUN   TestWatcher_49
+--- PASS: TestWatcher_49 (0.09s)
+=== RUN   TestWatcher_50
+--- PASS: TestWatcher_50 (0.00s)
+=== RUN   TestWatcher_51
+--- PASS: TestWatcher_51 (0.01s)
+=== RUN   TestWatcher_52
+--- PASS: TestWatcher_52 (0.02s)
+=== RUN   TestWatcher_53
+--- PASS: TestWatcher_53 (0.03s)
+=== RUN   TestWatcher_54
+--- PASS: TestWatcher_54 (0.04s)
+=== RUN   TestWatcher_55
+--- PASS: TestWatcher_55 (0.05s)
+=== RUN   TestWatcher_56
+--- PASS: TestWatcher_56 (0.06s)
+=== RUN   TestWatcher_57
+--- PASS: TestWatcher_57 (0.07s)
+=== RUN   TestWatcher_58
+--- PASS: TestWatcher_58 (0.08s)
+=== RUN   TestWatcher_59
+--- PASS: TestWatcher_59 (0.09s)
+=== RUN   TestWatcher_60
+--- PASS: TestWatcher_60 (0.00s)
+=== RUN   TestWatcher_61
+--- PASS: TestWatcher_61 (0.01s)
+=== RUN   TestWatcher_62
+--- PASS: TestWatcher_62 (0.02s)
+=== RUN   TestWatcher_63
+--- PASS: TestWatcher_63 (0.03s)
+=== RUN   TestWatcher_64
+--- PASS: TestWatcher_64 (0.04s)
+=== RUN   TestWatcher_65
+--- PASS: TestWatcher_65 (0.05s)
+=== RUN   TestWatcher_66
+--- PASS: TestWatcher_66 (0.06s)
+=== RUN   TestWatcher_67
+--- PASS: TestWatcher_67 (0.07s)
+=== RUN   TestWatcher_68
+--- PASS: TestWatcher_68 (0.08s)
+=== RUN   TestWatcher_69
+--- PASS: TestWatcher_69 (0.09s)
+=== RUN   TestWatcher_70
+--- PASS: TestWatcher_70 (0.00s)
+=== RUN   TestWatcher_71
+--- PASS: TestWatcher_71 (0.01s)
+=== RUN   TestWatcher_72
+--- PASS: TestWatcher_72 (0.02s)
+=== RUN   TestWatcher_73
+--- PASS: TestWatcher_73 (0.03s)
+=== RUN   TestWatcher_74
+--- PASS: TestWatcher_74 (0.04s)
+=== RUN   TestWatcher_75
+--- PASS: TestWatcher_75 (0.05s)
+=== RUN   TestWatcher_76
+--- PASS: TestWatcher_76 (0.06s)
+=== RUN   TestWatcher_77
+--- PASS: TestWatcher_77 (0.07s)
+=== RUN   TestWatcher_78
+--- PASS: TestWatcher_78 (0.08s)
+=== RUN   TestWatcher_79
+--- PASS: TestWatcher_79 (0.09s)
+=== RUN   TestWatcher_80
+--- PASS: TestWatcher_80 (0.00s)
+=== RUN   TestWatcher_81
+--- PASS: TestWatcher_81 (0.01s)
+=== RUN   TestWatcher_82
+--- PASS: TestWatcher_82 (0.02s)
+=== RUN   TestWatcher_83
+--- PASS: TestWatcher_83 (0.03s)
+=== RUN   TestWatcher_84
+--- PASS: TestWatcher_84 (0.04s)
+=== RUN   TestWatcher_85
+--- PASS: TestWatcher_85 (0.05s)
+=== RUN   TestWatcher_86
+--- PASS: TestWatcher_86 (0.06s)
+=== RUN   TestWatcher_87
+--- PASS: TestWatcher_87 (0.07s)
+=== RUN   TestWatcher_88
+--- PASS: TestWatcher_88 (0.08s)
+=== RUN   TestWatcher_89
+--- PASS: TestWatcher_89 (0.09s)
+=== RUN   TestWatcher_90
+--- PASS: TestWatcher_90 (0.00s)
+=== RUN   TestWatcher_91
+--- PASS: TestWatcher_91 (0.01s)
+=== RUN   TestWatcher_92
+--- PASS: TestWatcher_92 (0.02s)
+=== RUN   TestWatcher_93
+--- PASS: TestWatcher_93 (0.03s)
+=== RUN   TestWatcher_94
+--- PASS: TestWatcher_94 (0.04s)
+=== RUN   TestWatcher_95
+--- PASS: TestWatcher_95 (0.05s)
+=== RUN   TestWatcher_96
+--- PASS: TestWatcher_96 (0.06s)
+=== RUN   TestWatcher_97
+--- PASS: TestWatcher_97 (0.07s)
+=== RUN   TestWatcher_98
+--- PASS: TestWatcher_98 (0.08s)
+=== RUN   TestWatcher_99
+--- PASS: TestWatcher_99 (0.09s)
+=== RUN   TestWatcher_100
+--- PASS: TestWatcher_100 (0.00s)
+=== RUN   TestWatcher_101
+--- PASS: TestWatcher_101 (0.01s)
+=== RUN   TestWatcher_102
+--- PASS: TestWatcher_102 (0.02s)
+=== RUN   TestWatcher_103
+--- PASS: TestWatcher_103 (0.03s)
+=== RUN   TestWatcher_104
+--- PASS: TestWatcher_104 (0.04s)
+=== RUN   TestWatcher_105
+--- PASS: TestWatcher_105 (0.05s)
+=== RUN   TestWatcher_106
+--- PASS: TestWatcher_106 (0.06s)
+=== RUN   TestWatcher_107
+--- PASS: TestWatcher_107 (0.07s)
+=== RUN   TestWatcher_108
+--- PASS: TestWatcher_108 (0.08s)
+=== RUN   TestWatcher_109
+--- PASS: TestWatcher_109 (0.09s)
+=== RUN   TestWatcher_110
+--- PASS: TestWatcher_110 (0.00s)
+=== RUN   TestWatcher_111
+--- PASS: TestWatcher_111 (0.01s)
+=== RUN   TestWatcher_112
+--- PASS: TestWatcher_112 (0.02s)
+=== RUN   TestWatcher_113
+--- PASS: TestWatcher_113 (0.03s)
+=== RUN   TestWatcher_114
+--- PASS: TestWatcher_114 (0.04s)
+=== RUN   TestWatcher_115
+--- PASS: TestWatcher_115 (0.05s)
+=== RUN   TestWatcher_116
+--- PASS: TestWatcher_116 (0.06s)
+=== RUN   TestWatcher_117
+--- PASS: TestWatcher_117 (0.07s)
+=== RUN   TestWatcher_118
+--- PASS: TestWatcher_118 (0.08s)
+=== RUN   TestWatcher_119
+--- PASS: TestWatcher_119 (0.09s)
+=== RUN   TestWatcher_120
+--- PASS: TestWatcher_120 (0.00s)
+=== RUN   TestWatcher_121
+--- PASS: TestWatcher_121 (0.01s)
+=== RUN   TestWatcher_122
+--- PASS: TestWatcher_122 (0.02s)
+=== RUN   TestWatcher_123
+--- PASS: TestWatcher_123 (0.03s)
+=== RUN   TestWatcher_124
+--- PASS: TestWatcher_124 (0.04s)
+=== RUN   TestWatcher_125
+--- PASS: TestWatcher_125 (0.05s)
+=== RUN   TestWatcher_126
+--- PASS: TestWatcher_126 (0.06s)
+=== RUN   TestWatcher_127
+--- PASS: TestWatcher_127 (0.07s)
+=== RUN   TestWatcher_128
+--- PASS: TestWatcher_128 (0.08s)
+=== RUN   TestWatcher_129
+--- PASS: TestWatcher_129 (0.09s)
+=== RUN   TestWatcher_130
+--- PASS: TestWatcher_130 (0.00s)
+=== RUN   TestWatcher_131
+--- PASS: TestWatcher_131 (0.01s)
+=== RUN   TestWatcher_132
+--- PASS: TestWatcher_132 (0.02s)
+=== RUN   TestWatcher_133
+--- PASS: TestWatcher_133 (0.03s)
+=== RUN   TestWatcher_134
+--- PASS: TestWatcher_134 (0.04s)
+=== RUN   TestWatcher_135
+--- PASS: TestWatcher_135 (0.05s)
+=== RUN   TestWatcher_136
+--- PASS: TestWatcher_136 (0.06s)
+=== RUN   TestWatcher_137
+--- PASS: TestWatcher_137 (0.07s)
+=== RUN   TestWatcher_138
+--- PASS: TestWatcher_138 (0.08s)
+=== RUN   TestWatcher_139
+--- PASS: TestWatcher_139 (0.09s)
+=== RUN   TestWatcher_140
+--- PASS: TestWatcher_140 (0.00s)
+=== RUN   TestWatcher_141
+--- PASS: TestWatcher_141 (0.01s)
+=== RUN   TestWatcher_142
+--- PASS: TestWatcher_142 (0.02s)
+=== RUN   TestWatcher_143
+--- PASS: TestWatcher_143 (0.03s)
+=== RUN   TestWatcher_144
+--- PASS: TestWatcher_144 (0.04s)
+=== RUN   TestWatcher_145
+--- PASS: TestWatcher_145 (0.05s)
+=== RUN   TestWatcher_146
+--- PASS: TestWatcher_146 (0.06s)
+=== RUN   TestWatcher_147
+--- PASS: TestWatcher_147 (0.07s)
+=== RUN   TestWatcher_148
+--- PASS: TestWatcher_148 (0.08s)
+=== RUN   TestWatcher_149
+--- PASS: TestWatcher_149 (0.09s)
+=== RUN   TestWatcher_150
+--- PASS: TestWatcher_150 (0.00s)
+=== RUN   TestWatcher_151
+--- PASS: TestWatcher_151 (0.01s)
+=== RUN   TestWatcher_152
+--- PASS: TestWatcher_152 (0.02s)
+=== RUN   TestWatcher_153
+--- PASS: TestWatcher_153 (0.03s)
+=== RUN   TestWatcher_154
+--- PASS: TestWatcher_154 (0.04s)
+=== RUN   TestWatcher_155
+--- PASS: TestWatcher_155 (0.05s)
+=== RUN   TestWatcher_156
+--- PASS: TestWatcher_156 (0.06s)
+=== RUN   TestWatcher_157
+--- PASS: TestWatcher_157 (0.07s)
+=== RUN   TestWatcher_158
+--- PASS: TestWatcher_158 (0.08s)
+=== RUN   TestWatcher_159
+--- PASS: TestWatcher_159 (0.09s)
+=== RUN   TestWatcher_160
+--- PASS: TestWatcher_160 (0.00s)
+=== RUN   TestWatcher_161
+--- PASS: TestWatcher_161 (0.01s)
+=== RUN   TestWatcher_162
+--- PASS: TestWatcher_162 (0.02s)
+=== RUN   TestWatcher_163
+--- PASS: TestWatcher_163 (0.03s)
+=== RUN   TestWatcher_164
+--- PASS: TestWatcher_164 (0.04s)
+=== RUN   TestWatcher_165
+--- PASS: TestWatcher_165 (0.05s)
+=== RUN   TestWatcher_166
+--- PASS: TestWatcher_166 (0.06s)
+=== RUN   TestWatcher_167
+--- PASS: TestWatcher_167 (0.07s)
+=== RUN   TestWatcher_168
+--- PASS: TestWatcher_168 (0.08s)
+=== RUN   TestWatcher_169
+--- PASS: TestWatcher_169 (0.09s)
+=== RUN   TestWatcher_170
+--- PASS: TestWatcher_170 (0.00s)
+=== RUN   TestWatcher_171
+--- PASS: TestWatcher_171 (0.01s)
+=== RUN   TestWatcher_172
+--- PASS: TestWatcher_172 (0.02s)
+=== RUN   TestWatcher_173
+--- PASS: TestWatcher_173 (0.03s)
+=== RUN   TestWatcher_174
+--- PASS: TestWatcher_174 (0.04s)
+=== RUN   TestWatcher_175
+--- PASS: TestWatcher_175 (0.05s)
+=== RUN   TestWatcher_176
+--- PASS: TestWatcher_176 (0.06s)
+=== RUN   TestWatcher_177
+--- PASS: TestWatcher_177 (0.07s)
+=== RUN   TestWatcher_178
+--- PASS: TestWatcher_178 (0.08s)
+=== RUN   TestWatcher_179
+--- PASS: TestWatcher_179 (0.09s)
+=== RUN   TestWatcher_180
+--- PASS: TestWatcher_180 (0.00s)
+=== RUN   TestWatcher_181
+--- PASS: TestWatcher_181 (0.01s)
+=== RUN   TestWatcher_182
+--- PASS: TestWatcher_182 (0.02s)
+=== RUN   TestWatcher_183
+--- PASS: TestWatcher_183 (0.03s)
+=== RUN   TestWatcher_184
+--- PASS: TestWatcher_184 (0.04s)
+=== RUN   TestWatcher_185
+--- PASS: TestWatcher_185 (0.05s)
+=== RUN   TestWatcher_186
+--- PASS: TestWatcher_186 (0.06s)
+=== RUN   TestWatcher_187
+--- PASS: TestWatcher_187 (0.07s)
+=== RUN   TestWatcher_188
+--- PASS: TestWatcher_188 (0.08s)
+=== RUN   TestWatcher_189
+--- PASS: TestWatcher_189 (0.09s)
+=== RUN   TestWatcher_190
+--- PASS: TestWatcher_190 (0.00s)
+=== RUN   TestWatcher_191
+--- PASS: TestWatcher_191 (0.01s)
+=== RUN   TestWatcher_192
+--- PASS: TestWatcher_192 (0.02s)
+=== RUN   TestWatcher_193
+--- PASS: TestWatcher_193 (0.03s)
+=== RUN   TestWatcher_194
+--- PASS: TestWatcher_194 (0.04s)
+=== RUN   TestWatcher_195
+--- PASS: TestWatcher_195 (0.05s)
+=== RUN   TestWatcher_196
+--- PASS: TestWatcher_196 (0.06s)
+=== RUN   TestWatcher_197
+--- PASS: TestWatcher_197 (0.07s)
+=== RUN   TestWatcher_198
+--- PASS: TestWatcher_198 (0.08s)
+=== RUN   TestWatcher_199
+--- PASS: TestWatcher_199 (0.09s)
+=== RUN   TestWatcher_200
+--- PASS: TestWatcher_200 (0.00s)
+=== RUN   TestWatcher_201
+--- PASS: TestWatcher_201 (0.01s)
+=== RUN   TestWatcher_202
+--- PASS: TestWatcher_202 (0.02s)
+=== RUN   TestWatcher_203
+--- PASS: TestWatcher_203 (0.03s)
+=== RUN   TestWatcher_204
+--- PASS: TestWatcher_204 (0.04s)
+=== RUN   TestWatcher_205
+--- PASS: TestWatcher_205 (0.05s)
+=== RUN   TestWatcher_206
+--- PASS: TestWatcher_206 (0.06s)
+=== RUN   TestWatcher_207
+--- PASS: TestWatcher_207 (0.07s)
+=== RUN   TestWatcher_208
+--- PASS: TestWatcher_208 (0.08s)
+=== RUN   TestWatcher_209
+--- PASS: TestWatcher_209 (0.09s)
+=== RUN   TestWatcher_210
+--- PASS: TestWatcher_210 (0.00s)
+=== RUN   TestWatcher_211
+--- PASS: TestWatcher_211 (0.01s)
+=== RUN   TestWatcher_212
+--- PASS: TestWatcher_212 (0.02s)
+=== RUN   TestWatcher_213
+--- PASS: TestWatcher_213 (0.03s)
+=== RUN   TestWatcher_214
+--- PASS: TestWatcher_214 (0.04s)
+=== RUN   TestWatcher_215
+--- PASS: TestWatcher_215 (0.05s)
+=== RUN   TestWatcher_216
+--- PASS: TestWatcher_216 (0.06s)
+=== RUN   TestWatcher_217
+--- PASS: TestWatcher_217 (0.07s)
+=== RUN   TestWatcher_218
+--- PASS: TestWatcher_218 (0.08s)
+=== RUN   TestWatcher_219
+--- PASS: TestWatcher_219 (0.09s)
+=== RUN   TestWatcher_220
+--- PASS: TestWatcher_220 (0.00s)
+=== RUN   TestWatcher_221
+--- PASS: TestWatcher_221 (0.01s)
+=== RUN   TestWatcher_222
+--- PASS: TestWatcher_222 (0.02s)
+=== RUN   TestWatcher_223
+--- PASS: TestWatcher_223 (0.03s)
+=== RUN   TestWatcher_224
+--- PASS: TestWatcher_224 (0.04s)
+=== RUN   TestWatcher_225
+--- PASS: TestWatcher_225 (0.05s)
+=== RUN   TestWatcher_226
+--- PASS: TestWatcher_226 (0.06s)
+=== RUN   TestWatcher_227
+--- PASS: TestWatcher_227 (0.07s)
+=== RUN   TestWatcher_228
+--- PASS: TestWatcher_228 (0.08s)
+=== RUN   TestWatcher_229
+--- PASS: TestWatcher_229 (0.09s)
+=== RUN   TestWatcher_230
+--- PASS: TestWatcher_230 (0.00s)
+=== RUN   TestWatcher_231
+--- PASS: TestWatcher_231 (0.01s)
+=== RUN   TestWatcher_232
+--- PASS: TestWatcher_232 (0.02s)
+=== RUN   TestWatcher_233
+--- PASS: TestWatcher_233 (0.03s)
+=== RUN   TestWatcher_234
+--- PASS: TestWatcher_234 (0.04s)
+=== RUN   TestWatcher_235
+--- PASS: TestWatcher_235 (0.05s)
+=== RUN   TestWatcher_236
+--- PASS: TestWatcher_236 (0.06s)
+=== RUN   TestWatcher_237
+--- PASS: TestWatcher_237 (0.07s)
+=== RUN   TestWatcher_238
+--- PASS: TestWatcher_238 (0.08s)
+=== RUN   TestWatcher_239
+--- PASS: TestWatcher_239 (0.09s)
+=== RUN   TestWatcher_240
+--- PASS: TestWatcher_240 (0.00s)
+=== RUN   TestWatcher_241
+--- PASS: TestWatcher_241 (0.01s)
+=== RUN   TestWatcher_242
+--- PASS: TestWatcher_242 (0.02s)
+=== RUN   TestWatcher_243
+--- PASS: TestWatcher_243 (0.03s)
+=== RUN   TestWatcher_244
+--- PASS: TestWatcher_244 (0.04s)
+=== RUN   TestWatcher_245
+--- PASS: TestWatcher_245 (0.05s)
+=== RUN   TestWatcher_246
+--- PASS: TestWatcher_246 (0.06s)
+=== RUN   TestWatcher_247
+--- PASS: TestWatcher_247 (0.07s)
+=== RUN   TestWatcher_248
+--- PASS: TestWatcher_248 (0.08s)
+=== RUN   TestWatcher_249
+--- PASS: TestWatcher_249 (0.09s)
+=== RUN   TestWatcher_250
+--- PASS: TestWatcher_250 (0.00s)
+=== RUN   TestWatcher_251
+--- PASS: TestWatcher_251 (0.01s)
+=== RUN   TestWatcher_252
+--- PASS: TestWatcher_252 (0.02s)
+=== RUN   TestWatcher_253
+--- PASS: TestWatcher_253 (0.03s)
+=== RUN   TestWatcher_254
+--- PASS: TestWatcher_254 (0.04s)
+=== RUN   TestWatcher_255
+--- PASS: TestWatcher_255 (0.05s)
+=== RUN   TestWatcher_256
+--- PASS: TestWatcher_256 (0.06s)
+=== RUN   TestWatcher_257
+--- PASS: TestWatcher_257 (0.07s)
+=== RUN   TestWatcher_258
+--- PASS: TestWatcher_258 (0.08s)
+=== RUN   TestWatcher_259
+--- PASS: TestWatcher_259 (0.09s)
+=== RUN   TestWatcher_260
+--- PASS: TestWatcher_260 (0.00s)
+=== RUN   TestWatcher_261
+--- PASS: TestWatcher_261 (0.01s)
+=== RUN   TestWatcher_262
+--- PASS: TestWatcher_262 (0.02s)
+=== RUN   TestWatcher_263
+--- PASS: TestWatcher_263 (0.03s)
+=== RUN   TestWatcher_264
+--- PASS: TestWatcher_264 (0.04s)
+=== RUN   TestWatcher_265
+--- PASS: TestWatcher_265 (0.05s)
+=== RUN   TestWatcher_266
+--- PASS: TestWatcher_266 (0.06s)
+=== RUN   TestWatcher_267
+--- PASS: TestWatcher_267 (0.07s)
+=== RUN   TestWatcher_268
+--- PASS: TestWatcher_268 (0.08s)
+=== RUN   TestWatcher_269
+--- PASS: TestWatcher_269 (0.09s)
+=== RUN   TestWatcher_270
+--- PASS: TestWatcher_270 (0.00s)
+=== RUN   TestWatcher_271
+--- PASS: TestWatcher_271 (0.01s)
+=== RUN   TestWatcher_272
+--- PASS: TestWatcher_272 (0.02s)
+=== RUN   TestWatcher_273
+--- PASS: TestWatcher_273 (0.03s)
+=== RUN   TestWatcher_274
+--- PASS: TestWatcher_274 (0.04s)
+=== RUN   TestWatcher_275
+--- PASS: TestWatcher_275 (0.05s)
+=== RUN   TestWatcher_276
+--- PASS: TestWatcher_276 (0.06s)
+=== RUN   TestWatcher_277
+--- PASS: TestWatcher_277 (0.07s)
+=== RUN   TestWatcher_278
+--- PASS: TestWatcher_278 (0.08s)
+=== RUN   TestWatcher_279
+--- PASS: TestWatcher_279 (0.09s)
+=== RUN   TestWatcher_280
+--- PASS: TestWatcher_280 (0.00s)
+=== RUN   TestWatcher_281
+--- PASS: TestWatcher_281 (0.01s)
+=== RUN   TestWatcher_282
+--- PASS: TestWatcher_282 (0.02s)
+=== RUN   TestWatcher_283
+--- PASS: TestWatcher_283 (0.03s)
+=== RUN   TestWatcher_284
+--- PASS: TestWatcher_284 (0.04s)
+=== RUN   TestWatcher_285
+--- PASS: TestWatcher_285 (0.05s)
+=== RUN   TestWatcher_286
+--- PASS: TestWatcher_286 (0.06s)
+=== RUN   TestWatcher_287
+--- PASS: TestWatcher_287 (0.07s)
+=== RUN   TestWatcher_288
+--- PASS: TestWatcher_288 (0.08s)
+=== RUN   TestWatcher_289
+--- PASS: TestWatcher_289 (0.09s)
+=== RUN   TestWatcher_290
+--- PASS: TestWatcher_290 (0.00s)
+=== RUN   TestWatcher_291
+--- PASS: TestWatcher_291 (0.01s)
+=== RUN   TestWatcher_292
+--- PASS: TestWatcher_292 (0.02s)
+=== RUN   TestWatcher_293
+--- PASS: TestWatcher_293 (0.03s)
+=== RUN   TestWatcher_294
+--- PASS: TestWatcher_294 (0.04s)
+=== RUN   TestWatcher_295
+--- PASS: TestWatcher_295 (0.05s)
+=== RUN   TestWatcher_296
+--- PASS: TestWatcher_296 (0.06s)
+=== RUN   TestWatcher_297
+--- PASS: TestWatcher_297 (0.07s)
+=== RUN   TestWatcher_298
+--- PASS: TestWatcher_298 (0.08s)
+=== RUN   TestWatcher_299
+--- PASS: TestWatcher_299 (0.09s)
+==================
+WARNING: DATA RACE
+Write at 0x00c000123456 by goroutine 42:
+  main.(*DaemonState).recordPushSuccess()
+      /repo/cmd/obsidian-memoryd/state.go:161 +0x44
+Previous read at 0x00c000123456 by goroutine 7:
+  main.runWatchWith()
+      /repo/cmd/obsidian-memoryd/main.go:640 +0x1f2
+==================
+=== RUN   TestSync_300
+--- PASS: TestSync_300 (0.00s)
+=== RUN   TestSync_301
+--- PASS: TestSync_301 (0.01s)
+=== RUN   TestSync_302
+--- PASS: TestSync_302 (0.02s)
+=== RUN   TestSync_303
+--- PASS: TestSync_303 (0.03s)
+=== RUN   TestSync_304
+--- PASS: TestSync_304 (0.04s)
+=== RUN   TestSync_305
+--- PASS: TestSync_305 (0.05s)
+=== RUN   TestSync_306
+--- PASS: TestSync_306 (0.06s)
+=== RUN   TestSync_307
+--- PASS: TestSync_307 (0.07s)
+=== RUN   TestSync_308
+--- PASS: TestSync_308 (0.08s)
+=== RUN   TestSync_309
+--- PASS: TestSync_309 (0.09s)
+=== RUN   TestSync_310
+--- PASS: TestSync_310 (0.00s)
+=== RUN   TestSync_311
+--- PASS: TestSync_311 (0.01s)
+=== RUN   TestSync_312
+--- PASS: TestSync_312 (0.02s)
+=== RUN   TestSync_313
+--- PASS: TestSync_313 (0.03s)
+=== RUN   TestSync_314
+--- PASS: TestSync_314 (0.04s)
+=== RUN   TestSync_315
+--- PASS: TestSync_315 (0.05s)
+=== RUN   TestSync_316
+--- PASS: TestSync_316 (0.06s)
+=== RUN   TestSync_317
+--- PASS: TestSync_317 (0.07s)
+=== RUN   TestSync_318
+--- PASS: TestSync_318 (0.08s)
+=== RUN   TestSync_319
+--- PASS: TestSync_319 (0.09s)
+=== RUN   TestSync_320
+--- PASS: TestSync_320 (0.00s)
+=== RUN   TestSync_321
+--- PASS: TestSync_321 (0.01s)
+=== RUN   TestSync_322
+--- PASS: TestSync_322 (0.02s)
+=== RUN   TestSync_323
+--- PASS: TestSync_323 (0.03s)
+=== RUN   TestSync_324
+--- PASS: TestSync_324 (0.04s)
+=== RUN   TestSync_325
+--- PASS: TestSync_325 (0.05s)
+=== RUN   TestSync_326
+--- PASS: TestSync_326 (0.06s)
+=== RUN   TestSync_327
+--- PASS: TestSync_327 (0.07s)
+=== RUN   TestSync_328
+--- PASS: TestSync_328 (0.08s)
+=== RUN   TestSync_329
+--- PASS: TestSync_329 (0.09s)
+=== RUN   TestSync_330
+--- PASS: TestSync_330 (0.00s)
+=== RUN   TestSync_331
+--- PASS: TestSync_331 (0.01s)
+=== RUN   TestSync_332
+--- PASS: TestSync_332 (0.02s)
+=== RUN   TestSync_333
+--- PASS: TestSync_333 (0.03s)
+=== RUN   TestSync_334
+--- PASS: TestSync_334 (0.04s)
+=== RUN   TestSync_335
+--- PASS: TestSync_335 (0.05s)
+=== RUN   TestSync_336
+--- PASS: TestSync_336 (0.06s)
+=== RUN   TestSync_337
+--- PASS: TestSync_337 (0.07s)
+=== RUN   TestSync_338
+--- PASS: TestSync_338 (0.08s)
+=== RUN   TestSync_339
+--- PASS: TestSync_339 (0.09s)
+=== RUN   TestSync_340
+--- PASS: TestSync_340 (0.00s)
+=== RUN   TestSync_341
+--- PASS: TestSync_341 (0.01s)
+=== RUN   TestSync_342
+--- PASS: TestSync_342 (0.02s)
+=== RUN   TestSync_343
+--- PASS: TestSync_343 (0.03s)
+=== RUN   TestSync_344
+--- PASS: TestSync_344 (0.04s)
+=== RUN   TestSync_345
+--- PASS: TestSync_345 (0.05s)
+=== RUN   TestSync_346
+--- PASS: TestSync_346 (0.06s)
+=== RUN   TestSync_347
+--- PASS: TestSync_347 (0.07s)
+=== RUN   TestSync_348
+--- PASS: TestSync_348 (0.08s)
+=== RUN   TestSync_349
+--- PASS: TestSync_349 (0.09s)
+=== RUN   TestSync_350
+--- PASS: TestSync_350 (0.00s)
+=== RUN   TestSync_351
+--- PASS: TestSync_351 (0.01s)
+=== RUN   TestSync_352
+--- PASS: TestSync_352 (0.02s)
+=== RUN   TestSync_353
+--- PASS: TestSync_353 (0.03s)
+=== RUN   TestSync_354
+--- PASS: TestSync_354 (0.04s)
+=== RUN   TestSync_355
+--- PASS: TestSync_355 (0.05s)
+=== RUN   TestSync_356
+--- PASS: TestSync_356 (0.06s)
+=== RUN   TestSync_357
+--- PASS: TestSync_357 (0.07s)
+=== RUN   TestSync_358
+--- PASS: TestSync_358 (0.08s)
+=== RUN   TestSync_359
+--- PASS: TestSync_359 (0.09s)
+=== RUN   TestSync_360
+--- PASS: TestSync_360 (0.00s)
+=== RUN   TestSync_361
+--- PASS: TestSync_361 (0.01s)
+=== RUN   TestSync_362
+--- PASS: TestSync_362 (0.02s)
+=== RUN   TestSync_363
+--- PASS: TestSync_363 (0.03s)
+=== RUN   TestSync_364
+--- PASS: TestSync_364 (0.04s)
+=== RUN   TestSync_365
+--- PASS: TestSync_365 (0.05s)
+=== RUN   TestSync_366
+--- PASS: TestSync_366 (0.06s)
+=== RUN   TestSync_367
+--- PASS: TestSync_367 (0.07s)
+=== RUN   TestSync_368
+--- PASS: TestSync_368 (0.08s)
+=== RUN   TestSync_369
+--- PASS: TestSync_369 (0.09s)
+=== RUN   TestSync_370
+--- PASS: TestSync_370 (0.00s)
+=== RUN   TestSync_371
+--- PASS: TestSync_371 (0.01s)
+=== RUN   TestSync_372
+--- PASS: TestSync_372 (0.02s)
+=== RUN   TestSync_373
+--- PASS: TestSync_373 (0.03s)
+=== RUN   TestSync_374
+--- PASS: TestSync_374 (0.04s)
+=== RUN   TestSync_375
+--- PASS: TestSync_375 (0.05s)
+=== RUN   TestSync_376
+--- PASS: TestSync_376 (0.06s)
+=== RUN   TestSync_377
+--- PASS: TestSync_377 (0.07s)
+=== RUN   TestSync_378
+--- PASS: TestSync_378 (0.08s)
+=== RUN   TestSync_379
+--- PASS: TestSync_379 (0.09s)
+=== RUN   TestSync_380
+--- PASS: TestSync_380 (0.00s)
+=== RUN   TestSync_381
+--- PASS: TestSync_381 (0.01s)
+=== RUN   TestSync_382
+--- PASS: TestSync_382 (0.02s)
+=== RUN   TestSync_383
+--- PASS: TestSync_383 (0.03s)
+=== RUN   TestSync_384
+--- PASS: TestSync_384 (0.04s)
+=== RUN   TestSync_385
+--- PASS: TestSync_385 (0.05s)
+=== RUN   TestSync_386
+--- PASS: TestSync_386 (0.06s)
+=== RUN   TestSync_387
+--- PASS: TestSync_387 (0.07s)
+=== RUN   TestSync_388
+--- PASS: TestSync_388 (0.08s)
+=== RUN   TestSync_389
+--- PASS: TestSync_389 (0.09s)
+=== RUN   TestSync_390
+--- PASS: TestSync_390 (0.00s)
+=== RUN   TestSync_391
+--- PASS: TestSync_391 (0.01s)
+=== RUN   TestSync_392
+--- PASS: TestSync_392 (0.02s)
+=== RUN   TestSync_393
+--- PASS: TestSync_393 (0.03s)
+=== RUN   TestSync_394
+--- PASS: TestSync_394 (0.04s)
+=== RUN   TestSync_395
+--- PASS: TestSync_395 (0.05s)
+=== RUN   TestSync_396
+--- PASS: TestSync_396 (0.06s)
+=== RUN   TestSync_397
+--- PASS: TestSync_397 (0.07s)
+=== RUN   TestSync_398
+--- PASS: TestSync_398 (0.08s)
+=== RUN   TestSync_399
+--- PASS: TestSync_399 (0.09s)
+=== RUN   TestSync_400
+--- PASS: TestSync_400 (0.00s)
+=== RUN   TestSync_401
+--- PASS: TestSync_401 (0.01s)
+=== RUN   TestSync_402
+--- PASS: TestSync_402 (0.02s)
+=== RUN   TestSync_403
+--- PASS: TestSync_403 (0.03s)
+=== RUN   TestSync_404
+--- PASS: TestSync_404 (0.04s)
+=== RUN   TestSync_405
+--- PASS: TestSync_405 (0.05s)
+=== RUN   TestSync_406
+--- PASS: TestSync_406 (0.06s)
+=== RUN   TestSync_407
+--- PASS: TestSync_407 (0.07s)
+=== RUN   TestSync_408
+--- PASS: TestSync_408 (0.08s)
+=== RUN   TestSync_409
+--- PASS: TestSync_409 (0.09s)
+=== RUN   TestSync_410
+--- PASS: TestSync_410 (0.00s)
+=== RUN   TestSync_411
+--- PASS: TestSync_411 (0.01s)
+=== RUN   TestSync_412
+--- PASS: TestSync_412 (0.02s)
+=== RUN   TestSync_413
+--- PASS: TestSync_413 (0.03s)
+=== RUN   TestSync_414
+--- PASS: TestSync_414 (0.04s)
+=== RUN   TestSync_415
+--- PASS: TestSync_415 (0.05s)
+=== RUN   TestSync_416
+--- PASS: TestSync_416 (0.06s)
+=== RUN   TestSync_417
+--- PASS: TestSync_417 (0.07s)
+=== RUN   TestSync_418
+--- PASS: TestSync_418 (0.08s)
+=== RUN   TestSync_419
+--- PASS: TestSync_419 (0.09s)
+=== RUN   TestSync_420
+--- PASS: TestSync_420 (0.00s)
+=== RUN   TestSync_421
+--- PASS: TestSync_421 (0.01s)
+=== RUN   TestSync_422
+--- PASS: TestSync_422 (0.02s)
+=== RUN   TestSync_423
+--- PASS: TestSync_423 (0.03s)
+=== RUN   TestSync_424
+--- PASS: TestSync_424 (0.04s)
+=== RUN   TestSync_425
+--- PASS: TestSync_425 (0.05s)
+=== RUN   TestSync_426
+--- PASS: TestSync_426 (0.06s)
+=== RUN   TestSync_427
+--- PASS: TestSync_427 (0.07s)
+=== RUN   TestSync_428
+--- PASS: TestSync_428 (0.08s)
+=== RUN   TestSync_429
+--- PASS: TestSync_429 (0.09s)
+=== RUN   TestSync_430
+--- PASS: TestSync_430 (0.00s)
+=== RUN   TestSync_431
+--- PASS: TestSync_431 (0.01s)
+=== RUN   TestSync_432
+--- PASS: TestSync_432 (0.02s)
+=== RUN   TestSync_433
+--- PASS: TestSync_433 (0.03s)
+=== RUN   TestSync_434
+--- PASS: TestSync_434 (0.04s)
+=== RUN   TestSync_435
+--- PASS: TestSync_435 (0.05s)
+=== RUN   TestSync_436
+--- PASS: TestSync_436 (0.06s)
+=== RUN   TestSync_437
+--- PASS: TestSync_437 (0.07s)
+=== RUN   TestSync_438
+--- PASS: TestSync_438 (0.08s)
+=== RUN   TestSync_439
+--- PASS: TestSync_439 (0.09s)
+=== RUN   TestSync_440
+--- PASS: TestSync_440 (0.00s)
+=== RUN   TestSync_441
+--- PASS: TestSync_441 (0.01s)
+=== RUN   TestSync_442
+--- PASS: TestSync_442 (0.02s)
+=== RUN   TestSync_443
+--- PASS: TestSync_443 (0.03s)
+=== RUN   TestSync_444
+--- PASS: TestSync_444 (0.04s)
+=== RUN   TestSync_445
+--- PASS: TestSync_445 (0.05s)
+=== RUN   TestSync_446
+--- PASS: TestSync_446 (0.06s)
+=== RUN   TestSync_447
+--- PASS: TestSync_447 (0.07s)
+=== RUN   TestSync_448
+--- PASS: TestSync_448 (0.08s)
+=== RUN   TestSync_449
+--- PASS: TestSync_449 (0.09s)
+=== RUN   TestSync_450
+--- PASS: TestSync_450 (0.00s)
+=== RUN   TestSync_451
+--- PASS: TestSync_451 (0.01s)
+=== RUN   TestSync_452
+--- PASS: TestSync_452 (0.02s)
+=== RUN   TestSync_453
+--- PASS: TestSync_453 (0.03s)
+=== RUN   TestSync_454
+--- PASS: TestSync_454 (0.04s)
+=== RUN   TestSync_455
+--- PASS: TestSync_455 (0.05s)
+=== RUN   TestSync_456
+--- PASS: TestSync_456 (0.06s)
+=== RUN   TestSync_457
+--- PASS: TestSync_457 (0.07s)
+=== RUN   TestSync_458
+--- PASS: TestSync_458 (0.08s)
+=== RUN   TestSync_459
+--- PASS: TestSync_459 (0.09s)
+=== RUN   TestSync_460
+--- PASS: TestSync_460 (0.00s)
+=== RUN   TestSync_461
+--- PASS: TestSync_461 (0.01s)
+=== RUN   TestSync_462
+--- PASS: TestSync_462 (0.02s)
+=== RUN   TestSync_463
+--- PASS: TestSync_463 (0.03s)
+=== RUN   TestSync_464
+--- PASS: TestSync_464 (0.04s)
+=== RUN   TestSync_465
+--- PASS: TestSync_465 (0.05s)
+=== RUN   TestSync_466
+--- PASS: TestSync_466 (0.06s)
+=== RUN   TestSync_467
+--- PASS: TestSync_467 (0.07s)
+=== RUN   TestSync_468
+--- PASS: TestSync_468 (0.08s)
+=== RUN   TestSync_469
+--- PASS: TestSync_469 (0.09s)
+=== RUN   TestSync_470
+--- PASS: TestSync_470 (0.00s)
+=== RUN   TestSync_471
+--- PASS: TestSync_471 (0.01s)
+=== RUN   TestSync_472
+--- PASS: TestSync_472 (0.02s)
+=== RUN   TestSync_473
+--- PASS: TestSync_473 (0.03s)
+=== RUN   TestSync_474
+--- PASS: TestSync_474 (0.04s)
+=== RUN   TestSync_475
+--- PASS: TestSync_475 (0.05s)
+=== RUN   TestSync_476
+--- PASS: TestSync_476 (0.06s)
+=== RUN   TestSync_477
+--- PASS: TestSync_477 (0.07s)
+=== RUN   TestSync_478
+--- PASS: TestSync_478 (0.08s)
+=== RUN   TestSync_479
+--- PASS: TestSync_479 (0.09s)
+=== RUN   TestSync_480
+--- PASS: TestSync_480 (0.00s)
+=== RUN   TestSync_481
+--- PASS: TestSync_481 (0.01s)
+=== RUN   TestSync_482
+--- PASS: TestSync_482 (0.02s)
+=== RUN   TestSync_483
+--- PASS: TestSync_483 (0.03s)
+=== RUN   TestSync_484
+--- PASS: TestSync_484 (0.04s)
+=== RUN   TestSync_485
+--- PASS: TestSync_485 (0.05s)
+=== RUN   TestSync_486
+--- PASS: TestSync_486 (0.06s)
+=== RUN   TestSync_487
+--- PASS: TestSync_487 (0.07s)
+=== RUN   TestSync_488
+--- PASS: TestSync_488 (0.08s)
+=== RUN   TestSync_489
+--- PASS: TestSync_489 (0.09s)
+=== RUN   TestSync_490
+--- PASS: TestSync_490 (0.00s)
+=== RUN   TestSync_491
+--- PASS: TestSync_491 (0.01s)
+=== RUN   TestSync_492
+--- PASS: TestSync_492 (0.02s)
+=== RUN   TestSync_493
+--- PASS: TestSync_493 (0.03s)
+=== RUN   TestSync_494
+--- PASS: TestSync_494 (0.04s)
+=== RUN   TestSync_495
+--- PASS: TestSync_495 (0.05s)
+=== RUN   TestSync_496
+--- PASS: TestSync_496 (0.06s)
+=== RUN   TestSync_497
+--- PASS: TestSync_497 (0.07s)
+=== RUN   TestSync_498
+--- PASS: TestSync_498 (0.08s)
+=== RUN   TestSync_499
+--- PASS: TestSync_499 (0.09s)
+=== RUN   TestSync_500
+--- PASS: TestSync_500 (0.00s)
+=== RUN   TestSync_501
+--- PASS: TestSync_501 (0.01s)
+=== RUN   TestSync_502
+--- PASS: TestSync_502 (0.02s)
+=== RUN   TestSync_503
+--- PASS: TestSync_503 (0.03s)
+=== RUN   TestSync_504
+--- PASS: TestSync_504 (0.04s)
+=== RUN   TestSync_505
+--- PASS: TestSync_505 (0.05s)
+=== RUN   TestSync_506
+--- PASS: TestSync_506 (0.06s)
+=== RUN   TestSync_507
+--- PASS: TestSync_507 (0.07s)
+=== RUN   TestSync_508
+--- PASS: TestSync_508 (0.08s)
+=== RUN   TestSync_509
+--- PASS: TestSync_509 (0.09s)
+=== RUN   TestSync_510
+--- PASS: TestSync_510 (0.00s)
+=== RUN   TestSync_511
+--- PASS: TestSync_511 (0.01s)
+=== RUN   TestSync_512
+--- PASS: TestSync_512 (0.02s)
+=== RUN   TestSync_513
+--- PASS: TestSync_513 (0.03s)
+=== RUN   TestSync_514
+--- PASS: TestSync_514 (0.04s)
+=== RUN   TestSync_515
+--- PASS: TestSync_515 (0.05s)
+=== RUN   TestSync_516
+--- PASS: TestSync_516 (0.06s)
+=== RUN   TestSync_517
+--- PASS: TestSync_517 (0.07s)
+=== RUN   TestSync_518
+--- PASS: TestSync_518 (0.08s)
+=== RUN   TestSync_519
+--- PASS: TestSync_519 (0.09s)
+=== RUN   TestSync_520
+--- PASS: TestSync_520 (0.00s)
+=== RUN   TestSync_521
+--- PASS: TestSync_521 (0.01s)
+=== RUN   TestSync_522
+--- PASS: TestSync_522 (0.02s)
+=== RUN   TestSync_523
+--- PASS: TestSync_523 (0.03s)
+=== RUN   TestSync_524
+--- PASS: TestSync_524 (0.04s)
+=== RUN   TestSync_525
+--- PASS: TestSync_525 (0.05s)
+=== RUN   TestSync_526
+--- PASS: TestSync_526 (0.06s)
+=== RUN   TestSync_527
+--- PASS: TestSync_527 (0.07s)
+=== RUN   TestSync_528
+--- PASS: TestSync_528 (0.08s)
+=== RUN   TestSync_529
+--- PASS: TestSync_529 (0.09s)
+=== RUN   TestSync_530
+--- PASS: TestSync_530 (0.00s)
+=== RUN   TestSync_531
+--- PASS: TestSync_531 (0.01s)
+=== RUN   TestSync_532
+--- PASS: TestSync_532 (0.02s)
+=== RUN   TestSync_533
+--- PASS: TestSync_533 (0.03s)
+=== RUN   TestSync_534
+--- PASS: TestSync_534 (0.04s)
+=== RUN   TestSync_535
+--- PASS: TestSync_535 (0.05s)
+=== RUN   TestSync_536
+--- PASS: TestSync_536 (0.06s)
+=== RUN   TestSync_537
+--- PASS: TestSync_537 (0.07s)
+=== RUN   TestSync_538
+--- PASS: TestSync_538 (0.08s)
+=== RUN   TestSync_539
+--- PASS: TestSync_539 (0.09s)
+=== RUN   TestSync_540
+--- PASS: TestSync_540 (0.00s)
+=== RUN   TestSync_541
+--- PASS: TestSync_541 (0.01s)
+=== RUN   TestSync_542
+--- PASS: TestSync_542 (0.02s)
+=== RUN   TestSync_543
+--- PASS: TestSync_543 (0.03s)
+=== RUN   TestSync_544
+--- PASS: TestSync_544 (0.04s)
+=== RUN   TestSync_545
+--- PASS: TestSync_545 (0.05s)
+=== RUN   TestSync_546
+--- PASS: TestSync_546 (0.06s)
+=== RUN   TestSync_547
+--- PASS: TestSync_547 (0.07s)
+=== RUN   TestSync_548
+--- PASS: TestSync_548 (0.08s)
+=== RUN   TestSync_549
+--- PASS: TestSync_549 (0.09s)
+=== RUN   TestSync_550
+--- PASS: TestSync_550 (0.00s)
+=== RUN   TestSync_551
+--- PASS: TestSync_551 (0.01s)
+=== RUN   TestSync_552
+--- PASS: TestSync_552 (0.02s)
+=== RUN   TestSync_553
+--- PASS: TestSync_553 (0.03s)
+=== RUN   TestSync_554
+--- PASS: TestSync_554 (0.04s)
+=== RUN   TestSync_555
+--- PASS: TestSync_555 (0.05s)
+=== RUN   TestSync_556
+--- PASS: TestSync_556 (0.06s)
+=== RUN   TestSync_557
+--- PASS: TestSync_557 (0.07s)
+=== RUN   TestSync_558
+--- PASS: TestSync_558 (0.08s)
+=== RUN   TestSync_559
+--- PASS: TestSync_559 (0.09s)
+--- FAIL: TestRace (0.20s)
+    testing.go:1398: race detected during execution of test
+FAIL
+exit status 1
+FAIL	github.com/x/obsidian-memoryd	42.171s
