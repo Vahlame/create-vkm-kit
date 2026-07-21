@@ -18,6 +18,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Bench results visualized in the READMEs** — a static dumbbell chart
+  (`docs/assets/bench-results.svg` + a dark-mode variant, selected via
+  `<picture>`/`prefers-color-scheme`) of the committed 2026-07-21 live-round
+  numbers: skill vs stock per bench × model (research / design / discipline ×
+  Haiku / Sonnet / Opus), with direct value labels and deltas on every row.
+  Palette CVD-validated for both surfaces. Pure rendering of data already under
+  `evals/*/results/` — no benchmark execution involved. Embedded in
+  `README.md`, `README.en.md` and `evals/README.md`.
+
 - **`/vkm-research` grew from a 68-line monolith into a full skill** (same standard as
   the 4.5.0 vkm-spec rebuild): rewritten SKILL.md with a copyable checklist and a
   degradation ladder; `references/summary-template.md` (the canonical consolidated
