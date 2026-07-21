@@ -136,6 +136,13 @@ block) — every number has a gate that **breaks the build** if it regresses (fi
 corpus + deterministic embedder: reproducible regression floors, not leaderboard claims). Detail:
 [how it works](docs/en/how-it-works.md) · [`evals/`](evals/).
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/bench-results-dark.svg">
+    <img src="docs/assets/bench-results.svg" alt="Dumbbell chart: puntuación con skill vs stock por bench y modelo — research-bench, design-bench y discipline-bench suben con la skill en Sonnet y Opus; Haiku plano en design" width="880">
+  </picture>
+</p>
+
 **And with live models (2026-07-21 round, Haiku 4.5 + Sonnet 5, raw data committed):** all
 4 skills route with **100% hit-rate and 0% false-positives** (104 ES+EN cases); the
 token-saver's pre-registered A/B showed **0.0 quality delta** with the log **~81% smaller**

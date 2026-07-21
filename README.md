@@ -163,6 +163,13 @@ si regresa (corpus fijo etiquetado + embedder determinista: pisos de regresión 
 no un leaderboard). Detalle · detail: [🇪🇸 cómo funciona](docs/es/como-funciona.md) ·
 [🇬🇧 how it works](docs/en/how-it-works.md) · [`evals/`](evals/).
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/bench-results-dark.svg">
+    <img src="docs/assets/bench-results.svg" alt="Dumbbell chart: puntuación con skill vs stock por bench y modelo — research-bench, design-bench y discipline-bench suben con la skill en Sonnet y Opus; Haiku plano en design" width="880">
+  </picture>
+</p>
+
 **Y con modelos vivos (ronda 2026-07-21, Haiku 4.5 + Sonnet 5, datos crudos commiteados):**
 las 4 skills rutean con **100% de acierto y 0% de falsos positivos** (104 casos ES+EN);
 el A/B pre-registrado del token-saver dio **delta 0.0 de calidad** con el log **~81% más
