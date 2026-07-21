@@ -126,10 +126,10 @@ function readSources(paths) {
   let out = "";
   for (const p of paths) {
     if (statSync(p).isDirectory()) {
-      for (const f of readdirSync(p)
-        .filter((f) => f.endsWith(".md"))
+      for (const name of readdirSync(p)
+        .filter((entry) => entry.endsWith(".md"))
         .sort()) {
-        out += readFileSync(path.join(p, f), "utf8") + "\n";
+        out += readFileSync(path.join(p, name), "utf8") + "\n";
       }
     } else {
       out += readFileSync(p, "utf8") + "\n";
