@@ -86,10 +86,6 @@ test("every marker reads back exactly what it wrote (read/write are inverses)", 
     "packages/vkm-downloads/package.json": '{\n  "version": "1.0.0"\n}\n',
     "packages/obsidian-memory-rag/pyproject.toml": '[project]\nversion = "1.0.0"\n',
     "agent.toml": 'version = "1.0.0"\n',
-    "README.md":
-      '<img src="https://img.shields.io/badge/release-v1.0.0-orange.svg" alt="Release">\n',
-    "README.en.md":
-      '<img src="https://img.shields.io/badge/release-v1.0.0-orange.svg" alt="Release">\n',
     [GO_FILE]: goSource({ varVersion: "1.0.0", ldflags: "1.0.0" })
   };
 

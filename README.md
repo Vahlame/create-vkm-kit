@@ -71,6 +71,8 @@ El nombre npm antiguo (`@vkmikc/create-obsidian-memory`) está **deprecado y con
 > - **Motor completo (`--full`, híbrido + semántica + skills)** → **clona el repo** y ejecútalo
 >   desde ahí (o pásale `--repo-root <clon>`). Es el **camino canónico** para todas las funciones.
 
+<!-- -->
+
 > ⚡ **Todo su potencial, en un solo comando — `--full`.**
 > Enfocado **primero en Codex y Claude Code**, con **todas las funciones activas por defecto**:
 > registra el MCP en ambos, activa la búsqueda híbrida (BM25, semántica y grafo), el **grafo de
