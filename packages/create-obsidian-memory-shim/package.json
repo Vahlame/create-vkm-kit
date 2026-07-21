@@ -20,7 +20,7 @@
     "access": "public"
   },
   "dependencies": {
-    "execa": "^10.0.0",
+    "execa": "^9.6.1",
     "picocolors": "^1.1.1"
   }
 }

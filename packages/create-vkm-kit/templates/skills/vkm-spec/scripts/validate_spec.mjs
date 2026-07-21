@@ -17,7 +17,7 @@ const SECTIONS = [
   "functional_requirements",
   "constraints",
   "current_state",
-  "acceptance_criteria",
+  "acceptance_criteria"
 ];
 const VAGUE_RE = /\b(should work|works? (correctly|properly|well)|properly|etc\.?)\b/i;
 const CURRENT_STATE_MAX = 600;
@@ -29,7 +29,8 @@ function parseMarkdown(text) {
   let m;
   while ((m = re.exec(text))) marks.push({ name: m[1].toLowerCase(), end: re.lastIndex });
   for (let i = 0; i < marks.length; i++) {
-    const bodyEnd = i + 1 < marks.length ? text.lastIndexOf("##", marks[i + 1].end - 3) : text.length;
+    const bodyEnd =
+      i + 1 < marks.length ? text.lastIndexOf("##", marks[i + 1].end - 3) : text.length;
     out[marks[i].name] = text.slice(marks[i].end, bodyEnd).trim();
   }
   return out;
@@ -60,7 +61,9 @@ export function validateSpec(text) {
 
   const role = (spec.system_role ?? "").trim();
   if (role && role.split("\n").filter((l) => l.trim()).length > 1) {
-    errors.push(`system_role must be ONE line (who executes, at what altitude) — got ${role.split("\n").length} lines`);
+    errors.push(
+      `system_role must be ONE line (who executes, at what altitude) — got ${role.split("\n").length} lines`
+    );
   }
 
   const reqSrc = spec.functional_requirements ?? "";
@@ -84,11 +87,11 @@ export function validateSpec(text) {
   const cons = isXml
     ? [...conSrc.matchAll(/<constraint\b([^>]*)>([\s\S]*?)<\/constraint>/gi)].map((c) => ({
         text: c[2].trim(),
-        cited: /source\s*=/.test(c[1]),
+        cited: /source\s*=/.test(c[1])
       }))
     : [...conSrc.matchAll(/^\s*-\s+(.+(?:\n(?!\s*-\s).+)*)/gm)].map((c) => ({
         text: c[1].trim(),
-        cited: /\(source:\s*[^)]+\)/.test(c[1]) || /\(assumption\)/i.test(c[1]),
+        cited: /\(source:\s*[^)]+\)/.test(c[1]) || /\(assumption\)/i.test(c[1])
       }));
   if (cons.length === 0) {
     errors.push(
@@ -112,7 +115,9 @@ export function validateSpec(text) {
   const accSrc = spec.acceptance_criteria ?? "";
   const boxes = isXml
     ? [...accSrc.matchAll(/<criterion\b[^>]*>([\s\S]*?)<\/criterion>/gi)].map((b) => b[1].trim())
-    : [...accSrc.matchAll(/^\s*-\s*\[[ x]\]\s+(.+(?:\n(?!\s*-\s*\[).+)*)/gm)].map((b) => b[1].trim());
+    : [...accSrc.matchAll(/^\s*-\s*\[[ x]\]\s+(.+(?:\n(?!\s*-\s*\[).+)*)/gm)].map((b) =>
+        b[1].trim()
+      );
   if (boxes.length < 2) {
     errors.push(
       `acceptance_criteria: found ${boxes.length} "- [ ]" boxes, need at least 2 binary checks — each runnable or directly observable`
@@ -137,7 +142,12 @@ export function validateSpec(text) {
     ok: errors.length === 0,
     errors,
     warnings,
-    counts: { requirements: reqs.length, constraints: cons.length, assumptions, criteria: boxes.length },
+    counts: {
+      requirements: reqs.length,
+      constraints: cons.length,
+      assumptions,
+      criteria: boxes.length
+    }
   };
 }
 
@@ -152,7 +162,9 @@ function main() {
   try {
     text = readFileSync(file, "utf8");
   } catch (err) {
-    console.error(`cannot read ${file}: ${err && typeof err === "object" && "message" in err ? err.message : err}`);
+    console.error(
+      `cannot read ${file}: ${err && typeof err === "object" && "message" in err ? err.message : err}`
+    );
     process.exit(2);
   }
   const result = validateSpec(text);
@@ -165,7 +177,11 @@ function main() {
     );
     for (const w of result.warnings) console.log(`WARN ${w}`);
     for (const e of result.errors) console.log(`ERROR ${e}`);
-    console.log(result.ok ? "OK — all checks passed" : `${result.errors.length} error${result.errors.length === 1 ? "" : "s"} — fix before showing the spec`);
+    console.log(
+      result.ok
+        ? "OK — all checks passed"
+        : `${result.errors.length} error${result.errors.length === 1 ? "" : "s"} — fix before showing the spec`
+    );
   }
   process.exit(result.ok ? 0 : 1);
 }

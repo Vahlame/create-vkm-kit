@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **execa 10 reverted to ^9.6.1 — it broke the kit's own Node 20 floor.** The Dependabot
+  bump (#83) landed even though `execa@10` declares `engines.node >=22` and calls
+  `Set.prototype.union` (Node 22+) at import time, crashing every execa-importing test
+  file on CI's Node-20 leg (`TypeError: TEXT_ENCODINGS.union is not a function`) — the
+  exact regression that leg exists to catch. All four workspaces pinned back to `^9.6.1`
+  and the stale nested `node_modules/execa@10` lockfile entries deduped away. execa can
+  ride to 10 when the kit's `engines` floor moves to 22 — deliberately, not via a bump.
+
 - **The token-saver's Bash compaction was provably losing diagnostic DETAIL.** The new
   adversarial-fixture gate (`test/compact-diagnostics.test.mjs`: real 650–1,100-line
   failure logs with the decisive error buried mid-stream) caught it before any live A/B:
