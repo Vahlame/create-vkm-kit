@@ -30,6 +30,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   spec-shaped tasks, graded by discipline-bench's existing hidden-test instruments
   (no new graders). New job + dispatch option in `llm-benchmarks.yml`.
 
+- **Effort gate auto-match (ADR-0031 amendment)**: the `PreToolUse` effort gate now
+  detects the session's current effort (`CLAUDE_EFFORT` inherited by the hook) and
+  opens itself when the model's proposed level equals it — no pause when there is
+  nothing for the user to change. Mismatch or undetectable effort keeps the original
+  pause; the deny message now advertises the detected level. Subprocess-level tests
+  cover match/mismatch/undetectable/template-only paths.
 - **Diversified round (round 2/3 of the live benches), Opus added at reduced n** —
   raw data under each eval's `results/2026-07-21-round2/`:
   - _research-bench_: the skill's gain GENERALIZES — held-out domain topic

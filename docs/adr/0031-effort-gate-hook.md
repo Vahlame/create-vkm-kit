@@ -1,6 +1,6 @@
 # ADR-0031: Effort-gate hook (PreToolUse pause-and-confirm before costly work)
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-07-21 — effort auto-match, see Amendment)
 - **Date:** 2026-06-30
 - **Deciders:** maintainer
 
@@ -128,3 +128,21 @@ deny a call.
 - `packages/create-obsidian-memory/test/claude-native-memory.test.mjs`
 - ADR-0030 (the enforcement-hook precedent this extends); Claude Code `PreToolUse` hook
   contract (`hookSpecificOutput.permissionDecision`)
+
+## Amendment (2026-07-21): effort auto-match — a matching suggestion opens the gate itself
+
+The original gate paused unconditionally after the model's proposal, even when the
+proposal named the level the session was ALREADY running at — pure friction with nothing
+for the user to change. The hook now auto-detects the session's current effort from the
+environment it inherits (`CLAUDE_EFFORT`, fallback `CLAUDE_CODE_EFFORT`) and compares it
+to the FILLED-IN proposed level (`/effort <level>` captured from the recommendation
+block; the template placeholder cannot match):
+
+- **Match** → the gate opens with no user pause ("si ya está en ese esfuerzo, sigue").
+- **Mismatch, undetectable current effort, or template-only proposal** → the original
+  pause, unchanged — detection only ever OPENS the gate on a confident equality, never
+  adds friction and never widens what fails open.
+- The pre-proposal deny message now advertises the detected current level so the model
+  can account for it when recommending.
+
+Covered by `test/effort-gate-automatch.test.mjs` (subprocess-level, real stdin contract).
