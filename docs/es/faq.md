@@ -124,9 +124,9 @@ Construye el índice con `obsidian-memory-rag index --vault <ruta> --semantic` (
 
 ## Comparación con alternativas
 
-Posicionamiento honesto del **kit v3** (multiplataforma, `basic-memory`, daemon en Go opcional + RAG semántico híbrido). Frases con opinión; sigue los enlaces para el matiz.
+Posicionamiento honesto del **kit** (multiplataforma, `basic-memory`, daemon en Go opcional + RAG semántico híbrido). Frases con opinión; sigue los enlaces para el matiz.
 
-| Aspecto                            | kit v3 (este repo)                                                 | Memoria integrada de Cursor     | mem0                                   | Letta / MemGPT                            | RAG propio (pgvector / Qdrant) |
+| Aspecto                            | este kit (v4)                                                      | Memoria integrada de Cursor     | mem0                                   | Letta / MemGPT                            | RAG propio (pgvector / Qdrant) |
 | ---------------------------------- | ------------------------------------------------------------------ | ------------------------------- | -------------------------------------- | ----------------------------------------- | ------------------------------ |
 | Propiedad del almacenamiento       | Markdown en **tu** repo git                                        | Nube de Cursor                  | SaaS o self-host                       | Servidor self-host                        | Tu base de datos               |
 | Atadura al editor (lock-in)        | Baja (`AGENTS.md` + MCP)                                           | Alta                            | Baja                                   | Media                                     | Baja                           |

@@ -1,3 +1,5 @@
+> [🇪🇸 Español](./es/observabilidad.md) · 🇬🇧 English
+
 # Observability
 
 The kit has three observability surfaces. All of them are local — nothing leaves your machine.

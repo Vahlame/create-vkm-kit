@@ -6,7 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Security
+### Fixed
+
+- **Docs no longer under-report the tool surface.** The installer `--help`, `ARCHITECTURE.md`
+  and `docs/{en,es}/how-it-works.md` described obscura-web as 2 tools (it registers **8** —
+  `obscura_fetch`/`_fetch_many`, `obscura_search`, `obscura_research` + `_start`/`_status`/`_stop`,
+  `obscura_consolidate`) and vkm-downloads as 2 (it registers **6** — adds `probe_mirrors` and
+  `download_start`/`_status`/`_cancel`). The hybrid MCP README now carries the authoritative
+  **22-tool table**, and a new `tool-doc-drift.test.mjs` gate parses the registrations in
+  `hybrid-mcp.mjs` and fails the build if the README table and the code ever diverge again —
+  same philosophy as the schema-budget gate: doc drift a reader can't detect becomes a red build.
+- Residual "v3 kit" self-descriptions in `docs/{en,es}/faq.md` and `troubleshooting.md` updated
+  to the v4 identity (historical version anchors like "since v3.8.1" are kept — they're history,
+  not drift). ADR-0046's body no longer claims a "Proposed" status for a deletion that shipped in
+  4.0.0, and the ADR index now surfaces ADR-0050's amendment instead of a bare "Accepted".
+
+### Added
+
+- **Spanish mirrors for the last English-only user docs**: `docs/es/observabilidad.md` and
+  `docs/security/mcp-remote-rce.es.md`, plus a new `docs/security/README.{md,es.md}` index with
+  the kit's threat model in one paragraph. Both doc indexes now link Observability and Security —
+  full ES/EN parity across every user-facing doc.
 
 - **The shipped daemon was carrying 10 reachable vulnerabilities.** Not merely present in the
   module graph — `govulncheck` traced them to real call paths across `go-git/v5` (6), `circl` (2)

@@ -26,6 +26,8 @@ Toda la guía de usuario, en orden de lectura recomendado.
 | [Glosario](glosario.md)                                      | Qué significa cada término (MCP, vault, FTS5…).                                           |
 | [Solución de problemas](troubleshooting.md)                  | Errores típicos y cómo arreglarlos.                                                       |
 | [Acceso web (obscura)](../../packages/obscura-web/README.md) | Fetch web sigiloso + búsqueda con SearXNG on-demand, opcional (`--obscura`).              |
+| [Observabilidad](observabilidad.md)                          | Salud del daemon, tokens/caché (`vkm-doctor`) y salud del vault — todo local.             |
+| [Seguridad](../security/README.es.md)                        | Modelo de amenazas en un párrafo + notas de seguridad en profundidad.                     |
 
 ## Para quien contribuye al kit
 
