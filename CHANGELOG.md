@@ -154,6 +154,18 @@ check`, `lint`, `typecheck`, `license:sync:check`, `linkcheck`, the `agent.toml`
   grader passes a reference good spec and catches six seeded defects by name
   (mutation-style), plus the XML envelope path — a grader that can't discriminate
   grades nothing.
+- **First live benchmark round, with committed raw data** (2026-07-21, Haiku 4.5 +
+  Sonnet 5 subjects, results under each eval's `results/2026-07-21-round1/`):
+  - _Triggering accuracy_: **100% hit-rate, 0% false-positives** for all four skills on
+    both models (104 gradings, ES+EN, incl. every `none` distractor).
+  - _token-quality-ab #5 (compact-tool-output)_: **delta 0.0** on both models — the
+    compacted log (~81% smaller) lost zero diagnostic ability vs the raw log (18
+    gradings/model). Pre-registered verdict: **KEEP**. Measured on the hook as fixed by
+    the compact-diagnostics gate — the pipeline caught the defect deterministically and
+    the live A/B confirms the repair.
+  - _discipline-bench_ (upgraded skill, n=3/cell): explicit-contract task saturates at
+    100 everywhere (no harm); under-specified task lifts Haiku **47.0 → 91.7 (+44.7)**
+    with Sonnet stable at 83 — the disciplined small model again beats the stock cells.
 - **`/vkm-spec` grew from a 33-line monolith into a full skill** (Anthropic
   skill-authoring practices: progressive disclosure, worked example, executable feedback
   loop): rewritten SKILL.md with a copyable checklist, trigger phrases in the description

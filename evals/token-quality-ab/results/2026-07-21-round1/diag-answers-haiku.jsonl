@@ -1,0 +1,18 @@
+{"id":"diag-go","condition":"compacted","replica":1,"model":"haiku","answer":"ERROR: DATA RACE\nLOCATION: /repo/cmd/obsidian-memoryd/state.go:161\n"}
+{"id":"diag-go","condition":"compacted","replica":2,"model":"haiku","answer":"ERROR: DATA RACE\nLOCATION: /repo/cmd/obsidian-memoryd/state.go:161\n"}
+{"id":"diag-go","condition":"compacted","replica":3,"model":"haiku","answer":"ERROR: DATA RACE\nLOCATION: /repo/cmd/obsidian-memoryd/state.go:161\n"}
+{"id":"diag-go","condition":"raw","replica":1,"model":"haiku","answer":"ERROR: DATA RACE\nLOCATION: /repo/cmd/obsidian-memoryd/state.go:161\n"}
+{"id":"diag-go","condition":"raw","replica":2,"model":"haiku","answer":"ERROR: DATA RACE\nLOCATION: /repo/cmd/obsidian-memoryd/state.go:161\n"}
+{"id":"diag-go","condition":"raw","replica":3,"model":"haiku","answer":"ERROR: DATA RACE\nLOCATION: /repo/cmd/obsidian-memoryd/state.go:161\n"}
+{"id":"diag-npm","condition":"compacted","replica":1,"model":"haiku","answer":"ERROR: TS2339: Property 'retryCount' does not exist on type 'RequestConfig'\nLOCATION: ./src/api/client.ts:47\n"}
+{"id":"diag-npm","condition":"compacted","replica":2,"model":"haiku","answer":"ERROR: TS2339: Property 'retryCount' does not exist on type 'RequestConfig'\nLOCATION: ./src/api/client.ts:47\n"}
+{"id":"diag-npm","condition":"compacted","replica":3,"model":"haiku","answer":"ERROR: TS2339: Property 'retryCount' does not exist on type 'RequestConfig'\nLOCATION: src/api/client.ts:47\n"}
+{"id":"diag-npm","condition":"raw","replica":1,"model":"haiku","answer":"ERROR: TS2339: Property 'retryCount' does not exist on type 'RequestConfig'\nLOCATION: src/api/client.ts:47\n"}
+{"id":"diag-npm","condition":"raw","replica":2,"model":"haiku","answer":"ERROR: TS2339: Property 'retryCount' does not exist on type 'RequestConfig'\nLOCATION: ./src/api/client.ts:47\n"}
+{"id":"diag-npm","condition":"raw","replica":3,"model":"haiku","answer":"ERROR: TS2339: Property 'retryCount' does not exist on type 'RequestConfig'\nLOCATION: ./src/api/client.ts:47\n"}
+{"id":"diag-pytest","condition":"compacted","replica":1,"model":"haiku","answer":"ERROR: AssertionError: assert 'conflict' == 'clean'\nLOCATION: tests/test_sync.py:88\n"}
+{"id":"diag-pytest","condition":"compacted","replica":2,"model":"haiku","answer":"ERROR: AssertionError: assert 'conflict' == 'clean'\nLOCATION: tests/test_sync.py:88\n"}
+{"id":"diag-pytest","condition":"compacted","replica":3,"model":"haiku","answer":"ERROR: AssertionError: assert 'conflict' == 'clean'\nLOCATION: tests/test_sync.py:88\n"}
+{"id":"diag-pytest","condition":"raw","replica":1,"model":"haiku","answer":"ERROR: AssertionError: assert 'conflict' == 'clean'\nLOCATION: tests/test_sync.py:88\n"}
+{"id":"diag-pytest","condition":"raw","replica":2,"model":"haiku","answer":"ERROR: AssertionError: assert 'conflict' == 'clean'\nLOCATION: tests/test_sync.py:88\n"}
+{"id":"diag-pytest","condition":"raw","replica":3,"model":"haiku","answer":"ERROR: AssertionError: assert 'conflict' == 'clean'\nLOCATION: tests/test_sync.py:88\n"}

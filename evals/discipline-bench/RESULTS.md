@@ -1,5 +1,25 @@
 # Results — /vkm-discipline mini-bench
 
+## 2026-07-21 · round with the UPGRADED skill (executable evidence + dial examples)
+
+First round after the skill gained `scripts/evidence-gates.sh`, `examples/dial-examples.md`
+and the third-person trigger description. Subjects: Claude Code Agent-tool `haiku`
+(Haiku 4.5) / `sonnet` (Sonnet 5); parse-range = explicit PROMPT.md, dedupe-emails =
+PROMPT-underspec.md; **n=3 replicas per cell**, hidden-test grading unchanged. Raw
+solutions + scores: `results/2026-07-21-round1/`.
+
+| Task (variant)                  | Model  | stock           | +discipline           | Δ         |
+| ------------------------------- | ------ | --------------- | --------------------- | --------- |
+| parse-range (explicit)          | Haiku  | 100             | 100                   | 0         |
+| parse-range (explicit)          | Sonnet | 100             | 100                   | 0         |
+| dedupe-emails (under-specified) | Haiku  | 47.0 [50,33,58] | **91.7** [75,100,100] | **+44.7** |
+| dedupe-emails (under-specified) | Sonnet | 83.0 [83,83,83] | 83.0 [83,83,83]       | 0         |
+
+Replicates the prior pattern with the upgraded skill: explicit contracts saturate (no
+harm), and on the under-specified task the small model gains massively (+44.7) while
+Sonnet holds steady — the disciplined Haiku (91.7) again beats the stock larger model's
+cell. Prior rounds below for comparison.
+
 Two tasks, execution-graded by hidden tests (`tasks/*/grade.mjs`), score = % passed. Grader
 self-tests confirm each instrument discriminates (parse-range: good=100 / naive=38; dedupe-emails:
 good=100 / naive=25). Under-specified cells are means of **2-3 runs** across Haiku, Sonnet and Opus;

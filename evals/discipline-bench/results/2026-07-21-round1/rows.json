@@ -1,0 +1,170 @@
+[
+  {
+    "task": "dedupe-emails",
+    "cond": "discipline",
+    "model": "haiku",
+    "rep": 1,
+    "score": 75
+  },
+  {
+    "task": "dedupe-emails",
+    "cond": "discipline",
+    "model": "haiku",
+    "rep": 2,
+    "score": 100
+  },
+  {
+    "task": "dedupe-emails",
+    "cond": "discipline",
+    "model": "haiku",
+    "rep": 3,
+    "score": 100
+  },
+  {
+    "task": "dedupe-emails",
+    "cond": "discipline",
+    "model": "sonnet",
+    "rep": 1,
+    "score": 83
+  },
+  {
+    "task": "dedupe-emails",
+    "cond": "discipline",
+    "model": "sonnet",
+    "rep": 2,
+    "score": 83
+  },
+  {
+    "task": "dedupe-emails",
+    "cond": "discipline",
+    "model": "sonnet",
+    "rep": 3,
+    "score": 83
+  },
+  {
+    "task": "dedupe-emails",
+    "cond": "stock",
+    "model": "haiku",
+    "rep": 1,
+    "score": 50
+  },
+  {
+    "task": "dedupe-emails",
+    "cond": "stock",
+    "model": "haiku",
+    "rep": 2,
+    "score": 33
+  },
+  {
+    "task": "dedupe-emails",
+    "cond": "stock",
+    "model": "haiku",
+    "rep": 3,
+    "score": 58
+  },
+  {
+    "task": "dedupe-emails",
+    "cond": "stock",
+    "model": "sonnet",
+    "rep": 1,
+    "score": 83
+  },
+  {
+    "task": "dedupe-emails",
+    "cond": "stock",
+    "model": "sonnet",
+    "rep": 2,
+    "score": 83
+  },
+  {
+    "task": "dedupe-emails",
+    "cond": "stock",
+    "model": "sonnet",
+    "rep": 3,
+    "score": 83
+  },
+  {
+    "task": "parse-range",
+    "cond": "discipline",
+    "model": "haiku",
+    "rep": 1,
+    "score": 100
+  },
+  {
+    "task": "parse-range",
+    "cond": "discipline",
+    "model": "haiku",
+    "rep": 2,
+    "score": 100
+  },
+  {
+    "task": "parse-range",
+    "cond": "discipline",
+    "model": "haiku",
+    "rep": 3,
+    "score": 100
+  },
+  {
+    "task": "parse-range",
+    "cond": "discipline",
+    "model": "sonnet",
+    "rep": 1,
+    "score": 100
+  },
+  {
+    "task": "parse-range",
+    "cond": "discipline",
+    "model": "sonnet",
+    "rep": 2,
+    "score": 100
+  },
+  {
+    "task": "parse-range",
+    "cond": "discipline",
+    "model": "sonnet",
+    "rep": 3,
+    "score": 100
+  },
+  {
+    "task": "parse-range",
+    "cond": "stock",
+    "model": "haiku",
+    "rep": 1,
+    "score": 100
+  },
+  {
+    "task": "parse-range",
+    "cond": "stock",
+    "model": "haiku",
+    "rep": 2,
+    "score": 100
+  },
+  {
+    "task": "parse-range",
+    "cond": "stock",
+    "model": "haiku",
+    "rep": 3,
+    "score": 100
+  },
+  {
+    "task": "parse-range",
+    "cond": "stock",
+    "model": "sonnet",
+    "rep": 1,
+    "score": 100
+  },
+  {
+    "task": "parse-range",
+    "cond": "stock",
+    "model": "sonnet",
+    "rep": 2,
+    "score": 100
+  },
+  {
+    "task": "parse-range",
+    "cond": "stock",
+    "model": "sonnet",
+    "rep": 3,
+    "score": 100
+  }
+]
