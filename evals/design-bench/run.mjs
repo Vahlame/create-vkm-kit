@@ -21,20 +21,29 @@ import { fileURLToPath } from "node:url";
 import { runSubject } from "../lib/subject-runner.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const SKILL_DIR = path.join(HERE, "..", "..", "packages", "create-vkm-kit", "templates", "skills", "vkm-design");
+const SKILL_DIR = path.join(
+  HERE,
+  "..",
+  "..",
+  "packages",
+  "create-vkm-kit",
+  "templates",
+  "skills",
+  "vkm-design"
+);
 const SCRIPTS = path.join(SKILL_DIR, "scripts");
 
 export const BRIEFS = [
   {
     id: "facturio",
     brief:
-      "Build a single-file landing page for 'Facturio', a SaaS invoicing tool for freelancers: hero, three feature highlights, pricing teaser, sign-up call to action. Semantic HTML, all CSS in one <style> block, no JavaScript, no external resources.",
+      "Build a single-file landing page for 'Facturio', a SaaS invoicing tool for freelancers: hero, three feature highlights, pricing teaser, sign-up call to action. Semantic HTML, all CSS in one <style> block, no JavaScript, no external resources."
   },
   {
     id: "kelpwatch",
     brief:
-      "Build a single-file status dashboard page for 'Kelpwatch', a marine sensor fleet monitor: fleet health summary, a list of 6 buoys with live-ish readings (temp, salinity, battery), one alert banner state. Semantic HTML, all CSS in one <style> block, no JavaScript, no external resources.",
-  },
+      "Build a single-file status dashboard page for 'Kelpwatch', a marine sensor fleet monitor: fleet health summary, a list of 6 buoys with live-ish readings (temp, salinity, battery), one alert banner state. Semantic HTML, all CSS in one <style> block, no JavaScript, no external resources."
+  }
 ];
 
 /** @param {{id:string,brief:string}} b @param {string} condition — "skill" | "stock" */
@@ -64,7 +73,9 @@ export function subjectPrompt(b, condition) {
  *   20 — spacing rhythm coherent (PASS)
  */
 export async function grade(b, answer) {
-  const html = String(answer).replace(/^```html?\n/, "").replace(/\n```\s*$/, "");
+  const html = String(answer)
+    .replace(/^```html?\n/, "")
+    .replace(/\n```\s*$/, "");
   const dir = mkdtempSync(path.join(tmpdir(), "design-grade-"));
   const file = path.join(dir, "page.html");
   writeFileSync(file, html);
@@ -73,7 +84,7 @@ export async function grade(b, answer) {
   const hits = scan(html).length;
   const slop = Math.max(0, 40 - hits * 10);
 
-  let audit = "";
+  let audit;
   try {
     audit = execFileSync("node", [path.join(SCRIPTS, "audit-css.mjs"), file], { encoding: "utf8" });
   } catch (e) {
@@ -96,16 +107,28 @@ async function main() {
     for (const b of BRIEFS)
       for (const c of conditions)
         for (let r = 1; r <= n; r++)
-          console.log(JSON.stringify({ id: b.id, condition: c, replica: r, prompt: subjectPrompt(b, c) }));
+          console.log(
+            JSON.stringify({ id: b.id, condition: c, replica: r, prompt: subjectPrompt(b, c) })
+          );
     return;
   }
   const gi = args.indexOf("--grade");
   if (gi !== -1) {
-    for (const line of readFileSync(args[gi + 1], "utf8").split("\n").filter(Boolean)) {
+    for (const line of readFileSync(args[gi + 1], "utf8")
+      .split("\n")
+      .filter(Boolean)) {
       const a = JSON.parse(line);
       const b = BRIEFS.find((x) => x.id === a.id);
       const score = await grade(b, a.answer);
-      console.log(JSON.stringify({ id: a.id, condition: a.condition, replica: a.replica, model: a.model, score }));
+      console.log(
+        JSON.stringify({
+          id: a.id,
+          condition: a.condition,
+          replica: a.replica,
+          model: a.model,
+          score
+        })
+      );
     }
     return;
   }
@@ -117,9 +140,17 @@ async function main() {
         for (let r = 1; r <= n; r++) {
           const { answer } = await runSubject({
             prompt: subjectPrompt(b, c),
-            agentCmd: `${get("--agent-cmd") ?? "claude -p --output-format json --model"} ${model}`,
+            agentCmd: `${get("--agent-cmd") ?? "claude -p --output-format json --model"} ${model}`
           });
-          console.log(JSON.stringify({ id: b.id, condition: c, replica: r, model, score: await grade(b, answer) }));
+          console.log(
+            JSON.stringify({
+              id: b.id,
+              condition: c,
+              replica: r,
+              model,
+              score: await grade(b, answer)
+            })
+          );
         }
 }
 
