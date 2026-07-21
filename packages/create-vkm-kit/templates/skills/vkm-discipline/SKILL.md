@@ -1,6 +1,6 @@
 ---
 name: vkm-discipline
-description: Cross-domain execution discipline — infer the real intent, do it the best way, and hand back more than the literal ask, with minimal friction; depth scaled to task difficulty and model. Bias to action; ask only when the answer changes what you'd do. Invoke on any non-trivial task.
+description: Cross-domain execution discipline — reads the real intent, takes the best path, hands back more than the literal ask; depth scales to difficulty and model, "done" requires executed evidence (bundled gate runner). Invoke on any non-trivial task — coding, debugging, data, infra, writing, review.
 user-invocable: true
 ---
 
@@ -23,7 +23,13 @@ steers and corrects; you execute with craft, not caveats.
    genuinely the user's to make. Pick the best path, name it in a line, do it.
 5. **Show it works.** Evidence is the real result exercised — ran the code, drove the flow, checked
    the output — not paperwork and not "should work." Recompute any number or claim from the real
-   final state, not from memory of what you did.
+   final state, not from memory of what you did. When the task touched a codebase, run the bundled
+   gate runner before declaring done — it detects and executes the project's own checks
+   (test/lint/typecheck across npm, pytest, go, cargo, make) and prints one pass/fail block:
+
+   ```bash
+   bash ~/.claude/skills/vkm-discipline/scripts/evidence-gates.sh [project-dir]
+   ```
 
 Two habits that make the result better, at every depth: **match the code/conventions you touch** (its
 formatter and drift gates — a change that breaks `prettier`/`lint`/`sync`/`linkcheck` isn't done), and
@@ -41,7 +47,9 @@ real source first, never assumed.
 Model-aware: a **smaller model** stays concrete and direct — skip long step-by-step reasoning, which
 measurably _hurts_ small models (they hallucinate fluent-but-wrong chains); lean on the checklist and
 the domain reference instead. A **larger model** self-verifies and carries more in one pass. If the
-vault is wired, read your row in `_meta/agent-profiles.md`.
+vault is wired, read your row in `_meta/agent-profiles.md`. Calibrating the dial is the hardest part
+of this skill — two complete worked passes (one trivial, one hard/irreversible):
+[`examples/dial-examples.md`](examples/dial-examples.md).
 
 ## Domains — load the one the task touches
 

@@ -23,6 +23,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **`/vkm-spec` grew from a 33-line monolith into a full skill** (Anthropic
+  skill-authoring practices: progressive disclosure, worked example, executable feedback
+  loop): rewritten SKILL.md with a copyable checklist, trigger phrases in the description
+  and a degradation ladder; `references/spec-template.md` — the orchestration template
+  the description always promised, now an actual file; `references/field-guide.md`
+  (weak-vs-strong example per field); `examples/worked-example.md` (vague idea →
+  validated, approved spec); and `scripts/validate_spec.mjs`, a zero-dep validator
+  (six sections, 3–7 testable requirements, per-constraint source citations or an
+  explicit `(assumption)` marker, ≤600-char current_state, ≥2 binary criteria, vague-word
+  detection) with fix-me error messages — it doubles as the deterministic grader for the
+  upcoming spec-bench.
+- **`/vkm-discipline` gets executable evidence**: `scripts/evidence-gates.sh` detects and
+  runs the project's own gates (npm test/lint/typecheck, `go test` + gofmt, pytest,
+  cargo, make test) and prints one pass/fail block — step 5 ("Show it works") now has a
+  tool instead of prose; `examples/dial-examples.md` adds two complete worked passes
+  (trivial rename vs irreversible table drop) for the dial, the skill's hardest
+  calibration; description rewritten to third person with trigger terms.
+- **Skills triggering-accuracy eval** (`evals/skills-triggering/`): 52 labelled ES+EN
+  prompts (10 should-trigger per skill + 12 `none` distractors, including the
+  obscura_research-vs-/vkm-research near-miss), a runner that builds the listing from the
+  real template frontmatter, and deterministic grading with per-skill gates (hit ≥ 0.9,
+  false-positive ≤ 0.1). Modes: `--emit-prompts`/`--grade` for external subjects,
+  `--provider api` for direct runs.
 - **Architecture deep dive** (`docs/en/architecture-deep-dive.md` + `docs/es/arquitectura-a-fondo.md`):
   the full as-built walkthrough — system flowchart, five per-operation sequence diagrams (recall,
   write, close ritual, sync, research), a mind map of the kit's channels, a decision map tracing

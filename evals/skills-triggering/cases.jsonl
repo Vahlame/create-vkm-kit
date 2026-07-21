@@ -1,0 +1,52 @@
+{"id":"spec-01","lang":"en","prompt":"spec this: a CLI flag that exports the vault index as JSON","expected":"vkm-spec"}
+{"id":"spec-02","lang":"en","prompt":"write a spec for the importer before we build it","expected":"vkm-spec"}
+{"id":"spec-03","lang":"en","prompt":"can you sharpen this idea into requirements? offline mode for the daemon","expected":"vkm-spec"}
+{"id":"spec-04","lang":"en","prompt":"plan this feature: synonym-aware search. requirements first, no code yet","expected":"vkm-spec"}
+{"id":"spec-05","lang":"en","prompt":"I have a vague idea — notes that expire — turn it into something testable before implementing","expected":"vkm-spec"}
+{"id":"spec-06","lang":"es","prompt":"hazme el spec de esta idea: backups automáticos del vault a S3","expected":"vkm-spec"}
+{"id":"spec-07","lang":"es","prompt":"antes de programar nada, quiero los requisitos bien definidos para el modo multiusuario","expected":"vkm-spec"}
+{"id":"spec-08","lang":"es","prompt":"afina esta idea y dime los criterios de aceptación: un comando vkm doctor --fix","expected":"vkm-spec"}
+{"id":"spec-09","lang":"es","prompt":"convierte 'quiero tags automáticos' en una especificación revisable","expected":"vkm-spec"}
+{"id":"spec-10","lang":"en","prompt":"draft the requirements doc for the export feature and show me before coding","expected":"vkm-spec"}
+{"id":"disc-01","lang":"en","prompt":"refactor the payment module and make sure nothing breaks","expected":"vkm-discipline"}
+{"id":"disc-02","lang":"en","prompt":"fix this bug: the importer drops rows with accents in the filename","expected":"vkm-discipline"}
+{"id":"disc-03","lang":"en","prompt":"migrate our config loading from JSON to TOML across the repo","expected":"vkm-discipline"}
+{"id":"disc-04","lang":"en","prompt":"the deploy script is flaky, investigate and fix the root cause","expected":"vkm-discipline"}
+{"id":"disc-05","lang":"en","prompt":"clean up the database: dedupe users and archive stale accounts, carefully","expected":"vkm-discipline"}
+{"id":"disc-06","lang":"es","prompt":"implementa el rate limiting en la API y verifica que funciona de verdad","expected":"vkm-discipline"}
+{"id":"disc-07","lang":"es","prompt":"revisa este PR a fondo y dime si es seguro mergearlo","expected":"vkm-discipline"}
+{"id":"disc-08","lang":"es","prompt":"optimiza la query lenta del dashboard sin romper los resultados","expected":"vkm-discipline"}
+{"id":"disc-09","lang":"es","prompt":"escribe el postmortem del incidente de ayer con causas y acciones","expected":"vkm-discipline"}
+{"id":"disc-10","lang":"en","prompt":"add retry logic to the sync daemon and prove it handles network drops","expected":"vkm-discipline"}
+{"id":"design-01","lang":"en","prompt":"design a landing page for the kit — hero, features, install CTA","expected":"vkm-design"}
+{"id":"design-02","lang":"en","prompt":"make me a logo for vkm-kit","expected":"vkm-design"}
+{"id":"design-03","lang":"en","prompt":"restyle this dashboard so it doesn't look AI-generated","expected":"vkm-design"}
+{"id":"design-04","lang":"en","prompt":"critique the visual design of my settings screen","expected":"vkm-design"}
+{"id":"design-05","lang":"en","prompt":"build an icon set for the download states","expected":"vkm-design"}
+{"id":"design-06","lang":"es","prompt":"diséñame una portada para el README con identidad propia","expected":"vkm-design"}
+{"id":"design-07","lang":"es","prompt":"el formulario se ve genérico, dale una dirección visual memorable","expected":"vkm-design"}
+{"id":"design-08","lang":"es","prompt":"elige paleta y tipografía para la web del proyecto y justifica el contraste","expected":"vkm-design"}
+{"id":"design-09","lang":"es","prompt":"haz la maqueta visual del panel de métricas","expected":"vkm-design"}
+{"id":"design-10","lang":"en","prompt":"turn this wireframe into a polished UI with real typography and spacing","expected":"vkm-design"}
+{"id":"research-01","lang":"en","prompt":"consolidate the RESEARCH on local embedding models into a summary","expected":"vkm-research"}
+{"id":"research-02","lang":"en","prompt":"write up the research on sqlite-vec that we gathered last week","expected":"vkm-research"}
+{"id":"research-03","lang":"en","prompt":"the obscura_research run on MCP servers finished — distill the sources into the summary note","expected":"vkm-research"}
+{"id":"research-04","lang":"en","prompt":"import this external report into the research bank and consolidate it","expected":"vkm-research"}
+{"id":"research-05","lang":"es","prompt":"consolida el research de RESEARCH/rerankers en un summary.md","expected":"vkm-research"}
+{"id":"research-06","lang":"es","prompt":"redacta el resumen de la investigación sobre daemons de sync que quedó pendiente","expected":"vkm-research"}
+{"id":"research-07","lang":"es","prompt":"quedaron fuentes sin consolidar en RESEARCH/ollama — ciérralas en el summary","expected":"vkm-research"}
+{"id":"research-08","lang":"es","prompt":"mete este informe externo al banco de investigación con sus wikilinks","expected":"vkm-research"}
+{"id":"research-09","lang":"en","prompt":"the research bank for 'vector databases' has 6 raw sources — synthesize them","expected":"vkm-research"}
+{"id":"research-10","lang":"en","prompt":"mark the RESEARCH/quantization topic consolidated after writing its summary","expected":"vkm-research"}
+{"id":"none-01","lang":"en","prompt":"what time zone does the CI cron use?","expected":"none"}
+{"id":"none-02","lang":"en","prompt":"rename the variable x to count in this one function","expected":"none"}
+{"id":"none-03","lang":"en","prompt":"what does RRF stand for?","expected":"none"}
+{"id":"none-04","lang":"es","prompt":"¿cuántas tools tiene el MCP híbrido?","expected":"none"}
+{"id":"none-05","lang":"es","prompt":"corrige el typo en la línea 3 del README","expected":"none"}
+{"id":"none-06","lang":"en","prompt":"do a web search for the latest fastembed release and tell me the version","expected":"none"}
+{"id":"none-07","lang":"es","prompt":"¿qué diferencia hay entre FTS5 y un índice vectorial? explícamelo","expected":"none"}
+{"id":"none-08","lang":"en","prompt":"git log the last 5 commits and summarize them","expected":"none"}
+{"id":"none-09","lang":"es","prompt":"lista los archivos del directorio docs/","expected":"none"}
+{"id":"none-10","lang":"en","prompt":"research which reranker model is best for Spanish and gather sources on it","expected":"none","note":"gathering NEW web research is obscura_research (a tool), not /vkm-research (consolidation) — the classic near-miss"}
+{"id":"none-11","lang":"es","prompt":"¿me recomiendas usar tabs o espacios en este repo?","expected":"none"}
+{"id":"none-12","lang":"en","prompt":"bump the version badge to 4.4.1","expected":"none"}
