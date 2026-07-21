@@ -3,16 +3,16 @@
 </p>
 
 <h1 align="center">🧠 Memoria persistente para tu agente de IA</h1>
-<h3 align="center">Persistent memory for your AI agent</h3>
 
 <p align="center">
-  <em>Tus notas en Markdown + git. El modelo las lee y escribe vía MCP. Todo local, todo tuyo.</em><br>
-  <em>Your notes in Markdown + git. The model reads & writes them via MCP. All local, all yours.</em>
+  <em>Tus notas en Markdown + git. El modelo las lee y escribe vía MCP. Todo local, todo tuyo.</em>
 </p>
+
+<!-- DEMO: drop docs/assets/demo.gif here once recorded — receta en docs/assets/DEMO.md -->
 
 <p align="center">
   <a href="./LICENSE.md"><img src="https://img.shields.io/badge/licencia-MIT--derivada_%2B_atribuci%C3%B3n_(no_OSI)-blue.svg" alt="Licencia"></a>
-  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v4.4.0-orange.svg" alt="Release"></a>
+  <a href="https://github.com/Vahlame/create-vkm-kit/releases"><img src="https://img.shields.io/github/v/release/Vahlame/create-vkm-kit?label=release&color=orange" alt="Release"></a>
   <a href="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.npmjs.com/package/@vkmikc/create-vkm-kit"><img src="https://img.shields.io/npm/v/%40vkmikc%2Fcreate-vkm-kit?label=npm&color=cb3837" alt="npm"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A5%2020-43853d.svg" alt="Node ≥ 20">
@@ -31,20 +31,16 @@
 
 ---
 
-## ¿Qué es esto? · What is this?
+## ¿Qué es esto?
 
-🇪🇸 **vkm-kit**: un **kit multiplataforma** que le da a la IA (Cursor, Claude Code…) una **memoria que
-sobrevive entre chats**: una carpeta de notas Markdown bajo git que el agente lee y escribe a
-través de **MCP** (el puente entre el editor y tus archivos). Sin servicio en la nube. La pieza
-obligatoria es solo el servidor MCP; lo demás (búsqueda semántica, daemon de sync) es opcional.
-
-🇬🇧 **vkm-kit**: a **cross-platform kit** that gives your AI (Cursor, Claude Code…) **memory that survives
-across chats**: a folder of Markdown notes under git that the agent reads and writes through
-**MCP** (the bridge between the editor and your files). No cloud service. The only required piece
-is the MCP server; everything else (semantic search, sync daemon) is optional.
+**vkm-kit** (_Vahlame Knowledge Memory_) es un **kit multiplataforma** que le da a la IA (Cursor,
+Claude Code…) una **memoria que sobrevive entre chats**: una carpeta de notas Markdown bajo git que
+el agente lee y escribe a través de **MCP** (el puente entre el editor y tus archivos). Sin servicio
+en la nube. La pieza obligatoria es solo el servidor MCP; lo demás (búsqueda semántica, daemon de
+sync) es opcional.
 
 > ¿Cómo fluye la información? El diagrama de arriba lo resume; el detalle visual está en
-> [**Cómo funciona**](docs/es/como-funciona.md) · [**How it works**](docs/en/how-it-works.md).
+> [**Cómo funciona**](docs/es/como-funciona.md).
 
 <p align="center">
   🧠 <b>Memoria híbrida</b> BM25 + semántica local (opt-in) + grafo&ensp;·&ensp;💸 <b>Token-saver</b> (gate CI ≥30 %)&ensp;·&ensp;🩺 <b>vkm-doctor</b> — tokens y caché, 100 % local&ensp;·&ensp;📝 <b>vkm-spec</b> idea → spec&ensp;·&ensp;🛠️ <b>Skills</b> <code>/vkm-discipline</code> · <code>/vkm-spec</code> · <code>/vkm-design</code> · <code>/vkm-research</code>&ensp;·&ensp;🕶️ <b>Web sigilosa</b> (obscura, opt-in)
@@ -52,7 +48,7 @@ is the MCP server; everything else (semantic search, sync daemon) is optional.
 
 ---
 
-## Instalación rápida · Quick install
+## Instalación rápida
 
 **Un comando** conecta tu editor a un vault (lo crea si no existe, fusiona `mcp.json` sin romper
 otras entradas, hace backup). Sin parámetros = asistente interactivo; con `-y` no pregunta nada:
@@ -63,17 +59,26 @@ npx @vkmikc/create-vkm-kit -y              # sin preguntas → ~/Documents/obsid
 npx @vkmikc/create-vkm-kit "<RUTA>" -y     # sin preguntas, en la ruta que elijas
 ```
 
-El nombre npm antiguo (`@vkmikc/create-obsidian-memory`) está **deprecado y congelado en el kit v3 (3.15.0)**: no reenvía al nuevo, así que si lo tienes fijado en un script, cámbialo a `@vkmikc/create-vkm-kit`. · The old npm name is **deprecated and frozen on the v3 kit (3.15.0)** — it does not forward; repoint any pinned script to `@vkmikc/create-vkm-kit`.
+El nombre npm antiguo (`@vkmikc/create-obsidian-memory`) está **deprecado y congelado en el kit v3
+(3.15.0)**: no reenvía al nuevo, así que si lo tienes fijado en un script, cámbialo a
+`@vkmikc/create-vkm-kit`.
 
-> ⚡ **Todo su potencial, en un solo comando · the whole stack in one command — `--full`.**
-> Enfocado **primero en Codex y Claude Code**, con **todas las funciones activas por defecto ·
-> every feature on by default**: registra el MCP en ambos, activa la búsqueda híbrida (BM25,
-> semántica y grafo), el **grafo de conocimiento** (relaciones tipadas y observaciones), los
-> **memory reports**, la **aceleración sqlite-vec**, la **seguridad multi-escritor** (etag,
-> `ifMatch` y lock de escritura, ADR-0037) y el **bucle de memoria evolutiva** (recall de fallos,
-> boost por uso, propuestas de `memory-reflect`, ADR-0038), instala el backend Python, construye el
-> índice e instala las reglas — sin preguntas. Córrelo desde un clon del kit (o pásale
-> `--repo-root <clon>`):
+> 📦 **Dos caminos, uno de ellos necesita el repo clonado.** El instalador vive en npm, pero el
+> **motor híbrido completo** (MCP `obsidian-memory-mcp`, `obscura-web`, backend Python) **corre
+> desde un clon del kit**, no desde npm. Por eso:
+>
+> - **npx solo** → memoria básica vía `basic-memory` (sin híbrido). Cero clon.
+> - **Motor completo (`--full`, híbrido + semántica + skills)** → **clona el repo** y ejecútalo
+>   desde ahí (o pásale `--repo-root <clon>`). Es el **camino canónico** para todas las funciones.
+
+> ⚡ **Todo su potencial, en un solo comando — `--full`.**
+> Enfocado **primero en Codex y Claude Code**, con **todas las funciones activas por defecto**:
+> registra el MCP en ambos, activa la búsqueda híbrida (BM25, semántica y grafo), el **grafo de
+> conocimiento** (relaciones tipadas y observaciones), los **memory reports**, la **aceleración
+> sqlite-vec**, la **seguridad multi-escritor** (etag, `ifMatch` y lock de escritura, ADR-0037) y el
+> **bucle de memoria evolutiva** (recall de fallos, boost por uso, propuestas de `memory-reflect`,
+> ADR-0038), instala el backend Python, construye el índice e instala las reglas — sin preguntas.
+> Córrelo desde un clon del kit (o pásale `--repo-root <clon>`):
 >
 > ```bash
 > npx @vkmikc/create-vkm-kit --full          # = --ide codex,claude --with-hybrid --semantic --vec --build-index --install-backend --rules --obscura
@@ -81,60 +86,41 @@ El nombre npm antiguo (`@vkmikc/create-obsidian-memory`) está **deprecado y con
 >
 > Si no hay clon a mano, `--full` **no aborta**: cae a `basic-memory` (sin híbrido) y avisa.
 
-🔄 **Mantenerlo al día · keep it current (ADR-0061).**
+🔄 **Mantenerlo al día (ADR-0061).**
 `npx @vkmikc/create-vkm-kit --check-update` compara tu versión con la de npm y dice qué plantillas
 de skills/subagentes cambiaron — **no escribe nada y nunca falla** (sin red imprime "skipped" y
 sale 0). `--update` aplica ese plan: instala lo que falta o lo que cambió el kit, y **deja intacto
 cualquier archivo que hayas editado tú** (lo lista por nombre; `--force` lo pisa y **descarta tus
-cambios**, `--dry-run` previsualiza sin escribir). · _`--check-update` reports, `--update` applies;
-your edits are never overwritten without `--force`._
+cambios**, `--dry-run` previsualiza sin escribir).
 
 ¿Prefieres que **un agente lo instale**? Dile _«linkea el repo e instálalo con todas sus
 herramientas y capacidades»_: clona y ejecuta `npm install` + `npm run setup` — preflight de
 dependencias → instalación `--full` (memoria híbrida + token-saver + vkm-doctor + vkm-spec +
-skills) → verificación → aviso de reinicio. · _Prefer an agent to do it?_ Tell it _"link the repo
-and install it with all its tools and capabilities"_ — it clones and runs `npm install` then
-`npm run setup`. Paso a paso · step-by-step:
-[🇪🇸 instalar con agente](docs/es/instalar-con-agente.md) ·
-[🇬🇧 install with an agent](docs/en/install-with-agent.md).
+skills) → verificación → aviso de reinicio. Paso a paso:
+[instalar con agente](docs/es/instalar-con-agente.md).
 
-> 🤖 **Claude Code / Codex (PC nuevo · fresh PC):** `--full` ya registra el MCP vía
-> `claude mcp add` / `codex mcp add` y construye el índice en el mismo comando. Para Claude Code
-> además deja el vault como **única** memoria: apaga la auto-memoria nativa (`autoMemoryEnabled:false`),
-> instala un hook `SessionStart` del vault (ADR-0029), dos hooks de aplicación determinista —
-> bloqueo de escritura a la memoria nativa + recordatorio de cierre — para que funcione con
-> cualquier modelo (ADR-0030), y un hook de "effort gate" que pausa de verdad antes de
-> ediciones sustanciales hasta que el usuario confirma (ADR-0031). ¿Solo lo básico? usa
-> `--ide codex,claude`.
-> Guía completa: [🇪🇸 instalar en PC nueva](docs/es/instalar-pc-nueva.md) ·
-> [🇬🇧 fresh-PC install](docs/en/install-fresh-pc.md).
+> 🤖 **Claude Code / Codex (PC nuevo):** `--full` ya registra el MCP vía `claude mcp add` /
+> `codex mcp add` y construye el índice en el mismo comando. Para Claude Code además deja el vault
+> como **única** memoria: apaga la auto-memoria nativa (`autoMemoryEnabled:false`), instala un hook
+> `SessionStart` del vault (ADR-0029), dos hooks de aplicación determinista — bloqueo de escritura a
+> la memoria nativa + recordatorio de cierre — para que funcione con cualquier modelo (ADR-0030), y
+> un hook de "effort gate" que pausa de verdad antes de ediciones sustanciales hasta que el usuario
+> confirma (ADR-0031). ¿Solo lo básico? usa `--ide codex,claude`.
+> Guía completa: [instalar en PC nueva](docs/es/instalar-pc-nueva.md).
 
 Luego pega las **User Rules** y verifica. Los pasos completos (y la verificación) están en la guía:
 
-<table>
-<tr>
-<td align="center" width="50%">
-
-🇪🇸 **[Guía de instalación →](docs/es/instalacion.md)**
-
-o deja que [**un agente lo instale**](docs/es/instalar-con-agente.md)
-
-</td>
-<td align="center" width="50%">
-
-🇬🇧 **[Install guide →](docs/en/install.md)**
-
-or let [**an agent install it**](docs/en/install-with-agent.md)
-
-</td>
-</tr>
-</table>
+<p align="center">
+  🇪🇸 <b><a href="docs/es/instalacion.md">Guía de instalación →</a></b>
+  &nbsp;·&nbsp;
+  o deja que <a href="docs/es/instalar-con-agente.md"><b>un agente lo instale</b></a>
+</p>
 
 ---
 
-## Qué incluye · What's inside
+## Qué incluye
 
-| Pieza · Piece                                                    | Lenguaje | Rol                                                                                                                                                                                                                                                                                                                                                                               |
+| Pieza                                                            | Lenguaje | Rol                                                                                                                                                                                                                                                                                                                                                                               |
 | ---------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`packages/create-vkm-kit/`](packages/create-vkm-kit/)           | Node     | Instalador `npx` **(npm)**: memoria + token-saver + telemetría + skills en un comando.                                                                                                                                                                                                                                                                                            |
 | [`packages/obsidian-memory-mcp/`](packages/obsidian-memory-mcp/) | Node     | MCP "híbrido" **(privado; corre desde el clon)**: tools del vault + búsqueda léxica/semántica.                                                                                                                                                                                                                                                                                    |
@@ -152,29 +138,28 @@ or let [**an agent install it**](docs/en/install-with-agent.md)
 Mapa técnico completo y diagramas de flujo: [`ARCHITECTURE.md`](ARCHITECTURE.md). El _porqué_ de
 cada decisión: [`docs/adr/`](docs/adr/).
 
-**Economía de tokens, medida y con candado en CI · Token economy, measured and CI-locked:** recall
-passage-first **−62%** vs leer notas enteras (coste real del wire, k=3), `assemble_context`
-**−68% de tokens de wire (mediana)** vs encadenar búsquedas (gate CI 0.60/0.90), token-saver
-**≥30% de compactación con cero pérdida de diagnóstico** (gate CI) y **≈ −1.300 tokens/sesión**
-de renta fija (schemas + hook + bloque de reglas) — cada número tiene un gate que **rompe el build**
-si regresa (corpus fijo etiquetado + embedder determinista: pisos de regresión reproducibles,
-no un leaderboard). Detalle · detail: [🇪🇸 cómo funciona](docs/es/como-funciona.md) ·
-[🇬🇧 how it works](docs/en/how-it-works.md) · [`evals/`](evals/).
+**Economía de tokens, medida y con candado en CI:** recall passage-first **−62%** vs leer notas
+enteras (coste real del wire, k=3), `assemble_context` **−68% de tokens de wire (mediana)** vs
+encadenar búsquedas (gate CI 0.60/0.90), token-saver **≥30% de compactación con cero pérdida de
+diagnóstico** (gate CI) y **≈ −1.300 tokens/sesión** de renta fija (schemas + hook + bloque de
+reglas) — cada número tiene un gate que **rompe el build** si regresa (corpus fijo etiquetado +
+embedder determinista: pisos de regresión reproducibles, no un leaderboard). Detalle:
+[cómo funciona](docs/es/como-funciona.md) · [`evals/`](evals/).
 
 ---
 
-## Más · More
+## Más
 
-- **Después de instalar · After installing:** [🇪🇸 guía de uso + situacional](docs/es/guia-de-uso.md) · [🇬🇧 usage + situational guide](docs/en/usage.md).
-- **¿Vienes de 3.x? · Coming from 3.x?** [🇪🇸 Migración a 4.0](docs/es/migracion-4.0.md) · [🇬🇧 4.0 migration](docs/en/migration-4.0.md).
+- **Después de instalar:** [guía de uso + situacional](docs/es/guia-de-uso.md).
+- **¿Vienes de 3.x?** [Migración a 4.0](docs/es/migracion-4.0.md).
 - **Seguridad / confianza:** [`SECURITY.md`](SECURITY.md) — el vault es **datos**, no instrucciones.
-- **PC nuevo · Fresh PC (Claude Code):** [🇪🇸 instalar en PC nueva](docs/es/instalar-pc-nueva.md) · [🇬🇧 fresh-PC install](docs/en/install-fresh-pc.md).
-- **Comparación con alternativas:** [FAQ 🇪🇸](docs/es/faq.md) · [FAQ 🇬🇧](docs/en/faq.md).
+- **PC nuevo (Claude Code):** [instalar en PC nueva](docs/es/instalar-pc-nueva.md).
+- **Comparación con alternativas:** [FAQ](docs/es/faq.md).
 - **Contribuir:** [`CONTRIBUTING.md`](CONTRIBUTING.md) · **Para agentes que tocan este repo:** [`AGENTS.md`](AGENTS.md).
-- **Versionado · Versioning:** SemVer sobre el contrato instalado; majors congelados salvo ruptura inevitable — [política](CONTRIBUTING.md#versioning-policy-post-4x).
+- **Versionado:** SemVer sobre el contrato instalado; majors congelados salvo ruptura inevitable — [política](CONTRIBUTING.md#versioning-policy-post-4x).
 - **Privacidad / telemetría:** [`docs/observability.md`](docs/observability.md).
 
-## Licencia · License
+## Licencia
 
 Libre uso con atribución visible obligatoria (base MIT) — ver [`LICENSE.md`](LICENSE.md). **No es
 MIT estándar ni una licencia aprobada por la OSI**: la cláusula de atribución visible obligatoria

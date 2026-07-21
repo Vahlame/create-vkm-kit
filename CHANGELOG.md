@@ -21,6 +21,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   security check that cannot fail the build is the silent-pass antipattern.
 - Dependabot now covers all four ecosystems that ship here (`npm`, `gomod`, `pip`, `github-actions`)
   instead of only the last.
+- **Removed a personal phone number from every `LICENSE.md`.** The maintainer's number was carried
+  verbatim in the root license and all eight package mirrors; the trailing contact line now ends at
+  the email. A public launch would have surfaced it to scrapers and readers.
+
+### Docs
+
+- **README is now one language per file.** `README.md` (Spanish) and `README.en.md` (English) no
+  longer interleave both languages paragraph-by-paragraph; each is a clean single-language read with
+  the language switcher intact. The `vkm` acronym is now expanded on the first content line
+  (_Vahlame Knowledge Memory_).
+- **The install section states the canonical path explicitly:** the installer ships on npm, but the
+  full hybrid engine (`obsidian-memory-mcp`, `obscura-web`, the Python backend) runs from a clone —
+  `npx` alone gives basic `basic-memory`, `--full` requires the repo. A callout in both READMEs
+  spells out the split so a traffic wave does not hit it unguided.
+- **The release badge is now dynamic** (`img.shields.io/github/v/release/…`) instead of a static
+  `release-vX.Y.Z` string that drifted behind the npm version.
+- **Added `docs/assets/DEMO.md`** — a recording recipe for the 30 s install-then-recall demo clip,
+  plus an HTML anchor comment in both READMEs marking where the GIF drops in (no broken `<img>` until
+  the asset exists).
 
 ### Changed
 
