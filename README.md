@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="./LICENSE.md"><img src="https://img.shields.io/badge/licencia-MIT--derivada_%2B_atribuci%C3%B3n_(no_OSI)-blue.svg" alt="Licencia"></a>
-  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v4.4.0-orange.svg" alt="Release"></a>
+  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v4.5.0-orange.svg" alt="Release"></a>
   <a href="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.npmjs.com/package/@vkmikc/create-vkm-kit"><img src="https://img.shields.io/npm/v/%40vkmikc%2Fcreate-vkm-kit?label=npm&color=cb3837" alt="npm"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A5%2020-43853d.svg" alt="Node ≥ 20">
@@ -162,6 +162,16 @@ de renta fija (schemas + hook + bloque de reglas) — cada número tiene un gate
 si regresa (corpus fijo etiquetado + embedder determinista: pisos de regresión reproducibles,
 no un leaderboard). Detalle · detail: [🇪🇸 cómo funciona](docs/es/como-funciona.md) ·
 [🇬🇧 how it works](docs/en/how-it-works.md) · [`evals/`](evals/).
+
+**Y con modelos vivos (ronda 2026-07-21, Haiku 4.5 + Sonnet 5, datos crudos commiteados):**
+las 4 skills rutean con **100% de acierto y 0% de falsos positivos** (104 casos ES+EN);
+el A/B pre-registrado del token-saver dio **delta 0.0 de calidad** con el log **~81% más
+pequeño** (veredicto: mantener — y la regla dice que un mecanismo que degrade **se elimina**);
+`/vkm-discipline` sube a Haiku **de 47.0 a 91.7 (+44.7)** en la tarea subespecificada sin
+tocar a Sonnet. Además un **e2e smoke** en CI prueba el stack entero por stdio real
+(instalar → indexar → buscar → escribir → re-buscar) y la latencia por query está gateada
+(p95 medido ~3 ms). Todo reproducible: [`evals/skills-triggering/`](evals/skills-triggering/) ·
+[`evals/token-quality-ab/`](evals/token-quality-ab/) · [`evals/discipline-bench/`](evals/discipline-bench/).
 
 ---
 
