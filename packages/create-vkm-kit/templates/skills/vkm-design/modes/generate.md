@@ -44,7 +44,7 @@ accent ramps with the key contrast pairs pre-computed; `node scripts/scale.mjs -
 emits the type scale. Then verify the pairs the UI actually uses:
 `node scripts/contrast.mjs --pairs <tokens>` (hex or `oklch()` both work). Fix the token, not the
 component. One full pass of this step, with real output, is in
-[`../examples/worked-example.md`](../examples/worked-example.md).
+the skill's `examples/worked-example.md` (linked from SKILL.md).
 
 ## 5. Build
 

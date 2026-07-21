@@ -1,0 +1,16 @@
+{"id":"container-queries","condition":"skill","replica":1,"model":"haiku","score":90}
+{"id":"container-queries","condition":"skill","replica":2,"model":"haiku","score":90}
+{"id":"container-queries","condition":"skill","replica":1,"model":"opus","score":100}
+{"id":"container-queries","condition":"skill","replica":2,"model":"opus","score":100}
+{"id":"container-queries","condition":"skill","replica":1,"model":"sonnet","score":95}
+{"id":"container-queries","condition":"skill","replica":2,"model":"sonnet","score":100}
+{"id":"container-queries","condition":"stock","replica":1,"model":"haiku","score":55}
+{"id":"container-queries","condition":"stock","replica":2,"model":"haiku","score":55}
+{"id":"container-queries","condition":"stock","replica":1,"model":"opus","score":45}
+{"id":"container-queries","condition":"stock","replica":2,"model":"opus","score":55}
+{"id":"container-queries","condition":"stock","replica":1,"model":"sonnet","score":45}
+{"id":"container-queries","condition":"stock","replica":2,"model":"sonnet","score":45}
+{"id":"sqlite-vec","condition":"skill","replica":1,"model":"opus","score":100}
+{"id":"sqlite-vec","condition":"skill","replica":2,"model":"opus","score":100}
+{"id":"sqlite-vec","condition":"stock","replica":1,"model":"opus","score":55}
+{"id":"sqlite-vec","condition":"stock","replica":2,"model":"opus","score":55}

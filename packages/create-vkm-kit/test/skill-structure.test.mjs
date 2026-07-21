@@ -9,22 +9,14 @@ import path from "node:path";
 import { skillAssetFiles } from "../src/skills-install.mjs";
 
 /**
- * Baseline of relative-.md cross-references that already existed when this gate was added
- * (Anthropic: "keep references one level deep from SKILL.md" — Claude partial-reads nested
- * references). None of these chain further (worked-example.md, lineages.md, contemporary.md are
- * themselves leaves), so the practical depth stays one hop even though the rule is unmet to the
- * letter. Tolerated as a documented baseline rather than an unrelated refactor; any NEW
- * cross-reference must be added here deliberately or the file restructured to avoid it.
+ * Allowlist of relative-.md cross-references inside a skill (Anthropic: "keep references
+ * one level deep from SKILL.md" — Claude partial-reads nested references). EMPTY since the
+ * 4-entry baseline vkm-design carried was retired: those pointers now live as plain-text
+ * mentions ("`contemporary.md`, this folder") at the point of use, and SKILL.md — which the
+ * gate exempts — remains the only place that links. Keep it empty: a new cross-reference
+ * means restructure the file, not grow this set.
  */
-const KNOWN_CROSS_REFS = new Set([
-  // modes/generate.md points at the one full worked example — no further chaining from there.
-  "vkm-design/modes/generate.md -> ../examples/worked-example.md",
-  // direction.md cites the two files that operationalize a chosen direction; both are leaves.
-  "vkm-design/references/direction.md -> lineages.md",
-  "vkm-design/references/direction.md -> contemporary.md",
-  // lineages.md cites the currents file for cross-pollinating a lineage with a live move.
-  "vkm-design/references/lineages.md -> contemporary.md"
-]);
+const KNOWN_CROSS_REFS = new Set([]);
 
 /** Every skill template markdown file, as absolute src paths (no install side effects). */
 function templateMdFiles() {

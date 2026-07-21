@@ -132,6 +132,30 @@ Three surfaces added on top of the per-component gates:
   every early diagnostic block survive. Shipping proof: this gate CAUGHT a real loss
   (detail lines adjacent to a keyword line were dropped) and forced the block-rescue fix.
 
+### Known limits & the expansion roadmap (honest)
+
+What round 1 established is **directional signal + anti-regression gates**, not
+generalization claims. The known limits, and what the next rounds should vary:
+
+- **Task diversity is the bottleneck, not n.** discipline/implementer share 2 tasks in
+  2 domains; research-bench has 1 topic; diag has 3 fixtures. Before raising replicas,
+  add tasks: 2+ new discipline domains (writing, infra), a second research topic in a
+  non-DB domain with a different contradiction shape, 2+ diag fixtures whose decisive
+  line does NOT match `MUST_KEEP_RE` (the adversarial case for the rescue pass).
+- **Saturated cells stop teaching.** Triggering hit 100%/0% and explicit-spec cells hit
+  100 everywhere — next rounds need harder distractors (near-miss prompts between
+  vkm-spec and vkm-research; multi-skill prompts) and underspec variants, not more of
+  the same.
+- **Two models ≠ the model space.** Rounds ran Haiku + Sonnet; Opus and at least one
+  non-Claude subject (via `--agent-cmd`, e.g. `codex exec` once available) would test
+  whether the skills' gains are model-shaped.
+- **Same-fixture overfitting.** The skills were improved against these fixtures; a
+  held-out task per bench (written after the skill, never used to tune it) is the
+  cheap defense.
+
+Each of these is an additive round — the runners, graders and workflow already take
+new tasks/fixtures without structural change.
+
 ## 3. Adherence harness (smoke only)
 
 > The CI job **`eval-harness-smoke`** is **not** a model-adherence evaluation — it verifies the eval harness itself runs end-to-end with a deterministic stub provider that echoes the expected token. The gate is always **1.0** unless the harness pipeline breaks (missing yaml, broken require, etc.). Do **not** treat a green badge here as evidence that any agent follows the vault User Rules.

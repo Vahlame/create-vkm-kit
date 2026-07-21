@@ -50,3 +50,15 @@
 {"id":"none-10","lang":"en","prompt":"research which reranker model is best for Spanish and gather sources on it","expected":"none","note":"gathering NEW web research is obscura_research (a tool), not /vkm-research (consolidation) — the classic near-miss"}
 {"id":"none-11","lang":"es","prompt":"¿me recomiendas usar tabs o espacios en este repo?","expected":"none"}
 {"id":"none-12","lang":"en","prompt":"bump the version badge to 4.4.1","expected":"none"}
+{"id":"hard-01","lang":"en","prompt":"spec out the consolidation workflow for our research bank","expected":"vkm-spec","hard":true,"note":"spec-vs-research near-miss: the deliverable is a spec ABOUT consolidation"}
+{"id":"hard-02","lang":"en","prompt":"consolidate the research we gathered on spec-writing practices","expected":"vkm-research","hard":true,"note":"inverse near-miss: consolidation OF spec-related sources"}
+{"id":"hard-03","lang":"es","prompt":"diseña la plantilla visual para los summaries de research","expected":"vkm-design","hard":true,"note":"design-vs-research: el entregable es visual"}
+{"id":"hard-04","lang":"en","prompt":"write up the research on X and then build the feature it recommends","expected":"vkm-research","hard":true,"note":"multi-skill: consolidation comes FIRST"}
+{"id":"hard-05","lang":"es","prompt":"antes de tocar código, convierte esta idea en requisitos y luego impleméntala","expected":"vkm-spec","hard":true,"note":"multi-skill: spec first, discipline after"}
+{"id":"hard-06","lang":"en","prompt":"research which CSS framework we should adopt and gather sources","expected":"none","hard":true,"note":"gathering NEW research = obscura_research tool, not a skill"}
+{"id":"hard-07","lang":"es","prompt":"resume esta conversación de chat en tres bullets","expected":"none","hard":true,"note":"summarize ≠ consolidate a RESEARCH bank"}
+{"id":"hard-08","lang":"en","prompt":"make the error messages in this CLI friendlier","expected":"vkm-discipline","hard":true,"note":"wording-in-code is still a code change, not visual design"}
+{"id":"hard-09","lang":"es","prompt":"documenta la arquitectura del proyecto en un README","expected":"vkm-discipline","hard":true,"note":"writing domain of discipline, not spec (nothing to specify) nor design"}
+{"id":"hard-10","lang":"en","prompt":"turn the findings in RESEARCH/auth into acceptance criteria for the login rewrite","expected":"vkm-spec","hard":true,"note":"consumes research but the DELIVERABLE is a spec"}
+{"id":"hard-11","lang":"es","prompt":"pinta un diagrama de la arquitectura para el deep-dive","expected":"vkm-design","hard":true,"note":"diagram = visual deliverable"}
+{"id":"hard-12","lang":"en","prompt":"what's the difference between /vkm-spec and /vkm-research?","expected":"none","hard":true,"note":"a question ABOUT the skills invokes neither"}

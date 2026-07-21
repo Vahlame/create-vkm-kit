@@ -57,6 +57,23 @@ import { getIncrementalState } from "./_transcript-cache.mjs";
 const SUBSTANTIVE_TOOLS = /^(Write|Edit|MultiEdit|NotebookEdit)$/;
 /** Matches ONLY the literal marker the model is told to print — see reason() below. */
 const MARKER_RE = /\[!\]\s*(recomendaci[oó]n de esfuerzo|effort recommendation)/i;
+/** A FILLED-IN suggested level ("/effort high") — the template's "<low|medium|…>" placeholder
+ * can't match because of the leading "<". Last proposal in the transcript wins. */
+const LEVEL_RE = /\/effort\s+(low|medium|high|xhigh|max)\b/i;
+const LEVELS = new Set(["low", "medium", "high", "xhigh", "max"]);
+
+/**
+ * The session's CURRENT effort level, auto-detected from the environment the session
+ * spawned this hook with (Claude Code exports it as CLAUDE_EFFORT). Returns one of the
+ * five levels, or null when undetectable — in which case the gate behaves exactly as
+ * before (pause for the user). Detection only ever OPENS the gate on a confident match;
+ * it never adds friction.
+ * @param {NodeJS.ProcessEnv} [env]
+ */
+export function currentEffort(env = process.env) {
+  const raw = (env.CLAUDE_EFFORT ?? env.CLAUDE_CODE_EFFORT ?? "").toLowerCase().trim();
+  return LEVELS.has(raw) ? raw : null;
+}
 
 function readStdin() {
   try {
@@ -80,7 +97,7 @@ function isRealUserTurn(entry) {
 }
 
 function initialScanState() {
-  return { substantiveBefore: 0, pending: false, satisfied: false };
+  return { substantiveBefore: 0, pending: false, satisfied: false, suggested: null };
 }
 
 /**
@@ -106,6 +123,8 @@ function foldTranscriptLine(state, line) {
         if (!block) continue;
         if (block.type === "text" && typeof block.text === "string" && MARKER_RE.test(block.text)) {
           state.pending = true;
+          const lvl = block.text.match(LEVEL_RE);
+          state.suggested = lvl ? lvl[1].toLowerCase() : null;
         } else if (block.type === "tool_use" && SUBSTANTIVE_TOOLS.test(block.name || "")) {
           state.substantiveBefore++;
         }
@@ -132,13 +151,21 @@ export function scanTranscript(transcriptPath) {
 }
 
 function reason(lang, alreadyProposed) {
+  const cur = currentEffort();
   if (lang === "en") {
+    const curLineEn = cur
+      ? `Detected current session effort: /effort ${cur} — if your suggested level EQUALS it, ` +
+        "the gate opens automatically (no pause needed); only a DIFFERENT suggestion waits " +
+        "for the user.\n\n"
+      : "";
     return alreadyProposed
-      ? "Paused: you already proposed an effort level but there's no reply from the user " +
-          "yet in this conversation. Do not call any more tools this turn — wait for the " +
-          "user's next message before retrying."
+      ? "Paused: you proposed an effort level DIFFERENT from the session's current one (or " +
+          "the current one is undetectable) and there's no reply from the user yet. Do not " +
+          "call any more tools this turn — wait for the user's next message before retrying."
       : "Paused: this session is about to make its 2nd+ substantive edit without an effort " +
-          "estimate. Before calling any more tools, reply with ONLY this block (no tool " +
+          "estimate. " +
+          curLineEn +
+          "Before calling any more tools, reply with ONLY this block (no tool " +
           "calls in this turn), then stop and wait for the user's next message:\n\n" +
           "[!] EFFORT RECOMMENDATION\n" +
           "- Task: <short description>\n" +
@@ -146,12 +173,19 @@ function reason(lang, alreadyProposed) {
           "- Reason: <why>\n\n" +
           "Retry only after the user replies (confirming or naming a different level). See ADR-0031.";
   }
+  const curLineEs = cur
+    ? `Esfuerzo actual detectado de la sesión: /effort ${cur} — si tu nivel sugerido es ` +
+      "IGUAL, la puerta se abre sola (sin pausa); solo una sugerencia DISTINTA espera al " +
+      "usuario.\n\n"
+    : "";
   return alreadyProposed
-    ? "Pausa: ya propusiste un nivel de esfuerzo pero todavía no hay respuesta del usuario " +
-        "en esta conversación. No llames más herramientas en este turno — esperá el próximo " +
-        "mensaje del usuario antes de reintentar."
+    ? "Pausa: propusiste un nivel de esfuerzo DISTINTO al actual de la sesión (o el actual " +
+        "no es detectable) y todavía no hay respuesta del usuario. No llames más herramientas " +
+        "en este turno — esperá el próximo mensaje del usuario antes de reintentar."
     : "Pausa: esta sesión va a hacer su 2.º+ edit sustantivo sin haber propuesto un nivel " +
-        "de esfuerzo. Antes de llamar más herramientas, respondé SOLO con este bloque (nada " +
+        "de esfuerzo. " +
+        curLineEs +
+        "Antes de llamar más herramientas, respondé SOLO con este bloque (nada " +
         "de tool calls en este turno), después parate y esperá el próximo mensaje del usuario:\n\n" +
         "[!] RECOMENDACIÓN DE ESFUERZO\n" +
         "- Tarea: <descripción breve>\n" +
@@ -179,9 +213,16 @@ function main() {
   const transcriptPath = typeof input?.transcript_path === "string" ? input.transcript_path : "";
   if (!transcriptPath) return; // no transcript to check against — fail open
 
-  const { substantiveBefore, pending, satisfied } = scanTranscript(transcriptPath);
+  const { substantiveBefore, pending, satisfied, suggested } = scanTranscript(transcriptPath);
   if (substantiveBefore === 0) return; // first substantive edit of the session is free
   if (satisfied) return; // gated once already this session — stay out of the way
+
+  // Auto-match: the model proposed a level and the session is ALREADY running at it
+  // (CLAUDE_EFFORT in the hook's inherited environment). Nothing for the user to change
+  // — the pause would be pure friction, so the gate opens itself. A mismatch (or an
+  // undetectable current effort) keeps the pause: the suggestion is exactly the thing
+  // the user needs to see and act on.
+  if (pending && suggested && suggested === currentEffort()) return;
 
   const payload = {
     hookSpecificOutput: {

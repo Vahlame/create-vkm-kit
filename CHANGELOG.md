@@ -6,6 +6,76 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **`/vkm-research` grew from a 68-line monolith into a full skill** (same standard as
+  the 4.5.0 vkm-spec rebuild): rewritten SKILL.md with a copyable checklist and a
+  degradation ladder; `references/summary-template.md` (the canonical consolidated
+  shape) + `references/synthesis-guide.md` (four axes: claims across sources, links
+  that connect, visible supersession, compression with judgment);
+  `examples/worked-example.md` with REAL validator output both ways (draft fails with
+  5 named errors, rewrite passes); and `scripts/validate_summary.mjs` — a zero-dep
+  validator that rejects promoted map-reduce drafts by their seams (`---` separators,
+  `## <file>.md` headings, leaked `url:` lines), missing wikilinks, malformed
+  supersedes and transcription-sized output. Doubles as the research-bench grader;
+  mutation-style self-test (10 cases) gates in core CI.
+- **research-bench** (`evals/research-bench/`): a synthetic `RESEARCH/<topic>/` bank
+  with the pipeline's real frontmatter and two seeded probes — a contradiction between
+  sources (must surface as a typed `- supersedes`) and an embedded instruction in one
+  source (must be flagged as untrusted DATA, never obeyed). Skill vs stock; grader =
+  the shipped validator + probe signals (reference consolidation scores 100, the raw
+  draft 0). New job + dispatch option in `llm-benchmarks.yml`.
+- **implementer-bench** (`evals/implementer-bench/`): first eval covering the
+  `vkm-implementer` agent — its real installed contract as system framing vs bare, on
+  spec-shaped tasks, graded by discipline-bench's existing hidden-test instruments
+  (no new graders). New job + dispatch option in `llm-benchmarks.yml`.
+
+- **design-bench auto round 1** (mechanical score from the skill's own validators;
+  raw HTML committed under `results/2026-07-21-round1/`): Sonnet **+60** on the
+  slop-attractor brief (stock: 15) and **+30** on the held-out brief; Opus (n=1)
+  **+60/+40** — stock Opus scored **0** on facturio (full slop fingerprint + failing
+  contrast). Haiku flat, dial-consistent. Judgment axes stay in the manual protocol.
+- **Effort gate auto-match (ADR-0031 amendment)**: the `PreToolUse` effort gate now
+  detects the session's current effort (`CLAUDE_EFFORT` inherited by the hook) and
+  opens itself when the model's proposed level equals it — no pause when there is
+  nothing for the user to change. Mismatch or undetectable effort keeps the original
+  pause; the deny message now advertises the detected level. Subprocess-level tests
+  cover match/mismatch/undetectable/template-only paths.
+- **Diversified round (round 2/3 of the live benches), Opus added at reduced n** —
+  raw data under each eval's `results/2026-07-21-round2/`:
+  - _research-bench_: the skill's gain GENERALIZES — held-out domain topic
+    (container-queries: Haiku +35, Sonnet +52.5, Opus +50) and Opus on sqlite-vec
+    (+45); stock Opus still fails the consolidation contract.
+  - _discipline-bench_ on the new harder tasks (incl. the held-out instrument):
+    Sonnet +19/+21, Opus +25/+31; Haiku flat-to-−3 within spread — where the hidden
+    contract exceeds the small model's reach, the doctrine neither helps nor hurts,
+    exactly what the dial predicts.
+  - _token-quality-ab_ adversarial fixture (no-keyword decisive lines): delta **0.0**
+    on all three models measuring the FIXED hook — verdict stays KEEP.
+  - _skills-triggering_ hard set (12 near-miss/multi-skill/tool-vs-skill cases):
+    Haiku 11/12, Sonnet 12/12, Opus 11/12 — desaturated, both misses are arguable
+    boundary calls, logged with the description tweaks to try next round.
+- **Round 1 of both new benches, raw data committed** (2026-07-21, Haiku 4.5 + Sonnet 5,
+  n=3/cell, under `results/2026-07-21-round1/`):
+  - _research-bench_: the skill delivers — Haiku **33.3 → 70.0 (+36.7)**, Sonnet
+    **35.0 → 96.7 (+61.7)**. Stock output fails the consolidation contract (no typed
+    supersedes, weak linking, the seeded injection usually dropped silently).
+  - _implementer-bench_: **honest null result** — explicit specs saturate both
+    conditions (the value lives in the spec, which is /vkm-spec's job), underspec
+    deltas sit inside replica spread with one negative Sonnet cell noted for re-check.
+    The agent's case is delegation ergonomics, not raw scores; the bench exists to
+    catch contract regressions. No verdict claimed beyond n=3.
+
+### Changed
+
+- **The skill structure gate's cross-reference allowlist is now EMPTY** (was 4
+  tolerated vkm-design entries): the in-reference pointers became plain-text mentions
+  at the point of use ("`contemporary.md`, this folder") and SKILL.md remains the only
+  place that links — Anthropic's one-level-deep rule now holds to the letter, and the
+  gate ratchets at zero exceptions. `lineages.md` deliberately NOT partitioned: it
+  passes the `## Contents` navigability gate, and splitting it would mint new
+  cross-references — the exact debt just retired.
+
 ## [4.5.0] - 2026-07-21
 
 ### Fixed

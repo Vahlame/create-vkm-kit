@@ -21,3 +21,6 @@ https://www\.npmjs\.com/package/.*
 # Keep-a-Changelog compare links reference the release tag BEFORE it exists (the cut
 # lands in the PR, the tag lands at release) — structurally 404 until tagging, every release.
 https://github.com/Vahlame/create-vkm-kit/compare/.*
+# Synthetic fixture domains used by eval fixtures (deliberately unreachable — they
+# seed banks/logs, they are not meant to be fetched). Convention: example-<word>.<tld>.
+https://example-[a-z]+\.[a-z]+/.*
