@@ -93,9 +93,9 @@ the 2021 fintech gradient era.
 
 A direction is a coherent position across these axes. Vary at least three axes away from your
 banned default; keep the rest quiet. Every lineage in the first row has an **executable capsule**
-(real typefaces, OKLCH seeds, shape/motion numbers) in [`lineages.md`](lineages.md) — name the
+(real typefaces, OKLCH seeds, shape/motion numbers) in `lineages.md` (this folder) — name the
 lineage there, build from its capsule. Then cross it with **one contemporary current** from
-[`contemporary.md`](contemporary.md) (the 1–2 full-intensity moves of the boldness budget) — the
+`contemporary.md` (this folder; the 1–2 full-intensity moves of the boldness budget) — the
 lineage gives coherence, the current gives the memorable move; the cross is usually the
 signature. A direction with zero moves produces a correct template, which is its own failure.
 

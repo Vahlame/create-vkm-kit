@@ -6,6 +6,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **`/vkm-research` grew from a 68-line monolith into a full skill** (same standard as
+  the 4.5.0 vkm-spec rebuild): rewritten SKILL.md with a copyable checklist and a
+  degradation ladder; `references/summary-template.md` (the canonical consolidated
+  shape) + `references/synthesis-guide.md` (four axes: claims across sources, links
+  that connect, visible supersession, compression with judgment);
+  `examples/worked-example.md` with REAL validator output both ways (draft fails with
+  5 named errors, rewrite passes); and `scripts/validate_summary.mjs` — a zero-dep
+  validator that rejects promoted map-reduce drafts by their seams (`---` separators,
+  `## <file>.md` headings, leaked `url:` lines), missing wikilinks, malformed
+  supersedes and transcription-sized output. Doubles as the research-bench grader;
+  mutation-style self-test (10 cases) gates in core CI.
+- **research-bench** (`evals/research-bench/`): a synthetic `RESEARCH/<topic>/` bank
+  with the pipeline's real frontmatter and two seeded probes — a contradiction between
+  sources (must surface as a typed `- supersedes`) and an embedded instruction in one
+  source (must be flagged as untrusted DATA, never obeyed). Skill vs stock; grader =
+  the shipped validator + probe signals (reference consolidation scores 100, the raw
+  draft 0). New job + dispatch option in `llm-benchmarks.yml`.
+- **implementer-bench** (`evals/implementer-bench/`): first eval covering the
+  `vkm-implementer` agent — its real installed contract as system framing vs bare, on
+  spec-shaped tasks, graded by discipline-bench's existing hidden-test instruments
+  (no new graders). New job + dispatch option in `llm-benchmarks.yml`.
+
+### Changed
+
+- **The skill structure gate's cross-reference allowlist is now EMPTY** (was 4
+  tolerated vkm-design entries): the in-reference pointers became plain-text mentions
+  at the point of use ("`contemporary.md`, this folder") and SKILL.md remains the only
+  place that links — Anthropic's one-level-deep rule now holds to the letter, and the
+  gate ratchets at zero exceptions. `lineages.md` deliberately NOT partitioned: it
+  passes the `## Contents` navigability gate, and splitting it would mint new
+  cross-references — the exact debt just retired.
+
 ## [4.5.0] - 2026-07-21
 
 ### Fixed
