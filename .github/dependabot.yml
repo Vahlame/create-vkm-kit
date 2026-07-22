@@ -37,6 +37,11 @@ updates:
       # until the toolchain catches up; adopt it via a dedicated migration PR.
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      # execa 10 imports `Set.prototype.union` (Node 22+ only), so it crashes on
+      # import under Node 20 — which this repo supports (`engines: node >=20`, CI
+      # tests node 20). Hold the major until the Node floor is deliberately raised.
+      - dependency-name: "execa"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: gomod
     directory: /
