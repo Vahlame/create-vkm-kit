@@ -124,6 +124,19 @@ async function writeSidecarManifest(sidecarFp, manifest) {
   await atomicWriteJson(sidecarFp, manifest);
 }
 
+/**
+ * True when `dest` lives under `root` (or IS `root`). `path.relative` does the platform-aware
+ * comparison (case-insensitive segments and drive letters on win32), so paths that were both
+ * produced by `path.join(home, ".claude", …)` compare correctly even if casing drifted.
+ * @param {string} dest
+ * @param {string} root
+ * @returns {boolean}
+ */
+function isUnderRoot(dest, root) {
+  const rel = path.relative(root, dest);
+  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+}
+
 async function defaultCopy(src, dest) {
   await fse.ensureDir(path.dirname(dest));
   await fse.copy(src, dest, { overwrite: true });
@@ -158,12 +171,23 @@ async function hashPath(fp, readFileImpl, existsImpl) {
  * for every dest the sidecar still remembers that isn't in `files` anymore (the kit dropped
  * that file in a later version) — those have no `src` (`null`), since no template exists for
  * them to compare against.
+ *
+ * THE ORPHAN SWEEP MUST BE SCOPED when the sidecar is shared. `~/.claude/vkm-kit.assets.json`
+ * records EVERY hash-tracked asset any module installs — skills/agents (skills-install.mjs)
+ * AND the token-saver's output style (token-saver.mjs). A caller that plans only its own file
+ * set would otherwise read every other module's recorded asset as "recorded but no longer
+ * shipped" — the exact bug that made `--update` delete a live, active
+ * `~/.claude/output-styles/vkm-terse.md` it never managed. `managedRoots` is that scope:
+ * when given, only sidecar entries under one of those directories are orphan candidates;
+ * entries outside them belong to other modules and are omitted from the plan entirely.
+ * When omitted, every recorded dest is swept (single-owner sidecars, e.g. test fixtures).
  * @param {object} opts
  * @param {string} opts.home - unused by the comparison itself (dest paths in `files` are
  *   already absolute); accepted for symmetry with `skillAssetFiles(home, …)` callers and kept
  *   for callers that want it echoed back via a future report.
  * @param {{ src: string, dest: string }[]} opts.files
  * @param {string} opts.sidecarFp
+ * @param {string[]} [opts.managedRoots] - absolute directories bounding the orphan sweep
  * @param {(fp: string) => Promise<Buffer>} [opts.readFileImpl]
  * @param {(fp: string) => Promise<boolean>} [opts.existsImpl]
  * @returns {Promise<{
@@ -177,6 +201,7 @@ export async function buildUpdatePlan({
   home,
   files,
   sidecarFp,
+  managedRoots,
   readFileImpl = fse.readFile,
   existsImpl = fse.pathExists
 }) {
@@ -203,6 +228,9 @@ export async function buildUpdatePlan({
 
   for (const [dest, recorded] of Object.entries(manifest.assets)) {
     if (destsSeen.has(dest)) continue;
+    // Out-of-scope sidecar entry: another module's asset (e.g. the token-saver's output
+    // style). Not an orphan — not even part of this plan.
+    if (managedRoots && !managedRoots.some((root) => isUnderRoot(dest, root))) continue;
     const diskHash = await hashPath(dest, readFileImpl, existsImpl);
     entries.push({
       src: null,
