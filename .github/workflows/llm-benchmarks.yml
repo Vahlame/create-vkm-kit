@@ -67,7 +67,7 @@ jobs:
         run: |
           node evals/skills-triggering/run.mjs --provider api \
             --model "${{ inputs.model || 'claude-haiku-4-5-20251001' }}" | tee triggering.txt
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: triggering-results
@@ -90,7 +90,7 @@ jobs:
           ADHERENCE_PROVIDER: real
           ADHERENCE_MODEL: ${{ inputs.model }}
         run: node evals/run-adherence-ci.mjs | tee adherence.txt
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: adherence-results
@@ -116,7 +116,7 @@ jobs:
             --mechanism "${{ inputs.mechanism }}" \
             --models claude-haiku-4-5-20251001,claude-sonnet-5 \
             --n "${{ inputs.n }}" | tee ab-results.txt
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: token-quality-ab-${{ inputs.mechanism }}
@@ -140,7 +140,7 @@ jobs:
         run: |
           node evals/research-bench/run.mjs \
             --models "${{ inputs.model }}" --n "${{ inputs.n }}" | tee research-results.txt
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: research-bench-results
@@ -164,7 +164,7 @@ jobs:
         run: |
           node evals/implementer-bench/run.mjs \
             --models "${{ inputs.model }}" --n "${{ inputs.n }}" | tee implementer-results.txt
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: implementer-bench-results
@@ -197,7 +197,7 @@ jobs:
             printf '{"id":"%s","condition":"%s","replica":%s,"model":"%s","answer":%s}\n' "$id" "$cond" "$rep" "${{ inputs.model }}" "$ans" >> answers.jsonl
           done < prompts.jsonl
           node evals/spec-bench/run.mjs --grade answers.jsonl | tee spec-results.txt
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: spec-bench-results
