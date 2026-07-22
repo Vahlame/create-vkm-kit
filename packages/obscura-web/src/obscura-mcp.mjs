@@ -662,7 +662,9 @@ export function buildServer(deps = {}) {
         "for /vkm-research <topic> to consolidate. Poll with obscura_research_status; stop early " +
         "with obscura_research_stop. Only ONE job may run at a time — starting a second while one " +
         "is active is rejected, because fan-out from this machine would get it banned by search " +
-        "engines (ADR-0057).",
+        "engines (ADR-0057). Engine suspensions do NOT kill the job: failed queries re-enqueue " +
+        "with bounded retries and the job waits out suspensions in a global exponential cooldown " +
+        "(cooldownUntil in status), resuming while budget remains.",
       inputSchema: {
         objective: z
           .string()
@@ -716,6 +718,18 @@ export function buildServer(deps = {}) {
           .describe(
             "Politeness pause between rounds, in ms (default env OBSCURA_DEEP_PACE_MS or 15000) " +
               "— keeps a long job from hammering search engines back-to-back."
+          ),
+        cooldown_ms: z
+          .number()
+          .int()
+          .min(30000)
+          .max(900000)
+          .optional()
+          .describe(
+            "Base global cooldown when engine suspension is detected, in ms (default env " +
+              "OBSCURA_DEEP_COOLDOWN_MS or 120000). Doubles per consecutive cooldown (capped " +
+              "~10 min); while cooling, zero upstream requests and cooldownUntil shows in " +
+              "obscura_research_status. Failed queries re-enqueue and retry after the wait."
           ),
         max_depth: z
           .number()
@@ -782,6 +796,7 @@ export function buildServer(deps = {}) {
         budget_minutes,
         round_ms,
         pace_ms,
+        cooldown_ms,
         max_depth,
         top_k,
         max_candidates,
@@ -802,6 +817,7 @@ export function buildServer(deps = {}) {
           budgetMs: budget_minutes * 60_000,
           roundMs: round_ms,
           paceMs: pace_ms,
+          cooldownMs: cooldown_ms,
           maxDepth: max_depth,
           topK: top_k,
           maxCandidates: max_candidates,
@@ -832,9 +848,12 @@ export function buildServer(deps = {}) {
       description:
         "Cheap, instant status read of a background obscura_research_start job — an in-memory " +
         "snapshot, no network call and no wait, safe to poll as often as you like. Reports state " +
-        "(running/done/stopped/failed), the current round's query, totals so far, the top " +
-        "findings curated to date, and the leads still queued up (pendingLeads). Once the job has " +
-        "finished (done/stopped/failed), the response adds a pointer to the written run report " +
+        "(running/done/done-partial/stopped/failed), the current round's query, cooldownUntil " +
+        "(non-null while the job waits out an engine suspension — normal, not stuck), totals so " +
+        "far, the top findings curated to date, the leads still queued up (pendingLeads) and any " +
+        "queries abandoned after retries (abandonedQueries). done-partial = useful rounds were " +
+        "banked but work remains; the run report lists it as resumable. failed = not one useful " +
+        "round. Once the job has finished, the response adds a pointer to the written run report " +
         "and a reminder to consolidate with /vkm-research.",
       inputSchema: {
         job_id: z
@@ -851,7 +870,9 @@ export function buildServer(deps = {}) {
       if (!snap) {
         throw new Error("no research job found — start one with obscura_research_start");
       }
-      const finished = snap.state === "done" || snap.state === "stopped" || snap.state === "failed";
+      // Anything that is no longer running is finished — enumerating states here already went
+      // stale once (done-partial), so the check is inverted on purpose.
+      const finished = snap.state !== "running";
       // A finished job whose reportImpl step itself failed still has something worth pointing
       // at (the persisted sources) — never surface a bare `undefined` in an agent-facing string.
       const reportRef =

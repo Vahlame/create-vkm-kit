@@ -243,30 +243,47 @@ test("budget exhaustion stops the job with stoppedReason budget_exhausted, repor
   );
 
   const snap = await waitForDone(id);
-  assert.equal(snap.state, "done");
+  // Useful rounds were banked but s2/s3 never ran — that is exactly what done-partial means;
+  // plain "done" would hide that two thirds of the plan went unexplored.
+  assert.equal(snap.state, "done-partial");
   assert.equal(snap.stoppedReason, "budget_exhausted");
   assert.equal(
     snap.roundsTotal,
     1,
     "only the first round should have run before the budget tripped"
   );
+  assert.equal(snap.frontierSize, 2, "s2 and s3 remain as resumable pending leads");
   assert.equal(reportCalls.length, 1);
   assert.ok(snap.report);
 });
 
-test("two consecutive banned rounds (scanned:0 + enginesUnavailable) stop the job; sleep after round 1 is paceMs*2", async () => {
+test("two consecutive banned rounds trigger a cooldown (not a terminal stop); banned queries retry and the job recovers to done", async () => {
   const clock = makeClock();
   const { reportImpl } = makeReportCapture();
-  const researchImpl = async () => ({
-    source: "searxng",
-    scanned: 0,
-    fetched: 0,
-    results: [],
-    enginesUnavailable: ["google cse: suspended"]
-  });
+  let calls = 0;
+  // First two calls: the ADR-0057 §6 wall (200 + [] + engines down). Everything after: healthy.
+  const researchImpl = async () => {
+    calls++;
+    if (calls <= 2) {
+      return {
+        source: "searxng",
+        scanned: 0,
+        fetched: 0,
+        results: [],
+        enginesUnavailable: ["google cse: suspended"]
+      };
+    }
+    return { source: "searxng", scanned: 1, fetched: 0, results: [] };
+  };
 
   const { id } = startResearchJob(
-    { objective: "obj", topics: ["s1", "s2", "s3"], topic: "banned-topic", paceMs: 5000 },
+    {
+      objective: "obj",
+      topics: ["s1", "s2", "s3"],
+      topic: "banned-topic",
+      paceMs: 5000,
+      cooldownMs: 30_000
+    },
     {
       researchImpl,
       persistImpl: okPersist,
@@ -280,9 +297,24 @@ test("two consecutive banned rounds (scanned:0 + enginesUnavailable) stop the jo
   );
 
   const snap = await waitForDone(id);
-  assert.equal(snap.stoppedReason, "engines_suspended");
-  assert.equal(snap.roundsTotal, 2, "the streak trips right after the 2nd banned round");
-  assert.deepEqual(clock.sleeps, [10_000], "one sleep, after round 1, doubled to paceMs*2");
+  // s1 banned, s2 banned -> cooldown -> s3, then s1 and s2 retried successfully.
+  assert.equal(snap.state, "done");
+  assert.equal(snap.stoppedReason, "frontier_empty");
+  assert.equal(snap.roundsTotal, 5);
+  assert.equal(snap.totals.cooldowns, 1);
+  assert.equal(snap.totals.retries, 2, "both banned seeds were re-enqueued, not dropped");
+  assert.equal(snap.totals.usefulRounds, 3);
+  assert.equal(snap.rounds[0].banned, true);
+  assert.equal(snap.rounds[0].requeued, true);
+  assert.deepEqual(
+    snap.rounds.map((r) => r.query),
+    ["s1", "s2", "s3", "s1", "s2"],
+    "retries go to the END of the frontier"
+  );
+  assert.equal(clock.sleeps[0], 10_000, "pace after the 1st banned round is doubled to paceMs*2");
+  const slept = clock.sleeps.reduce((a, b) => a + b, 0);
+  // 10s doubled pace + 30s cooldown (in <=5s slices) + 3 healthy 5s paces.
+  assert.equal(slept, 10_000 + 30_000 + 15_000);
 });
 
 test("stopResearchJob mid-run: graceful — the in-flight round finishes, then state becomes stopped", async () => {
