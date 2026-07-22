@@ -742,7 +742,8 @@ async function runJob(job, deps) {
     // attempted and not one was useful. A run with useful rounds that had to leave work behind
     // (unexplored frontier, abandoned retries) is "done-partial" — the report lists the
     // leftovers as resumable, which is the whole difference between those two words.
-    const barren = !fatal && !job.stopRequested && job.rounds.length > 0 && job.totals.usefulRounds === 0;
+    const barren =
+      !fatal && !job.stopRequested && job.rounds.length > 0 && job.totals.usefulRounds === 0;
     if (barren && !job.error) {
       job.error =
         "no round produced results — engines suspended or rate-limited" +
