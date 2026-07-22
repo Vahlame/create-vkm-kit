@@ -172,7 +172,10 @@ test("persistent suspension: exponential cooldowns (visible cooldownUntil), boun
   assert.equal(snap.totals.abandoned, 2);
   assert.equal(snap.totals.cooldowns, 2);
   // Exponential: 60s then 120s, slept in <=5s stop-responsive slices, nothing else slept.
-  assert.equal(clock.sleeps.reduce((a, b) => a + b, 0), 180_000);
+  assert.equal(
+    clock.sleeps.reduce((a, b) => a + b, 0),
+    180_000
+  );
   assert.ok(clock.sleeps.every((ms) => ms <= 5_000));
   assert.ok(
     cooldownSnapshots.some((c) => typeof c === "string"),
@@ -188,10 +191,7 @@ test("persistent suspension: exponential cooldowns (visible cooldownUntil), boun
   assert.match(snap.rounds[0].error, /Fall back to the native WebSearch tool/);
 
   assert.equal(snap.abandonedQueries.length, 2);
-  assert.deepEqual(
-    snap.abandonedQueries.map((a) => a.query).sort(),
-    ["s1", "s2"]
-  );
+  assert.deepEqual(snap.abandonedQueries.map((a) => a.query).sort(), ["s1", "s2"]);
 
   const report = reportCalls[0].content;
   assert.match(report, /outcome: "failed"/);
