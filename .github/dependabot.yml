@@ -30,6 +30,13 @@ updates:
     groups:
       dev-dependencies:
         dependency-type: development
+    ignore:
+      # TypeScript 7 breaks both CI gates today: `typecheck` (stricter inference
+      # surfaces ~24 new errors) and `lint` (typescript-eslint's typescript-estree
+      # only *detects* TS7, it doesn't support it — ESLint crashes). Hold the major
+      # until the toolchain catches up; adopt it via a dedicated migration PR.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: gomod
     directory: /
