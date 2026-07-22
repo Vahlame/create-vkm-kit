@@ -117,6 +117,7 @@ test("obscura_research_start: maps budget_minutes/top_k/etc. to the exact params
       budget_minutes: 20,
       round_ms: 50000,
       pace_ms: 5000,
+      cooldown_ms: 60000,
       max_depth: 3,
       top_k: 30,
       max_candidates: 100,
@@ -134,6 +135,7 @@ test("obscura_research_start: maps budget_minutes/top_k/etc. to the exact params
     budgetMs: 20 * 60_000,
     roundMs: 50000,
     paceMs: 5000,
+    cooldownMs: 60000,
     maxDepth: 3,
     topK: 30,
     maxCandidates: 100,
@@ -162,6 +164,7 @@ test("obscura_research_start: applies MCP-layer defaults when optional fields ar
   assert.equal(seenParams.subQueries, 4, "sub_queries defaults to 4");
   assert.equal(seenParams.roundMs, undefined, "no MCP-layer default — deep-research.mjs owns it");
   assert.equal(seenParams.paceMs, undefined);
+  assert.equal(seenParams.cooldownMs, undefined);
   assert.equal(seenParams.maxDepth, undefined);
   assert.equal(seenParams.dropBelow, undefined);
   assert.equal(seenParams.passageChars, undefined);
@@ -263,6 +266,21 @@ test("obscura_research_status: a done job adds the next/_trust hints and caps to
   assert.equal(data.topFindings.length, 10, "capped at 10 even though the snapshot carries 12");
   assert.match(data.next, /\/vkm-research cats/);
   assert.match(data.next, /2026-07-19T00-00-00-000Z\.md/);
+  assert.match(data._trust, /untrusted/i);
+});
+
+test("obscura_research_status: a done-partial job is finished too — next/_trust hints present", async () => {
+  const getJobImpl = () =>
+    fakeSnapshot({
+      state: "done-partial",
+      currentQuery: null,
+      remainingMs: 0,
+      report: "/fake/RESEARCH/cats/runs/partial.md"
+    });
+  const client = await connect({ getJobImpl });
+  const res = await client.callTool({ name: "obscura_research_status", arguments: {} });
+  const data = JSON.parse(textOf(res));
+  assert.match(data.next, /\/vkm-research cats/);
   assert.match(data._trust, /untrusted/i);
 });
 
