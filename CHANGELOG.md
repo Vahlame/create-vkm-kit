@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **`--update` no longer deletes assets other kit modules installed** (ADR-0061
+  amendment). The sidecar manifest (`~/.claude/vkm-kit.assets.json`) is shared by every
+  hash-tracked asset — skills/agents AND the token-saver's `vkm-terse` output style —
+  but `--update`'s plan only enumerated skills+agents, so the orphan sweep read the
+  live, active `~/.claude/output-styles/vkm-terse.md` as "recorded but no longer
+  shipped" and removed it. `buildUpdatePlan` now takes `managedRoots` (the documented
+  `~/.claude/skills/` + `~/.claude/agents/` scope, passed by both `--check-update` and
+  `--update`); sidecar entries outside those roots are omitted from the plan entirely.
+  Regression tests cover the scoped sweep and the exact token-saver reproduction.
+
 ## [4.5.1] - 2026-07-21
 
 ### Security
