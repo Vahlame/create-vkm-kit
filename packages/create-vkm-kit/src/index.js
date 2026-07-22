@@ -138,6 +138,20 @@ function dryRunFromArgs() {
 }
 
 /**
+ * The directories `--check-update`/`--update` manage — exactly the documented scope
+ * (`~/.claude/skills/` + `~/.claude/agents/`, the set `skillAssetFiles` enumerates). Passed
+ * to `buildUpdatePlan` as `managedRoots` so the orphan sweep never reaches assets other
+ * modules record in the same shared sidecar (the token-saver's output style, ADR-0043) —
+ * without this bound, `--update` deleted `~/.claude/output-styles/vkm-terse.md` as an
+ * "orphan" it never managed.
+ * @param {string} home
+ * @returns {string[]}
+ */
+function updateRoots(home) {
+  return [path.join(home, ".claude", "skills"), path.join(home, ".claude", "agents")];
+}
+
+/**
  * The `--full` (alias `--all`) one-shot preset: max power, zero questions. Turns
  * on hybrid + semantic + index build + backend install + rules, and defaults the
  * wired IDEs to Codex + Claude Code. Implies non-interactive.
@@ -1417,7 +1431,7 @@ Claude Code native-memory override (when --ide includes claude):
       if (banner) console.log(banner);
     }
     const files = skillAssetFiles(home, { skills: true, agents: true });
-    const plan = await buildUpdatePlan({ home, files, sidecarFp });
+    const plan = await buildUpdatePlan({ home, files, sidecarFp, managedRoots: updateRoots(home) });
     console.log(summarizePlan(plan));
     return;
   }
@@ -1430,7 +1444,7 @@ Claude Code native-memory override (when --ide includes claude):
     const force = argv.includes("--force");
     if (dryRun) console.log(pc.dim("[dry-run] no files will be written"));
     const files = skillAssetFiles(home, { skills: true, agents: true });
-    const plan = await buildUpdatePlan({ home, files, sidecarFp });
+    const plan = await buildUpdatePlan({ home, files, sidecarFp, managedRoots: updateRoots(home) });
     console.log(summarizePlan(plan));
     const { applied, skipped, removed } = await applyUpdatePlan({ plan, sidecarFp, force, dryRun });
     console.log(

@@ -1,6 +1,6 @@
 # ADR-0061: Kit update path + skill-structure gate
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-07-22 — orphan sweep scoped to managed roots)
 - **Date:** 2026-07-19
 - **Deciders:** maintainer
 
@@ -131,6 +131,42 @@ markdown link.
   kit simply lacks the key, which reads back as `null` ("unknown") rather than an error. The
   structure gate's `KNOWN_CROSS_REFS` allowlist is a baseline, not a ratchet — it can shrink as
   skills get restructured, but any growth is a deliberate, reviewable diff.
+
+## Amendment (2026-07-22): orphan sweep scoped to managed roots
+
+Field failure, reproduced on a real machine the day after v4.5.1: `node
+packages/create-vkm-kit/src/index.js --update` reported `orphan: 1 … Removed: 1` and deleted
+`~/.claude/output-styles/vkm-terse.md` — the ACTIVE output style, installed and managed by the
+token-saver module (ADR-0043), still shipped by the kit, and still referenced by
+`settings.json`'s `outputStyle`.
+
+Root cause: the sidecar manifest (`~/.claude/vkm-kit.assets.json`, ADR-0049) is SHARED — every
+module that installs hash-tracked files records into it (`skills-install.mjs` for
+skills/agents, `token-saver.mjs` for the output style). But `buildUpdatePlan`'s orphan sweep
+iterated **every** sidecar entry absent from the caller's `files` list, and the `--update`
+caller passes only `skillAssetFiles(home, …)` — the documented skills+agents scope. From that
+narrow vantage point, any other module's recorded asset is indistinguishable from "the kit
+dropped this file": the classification (`templateHash: null, recordedHash` present → `orphan`)
+was correct per Decision item 3; the CANDIDATE SET was wrong. The unmodified-only guard made it
+worse, not better — a pristine, kit-owned file is exactly the one that hash-matches its record
+and gets deleted.
+
+Fix: `buildUpdatePlan` accepts `managedRoots` (absolute directories bounding the orphan sweep);
+sidecar entries outside every root are omitted from the plan entirely — they are not orphans,
+not `untracked`, not counted, not reported: another module's property, invisible to this plan.
+Both `--check-update` and `--update` pass `updateRoots(home)` =
+`[~/.claude/skills, ~/.claude/agents]` (`index.js`), which makes the implementation finally
+match the help text's claim of what `--update` manages. Omitting `managedRoots` keeps the old
+sweep-everything behavior for single-owner sidecars (test fixtures). Regression tests in
+`test/update-plan.test.mjs`: a scoped sweep that removes a genuine in-root orphan while
+leaving an out-of-root entry untouched (file AND sidecar claim), plus an end-to-end
+reproduction that installs the real style via `configureTokenSaver` and asserts it survives
+the exact `--update` flow.
+
+Design note for future modules: any new module that records assets into the shared sidecar
+must either live outside the update roots (nothing to do — the sweep cannot reach it) or be
+added to BOTH `skillAssetFiles`-style enumeration and `updateRoots` at the same time, never
+just one.
 
 ## References
 

@@ -4,6 +4,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
+import { fileURLToPath } from "node:url";
+import { configureTokenSaver, TERSE_STYLE_BASENAME } from "../src/token-saver.mjs";
 import {
   UPDATE_STATES,
   APPLY_BY_DEFAULT,
@@ -372,4 +374,95 @@ test("applyUpdatePlan is a no-op on a plan with nothing to apply or remove (no s
   assert.deepEqual(removed, []);
   assert.deepEqual(skipped, [{ dest, state: "unchanged" }]);
   assert.deepEqual(fs.readFileSync(sidecarFp), before); // untouched, no gratuitous rewrite
+});
+
+// ---------------------------------------------------------------------------
+// managedRoots: the orphan sweep must never reach another module's sidecar entries.
+// The sidecar is SHARED — skills/agents and the token-saver's output style all record
+// into ~/.claude/vkm-kit.assets.json. Regression for the v4.5.1 bug where `--update`
+// (scoped to skills+agents) classified the live output style as "orphan" and deleted it.
+// ---------------------------------------------------------------------------
+
+test("buildUpdatePlan with managedRoots sweeps orphans inside the roots and ignores entries outside them", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "update-plan-roots-"));
+  const claudeDir = path.join(root, "claude");
+  const skillsDir = path.join(claudeDir, "skills");
+  const stylesDir = path.join(claudeDir, "output-styles");
+  fs.mkdirSync(skillsDir, { recursive: true });
+  fs.mkdirSync(stylesDir, { recursive: true });
+  const sidecarFp = path.join(claudeDir, "vkm-kit.assets.json");
+
+  const droppedSkill = path.join(skillsDir, "old-skill.md"); // ours, kit dropped it: real orphan
+  const styleDest = path.join(stylesDir, "style.md"); // another module's asset: out of scope
+  fs.writeFileSync(droppedSkill, "old skill\n");
+  fs.writeFileSync(styleDest, "style content\n");
+  fs.writeFileSync(
+    sidecarFp,
+    JSON.stringify({
+      version: 1,
+      assets: {
+        [droppedSkill]: { hash: sha256("old skill\n"), installedAt: "x" },
+        [styleDest]: { hash: sha256("style content\n"), installedAt: "x" }
+      }
+    })
+  );
+
+  const plan = await buildUpdatePlan({
+    home: root,
+    files: [], // this kit version ships nothing under the roots
+    sidecarFp,
+    managedRoots: [skillsDir]
+  });
+
+  assert.deepEqual(
+    plan.entries.map((e) => e.dest),
+    [droppedSkill],
+    "out-of-scope sidecar entries must not appear in the plan at all"
+  );
+  assert.equal(plan.counts.orphan, 1);
+
+  const { removed } = await applyUpdatePlan({ plan, sidecarFp });
+  assert.deepEqual(removed, [droppedSkill]);
+  assert.equal(fs.existsSync(droppedSkill), false);
+  // The other module's asset: file intact AND still claimed in the sidecar.
+  assert.equal(fs.readFileSync(styleDest, "utf8"), "style content\n");
+  const sidecar = JSON.parse(fs.readFileSync(sidecarFp, "utf8"));
+  assert.ok(sidecar.assets[styleDest], "sidecar must keep the out-of-scope entry");
+  assert.equal(sidecar.assets[droppedSkill], undefined);
+});
+
+test("regression: an output style installed by the token-saver survives a skills+agents-scoped update", async () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "update-plan-terse-"));
+  // Real install path: configureTokenSaver records the style in the shared sidecar via
+  // installManagedAssets — exactly what a --full install does on a user machine.
+  await configureTokenSaver(home, false, { hooks: false, terseStyle: true });
+
+  const claudeDir = path.join(home, ".claude");
+  const styleDest = path.join(claudeDir, "output-styles", TERSE_STYLE_BASENAME);
+  const sidecarFp = path.join(claudeDir, "vkm-kit.assets.json");
+  const templateSrc = path.join(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "templates",
+    "output-styles",
+    TERSE_STYLE_BASENAME
+  );
+  assert.ok(fs.existsSync(styleDest), "precondition: token-saver installed the style");
+  assert.ok(
+    JSON.parse(fs.readFileSync(sidecarFp, "utf8")).assets[styleDest],
+    "precondition: style recorded in the shared sidecar"
+  );
+
+  // The exact `--update` flow (index.js): skills+agents file set, roots-scoped plan.
+  const managedRoots = [path.join(claudeDir, "skills"), path.join(claudeDir, "agents")];
+  const plan = await buildUpdatePlan({ home, files: [], sidecarFp, managedRoots });
+  const { removed } = await applyUpdatePlan({ plan, sidecarFp });
+
+  assert.deepEqual(removed, [], "update must remove nothing it does not manage");
+  assert.ok(fs.existsSync(styleDest), "the active output style must survive --update");
+  assert.deepEqual(fs.readFileSync(styleDest), fs.readFileSync(templateSrc));
+  assert.ok(
+    JSON.parse(fs.readFileSync(sidecarFp, "utf8")).assets[styleDest],
+    "the style must stay claimed in the sidecar after --update"
+  );
 });
