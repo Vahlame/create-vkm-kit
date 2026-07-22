@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **obscura-web: `obscura_research_start` no longer dies on engine rate-limits**
+  (observed live: job `deep-mrvnd4nz-e30773d5` ended `failed` at 3.7 min of a
+  30-min budget after 3 consecutive search errors, 4 of 6 seeds unresearched,
+  7 `pendingLeads` dropped; second occurrence after
+  `RESEARCH/winoptengine-go-to-market`). Root cause was the scheduler, not the
+  crawl: `MAX_CONSECUTIVE_ERRORS = 3` turned a transient SearXNG suspension
+  (`suspended_times`: 180s–3600s) into a fatal job state, discarding the failed
+  seed and the whole remaining budget, and surfacing serp.mjs's interactive
+  "Fall back to the native WebSearch tool" advice as the background job's cause
+  of death. The scheduler now treats suspension as weather: failed/banned
+  queries re-enqueue at the END of the frontier (bounded `MAX_ITEM_ATTEMPTS`,
+  never silently dropped — leftovers land in `abandonedQueries` and the run
+  report); a streak of suspicious rounds parks the job in a global exponential
+  cooldown (`cooldown_ms` param / `OBSCURA_DEEP_COOLDOWN_MS`, default 2 min,
+  doubling to a 10-min cap, zero upstream requests while waiting, visible as
+  `cooldownUntil` in `obscura_research_status`, stop-responsive in 5s slices);
+  and the final state is honest: `failed` ONLY when not one useful round was
+  banked, `done-partial` when useful rounds exist but work remains (listed as
+  resumable — the report's "Unexplored leads"/"Abandoned after retries" plus a
+  Resume hint), `budgetUnusedMs` reported so an early death can never masquerade
+  as a spent budget again. No extra request volume anywhere — the fix only ever
+  waits longer and retries later (ADR-0057's one-job/ban constraint intact).
+  Covered by `test/deep-research-resilience.test.mjs` (fake clock, no network:
+  re-enqueue order, exponential cooldown + visibility, failed-vs-done-partial,
+  stop-during-cooldown) plus updated scheduler/MCP suites; 331/331 green.
+
 ## [4.5.1] - 2026-07-21
 
 ### Security
