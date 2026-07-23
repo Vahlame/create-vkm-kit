@@ -103,6 +103,28 @@ export function stripHiddenContent(html) {
 }
 
 /**
+ * Same removals as {@link stripHiddenContent}, but returns sanitized HTML rather than flattened
+ * text — for a caller that needs a DOM to parse further (content-extract.mjs's Readability pass),
+ * not text a model reads directly.
+ * @param {string} html
+ * @returns {string}
+ */
+export function stripHiddenContentHtml(html) {
+  const $ = cheerio.load(String(html ?? ""));
+  $("script, style, template").remove();
+  $('[aria-hidden="true"], [hidden]').remove();
+  $("*").each((_, el) => {
+    const style = $(el).attr("style");
+    if (style && HIDDEN_STYLE_RE.test(style)) $(el).remove();
+  });
+  $("*")
+    .contents()
+    .filter((_, node) => node.type === "comment")
+    .remove();
+  return $.html();
+}
+
+/**
  * Run a CSS selector against `html` (hidden content already excluded, same as
  * {@link stripHiddenContent}) and return each match's text as a separate array entry — mirrors
  * Scrapling's `css_selector` tool param ("if it resolves to more than one element, all the

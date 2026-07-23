@@ -510,6 +510,40 @@ export async function embedPassages({
   }
 }
 
+// ── Query-transform cache (expandQuery + translateQuery) ─────────────────────────────────────
+//
+// Both are LLM calls keyed by the exact input query. A caller that repeats a query — iterating
+// `obscura_research` on the same topic (ADR-0057 explicitly expects this: "vary query across
+// calls... stop once alreadyCovered stops growing"), or `obscura_search` re-run with the same
+// non-English phrasing — re-pays the same model call for an answer that cannot have changed.
+// Same bounded Map+TTL+FIFO shape as research.mjs's SEARX_CACHE, one cache shared by both
+// functions since they are the same mechanism (a query-string in, a query-string(s) out LLM
+// call) rather than two near-duplicate caches. A thrown call is never cached — the `run`
+// callback isn't awaited past the point that would populate the entry, so a transient Ollama
+// failure is retried next time, not remembered, matching research.mjs's `cachedFetch` contract.
+const QUERY_CACHE = new Map();
+const QUERY_CACHE_TTL_MS = Number(process.env.OBSCURA_EXPAND_CACHE_TTL_MS) || 600_000;
+const QUERY_CACHE_MAX = 300;
+
+function queryCacheKey(kind, query, host, model, max) {
+  return `${kind}|${host}|${model}|${max ?? ""}|${String(query).trim().toLowerCase()}`;
+}
+
+async function cachedQueryCall(key, run) {
+  const hit = QUERY_CACHE.get(key);
+  if (hit && Date.now() - hit.at < QUERY_CACHE_TTL_MS) return hit.value;
+  const value = await run();
+  if (QUERY_CACHE.size >= QUERY_CACHE_MAX) QUERY_CACHE.delete(QUERY_CACHE.keys().next().value);
+  QUERY_CACHE.set(key, { at: Date.now(), value });
+  return value;
+}
+
+/** Drop every cached expansion/translation. Exported for tests and for a caller that knows a
+ * query's answer should no longer be treated as fresh. */
+export function clearQueryCache() {
+  QUERY_CACHE.clear();
+}
+
 // ── Query expansion (ADR-0057) ────────────────────────────────────────────────────────────
 //
 // Every instruction below is a measured finding, not a preference. Probing one real question
@@ -624,39 +658,184 @@ export async function expandQuery({
   const original = String(query ?? "").trim();
   if (!original) return { concept: "", queries: [] };
 
-  const parsed = await chatJSON({
-    host,
-    model,
-    keepAlive,
-    systemPrompt: EXPAND_SYSTEM_PROMPT,
-    userContent: `QUESTION: ${original}\n\nEmit at most ${max - 1} queries.`,
-    jsonSchema: EXPANSION_JSON_SCHEMA,
-    signal,
-    timeoutMs
-  });
-  const validated = ExpansionSchema.safeParse(parsed);
-  if (!validated.success) {
-    throw new OllamaUnavailableError(
-      `Ollama expansion output failed schema validation: ${validated.error.message}`,
-      "schema_reject"
-    );
-  }
+  return cachedQueryCall(queryCacheKey("expand", original, host, model, max), async () => {
+    const parsed = await chatJSON({
+      host,
+      model,
+      keepAlive,
+      systemPrompt: EXPAND_SYSTEM_PROMPT,
+      userContent: `QUESTION: ${original}\n\nEmit at most ${max - 1} queries.`,
+      jsonSchema: EXPANSION_JSON_SCHEMA,
+      signal,
+      timeoutMs
+    });
+    const validated = ExpansionSchema.safeParse(parsed);
+    if (!validated.success) {
+      throw new OllamaUnavailableError(
+        `Ollama expansion output failed schema validation: ${validated.error.message}`,
+        "schema_reject"
+      );
+    }
 
-  // Dedupe case-insensitively against the original and each other: a small model asked for six
-  // angles will happily return the same query twice, and each duplicate costs a real SearXNG
-  // round-trip (which fans out to ~108 upstream engines) for zero new candidates.
-  const seen = new Set([original.toLowerCase()]);
-  const queries = [original];
-  for (const raw of validated.data.queries) {
-    const q = String(raw ?? "").trim();
-    if (!q || q.length > 200) continue; // a "query" that long is a sentence the model leaked
-    const key = q.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    queries.push(q);
-    if (queries.length >= max) break;
+    // Dedupe case-insensitively against the original and each other: a small model asked for six
+    // angles will happily return the same query twice, and each duplicate costs a real SearXNG
+    // round-trip (which fans out to ~108 upstream engines) for zero new candidates.
+    const seen = new Set([original.toLowerCase()]);
+    const queries = [original];
+    for (const raw of validated.data.queries) {
+      const q = String(raw ?? "").trim();
+      if (!q || q.length > 200) continue; // a "query" that long is a sentence the model leaked
+      const key = q.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      queries.push(q);
+      if (queries.length >= max) break;
+    }
+    return { concept: String(validated.data.concept ?? "").trim(), queries };
+  });
+}
+
+// ── Query translation for obscura_search (ADR-0051 amendment 2026-07-22) ────────────────────
+//
+// `obscura_search` searches the query verbatim. For a non-English asker that measurably loses
+// primary sources — specs, docs, standards and source code are written in English, the SAME finding
+// EXPAND_SYSTEM_PROMPT above paid for with real measurement. `obscura_research` already fixes this
+// via full query expansion (concept-lifting + multi-query fan-out); `obscura_search` is a
+// single-shot tool, so it wants only the LIGHT half: translate the one query to English, nothing
+// more. Kept deliberately minimal so it costs at most one fast model call — and only when the query
+// even looks non-English (see looksNonEnglish), so English searches pay nothing.
+const TRANSLATE_SYSTEM_PROMPT = [
+  "You translate ONE web-search query into English. Output search KEYWORDS, not a sentence.",
+  "Rules:",
+  "  - If the query is ALREADY English, return it VERBATIM, unchanged.",
+  "  - Otherwise translate it to natural English search keywords.",
+  "  - Preserve technical terms, product names, error codes and identifiers EXACTLY — never",
+  "    translate or 'correct' them (a SQLITE_BUSY stays SQLITE_BUSY).",
+  "  - Never answer the query, never add words that weren't in it, never explain.",
+  "Respond ONLY with a JSON object matching the requested schema."
+].join("\n");
+
+const TranslateSchema = z.object({ query: z.string() });
+const TRANSLATE_JSON_SCHEMA = {
+  type: "object",
+  properties: { query: { type: "string" } },
+  required: ["query"]
+};
+
+/** High-precision non-English function words — each is rare in an English technical query, so a hit
+ * is strong evidence the query is not English even when it's pure ASCII (accent-less Spanish/
+ * Portuguese/Italian/French the non-ASCII check alone would miss). Kept small on purpose: a
+ * false POSITIVE here costs one model call that returns the query ~unchanged, a false negative
+ * costs a verbatim search — both cheap, so precision matters more than recall. */
+const NON_ENGLISH_STOPWORDS = new Set([
+  "de",
+  "la",
+  "el",
+  "los",
+  "las",
+  "que",
+  "como",
+  "cómo",
+  "para",
+  "con",
+  "por",
+  "una",
+  "del",
+  "en",
+  "qué",
+  "cuál",
+  "cuando",
+  "cuándo",
+  "donde",
+  "dónde",
+  "porque",
+  "según",
+  "más",
+  "también",
+  "desde",
+  "das",
+  "dos",
+  "não",
+  "você",
+  "che",
+  "per",
+  "il",
+  "della",
+  "les",
+  "des",
+  "une",
+  "est",
+  "pour",
+  "avec",
+  "dans",
+  "comment",
+  "pourquoi"
+]);
+
+/**
+ * Cheap gate: does `query` look non-English? True on any non-ASCII letter, or any high-precision
+ * non-English function word. False for clean English (or an ASCII noun-only query), so the
+ * translation model call is skipped for it. Honestly imperfect: an accent-less, stopword-free
+ * non-English query (bare technical nouns) reads as "English" and is searched verbatim — which,
+ * being mostly cognate/identifier text, is usually fine anyway.
+ * @param {string} query
+ * @returns {boolean}
+ */
+export function looksNonEnglish(query) {
+  const q = String(query ?? "");
+  // Any non-ASCII code unit (accents, CJK, …): a charCodeAt scan, not a regex — no control-char
+  // escape for eslint's no-control-regex to flag, and no literal control bytes in source.
+  for (let i = 0; i < q.length; i++) if (q.charCodeAt(i) > 0x7f) return true;
+  for (const tok of q.toLowerCase().split(/[^a-z]+/)) {
+    if (tok && NON_ENGLISH_STOPWORDS.has(tok)) return true;
   }
-  return { concept: String(validated.data.concept ?? "").trim(), queries };
+  return false;
+}
+
+/**
+ * Translate ONE search query to English for `obscura_search`. Returns `{ query, translated }` —
+ * `translated` is whether the model actually changed it (an already-English query comes back
+ * verbatim, `translated:false`). An empty or over-long ("leaked a paragraph") model output degrades
+ * to the original, `translated:false`, rather than searching garbage. Throws
+ * {@link OllamaUnavailableError} on any transport/model failure — the caller degrades to the
+ * original query, exactly the enhancement-not-dependency contract {@link expandQuery} has.
+ * @param {{ query: string, model?: string, host?: string, keepAlive?: string,
+ *           signal?: AbortSignal, timeoutMs?: number }} opts
+ * @returns {Promise<{ query: string, translated: boolean }>}
+ */
+export async function translateQuery({
+  query,
+  model = DEFAULT_EXPAND_MODEL,
+  host = DEFAULT_OLLAMA_HOST,
+  keepAlive = DEFAULT_KEEP_ALIVE,
+  signal,
+  timeoutMs = 20_000
+}) {
+  const original = String(query ?? "").trim();
+  if (!original) return { query: "", translated: false };
+
+  return cachedQueryCall(queryCacheKey("translate", original, host, model), async () => {
+    const parsed = await chatJSON({
+      host,
+      model,
+      keepAlive,
+      systemPrompt: TRANSLATE_SYSTEM_PROMPT,
+      userContent: `QUERY: ${original}`,
+      jsonSchema: TRANSLATE_JSON_SCHEMA,
+      signal,
+      timeoutMs
+    });
+    const validated = TranslateSchema.safeParse(parsed);
+    if (!validated.success) {
+      throw new OllamaUnavailableError(
+        `Ollama translation output failed schema validation: ${validated.error.message}`,
+        "schema_reject"
+      );
+    }
+    const english = String(validated.data.query ?? "").trim();
+    if (!english || english.length > 300) return { query: original, translated: false };
+    return { query: english, translated: english.toLowerCase() !== original.toLowerCase() };
+  });
 }
 
 // ── Lead generation (ADR-0057) ────────────────────────────────────────────────────────────

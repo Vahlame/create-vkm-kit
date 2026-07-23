@@ -6,11 +6,15 @@ import {
   curatePage,
   summarizeNotes,
   embedPassages,
+  translateQuery,
+  looksNonEnglish,
   compareVersions,
   ensureOllamaServer,
+  clearQueryCache,
   OllamaUnavailableError,
   DEFAULT_MODEL,
   DEFAULT_EMBED_MODEL,
+  DEFAULT_EXPAND_MODEL,
   DEFAULT_OLLAMA_HOST
 } from "../src/ollama-client.mjs";
 
@@ -26,7 +30,8 @@ function startFakeOllama({
   chatContent = JSON.stringify({ relevance: 8, reason: "on point", excerpt: "the relevant bit" }),
   chatStatus = 200,
   embedResponse = null,
-  embedStatus = 200
+  embedStatus = 200,
+  onChat = null
 } = {}) {
   const server = http.createServer((req, res) => {
     if (req.method === "GET" && req.url === "/api/version") {
@@ -42,6 +47,7 @@ function startFakeOllama({
     if (req.method === "POST" && req.url === "/api/chat") {
       req.on("data", () => {});
       req.on("end", () => {
+        if (onChat) onChat();
         if (chatStatus !== 200) {
           res.writeHead(chatStatus, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ error: "boom" }));
@@ -361,4 +367,138 @@ test("ensureOllamaServer never spawns for a custom host even when it IS reachabl
 
 test("DEFAULT_OLLAMA_HOST matches vkm-spec's default (shares one local daemon)", () => {
   assert.equal(DEFAULT_OLLAMA_HOST, "http://127.0.0.1:11434");
+});
+
+// ── looksNonEnglish + translateQuery (obscura_search translation) ──────────────────────────
+
+test("looksNonEnglish: true on non-ASCII or a non-English stopword, false on clean English", () => {
+  assert.equal(looksNonEnglish("optimize latency"), false);
+  assert.equal(looksNonEnglish("cpu tuning guide"), false);
+  assert.equal(looksNonEnglish("optimización"), true, "any non-ASCII letter");
+  assert.equal(looksNonEnglish("optimizacion de la cpu"), true, "accent-less Spanish via stopword");
+  assert.equal(looksNonEnglish("中文查询"), true, "non-latin script");
+  assert.equal(looksNonEnglish(""), false);
+});
+
+test("translateQuery: translates a non-English query to English (translated:true)", async () => {
+  const fake = await startFakeOllama({
+    models: [{ name: DEFAULT_EXPAND_MODEL }],
+    chatContent: JSON.stringify({ query: "windows latency optimization" })
+  });
+  try {
+    const out = await translateQuery({
+      query: "optimización de latencia en windows",
+      host: fake.host
+    });
+    assert.deepEqual(out, { query: "windows latency optimization", translated: true });
+  } finally {
+    await fake.close();
+  }
+});
+
+test("translateQuery: an already-English query comes back verbatim (translated:false)", async () => {
+  const fake = await startFakeOllama({
+    models: [{ name: DEFAULT_EXPAND_MODEL }],
+    chatContent: JSON.stringify({ query: "cpu tuning guide" })
+  });
+  try {
+    const out = await translateQuery({ query: "CPU tuning guide", host: fake.host });
+    assert.equal(out.translated, false, "same query (case-insensitive) counts as not translated");
+    assert.equal(out.query, "cpu tuning guide");
+  } finally {
+    await fake.close();
+  }
+});
+
+test("translateQuery: empty/leaked model output degrades to the original query", async () => {
+  const fake = await startFakeOllama({
+    models: [{ name: DEFAULT_EXPAND_MODEL }],
+    chatContent: JSON.stringify({ query: "" })
+  });
+  try {
+    const out = await translateQuery({ query: "consulta original", host: fake.host });
+    assert.deepEqual(out, { query: "consulta original", translated: false });
+  } finally {
+    await fake.close();
+  }
+});
+
+test("translateQuery: closed port -> OllamaUnavailableError (conn_refused)", async () => {
+  const host = await closedPortHost();
+  await assert.rejects(
+    translateQuery({ query: "hola mundo", host, timeoutMs: 5000 }),
+    (e) => e instanceof OllamaUnavailableError && e.reason === "conn_refused"
+  );
+});
+
+// ── Query-transform cache (expand-query.test.mjs covers expandQuery's own cache hit/miss) ──
+
+test("translateQuery: repeating the same query never re-dials the model (cache hit)", async () => {
+  clearQueryCache();
+  let calls = 0;
+  const fake = await startFakeOllama({
+    models: [{ name: DEFAULT_EXPAND_MODEL }],
+    chatContent: JSON.stringify({ query: "cpu tuning guide" }),
+    onChat: () => calls++
+  });
+  try {
+    const a = await translateQuery({ query: "guía de optimización de cpu", host: fake.host });
+    const b = await translateQuery({ query: "guía de optimización de cpu", host: fake.host });
+    assert.equal(calls, 1);
+    assert.deepEqual(a, b);
+  } finally {
+    await fake.close();
+  }
+});
+
+test("translateQuery: a different query is a cache miss (dials again)", async () => {
+  clearQueryCache();
+  let calls = 0;
+  const fake = await startFakeOllama({
+    models: [{ name: DEFAULT_EXPAND_MODEL }],
+    chatContent: JSON.stringify({ query: "cpu tuning guide" }),
+    onChat: () => calls++
+  });
+  try {
+    await translateQuery({ query: "consulta uno", host: fake.host });
+    await translateQuery({ query: "consulta dos", host: fake.host });
+    assert.equal(calls, 2);
+  } finally {
+    await fake.close();
+  }
+});
+
+test("translateQuery: clearQueryCache forces a fresh call", async () => {
+  clearQueryCache();
+  let calls = 0;
+  const fake = await startFakeOllama({
+    models: [{ name: DEFAULT_EXPAND_MODEL }],
+    chatContent: JSON.stringify({ query: "cpu tuning guide" }),
+    onChat: () => calls++
+  });
+  try {
+    await translateQuery({ query: "misma consulta", host: fake.host });
+    clearQueryCache();
+    await translateQuery({ query: "misma consulta", host: fake.host });
+    assert.equal(calls, 2);
+  } finally {
+    await fake.close();
+  }
+});
+
+test("translateQuery: a rejected call (schema_reject) is never cached", async () => {
+  clearQueryCache();
+  let calls = 0;
+  const fake = await startFakeOllama({
+    models: [{ name: DEFAULT_EXPAND_MODEL }],
+    chatContent: JSON.stringify({ notQuery: "wrong shape" }),
+    onChat: () => calls++
+  });
+  try {
+    await assert.rejects(translateQuery({ query: "consulta", host: fake.host }));
+    await assert.rejects(translateQuery({ query: "consulta", host: fake.host }));
+    assert.equal(calls, 2, "a thrown call must not populate the cache");
+  } finally {
+    await fake.close();
+  }
 });

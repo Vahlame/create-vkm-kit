@@ -17,7 +17,8 @@ import test from "node:test";
 import {
   DEFAULT_EXPAND_MODEL,
   OllamaUnavailableError,
-  expandQuery
+  expandQuery,
+  clearQueryCache
 } from "../src/ollama-client.mjs";
 
 /** Minimal fake Ollama (non-streaming `/api/chat`, matching expandQuery's `stream: false`).
@@ -203,6 +204,57 @@ test("expandQuery refuses when its model is not pulled — degrading is the CORR
       () => expandQuery({ query: "orig", host: fake.host }),
       (e) => e instanceof OllamaUnavailableError && e.reason === "model_missing"
     );
+  } finally {
+    await fake.close();
+  }
+});
+
+// ── Query-transform cache (OBSCURA_EXPAND_CACHE_TTL_MS) ────────────────────────────────────
+
+test("expandQuery: repeating the same (query, host, model, max) never re-dials the model", async () => {
+  clearQueryCache();
+  let calls = 0;
+  const fake = await startFakeOllama({
+    chatContent: JSON.stringify({ concept: "c", queries: ["a", "b"] }),
+    onChat: () => calls++
+  });
+  try {
+    const a = await expandQuery({ query: "same question", host: fake.host });
+    const b = await expandQuery({ query: "same question", host: fake.host });
+    assert.equal(calls, 1);
+    assert.deepEqual(a, b);
+  } finally {
+    await fake.close();
+  }
+});
+
+test("expandQuery: a different `max` is a cache miss even for the same query", async () => {
+  clearQueryCache();
+  let calls = 0;
+  const fake = await startFakeOllama({
+    chatContent: JSON.stringify({ concept: "c", queries: ["a", "b", "c"] }),
+    onChat: () => calls++
+  });
+  try {
+    await expandQuery({ query: "same question", host: fake.host, max: 3 });
+    await expandQuery({ query: "same question", host: fake.host, max: 6 });
+    assert.equal(calls, 2);
+  } finally {
+    await fake.close();
+  }
+});
+
+test("expandQuery: a schema-rejected call is never cached — the next call re-dials", async () => {
+  clearQueryCache();
+  let calls = 0;
+  const fake = await startFakeOllama({
+    chatContent: JSON.stringify({ queries: "not an array" }),
+    onChat: () => calls++
+  });
+  try {
+    await assert.rejects(expandQuery({ query: "same question", host: fake.host }));
+    await assert.rejects(expandQuery({ query: "same question", host: fake.host }));
+    assert.equal(calls, 2, "a thrown call must not populate the cache");
   } finally {
     await fake.close();
   }

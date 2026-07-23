@@ -97,6 +97,49 @@ preferred, native tools as fallback — no `permissions.deny`).
 - Neutral: opt-in (`--obscura`/`--full`); obscura's CDP port 9222 is unused; a SearXNG instance
   is the user's to run (only its URL is wired).
 
+## Amendment (2026-07-22): multi-engine default chain — ban-resilience over noise-avoidance
+
+Decision #4's chain was, in the shipped code, narrowed to **DuckDuckGo-only**
+(`DEFAULT_CHAIN = ["duckduckgo"]`): the reasoning was that a DDG rate-limit should surface the
+native-fallback signal rather than mask it with a noisier engine, and `bing`/`brave` HTML + `bing-rss`
+were kept opt-in via `OBSCURA_SEARCH_ENGINES`.
+
+The maintainer reversed that priority after a background deep-research job died when DDG got
+rate-limited mid-run (round 1 used SearXNG; rounds 2-4 fell to a banned DDG scrape → `scanned:0` →
+`engines_suspended` stop): **when one engine is banned, try the next before giving up.** The default
+is now `["duckduckgo", "bing", "brave", "bing-rss"]` — tried in order, first-with-results wins, native
+fallback only after all fail. Order is relevance-then-resilience; `bing-rss` is last because it is
+noisy on technical queries but is structured XML that never rate-limits (the always-answers last
+resort). `genericExtractLinks` still cushions the HTML parsers' drift; `OBSCURA_SEARCH_ENGINES` still
+overrides per-machine.
+
+**SearXNG (Layer 1) remains the PRIMARY mechanism for broad, relevant, many-engine (incl. regional /
+non-English) search** — ~100 engines behind one structured API, maintained upstream; this machine's
+instance already runs the full default engine set (no `engines:` override), so "not enough engines"
+was never the real constraint — rate-limiting under fast fan-out was.
+
+The scrape chain was **nonetheless extended** at the maintainer's explicit request ("add more engines
+even if hard to maintain — it can be done"), but done **maintainably**: the added engines (`mojeek`,
+`marginalia`, `ecosia` in the default; `startpage` env-only) are `generic: true` with **no bespoke
+HTML parser** — their SERP is scraped by the existing similarity-ranked `genericExtractLinks`, so each
+costs only a search-URL pattern, not a drift-prone per-engine parser (the maintenance cost the
+original DDG-only decision was avoiding is thus mostly sidestepped, not accepted). Those URL patterns
+are best-effort and **not verified against live markup** — a wrong one returns nothing and the chain
+rotates on. `mojeek` + `marginalia` are independent indexes (real diversity, not another Bing/Google
+frontend). Covered by four tests in `test/serp.test.mjs` (two rotation: past a banned DDG to Brave,
+and all the way to bing-rss; two generic-engine: mojeek via `genericExtractLinks`, and the default
+chain reaching it).
+
+**English translation for `obscura_search` (same amendment).** A non-English query now translates to
+English before searching (`translate`, default on) — primary sources are in English, the same finding
+`expandQuery` is built on; this is the LIGHT half of expansion (one query in, one English query out,
+no concept-lifting or fan-out, since a single-shot search doesn't want research's multi-query cost).
+Gated by `looksNonEnglish` so an English query never pays a model call, and enhancement-not-dependency
+(any Ollama failure → the original query, never an error) — the identical contract `expandQuery` has.
+Reuses `OBSCURA_OLLAMA_EXPAND_MODEL` (no new model). `translateQuery` + `looksNonEnglish` in
+`ollama-client.mjs`, wired into the `obscura_search` handler with a `translatedFrom` receipt; nine
+tests across `test/ollama-client.test.mjs` and `test/obscura-mcp.test.mjs`.
+
 ## References
 
 - `packages/obscura-web/src/` (`obscura-mcp.mjs`, `obscura-cli.mjs`, `serp.mjs`,

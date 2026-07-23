@@ -328,7 +328,8 @@ export async function listCoveredHashes(topic, researchDir) {
  * updates that same file in place (fresh `retrieved`, extract replaced if it changed) rather
  * than ever creating a second note for it.
  * @param {{ topic?: unknown, query?: string, results?: Array<{url:string,title?:string,
- *           snippet?:string,extraction?:string,relevant?:boolean,fetchFailed?:boolean}>,
+ *           author?:string,published?:string,snippet?:string,extraction?:string,
+ *           relevant?:boolean,fetchFailed?:boolean}>,
  *           researchDir?: string }} [args] `topic` is `unknown`, not `string`: a missing/invalid
  *           topic is a caller error {@link validateTopic} rejects with a typed message, not a
  *           destructuring crash — so this must accept whatever a caller hands it, including {}.
@@ -363,6 +364,11 @@ export async function persistResults({ topic, query, results, researchDir } = {}
     const fields = {
       url: r.url,
       title: r.title ?? "",
+      // Attribution (ADR-0062): emitted ONLY when the caller supplies them (the seed-URL crawler
+      // does; obscura_research does not), so a research note's frontmatter stays byte-identical to
+      // the pre-ADR-0062 shape — no empty author/published keys appear on notes that never had them.
+      ...(r.author ? { author: r.author } : {}),
+      ...(r.published ? { published: r.published } : {}),
       retrieved: nowIso,
       query: prevData.query ?? query,
       extraction: r.extraction ?? "heuristic",
@@ -420,6 +426,49 @@ export async function writeRunReport({ topic, content, filename, researchDir } =
   const fp = safeResearchPath(root, topicSlug, "runs", name);
   await atomicWrite(fp, content ?? "");
   return { path: fp, filename: name };
+}
+
+// ── writeCrawlExport — seed-URL crawler machine-readable export (ADR-0062) ──────────────────
+
+/** RFC 4180 field: always double-quoted, internal quotes doubled. Always-quoting is valid CSV and
+ * removes every "does this value need escaping" edge case (commas, newlines, leading `=`/`+`). */
+function csvField(value) {
+  return `"${String(value ?? "").replace(/"/g, '""')}"`;
+}
+
+/** The flat columns a crawl row projects to for CSV. JSON keeps the full row (assets, errors);
+ * CSV is the spreadsheet-friendly subset a person skims. */
+const CRAWL_CSV_COLUMNS = ["url", "title", "author", "date", "depth", "seed", "status"];
+
+/**
+ * Write a crawl's rows to `OBSCURA_RESEARCH_DIR/<topic>/crawl.json` and `crawl.csv` (requirement ②:
+ * the durable, machine-readable record with per-fragment source attribution — URL/title/author/
+ * date — that an attribution-preserving pipeline reads later). JSON carries the full rows (including
+ * downloaded `assets` and any per-page `error`); CSV is the flat {@link CRAWL_CSV_COLUMNS} subset.
+ * Both land via the module's atomic tmp+rename and are root-checked under the research root. Fixed
+ * filenames (not timestamped): a crawl of a topic is a living record refreshed in place as the crawl
+ * makes progress, mirroring how `sources/` dedups by URL rather than appending a new run each flush.
+ *
+ * @param {{ topic?: unknown, rows?: object[], researchDir?: string }} [args]
+ * @returns {Promise<{ json: string, csv: string, rows: number }>}
+ */
+export async function writeCrawlExport({ topic, rows, researchDir } = {}) {
+  const topicSlug = validateTopic(topic);
+  const root = resolveResearchRoot(researchDir);
+  const list = Array.isArray(rows) ? rows : [];
+
+  const jsonPath = safeResearchPath(root, topicSlug, "crawl.json");
+  const csvPath = safeResearchPath(root, topicSlug, "crawl.csv");
+
+  await atomicWrite(jsonPath, `${JSON.stringify(list, null, 2)}\n`);
+
+  const header = CRAWL_CSV_COLUMNS.join(",");
+  const body = list
+    .map((r) => CRAWL_CSV_COLUMNS.map((c) => csvField(/** @type {any} */ (r)[c])).join(","))
+    .join("\r\n");
+  await atomicWrite(csvPath, `${header}\r\n${body}${list.length ? "\r\n" : ""}`);
+
+  return { json: jsonPath, csv: csvPath, rows: list.length };
 }
 
 // ── obscura_consolidate (R7'/R8): local map-reduce draft summary ───────────────────────────
