@@ -9,6 +9,7 @@ import {
   clearFetchCache
 } from "../src/research.mjs";
 import { hash8 } from "../src/url-identity.mjs";
+import { OriginCircuitBreaker } from "../src/circuit-breaker.mjs";
 
 // The SearXNG cache is module-global state (that is the point — it spans research calls to keep
 // duplicate queries off the upstream engines that ban by IP). Tests must therefore be hermetic
@@ -219,6 +220,79 @@ test("deepResearch: every source failing throws a native-fallback message", asyn
     () => deepResearch("cats", { searxngUrl: "" }, { searxngImpl, searchImpl, ...noOllama }),
     /obscura_research:/
   );
+});
+
+// ── Offline resilience: stale-serve on a live failure (OBSCURA_CACHE_DIR feature) ──────────
+
+test("deepResearch: SearXNG down + a stale SEARX_CACHE entry -> gathers from it instead of failing", async () => {
+  const searxngImpl = async (q, { page }) =>
+    page === 1 ? [{ title: "Cached", url: "https://cached-result", snippet: "cats cached" }] : [];
+  const fetchImpl = async () => ({ content: "cats content" });
+
+  // 1st call: a normal live success, populates SEARX_CACHE.
+  const fresh = await deepResearch(
+    "cats stale searxng",
+    { maxCandidates: 5, topK: 1 },
+    { searxngImpl, fetchImpl, ...noOllama }
+  );
+  assert.ok(fresh.results.some((r) => r.url === "https://cached-result"));
+
+  // Force the entry stale WITHOUT a real sleep (see searxCacheTtlMs's comment on why 0 is
+  // meaningful), then make SearXNG throw on every call — the "network is down" scenario.
+  process.env.OBSCURA_SEARXNG_CACHE_TTL_MS = "0";
+  try {
+    const failingSearxng = async () => {
+      throw new Error("ECONNREFUSED");
+    };
+    const out = await deepResearch(
+      "cats stale searxng",
+      { maxCandidates: 5, topK: 1 },
+      { searxngImpl: failingSearxng, fetchImpl, ...noOllama }
+    );
+    assert.ok(
+      out.results.some((r) => r.url === "https://cached-result"),
+      "the stale SearXNG batch is still used to gather candidates when the live call fails"
+    );
+  } finally {
+    delete process.env.OBSCURA_SEARXNG_CACHE_TTL_MS;
+  }
+});
+
+test("deepResearch: a page fetch failure + a stale FETCH_CACHE entry -> uses the stale content, not fetchFailed", async () => {
+  const searxngImpl = async (q, { page }) =>
+    page === 1
+      ? [{ title: "Page", url: "https://stale-fetch-target", snippet: "cats snippet" }]
+      : [];
+  const fetchImpl = async () => ({ content: "full cats content from a real fetch" });
+
+  const fresh = await deepResearch(
+    "cats stale fetch",
+    { maxCandidates: 5, topK: 1 },
+    { searxngImpl, fetchImpl, ...noOllama }
+  );
+  const freshPage = fresh.results.find((r) => r.url === "https://stale-fetch-target");
+  assert.ok(freshPage);
+  assert.ok(!freshPage.fetchFailed);
+
+  process.env.OBSCURA_RESEARCH_FETCH_CACHE_TTL_MS = "0";
+  try {
+    const failingFetch = async () => {
+      throw new Error("net::ERR_CONNECTION_RESET");
+    };
+    const out = await deepResearch(
+      "cats stale fetch",
+      { maxCandidates: 5, topK: 1 },
+      { searxngImpl, fetchImpl: failingFetch, ...noOllama }
+    );
+    const page = out.results.find((r) => r.url === "https://stale-fetch-target");
+    assert.ok(page);
+    assert.ok(
+      !page.fetchFailed,
+      "a stale cached fetch must be served instead of marking this candidate fetchFailed"
+    );
+  } finally {
+    delete process.env.OBSCURA_RESEARCH_FETCH_CACHE_TTL_MS;
+  }
 });
 
 // ── Ollama curation path ────────────────────────────────────────────────────
@@ -893,4 +967,62 @@ test("dedupeSimilar/diversify: skipped when too little deadline remains, not att
   );
   assert.equal(embedCalls, 0, "the embed pass must not run this close to the deadline");
   assert.equal(out.results.length, 2);
+});
+
+// ── circuit breaker (ADR-0062 amendment) ────────────────────────────────────────────────────
+
+test("deepResearch skips remaining same-host candidates once the circuit opens", async () => {
+  const searxngImpl = async (q, { page }) =>
+    page === 1
+      ? [
+          { title: "A", url: "https://dead.example/a", snippet: "cats a" },
+          { title: "B", url: "https://dead.example/b", snippet: "cats b" },
+          { title: "C", url: "https://dead.example/c", snippet: "cats c" }
+        ]
+      : [];
+  const fetchImpl = async () => {
+    throw new Error("connection refused");
+  };
+  // concurrency:1 forces strictly sequential processing so the breaker's 2nd-failure threshold
+  // is guaranteed to have already fired before the 3rd candidate is even attempted — with the
+  // real default concurrency, candidates race and the outcome would not be deterministic.
+  const breakerImpl = new OriginCircuitBreaker({ failureThreshold: 2 });
+  const out = await deepResearch(
+    "cats",
+    { maxCandidates: 10, topK: 3, concurrency: 1 },
+    { searxngImpl, fetchImpl, breakerImpl, ...noOllama }
+  );
+  const skipped = out.results.filter((r) => r.circuitOpen);
+  assert.equal(skipped.length, 1, "3rd same-host candidate skipped after 2 failures");
+  assert.equal(out.circuitSkipped, 1);
+  const failed = out.results.filter((r) => r.fetchFailed);
+  assert.equal(failed.length, 2, "the first 2 were attempted and failed for real");
+});
+
+// ── content extraction (ADR-0062 amendment) ─────────────────────────────────────────────────
+
+test("deepResearch uses extractImpl's result instead of the full body when it finds an article", async () => {
+  const searxngImpl = async (q, { page }) =>
+    page === 1 ? [{ title: "A", url: "https://a.example/", snippet: "cats a" }] : [];
+  const fetchImpl = async () => ({ content: "<article>full page html</article>" });
+  const extractImpl = () => "STUBBED MAIN CONTENT ABOUT CATS";
+  const out = await deepResearch(
+    "cats",
+    { maxCandidates: 5, topK: 1 },
+    { searxngImpl, fetchImpl, extractImpl, ...noOllama }
+  );
+  assert.equal(out.results[0].snippet, "STUBBED MAIN CONTENT ABOUT CATS");
+});
+
+test("deepResearch falls back to the full sanitized body when extractImpl finds no article", async () => {
+  const searxngImpl = async (q, { page }) =>
+    page === 1 ? [{ title: "A", url: "https://a.example/", snippet: "cats a" }] : [];
+  const fetchImpl = async () => ({ content: "<p>cats body text</p>" });
+  const extractImpl = () => null;
+  const out = await deepResearch(
+    "cats",
+    { maxCandidates: 5, topK: 1 },
+    { searxngImpl, fetchImpl, extractImpl, ...noOllama }
+  );
+  assert.equal(out.results[0].snippet, "cats body text");
 });

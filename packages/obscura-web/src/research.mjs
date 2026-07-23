@@ -14,6 +14,8 @@
 import { obscuraFetch } from "./obscura-cli.mjs";
 import { checkRobots } from "./robots.mjs";
 import { stripHiddenContent } from "./sanitize.mjs";
+import { extractMainContent } from "./content-extract.mjs";
+import { OriginCircuitBreaker } from "./circuit-breaker.mjs";
 import { searxngSearch, searchWeb } from "./serp.mjs";
 import {
   DEFAULT_DROP_BELOW,
@@ -25,6 +27,7 @@ import {
 } from "./ollama-client.mjs";
 import { capPerHost, cosine, mmr, reciprocalRankFusion } from "./rank.mjs";
 import { canonicalizeUrl, dedupeByUrl, hash8, hostOf } from "./url-identity.mjs";
+import { cacheFilePath, loadCacheFile, saveCacheFile } from "./persistent-cache.mjs";
 
 // Local, tiny, deliberately not exhaustive — good enough to stop function words from
 // dominating BM25 term-frequency on short title+snippet text. Not a substitute for a real
@@ -272,8 +275,24 @@ const DEFAULT_CATEGORIES = process.env.OBSCURA_SEARXNG_CATEGORIES || "general,it
  * long-lived MCP process; an unbounded Map here is a slow leak), FIFO eviction.
  */
 const SEARX_CACHE = new Map();
-const SEARX_CACHE_TTL_MS = Number(process.env.OBSCURA_SEARXNG_CACHE_TTL_MS) || 600_000;
+// Read fresh on every access, not a frozen module const — same reasoning as serp.mjs's
+// `cacheTtlMs()`: lets a test flip this to `0` mid-run to make an entry deterministically stale
+// (for the stale-serve fallback below) without a real sleep, and `||` can't express a deliberate
+// TTL of 0 anyway.
+function searxCacheTtlMs() {
+  const v = Number(process.env.OBSCURA_SEARXNG_CACHE_TTL_MS);
+  return Number.isFinite(v) && v >= 0 ? v : 600_000;
+}
 const SEARX_CACHE_MAX = 300;
+
+// Disk durability (persistent-cache.mjs) — opt-in via OBSCURA_CACHE_DIR, unset by default (exactly
+// the pre-existing in-memory-only behavior). Loaded ONCE at module init.
+const SEARX_CACHE_FILE = cacheFilePath("deep-research-searxng-cache.json");
+if (SEARX_CACHE_FILE) {
+  for (const [key, entry] of Object.entries(loadCacheFile(SEARX_CACHE_FILE))) {
+    SEARX_CACHE.set(key, entry);
+  }
+}
 
 function cacheKey(query, page, categories) {
   return `${categories}|${page}|${String(query).trim().toLowerCase()}`;
@@ -301,7 +320,7 @@ function cacheKey(query, page, categories) {
 async function cachedSearxng(searxngImpl, query, opts) {
   const key = cacheKey(query, opts.page, opts.categories);
   const hit = SEARX_CACHE.get(key);
-  if (hit && Date.now() - hit.at < SEARX_CACHE_TTL_MS) return hit.batch;
+  if (hit && Date.now() - hit.at < searxCacheTtlMs()) return hit.batch;
 
   const probe = {};
   const batch = await searxngImpl(query, { ...opts, meta: probe }).catch(() => null);
@@ -316,7 +335,16 @@ async function cachedSearxng(searxngImpl, query, opts) {
       SEARX_CACHE.delete(SEARX_CACHE.keys().next().value);
     }
     SEARX_CACHE.set(key, { at: Date.now(), batch });
+    if (SEARX_CACHE_FILE) saveCacheFile(SEARX_CACHE_FILE, SEARX_CACHE);
+    return batch;
   }
+
+  // The live round produced nothing usable (threw, or an empty batch while banned) — `hit` here
+  // is necessarily a STALE entry (a fresh one would have returned already, above). Serving it is
+  // strictly better than the null this would otherwise return: `deepResearch` treats a null batch
+  // as "this sub-query found nothing", which is a different, worse-informed statement than "here
+  // is what this sub-query found last time, the network/engines are down right now".
+  if (hit) return hit.batch;
   return batch;
 }
 
@@ -339,8 +367,20 @@ export function clearSearxngCache() {
  * `cachedFetch` doesn't catch, so a transient failure is retried next time, not remembered.
  */
 const FETCH_CACHE = new Map();
-const FETCH_CACHE_TTL_MS = Number(process.env.OBSCURA_RESEARCH_FETCH_CACHE_TTL_MS) || 300_000;
+// Read fresh on every access — same reasoning as searxCacheTtlMs() above.
+function fetchCacheTtlMs() {
+  const v = Number(process.env.OBSCURA_RESEARCH_FETCH_CACHE_TTL_MS);
+  return Number.isFinite(v) && v >= 0 ? v : 300_000;
+}
 const FETCH_CACHE_MAX = 200;
+
+// Disk durability, same as SEARX_CACHE_FILE above.
+const FETCH_CACHE_FILE = cacheFilePath("deep-research-fetch-cache.json");
+if (FETCH_CACHE_FILE) {
+  for (const [key, entry] of Object.entries(loadCacheFile(FETCH_CACHE_FILE))) {
+    FETCH_CACHE.set(key, entry);
+  }
+}
 
 function fetchCacheKey(url, format, stealth) {
   return `${format}|${stealth}|${url}`;
@@ -349,11 +389,22 @@ function fetchCacheKey(url, format, stealth) {
 async function cachedFetch(fetchImpl, url, opts) {
   const key = fetchCacheKey(url, opts.format, opts.stealth);
   const hit = FETCH_CACHE.get(key);
-  if (hit && Date.now() - hit.at < FETCH_CACHE_TTL_MS) return hit.result;
-  const result = await fetchImpl(url, opts);
-  if (FETCH_CACHE.size >= FETCH_CACHE_MAX) FETCH_CACHE.delete(FETCH_CACHE.keys().next().value);
-  FETCH_CACHE.set(key, { at: Date.now(), result });
-  return result;
+  if (hit && Date.now() - hit.at < fetchCacheTtlMs()) return hit.result;
+  try {
+    const result = await fetchImpl(url, opts);
+    if (FETCH_CACHE.size >= FETCH_CACHE_MAX) FETCH_CACHE.delete(FETCH_CACHE.keys().next().value);
+    FETCH_CACHE.set(key, { at: Date.now(), result });
+    if (FETCH_CACHE_FILE) saveCacheFile(FETCH_CACHE_FILE, FETCH_CACHE);
+    return result;
+  } catch (e) {
+    // `hit` here is necessarily a STALE entry (a fresh one returned above, before ever calling
+    // fetchImpl) — the "modo offline" fallback: this page's last-known content is a real answer,
+    // strictly better than losing the candidate outright because the network happened to be down
+    // for this one fetch. A failure is still never CACHED (no `FETCH_CACHE.set` on this path) —
+    // matches the pre-existing "a transient failure is retried next time, not remembered" contract.
+    if (hit) return hit.result;
+    throw e;
+  }
 }
 
 /** Drop every cached page fetch. Exported for tests and for a caller that knows a page changed. */
@@ -479,15 +530,16 @@ async function mapWithConcurrency(
  *           searchImpl?: typeof searchWeb, checkOllamaImpl?: typeof checkOllama,
  *           ensureOllamaImpl?: typeof ensureOllamaServer, curateImpl?: typeof curatePage,
  *           expandImpl?: typeof expandQuery, checkRobotsImpl?: typeof checkRobots,
- *           embedImpl?: typeof embedPassages }} [deps]
+ *           embedImpl?: typeof embedPassages, extractImpl?: typeof extractMainContent,
+ *           breakerImpl?: OriginCircuitBreaker }} [deps]
  * @returns {Promise<{ source: string, scanned: number, fetched: number, partial?: boolean,
  *           remaining?: number, targetReached?: boolean, dropped?: number,
  *           dedupedSimilar?: number, robotsBlocked?: number, alreadyCovered?: number,
- *           enginesUnavailable?: string[], queries?: string[], concept?: string,
- *           results: Array<{ title:string, url:string, score:number,
+ *           circuitSkipped?: number, enginesUnavailable?: string[], queries?: string[],
+ *           concept?: string, results: Array<{ title:string, url:string, score:number,
  *           snippet:string, extraction:"ollama"|"heuristic", relevant:boolean|null,
  *           relevance?:number, reason?:string, truncated?:boolean,
- *           fetchFailed?:boolean }> }>}
+ *           fetchFailed?:boolean, circuitOpen?:boolean }> }>}
  */
 export async function deepResearch(query, opts = {}, deps = {}) {
   const q = String(query ?? "").trim();
@@ -542,8 +594,11 @@ export async function deepResearch(query, opts = {}, deps = {}) {
     curateImpl = curatePage,
     expandImpl = expandQuery,
     checkRobotsImpl = checkRobots,
-    embedImpl = embedPassages
+    embedImpl = embedPassages,
+    extractImpl = extractMainContent,
+    breakerImpl = new OriginCircuitBreaker()
   } = deps;
+  const breaker = breakerImpl;
   // Scoped to this automated multi-page crawl, not `obscura_fetch`: a user naming one URL by
   // hand has already decided to fetch it (same scoping Scrapling gives its own
   // `robots_txt_obey` — a crawl/spider option, not a single-shot `Fetcher.get` one). Default ON,
@@ -722,6 +777,20 @@ export async function deepResearch(query, opts = {}, deps = {}) {
       }
     }
 
+    const host = hostOf(c.url);
+    if (breaker.isOpen(host)) {
+      // This host has failed `failureThreshold` times already this call — skip the fetch (and
+      // its own retries) rather than pay for an attempt almost certain to fail too. See
+      // circuit-breaker.mjs's doc for why this is scoped per-call, not global.
+      return {
+        ...base,
+        snippet: c.snippet,
+        extraction: "none",
+        relevant: null,
+        circuitOpen: true
+      };
+    }
+
     let content;
     try {
       // Fetch HTML, not markdown, and strip hidden content before anything downstream (the
@@ -734,8 +803,14 @@ export async function deepResearch(query, opts = {}, deps = {}) {
       // a durable memory bank, with no human reviewing each page first. See `sanitize.mjs`'s doc
       // for what is and isn't caught (inline style/attribute hiding, not class-based CSS rules).
       const { content: html } = await cachedFetch(fetchImpl, c.url, { format: "html", stealth });
-      content = stripHiddenContent(html);
+      breaker.recordSuccess(host);
+      // Readability-based main-content extraction (content-extract.mjs) trims boilerplate
+      // (nav/sidebar/footer) before curation; falls back to the full sanitized body when no
+      // article-shaped content is found (non-article pages) — never a dependency, same
+      // enhancement contract as expansion/curation below.
+      content = extractImpl(html, { url: c.url }) ?? stripHiddenContent(html);
     } catch {
+      breaker.recordFailure(host);
       // The page was never read, so there is no verdict to report. `relevant: null` says
       // exactly that. It used to say `true`, which meant an unreadable page outranked one the
       // model had read and explicitly rejected — the sort below now can't do that.
@@ -939,6 +1014,11 @@ export async function deepResearch(query, opts = {}, deps = {}) {
   // retry could ever help.
   const robotsBlocked = results.filter((r) => r.robotsBlocked).length;
 
+  // How many candidates were skipped because their host's circuit was already open (see
+  // circuit-breaker.mjs) — distinct from `robotsBlocked`/`fetchFailed`: this host WAS attempted
+  // and failed repeatedly earlier in this same call, not declined by policy or failed just now.
+  const circuitSkipped = results.filter((r) => r.circuitOpen).length;
+
   // Engines SearXNG could not reach this round. Surfaced, never swallowed: a suspended engine
   // returns 200 + `results: []`, so without this a rate-limited machine reports "nothing found"
   // for a query whose answer is sitting on page 1 of a search engine it is currently banned
@@ -957,6 +1037,7 @@ export async function deepResearch(query, opts = {}, deps = {}) {
     ...(dropped ? { dropped } : {}),
     ...(dedupedSimilar ? { dedupedSimilar } : {}),
     ...(robotsBlocked ? { robotsBlocked } : {}),
+    ...(circuitSkipped ? { circuitSkipped } : {}),
     ...(alreadyCovered ? { alreadyCovered } : {}),
     ...(suspended.length ? { enginesUnavailable: suspended } : {}),
     // How the crawl was actually widened. `queries` is the single most useful debugging field
