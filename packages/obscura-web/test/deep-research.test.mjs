@@ -353,7 +353,12 @@ test("auto_consolidate runs best-effort after the report; a failing consolidateI
   };
 
   const { id } = startResearchJob(
-    { objective: "obj", topics: ["only seed"], topic: "consolidate-topic", researchDir: "/fake/dir" },
+    {
+      objective: "obj",
+      topics: ["only seed"],
+      topic: "consolidate-topic",
+      researchDir: "/fake/dir"
+    },
     {
       researchImpl: emptyResearch,
       persistImpl: okPersist,
@@ -822,7 +827,13 @@ test("renderRunReport: Top findings are grouped by originating query, groups in 
     totals: { rounds: 0, fetched: 0, curated: 0, persistedWritten: 0, persistedUpdated: 0 },
     topFindings: [
       { title: "Best B", url: "https://b.example/1", relevance: 9, reason: "top", query: "seedB" },
-      { title: "Good A", url: "https://a.example/1", relevance: 8, reason: "solid", query: "seedA" },
+      {
+        title: "Good A",
+        url: "https://a.example/1",
+        relevance: 8,
+        reason: "solid",
+        query: "seedA"
+      },
       { title: "Second B", url: "https://b.example/2", relevance: 6, query: "seedB" }
     ],
     frontier: [],
