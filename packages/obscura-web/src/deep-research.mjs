@@ -40,7 +40,8 @@ import {
   persistResults,
   listCoveredHashes,
   writeRunReport,
-  validateTopic
+  validateTopic,
+  consolidateTopic
 } from "./research-persist.mjs";
 import { generateLeads } from "./ollama-client.mjs";
 import { ensureSearxng } from "./ensure-searxng.mjs";
@@ -100,6 +101,19 @@ const MAX_ROUNDS = 40;
  * Bounded because this is a long-lived MCP process — an unbounded job history is a slow leak
  * exactly like the caches in research.mjs. */
 const JOB_HISTORY_MAX = 5;
+/** How many curated findings the job keeps in memory (`job.topFindings`, sorted by relevance) —
+ * feeds both the live status snapshot and the final run report's "Top findings" section. Raised
+ * from an earlier 15 so a report grouping findings by topic actually has enough per topic to
+ * group; still bounded, not "keep everything ever curated". */
+const TOP_FINDINGS_CAP = 40;
+/** Default overall wall-clock ceiling when `autoContinue` is on and the job keeps extending its
+ * own budget while the frontier isn't empty (see the budget check in {@link runJob}) — a very
+ * long research session, not "forever". */
+const DEFAULT_MAX_TOTAL_MS = 3_600_000; // 60 min
+/** Hard ceiling on `maxTotalMs` regardless of what a caller asks for — same reasoning as
+ * MAX_ROUNDS: auto_continue is opt-in and genuinely useful, not a license for an unbounded crawl
+ * (pacing/cooldown still throttle every round inside it, but wall-clock itself needs its own cap). */
+const MAX_TOTAL_MS_CEILING = 10_800_000; // 180 min
 
 /** The one error type every synchronous validation/registry failure in this module collapses
  * into — same convention as {@link ResearchPersistError}: a `code` a caller (or test) can
@@ -187,6 +201,8 @@ function toSnapshot(job) {
     roundsTotal: job.rounds.length,
     rounds: job.rounds.slice(-20),
     totals: { ...job.totals },
+    // Live polling stays cheap/small even though the job now retains up to TOP_FINDINGS_CAP for
+    // the final report — a caller checking progress doesn't need the full retained set.
     topFindings: job.topFindings.slice(0, 15),
     pendingLeads: job.frontier
       .slice(0, 15)
@@ -203,9 +219,16 @@ function toSnapshot(job) {
     ...(finished
       ? { budgetUnusedMs: Math.max(0, job.startedAtMs + job.budgetMs - job.finishedAtMs) }
       : {}),
+    // Only present once auto_continue actually extended the budget — the honest companion to
+    // budgetMs (which by then just shows the bigger, extended number on its own).
+    ...(job.budgetExtended ? { originalBudgetMs: job.originalBudgetMs } : {}),
     ...(job.stoppedReason !== undefined ? { stoppedReason: job.stoppedReason } : {}),
     ...(job.report !== undefined ? { report: job.report } : {}),
     ...(job.reportError !== undefined ? { reportError: job.reportError } : {}),
+    // Best-effort local consolidation outcome (runs after the report, in runJob's finally) —
+    // never both set (one attempt, one outcome), only present once the job has finished.
+    ...(job.consolidateResult !== undefined ? { consolidateResult: job.consolidateResult } : {}),
+    ...(job.consolidateError !== undefined ? { consolidateError: job.consolidateError } : {}),
     ...(job.error !== undefined ? { error: job.error } : {})
   };
   return structuredClone(view);
@@ -232,10 +255,12 @@ function evictOldFinished() {
  *           roundMs?: number, paceMs?: number, cooldownMs?: number, maxDepth?: number,
  *           topK?: number, maxCandidates?: number, subQueries?: number, dropBelow?: number,
  *           passageChars?: number, categories?: string, stealth?: boolean,
- *           researchDir?: string, searxngUrl?: string }} params
+ *           researchDir?: string, searxngUrl?: string, autoContinue?: boolean,
+ *           maxTotalMs?: number, autoConsolidate?: boolean }} params
  * @param {{ researchImpl?: typeof deepResearch, persistImpl?: typeof persistResults,
  *           coveredHashesImpl?: typeof listCoveredHashes, reportImpl?: typeof writeRunReport,
  *           leadsImpl?: typeof generateLeads, ensureImpl?: typeof ensureSearxng,
+ *           consolidateImpl?: typeof consolidateTopic,
  *           now?: () => number, sleepImpl?: (ms: number) => Promise<void> }} [deps]
  * @returns {{ id: string }}
  */
@@ -289,6 +314,20 @@ export function startResearchJob(params, deps = {}) {
   );
   const cooldownMs = clampOrDefault(params.cooldownMs, 30_000, 900_000, COOLDOWN_BASE_MS);
   const maxDepth = clampOrDefault(params.maxDepth, 0, 4, 2);
+  // Opt-in (default false): OFF leaves every downstream check byte-identical to before this
+  // param existed (maxTotalMs collapses to budgetMs, the budget-check branch never takes the
+  // extend path). ON clamps maxTotalMs to at least budgetMs — extending "backwards" makes no
+  // sense — and to MAX_TOTAL_MS_CEILING regardless of what a caller asks for.
+  const autoContinue = Boolean(params.autoContinue);
+  const maxTotalMs = autoContinue
+    ? Math.max(
+        budgetMs,
+        clampOrDefault(params.maxTotalMs, 60_000, MAX_TOTAL_MS_CEILING, DEFAULT_MAX_TOTAL_MS)
+      )
+    : budgetMs;
+  // Opt-OUT (default true), unlike autoContinue: bounded, best-effort, never changes job.state
+  // or how long the job runs — see the finally in `runJob`.
+  const autoConsolidate = params.autoConsolidate !== false;
 
   const {
     researchImpl = deepResearch,
@@ -297,6 +336,7 @@ export function startResearchJob(params, deps = {}) {
     reportImpl = writeRunReport,
     leadsImpl = generateLeads,
     ensureImpl = ensureSearxng,
+    consolidateImpl = consolidateTopic,
     now = Date.now,
     sleepImpl = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
   } = deps;
@@ -316,6 +356,13 @@ export function startResearchJob(params, deps = {}) {
     topics,
     startedAtMs: now(),
     budgetMs,
+    // Kept alongside the (possibly later-extended) budgetMs so the report/snapshot can show
+    // "extended from X to Y" rather than just the bigger final number with no baseline.
+    originalBudgetMs: budgetMs,
+    autoContinue,
+    maxTotalMs,
+    budgetExtended: false,
+    autoConsolidate,
     roundMs,
     paceMs,
     cooldownMs,
@@ -355,6 +402,8 @@ export function startResearchJob(params, deps = {}) {
     finishedAtMs: undefined,
     report: undefined,
     reportError: undefined,
+    consolidateResult: undefined,
+    consolidateError: undefined,
     error: undefined,
     nowImpl: now
   };
@@ -369,6 +418,7 @@ export function startResearchJob(params, deps = {}) {
     reportImpl,
     leadsImpl,
     ensureImpl,
+    consolidateImpl,
     now,
     sleepImpl
   }).catch((e) => {
@@ -477,6 +527,7 @@ function requeueOrAbandon(job, item, error) {
  * @param {any} job @param {{ researchImpl: typeof deepResearch, persistImpl: typeof
  *           persistResults, coveredHashesImpl: typeof listCoveredHashes, reportImpl: typeof
  *           writeRunReport, leadsImpl: typeof generateLeads, ensureImpl: typeof ensureSearxng,
+ *           consolidateImpl: typeof consolidateTopic,
  *           now: () => number, sleepImpl: (ms: number) => Promise<void> }} deps
  */
 async function runJob(job, deps) {
@@ -487,6 +538,7 @@ async function runJob(job, deps) {
     reportImpl,
     leadsImpl,
     ensureImpl,
+    consolidateImpl,
     now,
     sleepImpl
   } = deps;
@@ -527,7 +579,16 @@ async function runJob(job, deps) {
 
       const remaining = job.startedAtMs + job.budgetMs - now();
       if (remaining < MIN_ROUND_MS + REPORT_RESERVE_MS) {
-        job.stoppedReason = "budget_exhausted";
+        if (job.autoContinue && job.frontier.length > 0 && job.budgetMs < job.maxTotalMs) {
+          // Extend the SAME job's own budget window once, straight to its ceiling — every
+          // downstream check (paceSleep, coolDown, the round deadline below) reads job.budgetMs
+          // and keeps working completely unmodified; this is the one line that turns "stop" into
+          // "keep going, up to maxTotalMs" instead of spawning a second job/registry entry.
+          job.budgetMs = job.maxTotalMs;
+          job.budgetExtended = true;
+          continue;
+        }
+        job.stoppedReason = job.autoContinue ? "max_total_time_exhausted" : "budget_exhausted";
         break;
       }
 
@@ -671,7 +732,7 @@ async function runJob(job, deps) {
         }));
         job.topFindings = [...job.topFindings, ...additions]
           .sort((a, b) => b.relevance - a.relevance)
-          .slice(0, 15);
+          .slice(0, TOP_FINDINGS_CAP);
       }
 
       if (bannedRound) {
@@ -779,6 +840,28 @@ async function runJob(job, deps) {
       }
     );
     if (rep) job.report = rep.path;
+
+    // Best-effort local consolidation (R7' "local" half), AFTER the run report is durably
+    // written so a failure here (no Ollama, no sources, an already-consolidated summary) can
+    // never jeopardize the one artifact this job guarantees. force:true is safe unconditionally
+    // — consolidateTopic's own guard refuses a status:consolidated (Claude-authored) summary
+    // regardless of force, so this can never clobber a human/Claude-authored write.
+    if (job.autoConsolidate) {
+      try {
+        const consolidated = await consolidateImpl({
+          topic: job.topic,
+          force: true,
+          researchDir: job.researchDir
+        });
+        job.consolidateResult = {
+          wrote: consolidated.wrote,
+          sources_read: consolidated.sources_read
+        };
+      } catch (e) {
+        job.consolidateError = e?.message ?? String(e);
+      }
+    }
+
     job.state = outcome;
     releaseJobSlot(job.id);
   }
@@ -869,6 +952,9 @@ export function renderRunReport(job) {
     `started: ${JSON.stringify(startedIso)}`,
     `finished: ${JSON.stringify(finishedIso)}`,
     `budget_ms: ${job.budgetMs}`,
+    ...(job.budgetExtended
+      ? [`original_budget_ms: ${job.originalBudgetMs}`, "auto_continue: true"]
+      : []),
     `rounds: ${job.rounds.length}`,
     `pages_fetched: ${job.totals.fetched}`,
     `curated_relevant: ${job.totals.curated}`,
@@ -910,10 +996,23 @@ export function renderRunReport(job) {
   lines.push("");
 
   lines.push("## Top findings", "");
+  // Grouped by originating query rather than one flat relevance-sorted list — a report reader
+  // wants "what did we learn about X", not an unlabeled ranking. Groups themselves stay in
+  // relevance order (job.topFindings is already sorted; a Map preserves first-seen order).
+  const findingsByQuery = new Map();
   for (const f of job.topFindings) {
-    lines.push(`- [${f.relevance}] ${f.title} — ${f.url} — ${f.reason ?? ""}`);
+    const key = f.query ?? "";
+    if (!findingsByQuery.has(key)) findingsByQuery.set(key, []);
+    findingsByQuery.get(key).push(f);
   }
-  lines.push("");
+  for (const [query, findings] of findingsByQuery) {
+    if (query) lines.push(`### ${query}`, "");
+    for (const f of findings) {
+      lines.push(`- [${f.relevance}] **${f.title}** — ${f.url}`);
+      if (f.reason) lines.push(`  ${f.reason}`);
+    }
+    lines.push("");
+  }
 
   // Required even when empty — this is where application/improvement ideas the job never got
   // to surface for the user, so an empty section must still be a clearly-labeled empty section.

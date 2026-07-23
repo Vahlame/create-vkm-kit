@@ -143,8 +143,36 @@ test("obscura_research_start: maps budget_minutes/top_k/etc. to the exact params
     dropBelow: 4,
     passageChars: 1000,
     categories: "general,it",
-    stealth: false
+    stealth: false,
+    autoContinue: false,
+    maxTotalMs: undefined,
+    autoConsolidate: true
   });
+});
+
+test("obscura_research_start: auto_continue/max_total_minutes/auto_consolidate map through, minutes->ms", async () => {
+  let seenParams = null;
+  const startJobImpl = (params) => {
+    seenParams = params;
+    return { id: "deep-test-2" };
+  };
+  const client = await connect({ startJobImpl });
+  const res = await client.callTool({
+    name: "obscura_research_start",
+    arguments: {
+      objective: "understand X",
+      topics: ["a"],
+      topic: "cats",
+      auto_continue: true,
+      max_total_minutes: 45,
+      auto_consolidate: false
+    }
+  });
+  assert.equal(seenParams.autoContinue, true);
+  assert.equal(seenParams.maxTotalMs, 45 * 60_000);
+  assert.equal(seenParams.autoConsolidate, false);
+  const data = JSON.parse(textOf(res));
+  assert.match(data.note, /auto_continue is on: may run up to 45 min total/);
 });
 
 test("obscura_research_start: applies MCP-layer defaults when optional fields are omitted", async () => {
@@ -168,6 +196,9 @@ test("obscura_research_start: applies MCP-layer defaults when optional fields ar
   assert.equal(seenParams.maxDepth, undefined);
   assert.equal(seenParams.dropBelow, undefined);
   assert.equal(seenParams.passageChars, undefined);
+  assert.equal(seenParams.autoContinue, false, "auto_continue defaults to off");
+  assert.equal(seenParams.maxTotalMs, undefined, "no MCP-layer default when auto_continue is off");
+  assert.equal(seenParams.autoConsolidate, true, "auto_consolidate defaults to on");
 });
 
 test("obscura_research_start: without OBSCURA_RESEARCH_DIR set, fails typed before ever calling startJobImpl", async () => {
@@ -267,6 +298,38 @@ test("obscura_research_status: a done job adds the next/_trust hints and caps to
   assert.match(data.next, /\/vkm-research cats/);
   assert.match(data.next, /2026-07-19T00-00-00-000Z\.md/);
   assert.match(data._trust, /untrusted/i);
+});
+
+test("obscura_research_status: a done job with consolidateResult points at summary.md, still offers /vkm-research", async () => {
+  const getJobImpl = () =>
+    fakeSnapshot({
+      state: "done",
+      currentQuery: null,
+      remainingMs: 0,
+      report: "/fake/RESEARCH/cats/runs/2026-07-19T00-00-00-000Z.md",
+      consolidateResult: { wrote: "/fake/RESEARCH/cats/summary.md", sources_read: 12 }
+    });
+  const client = await connect({ getJobImpl });
+  const res = await client.callTool({ name: "obscura_research_status", arguments: {} });
+  const data = JSON.parse(textOf(res));
+  assert.match(data.next, /Local summary\.md refreshed \(12 sources\)/);
+  assert.match(data.next, /\/vkm-research cats/, "still offers the Claude-quality rewrite path");
+});
+
+test("obscura_research_status: a done job with consolidateError keeps the /vkm-research fallback, error surfaced", async () => {
+  const getJobImpl = () =>
+    fakeSnapshot({
+      state: "done",
+      currentQuery: null,
+      remainingMs: 0,
+      report: "/fake/RESEARCH/cats/runs/2026-07-19T00-00-00-000Z.md",
+      consolidateError: "Ollama is unavailable"
+    });
+  const client = await connect({ getJobImpl });
+  const res = await client.callTool({ name: "obscura_research_status", arguments: {} });
+  const data = JSON.parse(textOf(res));
+  assert.match(data.next, /\/vkm-research cats/);
+  assert.match(data.next, /local auto-consolidate failed: Ollama is unavailable/);
 });
 
 test("obscura_research_status: a done-partial job is finished too — next/_trust hints present", async () => {
