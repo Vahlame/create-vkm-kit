@@ -46,6 +46,7 @@ import { generateLeads } from "./ollama-client.mjs";
 import { ensureSearxng } from "./ensure-searxng.mjs";
 import { hash8 } from "./url-identity.mjs";
 import { similarityRatio } from "./text-similarity.mjs";
+import { acquireJobSlot, releaseJobSlot, jobSlotHolder } from "./job-lock.mjs";
 
 /** Floor for a round's own deadline — below this a round cannot do meaningful work (one
  * SearXNG round-trip plus at least a couple of fetch+curate cycles), so the budget check stops
@@ -302,6 +303,11 @@ export function startResearchJob(params, deps = {}) {
 
   const id = `deep-${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`;
 
+  // Cross-type exclusion with the seed-URL crawler (ADR-0062): refuse if either kind of background
+  // job holds the shared network slot. The per-type JOBS check above already covers research-vs-
+  // research; this adds research-vs-crawl. Thrown before JOBS.set so a rejected start registers nothing.
+  acquireJobSlot(id, "research");
+
   const job = {
     id,
     state: "running",
@@ -373,6 +379,7 @@ export function startResearchJob(params, deps = {}) {
     job.error = e?.message ?? String(e);
     job.finishedAtMs = job.finishedAtMs ?? now();
     job.currentQuery = null;
+    releaseJobSlot(job.id);
   });
   job.promise = promise;
 
@@ -773,6 +780,7 @@ async function runJob(job, deps) {
     );
     if (rep) job.report = rep.path;
     job.state = outcome;
+    releaseJobSlot(job.id);
   }
 }
 
@@ -823,6 +831,9 @@ export function clearResearchJobs() {
       );
     }
   }
+  // Release the shared slot only if THIS registry's job holds it — never stomp a crawl's slot.
+  const holder = jobSlotHolder();
+  if (holder && holder.kind === "research") releaseJobSlot(holder.id);
   JOBS.clear();
   mostRecentId = null;
 }

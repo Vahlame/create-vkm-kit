@@ -6,6 +6,101 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Seed-URL site crawler** (`obscura_crawl_start` / `obscura_crawl_status` /
+  `obscura_crawl_stop`, ADR-0062) — the complement to `obscura_research`: it follows a site's own
+  internal `<a href>` links breadth-first from your seed URLs (not search-engine results), to
+  download a whole docs/tutorial/community site **with source attribution** (URL/title/author/
+  published) into `RESEARCH/<topic>/` notes plus a machine-readable `crawl.json` + `crawl.csv`. A
+  background job like `obscura_research_start` (poll status, stop gracefully); **resumable** across
+  runs by reusing the topic's existing `sources/` seen-set; respects robots.txt; optional keyword
+  keep-filter; opt-out **capped asset download** of kept pages' PDFs/images to
+  `RESEARCH/<topic>/assets/` (Content-Type allowlist excluding scriptable SVG, per-file byte cap
+  enforced by streaming, total count cap, robots-respected, written inert and **never executed**).
+  It **never solves a CAPTCHA or defeats a login/paywall** — gated pages are recorded and listed in
+  the run report so you can fetch them with your own access, not bypassed. A shared job slot
+  enforces **one background network job (research or crawl) at a time** (ban-avoidance). New files:
+  `packages/obscura-web/src/{crawl,crawl-job,assets,job-lock}.mjs`; `writeCrawlExport` + additive
+  `author`/`published` frontmatter in `research-persist.mjs`; full unit + MCP-handler test coverage.
+- **Per-host circuit breaker for `obscura_crawl_start` / `obscura_research`**
+  (`packages/obscura-web/src/circuit-breaker.mjs`) — a long crawl or research call can queue
+  hundreds of URLs on a handful of hosts; after a host fails 3 consecutive times, remaining URLs on
+  that host are skipped outright for a cooldown instead of each paying its own retry+backoff (only
+  to fail again). Reported as `circuit-open` rows in the crawl report / `circuitOpen` totals, and as
+  `circuitSkipped` in `obscura_research`'s response. Scoped per-call, not a global singleton — a
+  host down during one job may be back by the next.
+- **Boilerplate-stripped main-content extraction before curation** (`obscura_research` /
+  `obscura_crawl_start`, `packages/obscura-web/src/content-extract.mjs`) — `sanitize.mjs`'s existing
+  hidden-content stripper still returned the whole `<body>` (nav/sidebar/footer included) to Ollama
+  curation and the keyword/heuristic passage extractor. `@mozilla/readability` (Firefox Reader
+  View's own engine, run over a `jsdom` DOM) now isolates the article body first — chosen over a
+  bespoke heuristic because the pipeline's real input (arbitrary research candidates, crawled
+  docs/community sites) is exactly the messy, non-semantic HTML Readability was hardened against.
+  An enhancement, never a dependency: falls back to the full sanitized body whenever Readability
+  finds nothing article-shaped (a verified-live gap — its own `parse()` has no minimum-content
+  floor, so this module enforces one) or the input is malformed. New dependencies:
+  `@mozilla/readability`, `jsdom`.
+- **Resilience pass on `obscura-web`'s scraping path** — five targeted additions, each scoped to a
+  gap verified against the actual pipeline (several ideas from the same brainstorm were rejected as
+  already-shipped or as reverting a measured ADR-0057 finding — see the PR discussion):
+  - **`obscura_fetch`/`obscura_fetch_many` retry transient failures** (timeout, connection reset) up
+    to `OBSCURA_FETCH_RETRIES` times (default 2) with exponential backoff + jitter
+    (`OBSCURA_FETCH_RETRY_BASE_MS`, default 500ms). A missing binary or a non-transient navigation
+    error is never retried. `obscura-cli.mjs`.
+  - **SERP-parser canary** (`packages/obscura-web/src/canary.mjs` + `canary-run.mjs`,
+    `node src/canary-run.mjs [--engines a,b] [--json]`) — proactively probes every registered search
+    engine with two realistic multi-word queries and reports which ones came back empty, catching a
+    markup-drift break before a real research call depends on it. Deliberately excluded from
+    `npm test` (hits real engines over the network).
+  - **Two more opt-in generic-extraction search engines**, Yahoo and Qwant (`serp.mjs#ENGINES`) — same
+    "URL pattern only" path as `mojeek`/`marginalia`/`ecosia`, kept out of `DEFAULT_CHAIN` (like
+    `startpage`) since their generic-extraction viability through obscura's rendered DOM is
+    unverified; opt in via `OBSCURA_SEARCH_ENGINES`.
+  - **`expandQuery`/`translateQuery` cache repeated queries** (`OBSCURA_EXPAND_CACHE_TTL_MS`, default
+    10 min) — iterating `obscura_research`/`obscura_search` on the same query no longer re-pays the
+    same local-model call. A thrown call is never cached, matching `research.mjs`'s existing cache
+    contract.
+  - **Semi-offline mode**: the three existing in-memory TTL caches (`serp.mjs`'s search cache,
+    `research.mjs`'s SearXNG + fetch caches) now persist to disk when `OBSCURA_CACHE_DIR` is set
+    (new `persistent-cache.mjs`, atomic tmp+rename writes) — a restarted MCP server starts warm
+    instead of cold. Each cache also now **serves its last stale entry when every live source just
+    failed**, instead of erroring: `obscura_search` marks the response `stale:true`;
+    `obscura_research`'s SearXNG/fetch stages use the stale batch/page to keep gathering candidates
+    instead of reporting `enginesUnavailable`/`fetchFailed`. Off by default (`OBSCURA_CACHE_DIR`
+    unset = byte-identical to the pre-existing in-memory-only behavior).
+
+  New tests: `test/canary.test.mjs`, `test/persistent-cache.test.mjs`, plus cases added to
+  `test/obscura-cli.test.mjs`, `test/expand-query.test.mjs`, `test/ollama-client.test.mjs`,
+  `test/serp.test.mjs`, `test/research.test.mjs`.
+
+### Changed
+
+- **`obscura_search` / `obscura_research` scrape-chain now rotates across many engines**
+  (ADR-0051 amendment). `DEFAULT_CHAIN` went from DuckDuckGo-only to
+  `duckduckgo → bing → brave → mojeek → marginalia → ecosia → bing-rss`: when one engine is
+  banned/empty the next is tried, and the native-fallback signal fires only after **all** fail —
+  previously a single DuckDuckGo rate-limit fell straight to native, which is what stopped
+  deep-research jobs mid-run (`scanned:0` → `engines_suspended`). The new engines
+  (`mojeek`/`marginalia`/`ecosia`; `startpage` env-only) are **generic-extraction** engines: no
+  bespoke HTML parser, their SERP is scraped by the existing similarity-ranked `genericExtractLinks`,
+  so each costs only a search-URL pattern instead of a drift-prone per-engine parser (their URL
+  patterns are best-effort/unverified — a wrong one returns nothing and the chain rotates on).
+  `bing-rss` stays last as the never-rate-limited structured-XML last resort;
+  `OBSCURA_SEARCH_ENGINES` still overrides per-machine. For the widest, most relevant many-engine
+  (incl. regional / non-English) search, **SearXNG** (Layer 1, ~100 upstream-maintained engines)
+  remains the primary mechanism. Four tests added to `test/serp.test.mjs` (two rotation, two
+  generic-engine).
+- **`obscura_search` now translates a non-English query to English before searching** (`translate`,
+  default on; ADR-0051 amendment). Primary technical sources are in English, so this surfaces them —
+  the light half of what `obscura_research`'s query expansion already does. Gated by a cheap
+  heuristic (an English-looking query skips the model call entirely) and an enhancement-not-dependency
+  (Ollama down / any failure → the original query is searched, never an error); the response carries
+  `translatedFrom` when a translation happened. The LLM still answers the user in their own language;
+  only the search is lifted to English. `translate: false` searches verbatim. New `translateQuery` +
+  `looksNonEnglish` in `ollama-client.mjs` (uses `OBSCURA_OLLAMA_EXPAND_MODEL`, no new model to pull);
+  nine tests added.
+
 ### Fixed
 
 - **obscura-web: `obscura_research_start` no longer dies on engine rate-limits**

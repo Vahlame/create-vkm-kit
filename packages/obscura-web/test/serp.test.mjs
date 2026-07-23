@@ -9,7 +9,9 @@ import {
   decodeEntities,
   searxngSearch,
   searchWeb,
-  _clearSearchCache
+  _clearSearchCache,
+  ENGINES,
+  DEFAULT_CHAIN
 } from "../src/serp.mjs";
 
 const noThrottle = async () => {};
@@ -35,6 +37,21 @@ const BRAVE_FIXTURE = `
   <a href="https://brave-a.com/" class="result-header"><span class="title">Brave A</span></a>
   <div class="snippet-description">Brave snippet A</div>
 </div>`;
+
+// A generic engine's SERP has no bespoke parser — genericExtractLinks scrapes it. Must be >500 chars
+// (the generic path's substantial-page guard) and carry result links whose titles resemble the query.
+const MOJEEK_FIXTURE = `<html><body>
+  <header><a href="https://www.mojeek.com/">Mojeek home</a>
+    <a href="https://www.mojeek.com/about">About Mojeek search engine</a></header>
+  <ul class="results">
+    <li><a href="https://example.com/win-opt">Windows optimization and latency tuning guide</a>
+      <p>A thorough guide to reducing input latency and tuning Windows for performance, covering
+      CPU, GPU and power settings for responsiveness.</p></li>
+    <li><a href="https://example.org/debloat">Debloating Windows for lower latency and optimization</a>
+      <p>How to remove background services and optimize Windows responsiveness and latency.</p></li>
+  </ul>
+  <footer><a href="https://www.mojeek.com/privacy">Privacy policy for the Mojeek engine</a></footer>
+</body></html>`;
 
 test("stripTags/decodeEntities clean HTML into plain text", () => {
   assert.equal(stripTags("<b>hi</b>  &amp;  <i>there</i>"), "hi & there");
@@ -189,6 +206,111 @@ test("searchWeb falls through the engine chain: DDG empty → Bing wins", async 
   assert.equal(out.results.length, 2);
 });
 
+test("searchWeb DEFAULT chain (no override) rotates past a banned DDG to Brave", async () => {
+  _clearSearchCache();
+  // No `engines` override → uses DEFAULT_CHAIN (duckduckgo, bing, brave, bing-rss). DDG is banned,
+  // Bing returns an empty page, Brave answers — proves the amended default rotates, not just an
+  // explicit override.
+  const fetchImpl = async (url) => {
+    if (url.includes("duckduckgo")) throw new Error("ddg rate-limited");
+    if (url.includes("bing.com/search") && !url.includes("format=rss"))
+      return { content: "<html>nothing</html>" };
+    if (url.includes("search.brave.com")) return { content: BRAVE_FIXTURE };
+    throw new Error(`unexpected url ${url}`);
+  };
+  const out = await searchWeb(
+    "hello world query rotate",
+    {},
+    { fetchImpl, searxngImpl: async () => null, throttleImpl: noThrottle }
+  );
+  assert.equal(out.source, "brave");
+  assert.equal(out.results[0].url, "https://brave-a.com/");
+});
+
+test("searchWeb DEFAULT chain falls all the way to bing-rss (never-rate-limited last resort)", async () => {
+  _clearSearchCache();
+  const RSS =
+    `<rss version="2.0"><channel><title>Bing: q</title><link>https://www.bing.com/</link>` +
+    `<item><title>Last Resort</title><link>https://r.example/x</link>` +
+    `<description>from rss</description></item></channel></rss>`;
+  const fetchImpl = async (url) => {
+    if (url.includes("format=rss")) return { content: RSS }; // only bing-rss answers
+    throw new Error("banned"); // DDG, Bing HTML, Brave all down
+  };
+  const out = await searchWeb(
+    "hello world query lastresort",
+    {},
+    { fetchImpl, searxngImpl: async () => null, throttleImpl: noThrottle }
+  );
+  assert.equal(out.source, "bing-rss");
+  assert.equal(out.results[0].url, "https://r.example/x");
+});
+
+test("a generic engine (mojeek, no bespoke parser) recovers results via genericExtractLinks", async () => {
+  _clearSearchCache();
+  const fetchImpl = async (url) => {
+    if (url.includes("mojeek.com/search")) return { content: MOJEEK_FIXTURE };
+    throw new Error("others banned");
+  };
+  const out = await searchWeb(
+    "windows optimization latency tuning guide",
+    { engines: ["mojeek"] },
+    { fetchImpl, searxngImpl: async () => null, throttleImpl: noThrottle }
+  );
+  assert.equal(
+    out.source,
+    "mojeek",
+    "a genuine generic engine reports its clean name, not -generic"
+  );
+  assert.ok(out.results.some((r) => r.url === "https://example.com/win-opt"));
+  assert.ok(
+    !out.results.some((r) => r.url.includes("mojeek.com")),
+    "the engine's own chrome is filtered"
+  );
+});
+
+test("yahoo/qwant are registered generic-extraction engines, opt-in only (not in DEFAULT_CHAIN)", () => {
+  // Same posture as startpage: available via OBSCURA_SEARCH_ENGINES, not silently added to the
+  // default chain — their generic-extraction viability through obscura's rendered DOM is unverified.
+  assert.equal(ENGINES.yahoo.generic, true);
+  assert.equal(ENGINES.qwant.generic, true);
+  assert.ok(ENGINES.yahoo.buildUrl("q").includes("search.yahoo.com"));
+  assert.ok(ENGINES.qwant.buildUrl("q").includes("qwant.com"));
+  assert.ok(!DEFAULT_CHAIN.includes("yahoo"));
+  assert.ok(!DEFAULT_CHAIN.includes("qwant"));
+});
+
+test("a generic engine (yahoo, no bespoke parser) recovers results via genericExtractLinks when explicitly opted in", async () => {
+  _clearSearchCache();
+  const fetchImpl = async (url) => {
+    if (url.includes("search.yahoo.com")) return { content: MOJEEK_FIXTURE };
+    throw new Error("others banned");
+  };
+  const out = await searchWeb(
+    "windows optimization latency tuning guide",
+    { engines: ["yahoo"] },
+    { fetchImpl, searxngImpl: async () => null, throttleImpl: noThrottle }
+  );
+  assert.equal(out.source, "yahoo");
+  assert.ok(out.results.some((r) => r.url === "https://example.com/win-opt"));
+});
+
+test("DEFAULT chain reaches a generic engine (mojeek) when the bespoke engines are empty", async () => {
+  _clearSearchCache();
+  const bigEmpty = `<html><body>${"no results here ".repeat(60)}</body></html>`; // >500, zero links
+  const fetchImpl = async (url) => {
+    if (url.includes("mojeek.com/search")) return { content: MOJEEK_FIXTURE };
+    if (url.includes("format=rss")) return { content: "<rss></rss>" };
+    return { content: bigEmpty }; // ddg / bing / brave: substantial page, no result links
+  };
+  const out = await searchWeb(
+    "windows optimization latency tuning guide",
+    {},
+    { fetchImpl, searxngImpl: async () => null, throttleImpl: noThrottle }
+  );
+  assert.equal(out.source, "mojeek");
+});
+
 test("searchWeb throws a native-fallback message when every source fails", async () => {
   _clearSearchCache();
   const fetchImpl = async () => {
@@ -198,6 +320,57 @@ test("searchWeb throws a native-fallback message when every source fails", async
     () =>
       searchWeb(
         "hello world query three",
+        {},
+        { fetchImpl, searxngImpl: async () => null, throttleImpl: noThrottle }
+      ),
+    /native WebSearch/
+  );
+});
+
+test("searchWeb: every source down + a stale cache entry -> serves it with stale:true, never throws", async () => {
+  _clearSearchCache();
+  const q = "hello world query stale offline";
+  const fetchImpl = async (url) =>
+    url.includes("duckduckgo") ? { content: DDG_FIXTURE } : { content: "" };
+
+  // 1st call: a normal live success, populates the cache.
+  const fresh = await searchWeb(
+    q,
+    {},
+    { fetchImpl, searxngImpl: async () => null, throttleImpl: noThrottle }
+  );
+  assert.equal(fresh.source, "duckduckgo");
+  assert.ok(!fresh.stale);
+
+  // Force the entry stale WITHOUT a real sleep (see cacheTtlMs's comment on why 0 is meaningful),
+  // then make every live source fail — this is the "network is down" scenario.
+  process.env.OBSCURA_SEARCH_CACHE_TTL_MS = "0";
+  try {
+    const failingFetch = async () => {
+      throw new Error("net::ERR_INTERNET_DISCONNECTED");
+    };
+    const out = await searchWeb(
+      q,
+      {},
+      { fetchImpl: failingFetch, searxngImpl: async () => null, throttleImpl: noThrottle }
+    );
+    assert.equal(out.stale, true);
+    assert.equal(out.source, "duckduckgo"); // the STALE entry's own source, unchanged
+    assert.deepEqual(out.results, fresh.results);
+  } finally {
+    delete process.env.OBSCURA_SEARCH_CACHE_TTL_MS;
+  }
+});
+
+test("searchWeb: no cache entry at all + every source down -> still throws the native-fallback message", async () => {
+  _clearSearchCache();
+  const fetchImpl = async () => {
+    throw new Error("blocked");
+  };
+  await assert.rejects(
+    () =>
+      searchWeb(
+        "a query that was never searched before",
         {},
         { fetchImpl, searxngImpl: async () => null, throttleImpl: noThrottle }
       ),

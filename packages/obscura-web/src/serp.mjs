@@ -18,6 +18,7 @@
  */
 import { obscuraFetch } from "./obscura-cli.mjs";
 import { similarityRatio } from "./text-similarity.mjs";
+import { cacheFilePath, loadCacheFile, saveCacheFile } from "./persistent-cache.mjs";
 
 // ── HTML helpers ────────────────────────────────────────────────────────────
 const ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
@@ -143,7 +144,15 @@ const SERP_HOSTS = new Set([
   "bing.com",
   "microsoft.com",
   "brave.com",
-  "search.brave.com"
+  "search.brave.com",
+  // Generic-extraction engines (below): their own domains, so genericExtractLinks drops their
+  // nav/chrome rather than returning it as a "result".
+  "mojeek.com",
+  "marginalia.nu",
+  "search.marginalia.nu",
+  "old-search.marginalia.nu",
+  "ecosia.org",
+  "startpage.com"
 ]);
 
 /**
@@ -332,19 +341,90 @@ export const ENGINES = {
     name: "brave",
     buildUrl: (q) => `https://search.brave.com/search?q=${encodeURIComponent(q)}`,
     parse: parseBrave
+  },
+  // ── Generic-extraction engines (ADR-0051 amendment 2026-07-22) ──────────────────────────────
+  // `generic: true` and NO bespoke `parse`: their SERP is scraped by genericExtractLinks (the same
+  // similarity-ranked <a href> recovery the drift fallback uses), so there is no per-engine markup
+  // to maintain — only the search-URL pattern. This is the deliberate "add many more engines even
+  // if hard to maintain" path, done maintainably: N engines cost N URL patterns, not N drift-prone
+  // parsers. Those URL patterns are BEST-EFFORT and not verified against live markup here; a wrong
+  // one just returns nothing and the chain rotates on. Mojeek + Marginalia are INDEPENDENT indexes
+  // (real diversity, not another Bing/Google frontend); Ecosia is Bing-backed; Startpage fronts
+  // Google but is anti-bot-heavy (kept out of the default chain — env-only — since a GET may no-op).
+  mojeek: {
+    name: "mojeek",
+    generic: true,
+    buildUrl: (q) => `https://www.mojeek.com/search?q=${encodeURIComponent(q)}`
+  },
+  marginalia: {
+    name: "marginalia",
+    generic: true,
+    buildUrl: (q) => `https://search.marginalia.nu/search?query=${encodeURIComponent(q)}`
+  },
+  ecosia: {
+    name: "ecosia",
+    generic: true,
+    buildUrl: (q) => `https://www.ecosia.org/search?q=${encodeURIComponent(q)}`
+  },
+  startpage: {
+    name: "startpage",
+    generic: true,
+    buildUrl: (q) => `https://www.startpage.com/sp/search?query=${encodeURIComponent(q)}`
+  },
+  // yahoo/qwant: same "URL pattern only" generic-extraction path as mojeek/marginalia/ecosia
+  // above, kept OUT of DEFAULT_CHAIN (like startpage) rather than folded in unverified — Yahoo's
+  // result page is known anti-bot-cautious like Startpage, and Qwant's results render via a
+  // client-side app rather than server-rendered markup, so whether genericExtractLinks recovers
+  // anything useful through obscura's rendered DOM is unconfirmed. Both are one URL pattern away
+  // from trying, via OBSCURA_SEARCH_ENGINES=...,yahoo,qwant — promoting either to the default
+  // chain belongs after that's actually observed working, not before.
+  yahoo: {
+    name: "yahoo",
+    generic: true,
+    buildUrl: (q) => `https://search.yahoo.com/search?p=${encodeURIComponent(q)}`
+  },
+  qwant: {
+    name: "qwant",
+    generic: true,
+    buildUrl: (q) => `https://www.qwant.com/?q=${encodeURIComponent(q)}`
   }
 };
 
-// Default = DuckDuckGo HTML: the only free SERP source that returns RELEVANT results for technical
-// queries when scraped. It rate-limits rapid bursts — when it blocks, the layered search returns the
-// native-fallback signal (relevant) rather than masking it with noise. The other engines are kept in
-// ENGINES for opt-in via OBSCURA_SEARCH_ENGINES: `bing-rss` is fast and never rate-limited but its
-// relevance on long/technical queries is poor (it keyword-matches literally: "tau"→the Greek letter,
-// "pass"→Xbox Game Pass); `bing`/`brave` HTML need live-markup parser maintenance. For genuinely fast,
-// high-volume, RELEVANT search, run a SearXNG instance and set OBSCURA_SEARXNG_URL — structured JSON,
-// aggregates many engines, no anti-bot wall. Free SERP scraping cannot be fast + high-volume + relevant
-// at once; SearXNG is the real answer.
-export const DEFAULT_CHAIN = ["duckduckgo"];
+// Default chain = DuckDuckGo → Bing → Brave → bing-rss, tried in order, first-with-results wins; the
+// caller only sees the native-fallback signal after ALL of them come up empty.
+//
+// ADR-0051 AMENDMENT (2026-07-22): the chain was previously DuckDuckGo-ONLY, on the reasoning that a
+// DDG rate-limit should fall straight to native rather than mask the gap with a noisier engine. The
+// maintainer reversed that priority: when DDG is banned, TRY THE NEXT ENGINE before giving up ("si
+// duckduckgo falla usa otro y así sucesivamente"). Ban-resilience now outranks the marginal noise the
+// fallback engines add — a deep-research round that recovers real results from Bing/Brave/bing-rss
+// beats one that reports `scanned:0` and stops the job.
+//
+// Order is relevance-then-resilience: DuckDuckGo has the best free-scrape relevance for technical
+// queries but rate-limits bursts; Bing then Brave (HTML) are next-best, though their parsers DRIFT as
+// those sites change markup — cushioned by genericExtractLinks when a specific parser returns nothing;
+// bing-rss is LAST because it is noisy on long/technical queries ("tau"→the Greek letter) BUT is
+// structured XML that NEVER rate-limits — the always-answers last resort before native. Override the
+// chain per-machine with OBSCURA_SEARCH_ENGINES (add/reorder/remove).
+//
+// For genuinely broad, RELEVANT, many-engine (incl. regional / non-English) search this scrape chain
+// is NOT the mechanism — run SearXNG (OBSCURA_SEARXNG_URL, Layer 1 above): it aggregates ~100 engines
+// behind one structured API, maintained upstream, so it — not a growing pile of hand-written HTML
+// scrapers here — is where "more engines" belongs. The generic-extraction engines below (mojeek,
+// marginalia, ecosia) ARE in the default anyway, per an explicit request for maximal coverage: they
+// cost only a URL pattern each (extraction is generic) and rotate in after the bespoke-parser
+// engines. `startpage` stays env-only (anti-bot-heavy, a GET may no-op). Each engine is a real
+// browser fetch ON FAILURE, so the default stays a curated set, not every entry in ENGINES; add the
+// rest per-machine via OBSCURA_SEARCH_ENGINES.
+export const DEFAULT_CHAIN = [
+  "duckduckgo",
+  "bing",
+  "brave",
+  "mojeek",
+  "marginalia",
+  "ecosia",
+  "bing-rss"
+];
 
 /** Resolve the ordered engine chain from an override, OBSCURA_SEARCH_ENGINES, or the default. */
 function resolveChain(engines) {
@@ -437,16 +517,43 @@ export async function searxngSearch(
 
 // ── cache + throttle ────────────────────────────────────────────────────────
 const CACHE = new Map();
-const CACHE_TTL_MS = 5 * 60 * 1000;
 let lastCallAt = 0;
+
+/** Read fresh on every cache access (not a frozen module const) so a real deployment can set
+ * `OBSCURA_SEARCH_CACHE_TTL_MS` and — the same reason — so a test can flip it to `0` mid-run to
+ * make an entry deterministically stale without a real sleep. `0` is a valid, deliberate TTL
+ * ("never serve fresh, only ever stale-serve on failure"), so this can't be `||`'d against the
+ * default the way `SEARX_CACHE_TTL_MS`/`FETCH_CACHE_TTL_MS` (research.mjs) are — that pattern
+ * silently can't express 0. */
+function cacheTtlMs() {
+  const v = Number(process.env.OBSCURA_SEARCH_CACHE_TTL_MS);
+  return Number.isFinite(v) && v >= 0 ? v : 5 * 60 * 1000;
+}
+
+// Disk durability (persistent-cache.mjs) — opt-in via OBSCURA_CACHE_DIR, unset by default. Loaded
+// ONCE at module init so a restarted MCP server starts warm instead of cold; every `cacheSet`
+// below re-persists the whole map (small: capped at 200 entries).
+const CACHE_FILE = cacheFilePath("search-cache.json");
+if (CACHE_FILE) {
+  for (const [key, entry] of Object.entries(loadCacheFile(CACHE_FILE))) CACHE.set(key, entry);
+}
 
 const cacheKey = (q, limit) => `${limit}:${String(q).trim().toLowerCase()}`;
 
 function cacheGet(q, limit) {
   const e = CACHE.get(cacheKey(q, limit));
-  if (e && Date.now() - e.at < CACHE_TTL_MS) return e.value;
-  if (e) CACHE.delete(cacheKey(q, limit));
-  return null;
+  // A stale entry is left in the Map rather than deleted here — searchWeb's failure path (every
+  // live source down) falls back to it via `cacheGetStale` below, the "modo offline" case. It
+  // still can't grow unbounded: `cacheSet`'s FIFO eviction is the only thing that ever removes it.
+  return e && Date.now() - e.at < cacheTtlMs() ? e.value : null;
+}
+
+/** Serve the cached value regardless of TTL — the last resort when every live source in
+ * `searchWeb`'s chain has just failed. `null` only when this exact (query, limit) was never
+ * cached at all, never because it aged out (that's precisely the case this exists to serve). */
+function cacheGetStale(q, limit) {
+  const e = CACHE.get(cacheKey(q, limit));
+  return e ? e.value : null;
 }
 
 function cacheSet(q, limit, value) {
@@ -454,6 +561,7 @@ function cacheSet(q, limit, value) {
   // (Map preserves insertion order, so keys().next() is the oldest).
   if (CACHE.size >= 200) CACHE.delete(CACHE.keys().next().value);
   CACHE.set(cacheKey(q, limit), { at: Date.now(), value });
+  if (CACHE_FILE) saveCacheFile(CACHE_FILE, CACHE);
 }
 
 /** Test hook: drop cached results between cases. */
@@ -489,7 +597,7 @@ function dedupe(results, limit) {
  * @param {string} query
  * @param {{ limit?: number, stealth?: boolean, engines?: string[], searxngUrl?: string }} [opts]
  * @param {{ fetchImpl?: typeof obscuraFetch, searxngImpl?: typeof searxngSearch, throttleImpl?: () => Promise<void> }} [deps]
- * @returns {Promise<{ source: string, results: Array<{ title: string, url: string, snippet: string }> }>}
+ * @returns {Promise<{ source: string, results: Array<{ title: string, url: string, snippet: string }>, stale?: boolean }>}
  */
 export async function searchWeb(query, opts = {}, deps = {}) {
   const q = String(query ?? "").trim();
@@ -525,29 +633,44 @@ export async function searchWeb(query, opts = {}, deps = {}) {
         format: eng.format || "html",
         stealth
       });
-      const parsed = dedupe(eng.parse(content), limit);
-      if (parsed.length) {
-        const value = { source: eng.name, results: parsed };
-        cacheSet(q, limit, value);
-        return value;
-      }
-      // The specific parser found nothing on an otherwise-substantial page — try the generic,
-      // similarity-ranked fallback before giving up on this engine (see genericExtractLinks doc).
-      // `format !== "raw"` excludes bing-rss: it's structured XML, and a generic HTML anchor
-      // scraper on an RSS feed would find nothing useful anyway.
-      if (eng.format !== "raw" && content.length > 500) {
-        const generic = dedupe(genericExtractLinks(content, q, { limit }), limit);
-        if (generic.length) {
-          const value = { source: `${eng.name}-generic`, results: generic };
+      // Bespoke-parser engines (duckduckgo/bing/brave/bing-rss): try the specific parser first.
+      if (typeof eng.parse === "function") {
+        const parsed = dedupe(eng.parse(content), limit);
+        if (parsed.length) {
+          const value = { source: eng.name, results: parsed };
           cacheSet(q, limit, value);
           return value;
         }
       }
-      errors.push(`${eng.name}: 0 results parsed`);
+      // Generic-extraction engines have NO bespoke parser — the similarity-ranked generic extractor
+      // IS their native path; a bespoke engine that parsed nothing on a substantial HTML page also
+      // falls back to it (the drift case). `format !== "raw"` excludes bing-rss (structured XML — a
+      // generic HTML anchor scrape finds nothing useful). The `-generic` label is kept only when a
+      // bespoke parser was skipped-because-empty, so a genuine generic engine reports its clean name.
+      if (eng.format !== "raw" && content.length > 500) {
+        const generic = dedupe(genericExtractLinks(content, q, { limit }), limit);
+        if (generic.length) {
+          const value = {
+            source: eng.parse ? `${eng.name}-generic` : eng.name,
+            results: generic
+          };
+          cacheSet(q, limit, value);
+          return value;
+        }
+      }
+      errors.push(`${eng.name}: 0 results`);
     } catch (e) {
       errors.push(`${eng.name}: ${e?.message || e}`);
     }
   }
+
+  // Every live source just failed or came back empty — the semi-offline path (ADR-0051
+  // amendment): a stale cache entry for this exact (query, limit), even past its TTL, is a real
+  // answer the caller already saw once and is strictly better than a hard error when the network
+  // (or every engine) is genuinely down. Marked `stale:true` so the caller can tell "answered
+  // fresh" from "answered from what we had lying around".
+  const stale = cacheGetStale(q, limit);
+  if (stale) return { ...stale, stale: true };
 
   throw new Error(
     `obscura_search: every source failed or returned nothing (${errors.join("; ")}). ` +

@@ -12,8 +12,8 @@ Code, Codex and Cursor by the installer under `--obscura` / `--full`. See
 [ADR-0055](../../docs/adr/0055-obscura-research-local-llm-curation.md),
 [ADR-0056](../../docs/adr/0056-research-knowledge-bank.md),
 [ADR-0057](../../docs/adr/0057-obscura-research-gather-over-rank.md) (supersedes ADR-0055 §5/§6),
-and [ADR-0060](../../docs/adr/0060-obscura-deep-research-background-job.md) (background jobs,
-current design).
+[ADR-0060](../../docs/adr/0060-obscura-deep-research-background-job.md) (background jobs, current
+design), and [ADR-0062](../../docs/adr/0062-obscura-seed-url-crawler.md) (seed-URL site crawler).
 
 ## Why
 
@@ -39,7 +39,11 @@ Retrieve and render a URL through obscura. Preferred over native `WebFetch`.
 | `timeout_ms`   | int 1000–120000                           | 30000      | Navigation budget                                                                                                                                       |
 
 Oversized pages are capped (`OBSCURA_FETCH_MAX_CHARS`, default 60000) so a huge document can't flood
-the agent's context. `css_selector` always fetches the raw HTML internally (a selector needs the DOM;
+the agent's context. A **transient failure** (navigation timeout, connection reset) gets up to
+`OBSCURA_FETCH_RETRIES` extra attempts (default 2) with exponential backoff + jitter
+(`OBSCURA_FETCH_RETRY_BASE_MS`, default 500ms) before giving up — a missing `obscura` binary or a
+non-transient navigation error (bad DNS, refused connection past the first try) is never retried,
+since a second attempt can't fix either. `obscura_fetch_many` inherits this for free (same primitive). `css_selector` always fetches the raw HTML internally (a selector needs the DOM;
 `format`'s other options have already discarded it) and runs it through the same hidden-element
 exclusion `obscura_research`'s crawl uses (see below) — verified live against a real page:
 `css_selector: "title"` on `sqlite.org/wal.html` returns exactly `"Write-Ahead Logging"`.
@@ -58,32 +62,61 @@ it only fetches URLs you already have.
 Layered, non-fragile web search. Preferred over native `WebSearch`. Returns normalized
 `{ title, url, snippet }` results with a `source` field.
 
-| Param     | Type     | Default | Notes                               |
-| --------- | -------- | ------- | ----------------------------------- |
-| `query`   | string   | —       | Keywords beat full sentences        |
-| `limit`   | int 1–20 | 8       | Max results                         |
-| `stealth` | boolean  | on      | Anti-detection when rendering SERPs |
+| Param       | Type     | Default | Notes                                                                                       |
+| ----------- | -------- | ------- | ------------------------------------------------------------------------------------------- |
+| `query`     | string   | —       | Keywords beat full sentences                                                                |
+| `limit`     | int 1–20 | 8       | Max results                                                                                 |
+| `stealth`   | boolean  | on      | Anti-detection when rendering SERPs                                                         |
+| `translate` | boolean  | on      | Translate a non-English query to English first (primary sources are in English) — see below |
+
+**English translation (`translate`, default on).** A non-English query is translated to English via
+the local model before searching, because specs/docs/source are written in English (the same finding
+`obscura_research`'s query expansion is built on). It is gated by a cheap heuristic — a query that
+looks English (pure ASCII with no non-English function words) skips the model call entirely — and is
+an enhancement, never a dependency: if the local model is unavailable or the call fails, the original
+query is searched, never an error. When a translation happens the response carries `translatedFrom`
+(the original) so it is transparent. The LLM still presents results to the user in their own language;
+only the SEARCH is lifted to English. Set `translate: false` to search verbatim. Uses
+`OBSCURA_OLLAMA_EXPAND_MODEL` (the same model as research expansion — no new model to pull).
 
 **The layers** (first that yields results wins):
 
 1. **Local SearXNG (structured JSON)** — aggregates many engines, no anti-bot wall. This is the fast +
    relevant path; free SERP scraping can't be fast + high-volume + relevant at once. Started **on
    demand** (see below), `source: "searxng"`.
-2. **obscura-rendered SERP** — DuckDuckGo HTML, parsed by a resilient extractor, with a per-query
-   cache. Google is avoided (aggressive anti-bot). DuckDuckGo is the **only** engine in the default
-   chain on purpose: it is the one free scrapeable SERP that stays relevant for technical queries.
-   `bing`/`brave` HTML and `bing-rss` are implemented and opt-in via `OBSCURA_SEARCH_ENGINES` —
-   `bing-rss` is fast and never rate-limited but keyword-matches literally (measured: "tau" → the
-   Greek letter, "pass" → Xbox Game Pass), and the HTML parsers need live-markup maintenance. When
-   DuckDuckGo rate-limits a burst, returning the native-fallback signal is better than masking it
-   with a noisier engine's results. **If a specific engine's parser finds zero results on an
-   otherwise-substantial page** (the engine changed its markup — the known risk this layer has
-   always carried), a generic, engine-agnostic extractor tries to recover real results anyway,
-   ranked by textual resemblance to the query rather than returned in document order (inspired by
-   [Scrapling](https://github.com/D4Vinci/Scrapling)'s adaptive matching, adapted to this package's
-   flat SERP records rather than a DOM tree — see ADR-0057's addendum).
-3. **Native `WebSearch` fallback** — if every source fails, the tool returns a message that explicitly
-   steers the agent back to the native tool.
+2. **obscura-rendered SERP — a rotating engine chain**
+   (`duckduckgo` → `bing` → `brave` → `mojeek` → `marginalia` → `ecosia` → `bing-rss`,
+   first-with-results wins; ADR-0051 amendment 2026-07-22). When one engine is banned/empty the next
+   is tried, and the native fallback fires only after **all** fail — so a single DuckDuckGo rate-limit
+   no longer drops straight to native. Order is relevance-then-resilience: DuckDuckGo has the best
+   free-scrape relevance for technical queries; `bing`/`brave` HTML are next. Then
+   `mojeek`/`marginalia`/`ecosia` are **generic-extraction engines** — no bespoke HTML parser, their
+   SERP is scraped by the same similarity-ranked extractor used for parser drift, so each costs only a
+   search-URL pattern, not a maintained per-engine parser (`mojeek`/`marginalia` are independent
+   indexes for real diversity; `startpage` is env-only). `bing-rss` is last because it keyword-matches
+   literally (measured: "tau" → the Greek letter, "pass" → Xbox Game Pass) BUT is structured XML that
+   never rate-limits — the always-answers last resort. Google is avoided (aggressive anti-bot).
+   Override the chain per-machine with `OBSCURA_SEARCH_ENGINES` (add/reorder/remove). Two more
+   generic-extraction engines are registered but **not** in the default chain — `yahoo` and `qwant`,
+   opt-in only (same posture as `startpage`): their generic-extraction viability through obscura's
+   rendered DOM hasn't been verified live, only wired per the same pattern as the engines above. **For
+   the widest, most relevant many-engine (incl. regional / non-English) search, SearXNG (Layer 1) is
+   still the primary mechanism — ~100 upstream-maintained engines behind one structured API.** **If a
+   specific engine's parser finds zero results on an otherwise-substantial page** (the engine changed
+   its markup — the known risk this layer has always carried), a generic, engine-agnostic extractor
+   tries to recover real results anyway, ranked by textual resemblance to the query rather than
+   returned in document order (inspired by [Scrapling](https://github.com/D4Vinci/Scrapling)'s
+   adaptive matching, adapted to this package's flat SERP records rather than a DOM tree — see
+   ADR-0057's addendum). A drift break can also be caught **proactively**, before a real query hits
+   it: `node src/canary-run.mjs` probes every registered engine with known-good queries and reports
+   which ones came back empty — run it manually or on a schedule, never from `npm test` (it hits real
+   engines over the network).
+3. **Native `WebSearch` fallback** — if every source fails or returns nothing AND there's no cached
+   answer for this exact query, the tool returns a message that explicitly steers the agent back to
+   the native tool. If there **is** a cached answer (even past its TTL), it's served instead —
+   `stale: true` on the response — so a machine that's genuinely offline or fully rate-limited still
+   gets its last-known results rather than a hard error (opt-in disk persistence for this and the two
+   `obscura_research` caches below, see `OBSCURA_CACHE_DIR` in the env table).
 
 ### `obscura_research(query, …)`
 
@@ -136,7 +169,10 @@ site APIs (GitHub, MDN, arXiv, Semantic Scholar) that keep answering when genera
 engines are rate-limited, and that don't themselves get rate-limited. Absent the expansion model,
 the tool correctly does _not_ expand rather than expand badly — measured, expanding with a small
 generic model found zero extra answers while doubling social-media noise in the candidate pool.
-`queries`/`concept` come back in the response only when expansion actually ran.
+`queries`/`concept` come back in the response only when expansion actually ran. Repeating the same
+query (iterating a topic, or `obscura_search`'s `translate`) is served from a short-lived cache
+(`OBSCURA_EXPAND_CACHE_TTL_MS`, default 10 min) instead of re-dialing the local model — a thrown call
+is never cached, so a failure is retried next time, not remembered.
 
 **Curation, page by page, and it now actually removes the garbage (ADR-0055, reversed in
 ADR-0057 §6).** If a local [Ollama](https://ollama.com) is available (same default host as
@@ -180,6 +216,15 @@ so "no such page exists" reads differently from "come back in 3 minutes." Repeat
 same query are served from a local cache instead of re-hitting the engines, and the automated crawl
 respects each host's robots.txt (`OBSCURA_RESPECT_ROBOTS=0` to disable; `obscura_fetch`/
 `obscura_search` are unaffected — this is scoped to the automated multi-page crawl only).
+
+**Semi-offline: stale-serve on a live failure.** If a SearXNG round or a page fetch fails outright
+(the network is genuinely down, not just rate-limited) and a _previous_ result for that exact
+(sub-)query/URL is still sitting in the SearXNG or fetch cache — even past its own TTL — that stale
+entry is used to keep gathering/curating candidates instead of the round being reported as
+`enginesUnavailable`/the page as `fetchFailed`. Set `OBSCURA_CACHE_DIR` to also persist these two
+caches (plus `obscura_search`'s own) to disk, so a restarted MCP server starts warm instead of cold
+after a crash or an update — unset (the default) is byte-identical to the pre-existing in-memory-only
+behavior.
 `robotsBlocked` reports how many candidates a host's own robots.txt declined.
 
 **Persisting into `RESEARCH/` (ADR-0056).** `persist:true` + `topic` turns curated results from
@@ -331,6 +376,73 @@ New env knobs, both optional: `OBSCURA_DEEP_ROUND_MS` (default `100000`) and
 `OBSCURA_DEEP_PACE_MS` (default `15000`) — both are also overridable per call (`round_ms`/
 `pace_ms`) without touching the environment.
 
+### `obscura_crawl_start` / `obscura_crawl_status` / `obscura_crawl_stop` — seed-URL site crawler (ADR-0062)
+
+The complement to `obscura_research`: that one **discovers** pages by querying a search engine; this
+one **follows a site's own internal `<a href>` links** breadth-first from your seed URLs. Use it to
+pull down a whole docs/tutorial/community site **with source attribution** — the "crawl these sites
+and keep who wrote what" job the search-driven crawl structurally can't do. A background job (like
+`obscura_research_start`): `start` returns a `job_id` immediately and the crawl runs detached, so the
+60 s MCP wall never applies; poll `obscura_crawl_status`, stop early with `obscura_crawl_stop`.
+
+```js
+obscura_crawl_start({
+  seeds: ["https://docs.example.com/"],
+  topic: "example-docs",
+  allow: ["docs.example.com"], // default: the seed hosts (stay on-site)
+  max_depth: 3,
+  keywords: ["optimization", "tuning"] // optional keep-filter (traversal is unaffected)
+});
+// -> { job_id: "crawl-...", state: "running", topic: "example-docs", ... }
+obscura_crawl_status({ job_id }); // { totals, currentUrl, gatedUrls, exportPaths, recentPages }
+obscura_crawl_stop({ job_id }); // graceful: in-flight page finishes, then export+report written
+```
+
+| Param             | Type         | Default          | Notes                                                                                                                                |
+| ----------------- | ------------ | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `seeds`           | string[]     | —                | 1-50 absolute http(s) seed URLs to start from                                                                                        |
+| `topic`           | string       | —                | Slug (`^[\w][\w-]*$`) grouping under `RESEARCH/<topic>/` — use a distinct slug per crawl                                             |
+| `allow`           | string[]     | seed hosts       | Domain / host+path-prefix allowlist (e.g. `docs.foo.com`, `foo.com/guide`); a `/` = prefix rule, a bare host also matches subdomains |
+| `max_depth`       | int 0–6      | 3                | Link hops from a seed; 0 = only the seeds                                                                                            |
+| `max_pages`       | int 1–5000   | 200              | Hard ceiling on pages fetched                                                                                                        |
+| `keywords`        | string[]     | —                | Keep-filter: only pages whose text contains ANY keyword are persisted/exported (traversal still reaches them)                        |
+| `download_assets` | boolean      | true             | Download kept pages' PDFs/images (see envelope below); set false to skip                                                             |
+| `asset_max_count` | int 0–5000   | 200              | Total assets to download across the crawl (0 = unlimited)                                                                            |
+| `asset_max_bytes` | int          | 26214400 (25MiB) | Per-asset size cap; larger files skipped                                                                                             |
+| `per_host_cap`    | int          | 0 (unlimited)    | Max NEW links enqueued per host — bound a sprawling host                                                                             |
+| `budget_minutes`  | int 1–60     | 15               | Total wall-clock budget; winds down gracefully after                                                                                 |
+| `pace_ms`         | int 0–120000 | 1000             | Politeness pause between page fetches                                                                                                |
+| `respect_robots`  | boolean      | true             | Obey each host's robots.txt for pages AND assets                                                                                     |
+| `stealth`         | boolean      | on               | obscura anti-detection when fetching                                                                                                 |
+
+**Source attribution + export (requirement ②).** Each kept page's `url`/`title`/**`author`**/
+**`published`** (read from OpenGraph/`<meta>`/`<time>`/JSON-LD) go to `RESEARCH/<topic>/sources/`
+as notes **and** to a machine-readable `crawl.json` (full rows, incl. downloaded assets) +
+`crawl.csv` (flat, RFC-4180-quoted) under `RESEARCH/<topic>/`.
+
+**Resumable (requirement ③).** The crawl's "seen" set is the topic's `sources/` bank
+(`listCoveredHashes`) — re-running the same `topic` skips URLs a previous run already banked, so an
+interrupted crawl resumes reaching _new_ pages instead of re-walking covered ground. No separate
+state file.
+
+**Asset download — strict envelope.** Kept pages' PDFs/images land in `RESEARCH/<topic>/assets/`,
+subject to: **Content-Type allowlist** checked against the response header (PDF + raster images
+only — **SVG excluded** as scriptable XML), a **per-file byte cap enforced by streaming** (aborts
+mid-body past the cap), a **total count cap**, robots respected per asset, a sanitized hash-prefixed
+filename root-checked under the assets dir, and the file **written as inert data, never opened or
+executed**.
+
+**The boundary — never defeats a wall.** This crawler has no code to solve a CAPTCHA or bypass a
+login/paywall. A page that comes back as a Cloudflare/reCAPTCHA/login/paywall interstitial is
+recorded `blocked: gated`, its links are **not** followed, and it is listed in the run report's
+"Gated pages (need your own login)" section — so you can fetch it with your **own** authorized
+access. This back-off-when-blocked posture is also what keeps the machine's IP from being banned.
+
+**One background job at a time.** A crawl and an `obscura_research_start` job cannot run
+concurrently (shared slot) — concurrent fan-out is what gets the machine rate-limited. Requires
+`OBSCURA_RESEARCH_DIR` (checked at `start`). A run report lands in `RESEARCH/<topic>/runs/` on every
+exit path; `/vkm-research <topic>` consolidates.
+
 ### `obscura_consolidate(topic, force?)`
 
 The local, 0-token half of dual consolidation (ADR-0056) — the other half is Claude's own
@@ -375,35 +487,42 @@ tools simply steer to the native ones — the install never breaks.
 
 ## Environment
 
-| Var                                                        | Purpose                                                                                                                |
-| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `OBSCURA_BIN`                                              | Absolute obscura binary path (installer sets it; else `obscura` on PATH)                                               |
-| `OBSCURA_STEALTH=0`                                        | Disable anti-detection (default on)                                                                                    |
-| `OBSCURA_FETCH_TIMEOUT_MS`                                 | Per-fetch navigation budget (default 30000)                                                                            |
-| `OBSCURA_FETCH_MAX_CHARS`                                  | Cap on returned page size (default 60000)                                                                              |
-| `OBSCURA_SEARCH_ENGINES`                                   | Comma list overriding the scrape chain (default `duckduckgo`; `bing`/`brave`/`bing-rss` opt-in)                        |
-| `OBSCURA_SEARXNG_URL`                                      | Point search at a SearXNG directly (`""` disables; bypasses on-demand)                                                 |
-| `OBSCURA_SEARXNG_{PORT,PY,SRC,SETTINGS,IDLE_MS,AUTOSTART}` | On-demand SearXNG paths/timing (see `searxng/README.md`)                                                               |
-| `OBSCURA_RESEARCH_OLLAMA=0`                                | Disable local-LLM curation in `obscura_research` (default on, auto-detected)                                           |
-| `OBSCURA_OLLAMA_HOST`                                      | Ollama host (default `http://127.0.0.1:11434` — same as `vkm-spec`)                                                    |
-| `OBSCURA_OLLAMA_MODEL`                                     | Curation model (default `phi4-mini:3.8b-q4_K_M` — chosen by bake-off, ADR-0057 fifth addendum)                         |
-| `OBSCURA_OLLAMA_EXPAND_MODEL`                              | Query-expansion model (default `qwen3.5:4b-q4_K_M` — deliberately not the curation model)                              |
-| `OBSCURA_OLLAMA_EMBED_MODEL`                               | Embedding model for `dedupe_similar`/`diversify` (default `qwen3-embedding:0.6b`)                                      |
-| `OBSCURA_OLLAMA_KEEP_ALIVE`                                | How long Ollama keeps the model loaded after a research call (default `5m`)                                            |
-| `OBSCURA_RESEARCH_DEADLINE_MS`                             | Wall-clock budget for one `obscura_research` call (default `50000`; the MCP wall is 60000)                             |
-| `OBSCURA_RESEARCH_CONCURRENCY`                             | Concurrent page fetches during research (default 4)                                                                    |
-| `OBSCURA_RESEARCH_HOST_CAP`                                | Max candidates any one host may hold in the fused pool's head (default 3; 0 disables)                                  |
-| `OBSCURA_RESEARCH_NEAR_DUP_THRESHOLD`                      | Cosine similarity above which `dedupe_similar` treats two pages as duplicates (default 0.92)                           |
-| `OBSCURA_SUBQUERY_CONCURRENCY`                             | Concurrent SearXNG sub-queries during expansion (default 2 — ban-avoidance, not just speed)                            |
-| `OBSCURA_SEARXNG_CATEGORIES`                               | Default SearXNG categories for research (default `general,it,science`)                                                 |
-| `OBSCURA_RESEARCH_DROP_BELOW`                              | Curator relevance floor below which a page is dropped (default `3` of 10)                                              |
-| `OBSCURA_SEARXNG_CACHE_TTL_MS`                             | How long a SearXNG search response is cached inside `obscura_research` (default `600000`)                              |
-| `OBSCURA_RESEARCH_FETCH_CACHE_TTL_MS`                      | How long a fetched page is cached inside `obscura_research` (default `300000`)                                         |
-| `OBSCURA_RESPECT_ROBOTS=0`                                 | Disable robots.txt compliance in the research crawl (default on; never affects `obscura_fetch`)                        |
-| `OBSCURA_ROBOTS_CACHE_TTL_MS`                              | How long a host's robots.txt is cached (default `3600000`, 1h)                                                         |
-| `OBSCURA_DEEP_ROUND_MS`                                    | Default per-round deadline for `obscura_research_start` jobs (default `100000`; range 20000-300000)                    |
-| `OBSCURA_DEEP_PACE_MS`                                     | Default pause between rounds for `obscura_research_start` jobs (default `15000`; doubles on a banned round)            |
-| `OBSCURA_RESEARCH_DIR`                                     | Root for `persist`/`obscura_consolidate`/`obscura_research_start` writes (installer defaults it to `<vault>/RESEARCH`) |
+| Var                                                        | Purpose                                                                                                                                                                      |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OBSCURA_BIN`                                              | Absolute obscura binary path (installer sets it; else `obscura` on PATH)                                                                                                     |
+| `OBSCURA_STEALTH=0`                                        | Disable anti-detection (default on)                                                                                                                                          |
+| `OBSCURA_FETCH_TIMEOUT_MS`                                 | Per-fetch navigation budget (default 30000)                                                                                                                                  |
+| `OBSCURA_FETCH_MAX_CHARS`                                  | Cap on returned page size (default 60000)                                                                                                                                    |
+| `OBSCURA_FETCH_RETRIES`                                    | Extra attempts for a transient `obscura_fetch`/`obscura_fetch_many` failure (default 2; 0 disables retry)                                                                    |
+| `OBSCURA_FETCH_RETRY_BASE_MS`                              | Retry backoff base — attempt N waits `base*2^N` + jitter (default 500)                                                                                                       |
+| `OBSCURA_SEARCH_ENGINES`                                   | Comma list overriding the scrape chain (default `duckduckgo,bing,brave,mojeek,marginalia,ecosia,bing-rss`, rotated in order; `startpage` also available; add/reorder/remove) |
+| `OBSCURA_SEARXNG_URL`                                      | Point search at a SearXNG directly (`""` disables; bypasses on-demand)                                                                                                       |
+| `OBSCURA_SEARXNG_{PORT,PY,SRC,SETTINGS,IDLE_MS,AUTOSTART}` | On-demand SearXNG paths/timing (see `searxng/README.md`)                                                                                                                     |
+| `OBSCURA_RESEARCH_OLLAMA=0`                                | Disable local-LLM curation in `obscura_research` (default on, auto-detected)                                                                                                 |
+| `OBSCURA_OLLAMA_HOST`                                      | Ollama host (default `http://127.0.0.1:11434` — same as `vkm-spec`)                                                                                                          |
+| `OBSCURA_OLLAMA_MODEL`                                     | Curation model (default `phi4-mini:3.8b-q4_K_M` — chosen by bake-off, ADR-0057 fifth addendum)                                                                               |
+| `OBSCURA_OLLAMA_EXPAND_MODEL`                              | Query-expansion model (default `qwen3.5:4b-q4_K_M` — deliberately not the curation model)                                                                                    |
+| `OBSCURA_EXPAND_CACHE_TTL_MS`                              | How long a repeated `expandQuery`/`translateQuery` call is served from cache instead of re-dialing Ollama (default `600000`)                                                 |
+| `OBSCURA_OLLAMA_EMBED_MODEL`                               | Embedding model for `dedupe_similar`/`diversify` (default `qwen3-embedding:0.6b`)                                                                                            |
+| `OBSCURA_OLLAMA_KEEP_ALIVE`                                | How long Ollama keeps the model loaded after a research call (default `5m`)                                                                                                  |
+| `OBSCURA_RESEARCH_DEADLINE_MS`                             | Wall-clock budget for one `obscura_research` call (default `50000`; the MCP wall is 60000)                                                                                   |
+| `OBSCURA_RESEARCH_CONCURRENCY`                             | Concurrent page fetches during research (default 4)                                                                                                                          |
+| `OBSCURA_RESEARCH_HOST_CAP`                                | Max candidates any one host may hold in the fused pool's head (default 3; 0 disables)                                                                                        |
+| `OBSCURA_RESEARCH_NEAR_DUP_THRESHOLD`                      | Cosine similarity above which `dedupe_similar` treats two pages as duplicates (default 0.92)                                                                                 |
+| `OBSCURA_SUBQUERY_CONCURRENCY`                             | Concurrent SearXNG sub-queries during expansion (default 2 — ban-avoidance, not just speed)                                                                                  |
+| `OBSCURA_SEARXNG_CATEGORIES`                               | Default SearXNG categories for research (default `general,it,science`)                                                                                                       |
+| `OBSCURA_RESEARCH_DROP_BELOW`                              | Curator relevance floor below which a page is dropped (default `3` of 10)                                                                                                    |
+| `OBSCURA_SEARXNG_CACHE_TTL_MS`                             | How long a SearXNG search response is cached inside `obscura_research` (default `600000`)                                                                                    |
+| `OBSCURA_RESEARCH_FETCH_CACHE_TTL_MS`                      | How long a fetched page is cached inside `obscura_research` (default `300000`)                                                                                               |
+| `OBSCURA_RESPECT_ROBOTS=0`                                 | Disable robots.txt compliance in the research crawl (default on; never affects `obscura_fetch`)                                                                              |
+| `OBSCURA_ROBOTS_CACHE_TTL_MS`                              | How long a host's robots.txt is cached (default `3600000`, 1h)                                                                                                               |
+| `OBSCURA_DEEP_ROUND_MS`                                    | Default per-round deadline for `obscura_research_start` jobs (default `100000`; range 20000-300000)                                                                          |
+| `OBSCURA_DEEP_PACE_MS`                                     | Default pause between rounds for `obscura_research_start` jobs (default `15000`; doubles on a banned round)                                                                  |
+| `OBSCURA_RESEARCH_DIR`                                     | Root for `persist`/`obscura_consolidate`/`obscura_research_start` writes (installer defaults it to `<vault>/RESEARCH`)                                                       |
+| `OBSCURA_SEARCH_CACHE_TTL_MS`                              | TTL for `obscura_search`'s own per-query cache (default `300000`); `0` is valid ("never fresh, only ever stale-serve")                                                       |
+| `OBSCURA_CACHE_DIR`                                        | Persist the search/SearXNG/fetch caches to disk here (opt-in; unset = in-memory only, the pre-existing default)                                                              |
+| `OBSCURA_CIRCUIT_FAILURE_THRESHOLD`                        | Consecutive fetch failures on one host before `obscura_research`/`obscura_crawl_start` stop trying it for this call (default 3)                                              |
+| `OBSCURA_CIRCUIT_COOLDOWN_MS`                              | How long a host's circuit stays open once it trips (default `60000`)                                                                                                         |
 
 ## Security
 
@@ -439,6 +558,15 @@ timers or network — covering round pacing, lead near-dup filtering, the single
 frozen SearXNG fixtures (`evals/research/`) and asserts it holds its measured retrieval floor — see
 `packages/obscura-web/src/bench-run.mjs` for the full per-arm decomposition and
 `docs/adr/0057-obscura-research-gather-over-rank.md` for what it measured.
+
+Also covered: `obscura_fetch`'s retry/backoff on a transient failure and non-retry on `ENOENT`/a
+permanent error (`test/obscura-cli.test.mjs`); the `expandQuery`/`translateQuery` cache's hit/miss/
+never-caches-a-throw contract (`test/expand-query.test.mjs`, `test/ollama-client.test.mjs`); the
+Yahoo/Qwant engine registrations (`test/serp.test.mjs`); the SERP-parser canary's per-engine ok/fail
+logic against injected fixtures, no live network (`test/canary.test.mjs`); the disk-cache primitives
+— atomic write, corrupt/missing-file degradation — in isolation (`test/persistent-cache.test.mjs`);
+and the stale-serve fallback end-to-end (a live failure with a pre-existing cache entry is served
+instead of erroring) in both `test/serp.test.mjs` and `test/research.test.mjs`.
 
 ## License
 

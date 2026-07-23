@@ -241,6 +241,113 @@ test("obscura_search: a total failure steers to native WebSearch (isError)", asy
   assert.match(textOf(res), /native WebSearch/);
 });
 
+test("obscura_search translates a non-English query to English before searching", async () => {
+  let searchedQuery;
+  const searchImpl = async (q) => {
+    searchedQuery = q;
+    return { source: "searxng", results: [{ title: "T", url: "https://a", snippet: "s" }] };
+  };
+  const translateImpl = async () => ({ query: "windows latency optimization", translated: true });
+  const client = await connect({
+    searchImpl,
+    translateImpl,
+    ensureImpl: async () => null,
+    logImpl: () => {}
+  });
+  const res = await client.callTool({
+    name: "obscura_search",
+    arguments: { query: "optimización de latencia en windows" }
+  });
+  const data = JSON.parse(textOf(res));
+  assert.equal(
+    searchedQuery,
+    "windows latency optimization",
+    "the SERP is queried with the translation"
+  );
+  assert.equal(data.query, "windows latency optimization");
+  assert.equal(data.translatedFrom, "optimización de latencia en windows");
+});
+
+test("obscura_search does NOT translate an English-looking query (gate skips the model call)", async () => {
+  let translateCalled = false;
+  let searchedQuery;
+  const searchImpl = async (q) => {
+    searchedQuery = q;
+    return { source: "bing", results: [] };
+  };
+  const translateImpl = async () => {
+    translateCalled = true;
+    return { query: "x", translated: true };
+  };
+  const client = await connect({
+    searchImpl,
+    translateImpl,
+    ensureImpl: async () => null,
+    logImpl: () => {}
+  });
+  const res = await client.callTool({
+    name: "obscura_search",
+    arguments: { query: "cpu tuning guide windows" }
+  });
+  const data = JSON.parse(textOf(res));
+  assert.equal(translateCalled, false, "an English-looking query never reaches the translator");
+  assert.equal(searchedQuery, "cpu tuning guide windows");
+  assert.equal(data.translatedFrom, undefined);
+});
+
+test("obscura_search: translate:false searches verbatim even for a non-English query", async () => {
+  let translateCalled = false;
+  let searchedQuery;
+  const searchImpl = async (q) => {
+    searchedQuery = q;
+    return { source: "bing", results: [] };
+  };
+  const translateImpl = async () => {
+    translateCalled = true;
+    return { query: "x", translated: true };
+  };
+  const client = await connect({
+    searchImpl,
+    translateImpl,
+    ensureImpl: async () => null,
+    logImpl: () => {}
+  });
+  await client.callTool({
+    name: "obscura_search",
+    arguments: { query: "optimización de latencia", translate: false }
+  });
+  assert.equal(translateCalled, false);
+  assert.equal(searchedQuery, "optimización de latencia");
+});
+
+test("obscura_search: a translation failure degrades to the original query", async () => {
+  let searchedQuery;
+  const searchImpl = async (q) => {
+    searchedQuery = q;
+    return { source: "bing", results: [] };
+  };
+  const translateImpl = async () => {
+    throw new Error("ollama down");
+  };
+  const client = await connect({
+    searchImpl,
+    translateImpl,
+    ensureImpl: async () => null,
+    logImpl: () => {}
+  });
+  const res = await client.callTool({
+    name: "obscura_search",
+    arguments: { query: "optimización de latencia" }
+  });
+  const data = JSON.parse(textOf(res));
+  assert.equal(
+    searchedQuery,
+    "optimización de latencia",
+    "translation is best-effort, search still runs"
+  );
+  assert.equal(data.translatedFrom, undefined);
+});
+
 test("obscura_research returns scanned/fetched counts, ranked results, and _trust", async () => {
   const researchImpl = async () => ({
     source: "searxng",
