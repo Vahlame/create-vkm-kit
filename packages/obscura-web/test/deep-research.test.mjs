@@ -90,6 +90,11 @@ const okPersist = async ({ results }) => ({
   written: (results ?? []).filter((r) => r && r.url).length,
   updated: 0
 });
+// Every existing test predates auto_consolidate (default true); without an explicit stub they'd
+// fall through to the REAL consolidateTopic in runJob's finally (harmless today — it fails fast
+// on a missing/irrelevant research root — but not the "no real I/O" determinism this file's
+// header comment promises). Threaded into every deps object below for that reason.
+const okConsolidate = async () => ({ wrote: "/fake/RESEARCH/topic/summary.md", sources_read: 0 });
 
 test("seeds run FIFO; a lead is enqueued with depth+1, parent, kind and why carried", async () => {
   const clock = makeClock();
@@ -119,6 +124,7 @@ test("seeds run FIFO; a lead is enqueued with depth+1, parent, kind and why carr
       reportImpl,
       leadsImpl,
       ensureImpl: okEnsure,
+      consolidateImpl: okConsolidate,
       now: clock.now,
       sleepImpl: clock.sleepImpl
     }
@@ -165,6 +171,7 @@ test("lead dedupe: exact lowercase duplicate and a near-duplicate (similarity>=0
       reportImpl,
       leadsImpl,
       ensureImpl: okEnsure,
+      consolidateImpl: okConsolidate,
       now: clock.now,
       sleepImpl: clock.sleepImpl
     }
@@ -202,6 +209,7 @@ test("no leadsImpl call for an item at depth === maxDepth", async () => {
       reportImpl,
       leadsImpl,
       ensureImpl: okEnsure,
+      consolidateImpl: okConsolidate,
       now: clock.now,
       sleepImpl: clock.sleepImpl
     }
@@ -237,6 +245,7 @@ test("budget exhaustion stops the job with stoppedReason budget_exhausted, repor
       reportImpl,
       leadsImpl: okLeads,
       ensureImpl: okEnsure,
+      consolidateImpl: okConsolidate,
       now: clock.now,
       sleepImpl: clock.sleepImpl
     }
@@ -255,6 +264,188 @@ test("budget exhaustion stops the job with stoppedReason budget_exhausted, repor
   assert.equal(snap.frontierSize, 2, "s2 and s3 remain as resumable pending leads");
   assert.equal(reportCalls.length, 1);
   assert.ok(snap.report);
+});
+
+test("auto_continue extends the SAME job's budget once (to maxTotalMs) instead of stopping at budget_exhausted", async () => {
+  const clock = makeClock();
+  const { reportImpl } = makeReportCapture();
+  // Each round burns exactly the original 60s budget, same shape as the sibling
+  // budget_exhausted test above — the only difference is autoContinue/maxTotalMs.
+  const researchImpl = async () => {
+    clock.advance(60_000);
+    return { source: "searxng", scanned: 1, fetched: 0, results: [] };
+  };
+
+  const { id } = startResearchJob(
+    {
+      objective: "obj",
+      topics: ["s1", "s2", "s3", "s4"],
+      topic: "auto-continue-topic",
+      budgetMs: 60_000,
+      paceMs: 0,
+      autoContinue: true,
+      maxTotalMs: 180_000
+    },
+    {
+      researchImpl,
+      persistImpl: okPersist,
+      coveredHashesImpl: okCovered,
+      reportImpl,
+      leadsImpl: okLeads,
+      ensureImpl: okEnsure,
+      consolidateImpl: okConsolidate,
+      now: clock.now,
+      sleepImpl: clock.sleepImpl
+    }
+  );
+
+  const snap = await waitForDone(id);
+  // Without auto_continue this would have stopped after round 1 (see the budget_exhausted test
+  // above) — the extension is what let s2 and s3 also run before the new ceiling was reached.
+  assert.equal(snap.state, "done-partial");
+  assert.equal(snap.stoppedReason, "max_total_time_exhausted");
+  assert.equal(snap.roundsTotal, 3, "extended budget let 2 extra rounds run past the original 60s");
+  assert.equal(snap.frontierSize, 1, "s4 never got its turn once maxTotalMs (180s) was reached");
+  assert.equal(snap.budgetMs, 180_000, "budgetMs reflects the extended ceiling");
+  assert.equal(snap.originalBudgetMs, 60_000, "the pre-extension budget stays visible");
+});
+
+test("auto_continue off by default: byte-identical to budget_exhausted, no originalBudgetMs on the snapshot", async () => {
+  const clock = makeClock();
+  const { reportImpl } = makeReportCapture();
+  const researchImpl = async () => {
+    clock.advance(60_000);
+    return { source: "searxng", scanned: 1, fetched: 0, results: [] };
+  };
+  const { id } = startResearchJob(
+    {
+      objective: "obj",
+      topics: ["s1", "s2"],
+      topic: "no-auto-continue-topic",
+      budgetMs: 60_000,
+      paceMs: 0
+    },
+    {
+      researchImpl,
+      persistImpl: okPersist,
+      coveredHashesImpl: okCovered,
+      reportImpl,
+      leadsImpl: okLeads,
+      ensureImpl: okEnsure,
+      consolidateImpl: okConsolidate,
+      now: clock.now,
+      sleepImpl: clock.sleepImpl
+    }
+  );
+  const snap = await waitForDone(id);
+  assert.equal(snap.stoppedReason, "budget_exhausted");
+  assert.equal(snap.roundsTotal, 1);
+  assert.equal(snap.originalBudgetMs, undefined);
+});
+
+test("auto_consolidate runs best-effort after the report; a failing consolidateImpl never flips job.state", async () => {
+  const clock = makeClock();
+  const { reportImpl } = makeReportCapture();
+  const consolidateCalls = [];
+  const consolidateImpl = async ({ topic, force, researchDir }) => {
+    consolidateCalls.push({ topic, force, researchDir });
+    throw new Error("Ollama is unavailable");
+  };
+
+  const { id } = startResearchJob(
+    {
+      objective: "obj",
+      topics: ["only seed"],
+      topic: "consolidate-topic",
+      researchDir: "/fake/dir"
+    },
+    {
+      researchImpl: emptyResearch,
+      persistImpl: okPersist,
+      coveredHashesImpl: okCovered,
+      reportImpl,
+      leadsImpl: okLeads,
+      ensureImpl: okEnsure,
+      consolidateImpl,
+      now: clock.now,
+      sleepImpl: clock.sleepImpl
+    }
+  );
+
+  const snap = await waitForDone(id);
+  assert.equal(consolidateCalls.length, 1);
+  assert.deepEqual(consolidateCalls[0], {
+    topic: "consolidate-topic",
+    force: true,
+    researchDir: "/fake/dir"
+  });
+  assert.equal(snap.state, "done", "a failing best-effort consolidate must never flip job.state");
+  assert.equal(snap.consolidateError, "Ollama is unavailable");
+  assert.equal(snap.consolidateResult, undefined);
+});
+
+test("auto_consolidate success populates consolidateResult on the snapshot", async () => {
+  const clock = makeClock();
+  const { reportImpl } = makeReportCapture();
+  const consolidateImpl = async () => ({
+    wrote: "/fake/RESEARCH/consolidate-ok-topic/summary.md",
+    sources_read: 7
+  });
+
+  const { id } = startResearchJob(
+    { objective: "obj", topics: ["only seed"], topic: "consolidate-ok-topic" },
+    {
+      researchImpl: emptyResearch,
+      persistImpl: okPersist,
+      coveredHashesImpl: okCovered,
+      reportImpl,
+      leadsImpl: okLeads,
+      ensureImpl: okEnsure,
+      consolidateImpl,
+      now: clock.now,
+      sleepImpl: clock.sleepImpl
+    }
+  );
+
+  const snap = await waitForDone(id);
+  assert.deepEqual(snap.consolidateResult, {
+    wrote: "/fake/RESEARCH/consolidate-ok-topic/summary.md",
+    sources_read: 7
+  });
+  assert.equal(snap.consolidateError, undefined);
+});
+
+test("auto_consolidate:false skips the consolidateImpl call entirely", async () => {
+  const clock = makeClock();
+  const { reportImpl } = makeReportCapture();
+  let called = false;
+  const consolidateImpl = async () => {
+    called = true;
+    return { wrote: "x", sources_read: 0 };
+  };
+
+  const { id } = startResearchJob(
+    {
+      objective: "obj",
+      topics: ["only seed"],
+      topic: "no-consolidate-topic",
+      autoConsolidate: false
+    },
+    {
+      researchImpl: emptyResearch,
+      persistImpl: okPersist,
+      coveredHashesImpl: okCovered,
+      reportImpl,
+      leadsImpl: okLeads,
+      ensureImpl: okEnsure,
+      consolidateImpl,
+      now: clock.now,
+      sleepImpl: clock.sleepImpl
+    }
+  );
+
+  await waitForDone(id);
+  assert.equal(called, false);
 });
 
 test("two consecutive banned rounds trigger a cooldown (not a terminal stop); banned queries retry and the job recovers to done", async () => {
@@ -291,6 +482,7 @@ test("two consecutive banned rounds trigger a cooldown (not a terminal stop); ba
       reportImpl,
       leadsImpl: okLeads,
       ensureImpl: okEnsure,
+      consolidateImpl: okConsolidate,
       now: clock.now,
       sleepImpl: clock.sleepImpl
     }
@@ -335,6 +527,7 @@ test("stopResearchJob mid-run: graceful — the in-flight round finishes, then s
       reportImpl,
       leadsImpl: okLeads,
       ensureImpl: okEnsure,
+      consolidateImpl: okConsolidate,
       now: clock.now,
       sleepImpl: clock.sleepImpl
     }
@@ -374,6 +567,7 @@ test("a second startResearchJob while one is running throws job_active; allowed 
       reportImpl,
       leadsImpl: okLeads,
       ensureImpl: okEnsure,
+      consolidateImpl: okConsolidate,
       now: clock.now,
       sleepImpl: clock.sleepImpl
     }
@@ -392,6 +586,7 @@ test("a second startResearchJob while one is running throws job_active; allowed 
           reportImpl,
           leadsImpl: okLeads,
           ensureImpl: okEnsure,
+          consolidateImpl: okConsolidate,
           now: clock.now,
           sleepImpl: clock.sleepImpl
         }
@@ -412,6 +607,7 @@ test("a second startResearchJob while one is running throws job_active; allowed 
       reportImpl,
       leadsImpl: okLeads,
       ensureImpl: okEnsure,
+      consolidateImpl: okConsolidate,
       now: clock.now,
       sleepImpl: clock.sleepImpl
     }
@@ -442,6 +638,7 @@ test("persistImpl throwing ResearchPersistError(missing_root) is fatal: state fa
       reportImpl,
       leadsImpl: okLeads,
       ensureImpl: okEnsure,
+      consolidateImpl: okConsolidate,
       now: clock.now,
       sleepImpl: clock.sleepImpl
     }
@@ -475,6 +672,7 @@ test("leadsImpl throwing increments totals.leadsFailed and the loop continues", 
       reportImpl,
       leadsImpl,
       ensureImpl: okEnsure,
+      consolidateImpl: okConsolidate,
       now: clock.now,
       sleepImpl: clock.sleepImpl
     }
@@ -514,6 +712,7 @@ test("round 2's researchImpl receives excludeHashes containing hash8 of a URL pe
       reportImpl,
       leadsImpl: okLeads,
       ensureImpl: okEnsure,
+      consolidateImpl: okConsolidate,
       now: clock.now,
       sleepImpl: clock.sleepImpl
     }
@@ -616,6 +815,76 @@ test("renderRunReport: all required sections present, empty leads render (none),
   );
 });
 
+test("renderRunReport: Top findings are grouped by originating query, groups in relevance order", () => {
+  const job = {
+    topic: "grouping-topic",
+    objective: "obj",
+    topics: ["seedA", "seedB"],
+    startedAtMs: 0,
+    finishedAtMs: 1000,
+    budgetMs: 900_000,
+    rounds: [],
+    totals: { rounds: 0, fetched: 0, curated: 0, persistedWritten: 0, persistedUpdated: 0 },
+    topFindings: [
+      { title: "Best B", url: "https://b.example/1", relevance: 9, reason: "top", query: "seedB" },
+      {
+        title: "Good A",
+        url: "https://a.example/1",
+        relevance: 8,
+        reason: "solid",
+        query: "seedA"
+      },
+      { title: "Second B", url: "https://b.example/2", relevance: 6, query: "seedB" }
+    ],
+    frontier: [],
+    stoppedReason: "frontier_empty",
+    nowImpl: () => 1000
+  };
+
+  const md = renderRunReport(job);
+  const section = md.split("## Top findings")[1].split("## Unexplored leads")[0];
+
+  const bIdx = section.indexOf("### seedB");
+  const aIdx = section.indexOf("### seedA");
+  assert.ok(bIdx >= 0 && aIdx >= 0, "both query subheadings must be present");
+  assert.ok(bIdx < aIdx, "seedB's group comes first — it has the single highest-relevance finding");
+  assert.ok(
+    section.indexOf("Best B") < section.indexOf("Second B"),
+    "within a group, findings stay in relevance order"
+  );
+  assert.ok(section.includes("**Best B**"), "title is bolded");
+  assert.ok(!section.includes(" — top"), "reason moves to its own indented line, not inline");
+});
+
+test("renderRunReport: budget-extension frontmatter only appears when auto_continue actually extended it", () => {
+  const baseJob = {
+    topic: "ext-topic",
+    objective: "obj",
+    topics: ["seedA"],
+    startedAtMs: 0,
+    finishedAtMs: 1000,
+    rounds: [],
+    totals: { rounds: 0, fetched: 0, curated: 0, persistedWritten: 0, persistedUpdated: 0 },
+    topFindings: [],
+    frontier: [],
+    stoppedReason: "max_total_time_exhausted",
+    nowImpl: () => 1000
+  };
+
+  const extended = renderRunReport({
+    ...baseJob,
+    budgetMs: 3_600_000,
+    originalBudgetMs: 900_000,
+    budgetExtended: true
+  });
+  assert.ok(extended.includes("original_budget_ms: 900000"));
+  assert.ok(extended.includes("auto_continue: true"));
+
+  const notExtended = renderRunReport({ ...baseJob, budgetMs: 900_000, budgetExtended: false });
+  assert.ok(!notExtended.includes("original_budget_ms"));
+  assert.ok(!notExtended.includes("auto_continue: true"));
+});
+
 test("snapshot is JSON.stringify-safe; rounds are capped at 20 with roundsTotal correct; invalid params throw synchronously", async () => {
   assert.throws(
     () => startResearchJob({ objective: "", topics: ["a"], topic: "t" }),
@@ -671,6 +940,7 @@ test("snapshot is JSON.stringify-safe; rounds are capped at 20 with roundsTotal 
       reportImpl,
       leadsImpl,
       ensureImpl: okEnsure,
+      consolidateImpl: okConsolidate,
       now: clock.now,
       sleepImpl: clock.sleepImpl
     }
