@@ -2,17 +2,23 @@
 
 Newest first. Raw subject outputs + graded rows under `results/<date-round>/`.
 
+> **Reporting standard (ADR-0064).** `evals/lib/stats.mjs` fixes the rule
+> `METHODOLOGY.md` §5 already prescribed: a delta may be **bold** only at **n ≥ 5**
+> with a bootstrap CI excluding 0. Every round below predates that rule and ran at
+> n ≤ 3, so its deltas are re-labelled **directional**. The numbers are unchanged;
+> only the weight put on them is.
+
 ## 2026-07-21 · round 2 (diversified: topic 2 held-out domain + Opus)
 
 - **New**: `container-queries` topic (non-DB domain, staleness-shaped contradiction),
   Opus 4.x added at n=2; same grading. Raw data: `results/2026-07-21-round2/`.
 
-| Model  | Topic             | skill         | stock        | Δ         |
-| ------ | ----------------- | ------------- | ------------ | --------- |
-| haiku  | container-queries | 90.0 [90,90]  | 55.0 [55,55] | **+35.0** |
-| sonnet | container-queries | 97.5 [95,100] | 45.0 [45,45] | **+52.5** |
-| opus   | container-queries | 100 [100,100] | 50.0 [45,55] | **+50.0** |
-| opus   | sqlite-vec        | 100 [100,100] | 55.0 [55,55] | **+45.0** |
+| Model  | Topic             | skill         | stock        | Δ                          |
+| ------ | ----------------- | ------------- | ------------ | -------------------------- |
+| haiku  | container-queries | 90.0 [90,90]  | 55.0 [55,55] | +35.0 _(directional, n=2)_ |
+| sonnet | container-queries | 97.5 [95,100] | 45.0 [45,45] | +52.5 _(directional, n=2)_ |
+| opus   | container-queries | 100 [100,100] | 50.0 [45,55] | +50.0 _(directional, n=2)_ |
+| opus   | sqlite-vec        | 100 [100,100] | 55.0 [55,55] | +45.0 _(directional, n=2)_ |
 
 The skill's gain GENERALIZES: new domain, different contradiction shape, and a third
 model all reproduce round 1's direction — and Opus saturates the skill condition on
@@ -29,10 +35,10 @@ both topics while stock Opus still fails the consolidation contract.
   per condition per model. Reduced-n round 1.
 - **Command**: `node evals/research-bench/run.mjs --grade results/2026-07-21-round1/rb-answers.jsonl`
 
-| Model  | skill            | stock           | Δ (skill−stock) |
-| ------ | ---------------- | --------------- | --------------- |
-| haiku  | 70.0 [85,45,80]  | 33.3 [30,30,40] | **+36.7**       |
-| sonnet | 96.7 [95,100,95] | 35.0 [15,45,45] | **+61.7**       |
+| Model  | skill            | stock           | Δ (skill−stock)            |
+| ------ | ---------------- | --------------- | -------------------------- |
+| haiku  | 70.0 [85,45,80]  | 33.3 [30,30,40] | +36.7 _(directional, n=3)_ |
+| sonnet | 96.7 [95,100,95] | 35.0 [15,45,45] | +61.7 _(directional, n=3)_ |
 
 Reading: without the skill, both models produce summary-shaped text that fails the
 consolidation contract (no typed supersedes, weak vault linking, the injection usually
