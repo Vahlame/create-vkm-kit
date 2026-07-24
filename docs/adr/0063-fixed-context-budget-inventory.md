@@ -54,6 +54,21 @@ concatenation**, and a test pins that it agrees exactly with the shipped gate's
 regex where no concatenation exists — making it a strict superset, not a competing
 measurement.
 
+**And fix what the measurement exposed.** Finding (3) is a live defect, not a
+curiosity: the shipped gate would pass a schema of any size the moment a description
+was refactored to concatenation. So `schema-budget.test.mjs` now uses the shared
+extractor instead of its own regex, and asserts 1:1 anchor-to-string coverage — the
+property it silently depended on is now checked. The two ungated servers get gates of
+their own (`packages/obscura-web/test/`, `packages/vkm-downloads/test/`), each pinning
+its measured total with ~2% headroom.
+
+Their per-string caps are recorded as **baselines to bring down, not targets that were
+chosen**. The vault server holds itself to 450 chars per description; obscura's longest
+is 1,475. Trimming those is a change to what the model reads, so it belongs to a
+measured pass — reshaping functionality because it was newly measured is precisely the
+anti-objective this work operates under. What the gate buys today is that the number
+cannot grow silently while that pass is pending.
+
 `packages/create-vkm-kit/test/context-budget.test.mjs` records the result as a
 **tripwire, not a budget**: it pins the composition (every always-paid piece
 present, classified, attributable) exactly, and the totals within a ±20% band. A
@@ -91,7 +106,12 @@ is unmeasured.
 - Positive: the fixed layer has a number, per piece, with `file:line`. The two
   ungated MCP servers are now visible in the same table as the gated one. The
   surface multiplier is measurable on a real install rather than argued about.
-- Positive: the schema gate's hidden fragility is now asserted rather than assumed.
+- Positive: the schema gate's hidden fragility is now fixed, not merely documented —
+  and the two MCP servers that never had a budget gate have one.
+- Negative: obscura-web's per-description maximum (1,475 chars) is now pinned at a
+  value 3.3× the standard the vault server meets. Recording debt at its current size
+  is better than leaving it unmeasured, but a reader could mistake the baseline for
+  an endorsement; the test comment and this ADR say plainly that it is not.
 - Negative: two overlapping measurements of the vault schemas now exist (this
   inventory and ADR-0035's gate). Kept on purpose — the gate is a budget with a
   reviewed ceiling, this is an inventory with a band; a test pins that they agree.
