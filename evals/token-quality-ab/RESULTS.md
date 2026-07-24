@@ -3,6 +3,12 @@
 Newest first. Decision rule is pre-registered in `README.md`; raw answers under
 `results/<date-round>/`.
 
+> **Reporting standard (ADR-0064).** This bench is the one that already did it right —
+> the decision rule was pre-registered before the first run and the verdict is reported
+> against it, which is the pattern `evals/lib/stats.mjs` now generalizes. Round 1 (n=9)
+> clears the n ≥ 5 floor and keeps its weight. Round 2 ran at n=2, so its deltas are
+> re-labelled **directional**; the KEEP verdict rests on round 1, not on it.
+
 ## 2026-07-21 · round 2 · ADVERSARIAL diag fixture (etl-silent-drift) + Opus
 
 The new fixture's decisive lines carry NO classic error keyword — it caught the hook
@@ -10,11 +16,11 @@ dropping them outright before any model ran (fixed: drift-shaped keywords + bloc
 rescue; the CI gate now pins it). This round measures the FIXED hook. n=2/cell,
 three models. Raw data: `results/2026-07-21-round2/`.
 
-| Model  | A (compacted) | B (raw)       | delta   |
-| ------ | ------------- | ------------- | ------- |
-| haiku  | 25 [50,0]     | 25 [50,0]     | **0.0** |
-| sonnet | 100 [100,100] | 100 [100,100] | **0.0** |
-| opus   | 100 [100,100] | 100 [100,100] | **0.0** |
+| Model  | A (compacted) | B (raw)       | delta                    |
+| ------ | ------------- | ------------- | ------------------------ |
+| haiku  | 25 [50,0]     | 25 [50,0]     | 0.0 _(directional, n=2)_ |
+| sonnet | 100 [100,100] | 100 [100,100] | 0.0 _(directional, n=2)_ |
+| opus   | 100 [100,100] | 100 [100,100] | 0.0 _(directional, n=2)_ |
 
 Verdict unchanged: **KEEP**. Haiku's low absolute scores are symmetric across arms —
 task difficulty (a one-cent silent drift), not information loss; compaction again cost

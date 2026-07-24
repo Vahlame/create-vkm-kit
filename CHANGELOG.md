@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Shared eval statistics + an executable reporting rule** (`evals/lib/stats.mjs`, ADR-0064) —
+  `METHODOLOGY.md` §5 has always prescribed replicas, confidence intervals and effect sizes, and
+  nothing in the repo computed any of them; the result was **18 bold deltas across the benches, all
+  at n ≤ 3**. The new module provides a seeded (reproducible) bootstrap CI, Cliff's delta with
+  magnitude bands, Hedges' g, and `classify()` / `formatDelta()`, which apply the rule: `n < 5` →
+  `directional` (never bold), `n ≥ 5` with a CI excluding 0 and clearing a pre-registered ε →
+  `significant` (bold), otherwise `inconclusive`. Bold is emitted by code, so it can no longer be
+  written by hand off two runs. `evals/` is not an npm workspace, so `npm test --workspaces` never
+  covered it — the `lint` job now runs `node --test evals/lib/stats.test.mjs` (pure computation, no
+  OS surface, so the deterministic ubuntu job rather than the 3-OS matrix).
 - **Seed-URL site crawler** (`obscura_crawl_start` / `obscura_crawl_status` /
   `obscura_crawl_stop`, ADR-0062) — the complement to `obscura_research`: it follows a site's own
   internal `<a href>` links breadth-first from your seed URLs (not search-engine results), to
@@ -76,6 +86,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Every pre-existing `RESULTS.md` re-labelled against the ADR-0064 reporting rule** — each bench
+  gains a banner stating the standard, and its under-powered deltas are re-labelled `directional`.
+  **No measurement changed**; only the weight placed on it. `implementer-bench` needed no change (it
+  already declined to claim a verdict at n=3) and `token-quality-ab`'s n=9 round keeps its weight.
 - **`obscura_search` / `obscura_research` scrape-chain now rotates across many engines**
   (ADR-0051 amendment). `DEFAULT_CHAIN` went from DuckDuckGo-only to
   `duckduckgo → bing → brave → mojeek → marginalia → ecosia → bing-rss`: when one engine is
