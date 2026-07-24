@@ -1,5 +1,13 @@
 # Results — design-bench
 
+> **Reporting standard (ADR-0064).** `evals/lib/stats.mjs` fixes the rule
+> `METHODOLOGY.md` §5 already prescribed: a delta may be **bold** only at **n ≥ 5**
+> with a bootstrap CI excluding 0. Every round below predates that rule and ran at
+> n ≤ 3, so its deltas are re-labelled **directional** — reportable, and honest about
+> what they are, but never a decision on their own. The numbers are unchanged; only
+> the weight put on them is. Re-running these cells at n ≥ 5 is tracked as follow-up
+> work, not silently pending.
+
 ## 2026-07-21 · AUTO round 1 (mechanical score, multi-model, held-out brief)
 
 First round of the automated harness (`run.mjs`): score 0–100 from the skill's own
@@ -9,14 +17,14 @@ Subjects: Agent-tool `haiku`/`sonnet` (n=2) and `opus` (n=1). Briefs: `facturio`
 classic slop attractor) and `kelpwatch` (**held-out** — written for the harness, never
 used to tune the skill). Raw HTML + scores: `results/2026-07-21-round1/`.
 
-| Model      | Brief                | skill         | stock        | Δ            |
-| ---------- | -------------------- | ------------- | ------------ | ------------ |
-| sonnet     | facturio             | 75.0 [50,100] | 15.0 [10,20] | **+60.0**    |
-| sonnet     | kelpwatch (held-out) | 70.0 [90,50]  | 40.0 [40,40] | **+30.0**    |
-| opus (n=1) | facturio             | 60            | 0            | **+60**      |
-| opus (n=1) | kelpwatch (held-out) | 100           | 60           | **+40**      |
-| haiku      | facturio             | 35.0 [30,40]  | 30.0 [40,20] | +5.0 (noise) |
-| haiku      | kelpwatch (held-out) | 80.0 [80,80]  | 80.0 [80,80] | 0            |
+| Model      | Brief                | skill         | stock        | Δ                          |
+| ---------- | -------------------- | ------------- | ------------ | -------------------------- |
+| sonnet     | facturio             | 75.0 [50,100] | 15.0 [10,20] | +60.0 _(directional, n=2)_ |
+| sonnet     | kelpwatch (held-out) | 70.0 [90,50]  | 40.0 [40,40] | +30.0 _(directional, n=2)_ |
+| opus (n=1) | facturio             | 60            | 0            | +60 _(directional, n=1)_   |
+| opus (n=1) | kelpwatch (held-out) | 100           | 60           | +40 _(directional, n=1)_   |
+| haiku      | facturio             | 35.0 [30,40]  | 30.0 [40,20] | +5.0 (noise)               |
+| haiku      | kelpwatch (held-out) | 80.0 [80,80]  | 80.0 [80,80] | 0                          |
 
 Reading: the big models gain hugely from the skill — most on the slop-attractor brief
 (stock Opus scored 0 on facturio: full fingerprint + failing declared contrast) — and

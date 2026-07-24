@@ -1,19 +1,26 @@
 # Results — /vkm-discipline mini-bench
 
+> **Reporting standard (ADR-0064).** `evals/lib/stats.mjs` fixes the rule
+> `METHODOLOGY.md` §5 already prescribed: a delta may be **bold** only at **n ≥ 5**
+> with a bootstrap CI excluding 0. Every round below predates that rule and ran at
+> n ≤ 3, so its deltas are re-labelled **directional**. The numbers are unchanged;
+> only the weight put on them is. This bench's grading is execution-based (hidden
+> tests), so its instruments are sound — what is missing is replicas, not rigor.
+
 ## 2026-07-21 · round 2 (NEW under-specified tasks incl. held-out, + Opus)
 
 Two new instruments (parse-duration good=100/naive=44; merge-intervals good=100/naive=71,
 **held-out** — written after the skill's last edit). n=2/cell.
 Raw data: `results/2026-07-21-round2/`.
 
-| Task                       | Model  | stock        | +discipline   | Δ                    |
-| -------------------------- | ------ | ------------ | ------------- | -------------------- |
-| parse-duration             | haiku  | 47.0 [50,44] | 44.0 [44,44]  | −3.0 (within spread) |
-| parse-duration             | sonnet | 78.0 [75,81] | 97.0 [94,100] | **+19.0**            |
-| parse-duration             | opus   | 69.0 [50,88] | 100 [100,100] | **+31.0**            |
-| merge-intervals (held-out) | haiku  | 71.0 [71,71] | 71.5 [64,79]  | +0.5 (noise)         |
-| merge-intervals (held-out) | sonnet | 79.0 [79,79] | 100 [100,100] | **+21.0**            |
-| merge-intervals (held-out) | opus   | 75.0 [71,79] | 100 [100,100] | **+25.0**            |
+| Task                       | Model  | stock        | +discipline   | Δ                          |
+| -------------------------- | ------ | ------------ | ------------- | -------------------------- |
+| parse-duration             | haiku  | 47.0 [50,44] | 44.0 [44,44]  | −3.0 (within spread)       |
+| parse-duration             | sonnet | 78.0 [75,81] | 97.0 [94,100] | +19.0 _(directional, n=2)_ |
+| parse-duration             | opus   | 69.0 [50,88] | 100 [100,100] | +31.0 _(directional, n=2)_ |
+| merge-intervals (held-out) | haiku  | 71.0 [71,71] | 71.5 [64,79]  | +0.5 (noise)               |
+| merge-intervals (held-out) | sonnet | 79.0 [79,79] | 100 [100,100] | +21.0 _(directional, n=2)_ |
+| merge-intervals (held-out) | opus   | 75.0 [71,79] | 100 [100,100] | +25.0 _(directional, n=2)_ |
 
 New and honest: on these HARDER hidden contracts the big models gain strongly
 (including on the held-out task — no tuning contamination), while Haiku is flat to
@@ -30,12 +37,12 @@ and the third-person trigger description. Subjects: Claude Code Agent-tool `haik
 PROMPT-underspec.md; **n=3 replicas per cell**, hidden-test grading unchanged. Raw
 solutions + scores: `results/2026-07-21-round1/`.
 
-| Task (variant)                  | Model  | stock           | +discipline           | Δ         |
-| ------------------------------- | ------ | --------------- | --------------------- | --------- |
-| parse-range (explicit)          | Haiku  | 100             | 100                   | 0         |
-| parse-range (explicit)          | Sonnet | 100             | 100                   | 0         |
-| dedupe-emails (under-specified) | Haiku  | 47.0 [50,33,58] | **91.7** [75,100,100] | **+44.7** |
-| dedupe-emails (under-specified) | Sonnet | 83.0 [83,83,83] | 83.0 [83,83,83]       | 0         |
+| Task (variant)                  | Model  | stock           | +discipline       | Δ                          |
+| ------------------------------- | ------ | --------------- | ----------------- | -------------------------- |
+| parse-range (explicit)          | Haiku  | 100             | 100               | 0                          |
+| parse-range (explicit)          | Sonnet | 100             | 100               | 0                          |
+| dedupe-emails (under-specified) | Haiku  | 47.0 [50,33,58] | 91.7 [75,100,100] | +44.7 _(directional, n=3)_ |
+| dedupe-emails (under-specified) | Sonnet | 83.0 [83,83,83] | 83.0 [83,83,83]   | 0                          |
 
 Replicates the prior pattern with the upgraded skill: explicit contracts saturate (no
 harm), and on the under-specified task the small model gains massively (+44.7) while
@@ -55,13 +62,13 @@ Two prompt variants isolate WHERE discipline matters:
 
 ## parse-range (coding)
 
-| Variant                             | Model  | stock | +discipline | Δ         |
-| ----------------------------------- | ------ | ----- | ----------- | --------- |
-| explicit (contract visible)         | Haiku  | 100   | 100         | 0         |
-| explicit (contract visible)         | Opus   | 100   | 100         | 0         |
-| under-specified (value not visible) | Haiku  | 31    | **87.5**    | **+56.5** |
-| under-specified (value not visible) | Sonnet | 44    | **94**      | **+50**   |
-| under-specified (value not visible) | Opus   | 53.5  | **91**      | **+37.5** |
+| Variant                             | Model  | stock | +discipline | Δ                          |
+| ----------------------------------- | ------ | ----- | ----------- | -------------------------- |
+| explicit (contract visible)         | Haiku  | 100   | 100         | 0                          |
+| explicit (contract visible)         | Opus   | 100   | 100         | 0                          |
+| under-specified (value not visible) | Haiku  | 31    | 87.5        | +56.5 _(directional, n=2)_ |
+| under-specified (value not visible) | Sonnet | 44    | 94          | +50 _(directional, n=2)_   |
+| under-specified (value not visible) | Opus   | 53.5  | 91          | +37.5 _(directional, n=2)_ |
 
 ## Findings
 
