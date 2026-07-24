@@ -24,6 +24,15 @@ when` (`always` / `on-trigger` / `on-call` / `opt-in`) as markdown or `--json`, 
   gate's regex where none exists. Recorded as a **tripwire, not a budget** (composition pinned
   exactly, totals within ±20%): choosing a real ceiling waits for the off-target behavioural number.
   No behaviour changes.
+- **Schema-budget gates for `obscura-web` and `vkm-downloads`, and a hardened one for the vault
+  server** (ADR-0063) — the vault server has been gated since ADR-0035; the other two MCP servers
+  never were, and the larger of them turned out to be the biggest single piece of the fixed layer.
+  All three now share the concatenation-aware extractor and assert 1:1 anchor-to-string coverage, so
+  the gate can no longer silently under-measure (previously a refactor of `hybrid-mcp.mjs` to
+  `"a" + "b"` descriptions would have let a schema of any size through without failing). Per-string
+  maxima for the two new gates **record current debt rather than endorse it**: the vault server
+  holds itself to 450 chars per description, obscura-web's longest is 1,475 — trimming that changes
+  what the model reads, so it belongs to a measured pass, not a drive-by edit.
 - **Seed-URL site crawler** (`obscura_crawl_start` / `obscura_crawl_status` /
   `obscura_crawl_stop`, ADR-0062) — the complement to `obscura_research`: it follows a site's own
   internal `<a href>` links breadth-first from your seed URLs (not search-engine results), to
