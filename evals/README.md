@@ -163,7 +163,48 @@ generalization claims. The known limits, and what the next rounds should vary:
 Each of these is an additive round — the runners, graders and workflow already take
 new tasks/fixtures without structural change.
 
-## 3. Adherence harness (smoke only)
+## 3. Bench arms — the subjects a behavioural A/B compares
+
+`evals/lib/arm-install.mjs` builds a subject with a known subset of the kit installed
+into a throwaway HOME, and **verifies the subset landed**. An arm that installs
+something other than what it declares throws instead of returning a subject.
+
+```bash
+node evals/lib/arm-install.mjs            # build every arm, print its probed layers
+node evals/lib/arm-install.mjs --json
+VKM_ARM_KEEP=1 node evals/lib/arm-install.mjs --arm full   # keep the HOME to inspect
+```
+
+| Arm          | Carries                                                                     |
+| ------------ | --------------------------------------------------------------------------- |
+| `off`        | nothing — the installer never runs. The control.                            |
+| `core`       | rules block, `core` level only                                              |
+| `standard`   | rules block, `core` + `memory`                                              |
+| `rules-full` | rules block, all three levels                                               |
+| `full`       | the real default install: rules, skills, subagent, hooks, output style, MCP |
+
+Why it exists, and the trap it closes: **do not build an arm out of the flags in
+`scripts/e2e-smoke.mjs` or `scripts/harness-matrix.mjs`.** Both install with
+`--minimal --no-skills --no-agents`, which is correct for what they prove and fatal for
+a behavioural bench — the resulting subject is missing the layer under test, so the
+bench reports a null that measures nothing. `arm-install.test.mjs` executes exactly that
+mistake and asserts the build throws. See [ADR-0071](../docs/adr/0071-verified-bench-arms.md).
+
+The `full` arm needs the `claude` CLI (`claude mcp add -s user` is how it gets its MCP
+layer). Without it the arm reports `⚪ skipped` — never a pass with an empty MCP list.
+
+In use:
+
+```js
+import { buildArm } from "../lib/arm-install.mjs";
+import { runSubject } from "../lib/subject-runner.mjs";
+
+const arm = buildArm("full");
+const { answer, cost } = await runSubject({ prompt, home: arm.home, cwd: arm.cwd });
+arm.cleanup();
+```
+
+## 4. Adherence harness (smoke only)
 
 > The CI job **`eval-harness-smoke`** is **not** a model-adherence evaluation — it verifies the eval harness itself runs end-to-end with a deterministic stub provider that echoes the expected token. The gate is always **1.0** unless the harness pipeline breaks (missing yaml, broken require, etc.). Do **not** treat a green badge here as evidence that any agent follows the vault User Rules.
 

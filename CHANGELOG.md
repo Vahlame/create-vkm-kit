@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Verified bench arms** (`evals/lib/arm-install.mjs`, ADR-0071) — installs the kit into a
+  throwaway HOME with a declared subset of the fixed layer and **throws if the subset did not
+  land**. Five arms: `off` (control, no install), `core`, `standard`, `rules-full`, `full`.
+  Unblocks WP1, the off-target control ADR-0063 deferred before turning the measured fixed layer
+  into a budget. The trap it closes is executed as a test: an arm built from `e2e-smoke`'s
+  `--minimal --no-skills --no-agents` flags and labelled a full install must fail the build,
+  because that subject is missing the layer under test. Runs on every push in `e2e-smoke`.
+- All ADRs from 0062 to 0071 added to the `docs/adr/README.md` index, which had drifted nine
+  entries behind.
+
 ## [4.6.0] - 2026-07-25
 
 **What changes for you when you update.** This release is the first output of a measurement
