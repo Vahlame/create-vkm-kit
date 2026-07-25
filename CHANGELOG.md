@@ -8,6 +8,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **`--rules-profile minimal | standard | full`: the rules block is now three levels** (ADR-0067).
+  The installed block is a **permanent behavioural prior** injected into every session of every
+  wired agent, and five of its eight sections were general working style rather than memory
+  protocol — unconditional instructions about how to answer _anything_, shipped to someone who
+  installed a memory tool. It is now split by what each part earns its place with: **`core`**
+  (always, ≤1,200 chars — memory precedence, the untrusted-data boundary, "if no MCP answers, say
+  so"), **`memory`** (the protocol proper), **`doctrine`** (terseness, self-check, coaching, model
+  adaptation). Default stays `full`; **`minimal` is the documented kill switch — 1,487 chars against
+  9,225, an 84% smaller prior** — for when the kit's style is getting in the way. `core` also gains
+  an **arbitration rule** that did not exist anywhere before and ends a silent three-way conflict
+  between the block, `/vkm-discipline` and the close ritual: your preferences and the current chat
+  beat every rule here; brevity belongs to the prose and never to the work; low stakes → decide and
+  proceed, medium or high stakes → ask before assuming. Per-level budgets replace the single one and
+  load-bearing rules are pinned **to a level**, so a safety rule cannot silently demote from
+  always-on to opt-in — which is how `Nunca simplifiques` / `never simplify away` moved out of the
+  terseness section into `core`, where turning off the style guidance can no longer turn it off too.
+
 - **Seed-URL site crawler** (`obscura_crawl_start` / `obscura_crawl_status` /
   `obscura_crawl_stop`, ADR-0062) — the complement to `obscura_research`: it follows a site's own
   internal `<a href>` links breadth-first from your seed URLs (not search-engine results), to
