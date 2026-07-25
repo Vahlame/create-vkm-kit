@@ -1,5 +1,9 @@
 node_modules
 **/node_modules/**
+# Machine-local agent state (gitignored), including `.claude/worktrees/*` — full nested
+# checkouts of this repo. CI never sees them, but locally they make this lint report
+# every file once per live worktree, failing on another branch's work-in-progress.
+.claude/**
 CLAUDE.md
 .clinerules
 .github/copilot-instructions.md
