@@ -41,6 +41,14 @@ jobs:
           python-version: "3.12"
       - name: install
         run: npm ci
+      # evals/ is not an npm workspace, so `npm test --workspaces` never covered it.
+      # These libraries are what every bench number is computed from, so they get the
+      # same gate as shipped code (ADR-0065). Files listed explicitly: `--test <dir>`
+      # makes Node load the path as a module, and a shell glob would not expand on the
+      # Windows matrix leg — this deterministic ubuntu job is the right home anyway,
+      # since none of it touches an OS surface.
+      - name: eval libraries
+        run: node --test evals/lib/subject-runner.test.mjs
       - name: version consistency (badge == packages == CHANGELOG)
         run: node scripts/version.mjs check
       # `**/*.md` does NOT match inside dot-directories, so the second pattern is

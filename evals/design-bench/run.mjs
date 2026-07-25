@@ -138,17 +138,20 @@ async function main() {
     for (const b of BRIEFS)
       for (const c of conditions)
         for (let r = 1; r <= n; r++) {
-          const { answer } = await runSubject({
+          const { answer, cost } = await runSubject({
             prompt: subjectPrompt(b, c),
             agentCmd: `${get("--agent-cmd") ?? "claude -p --output-format json --model"} ${model}`
           });
+          // `cost` rides on the row (ADR-0065) so Δquality can be read against
+          // Δtokens later without re-running anything.
           console.log(
             JSON.stringify({
               id: b.id,
               condition: c,
               replica: r,
               model,
-              score: await grade(b, answer)
+              score: await grade(b, answer),
+              cost
             })
           );
         }
