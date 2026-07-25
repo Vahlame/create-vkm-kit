@@ -6,7 +6,148 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **The audit measured a different vault than search does** (ADR-0070) — `indexer._should_skip_dir`
+  skips **any** dot-directory; the audit excluded only three by name. `vault_delete_file`
+  soft-deletes into `.trash/` **inside the vault**, so trashed notes counted toward the token
+  budget, appeared in `oversized`, and had their `[[wikilinks]]` scanned — reporting on notes
+  retrieval can never return. It also produced **false `index_drift`** (reproduced live:
+  `drift_total: 1` from one soft-deleted note). The audit now applies the indexer's rule, fixed at
+  the root rather than by special-casing `.trash`. _The working hypothesis was the opposite and
+  stronger — that soft-deleted notes stay searchable. An empirical probe refuted it; only the probe
+  told the two apart._
+- **Two sources of truth for the default search limit** (ADR-0070) — `DEFAULT_SEARCH_LIMIT` is
+  derived from `VKM_DEFAULT_LIMIT` (ADR-0034's A/B lever) and used in both schema defaults, then
+  contradicted by a hardcoded `String(limit ?? 10)` in both handlers. Harmless today because the
+  schema default always populates `limit`; a lie that would silently ignore the lever the moment
+  that default moved. Both now read the constant.
+
+- **`vault_edit_file` no longer writes mixed line endings** (ADR-0070) — `vaultAppendFile` has always
+  normalized its chunk to the file's own EOL; `vaultEditFile` spliced `newText` in raw. Vault notes
+  are commonly **CRLF** (the shipped doctrine says so, and tells the model to anchor each edit on ONE
+  single line precisely because of it) while a model composes `newText` with LF, so the same content
+  produced a clean note through one tool and a mixed-ending note through the other — which then
+  breaks the single-line anchoring that rule exists to protect, and noises every later git diff. Both
+  paths now share one `toFileEol()` helper, because the bug _was_ the drift. Single-line `newText` is
+  byte-identical to before. Pinned by 4 tests **verified to fail without the fix** (2 of 64).
+- **obscura-web: `obscura_research_start` no longer dies on engine rate-limits**
+  (observed live: job `deep-mrvnd4nz-e30773d5` ended `failed` at 3.7 min of a
+  30-min budget after 3 consecutive search errors, 4 of 6 seeds unresearched,
+  7 `pendingLeads` dropped; second occurrence after
+  `RESEARCH/winoptengine-go-to-market`). Root cause was the scheduler, not the
+  crawl: `MAX_CONSECUTIVE_ERRORS = 3` turned a transient SearXNG suspension
+  (`suspended_times`: 180s–3600s) into a fatal job state, discarding the failed
+  seed and the whole remaining budget, and surfacing serp.mjs's interactive
+  "Fall back to the native WebSearch tool" advice as the background job's cause
+  of death. The scheduler now treats suspension as weather: failed/banned
+  queries re-enqueue at the END of the frontier (bounded `MAX_ITEM_ATTEMPTS`,
+  never silently dropped — leftovers land in `abandonedQueries` and the run
+  report); a streak of suspicious rounds parks the job in a global exponential
+  cooldown (`cooldown_ms` param / `OBSCURA_DEEP_COOLDOWN_MS`, default 2 min,
+  doubling to a 10-min cap, zero upstream requests while waiting, visible as
+  `cooldownUntil` in `obscura_research_status`, stop-responsive in 5s slices);
+  and the final state is honest: `failed` ONLY when not one useful round was
+  banked, `done-partial` when useful rounds exist but work remains (listed as
+  resumable — the report's "Unexplored leads"/"Abandoned after retries" plus a
+  Resume hint), `budgetUnusedMs` reported so an early death can never masquerade
+  as a spent budget again. No extra request volume anywhere — the fix only ever
+  waits longer and retries later (ADR-0057's one-job/ban constraint intact).
+  Covered by `test/deep-research-resilience.test.mjs` (fake clock, no network:
+  re-enqueue order, exponential cooldown + visibility, failed-vs-done-partial,
+  stop-during-cooldown) plus updated scheduler/MCP suites; 331/331 green.
+- **`--update` no longer deletes assets other kit modules installed** (ADR-0061
+  amendment). The sidecar manifest (`~/.claude/vkm-kit.assets.json`) is shared by every
+  hash-tracked asset — skills/agents AND the token-saver's `vkm-terse` output style —
+  but `--update`'s plan only enumerated skills+agents, so the orphan sweep read the
+  live, active `~/.claude/output-styles/vkm-terse.md` as "recorded but no longer
+  shipped" and removed it. `buildUpdatePlan` now takes `managedRoots` (the documented
+  `~/.claude/skills/` + `~/.claude/agents/` scope, passed by both `--check-update` and
+  `--update`); sidecar entries outside those roots are omitted from the plan entirely.
+  Regression tests cover the scoped sweep and the exact token-saver reproduction.
+
+### Changed
+
+- **The close ritual now names `vault_append_file` for the `SESSION_LOG` one-liner** (ADR-0070) — the
+  rules block said _"Close = `vault_edit_file`/`vault_write_file` → `SESSION_LOG.md` (1 line at the
+  end)"_ and never mentioned the tool whose own description calls it _"the CRLF-aware append — the
+  SESSION_LOG one-liner path, no anchor round-trip"_. The most frequent write in the whole protocol
+  was routed through the path that needs a unique anchor. `vault_edit_file`/`vault_write_file` stay
+  for the incremental `PROJECTS` write, which genuinely needs positioning.
+- **`vkm-discipline` no longer contradicts itself** (ADR-0070) — step 5 mandates the bundled
+  evidence-gate runner; the guardrails section 54 lines later called evidence gates _"modules you
+  wire when you want them, off by default"_. It now states the three guardrails that actually ship
+  (the ADR-0067 stakes ladder, the bundled gate runner, the untrusted-data envelope +
+  `domains/security.md`) and confines "opt-in" to everything beyond them. **No capability claim
+  attached** — no bench scores "did it pick the cheaper write path" or "did it ask at high stakes",
+  so a number here would be invented.
+- **`vkm-discipline`'s trigger narrowed, and "deliver more than asked" made conditional** (ADR-0068).
+  The skill advertised itself as firing on _"any non-trivial task — coding, debugging, data, infra,
+  writing, review"_, which is why it reached explanation, non-technical writing, summarisation and
+  decisions that are the user's — task types where its own contract (_"deliver more than asked"_,
+  _"no two approaches"_) is actively wrong. The description is now noun-anchored with explicit
+  negatives (one-line edits, questions, explainers, chat/log recaps, diagrams, web research, options
+  or scope the user reserved), `Deliver more than asked` is conditional on the user not having
+  scoped the request and defers to the ADR-0067 arbitration rule, and the domain table is documented
+  as deliberately wider than the trigger (every domain stays reachable via explicit
+  `/vkm-discipline`). `evals/skills-triggering/cases.jsonl` grows 64 → 72 with negatives for exactly
+  what the narrowing must hold: two explicit "give me options, I decide" cases, a fenced scope, a
+  review whose right answer is "no changes needed", non-technical writing, an explainer and an
+  opinion. **Predicted, not measured** — the bench must be re-run at more than one model tier before
+  any claim, since the failure mode here is model-dependent clause anchoring.
+- **Every pre-existing `RESULTS.md` re-labelled against the ADR-0064 reporting rule** — each bench
+  gains a banner stating the standard, and its under-powered deltas are re-labelled `directional`.
+  **No measurement changed**; only the weight placed on it. `implementer-bench` needed no change (it
+  already declined to claim a verdict at n=3) and `token-quality-ab`'s n=9 round keeps its weight.
+- **`obscura_search` / `obscura_research` scrape-chain now rotates across many engines**
+  (ADR-0051 amendment). `DEFAULT_CHAIN` went from DuckDuckGo-only to
+  `duckduckgo → bing → brave → mojeek → marginalia → ecosia → bing-rss`: when one engine is
+  banned/empty the next is tried, and the native-fallback signal fires only after **all** fail —
+  previously a single DuckDuckGo rate-limit fell straight to native, which is what stopped
+  deep-research jobs mid-run (`scanned:0` → `engines_suspended`). The new engines
+  (`mojeek`/`marginalia`/`ecosia`; `startpage` env-only) are **generic-extraction** engines: no
+  bespoke HTML parser, their SERP is scraped by the existing similarity-ranked `genericExtractLinks`,
+  so each costs only a search-URL pattern instead of a drift-prone per-engine parser (their URL
+  patterns are best-effort/unverified — a wrong one returns nothing and the chain rotates on).
+  `bing-rss` stays last as the never-rate-limited structured-XML last resort;
+  `OBSCURA_SEARCH_ENGINES` still overrides per-machine. For the widest, most relevant many-engine
+  (incl. regional / non-English) search, **SearXNG** (Layer 1, ~100 upstream-maintained engines)
+  remains the primary mechanism. Four tests added to `test/serp.test.mjs` (two rotation, two
+  generic-engine).
+- **`obscura_search` now translates a non-English query to English before searching** (`translate`,
+  default on; ADR-0051 amendment). Primary technical sources are in English, so this surfaces them —
+  the light half of what `obscura_research`'s query expansion already does. Gated by a cheap
+  heuristic (an English-looking query skips the model call entirely) and an enhancement-not-dependency
+  (Ollama down / any failure → the original query is searched, never an error); the response carries
+  `translatedFrom` when a translation happened. The LLM still answers the user in their own language;
+  only the search is lifted to English. `translate: false` searches verbatim. New `translateQuery` +
+  `looksNonEnglish` in `ollama-client.mjs` (uses `OBSCURA_OLLAMA_EXPAND_MODEL`, no new model to pull);
+  nine tests added.
+
 ### Added
+
+- **`vault_audit` now reports `index_drift`** (ADR-0069) — Markdown is this system's single source of
+  truth and the SQLite index is rebuilt from it, but incremental indexing keys each note on
+  `(mtime_ns, size_bytes)` and **cannot see an edit that preserves both** (a `git checkout` that
+  restores an mtime, a two-character swap inside one filesystem tick, a restored backup); a note
+  deleted outside an indexing pass also leaves its row behind. In a memory system that is worse than
+  a missing index — a missing index fails loudly, a stale one keeps answering from text no longer on
+  disk. The audit now reports `missing` / `orphaned` / `stale` counts and names its own fix
+  (`vault_fts_index`), and **never applies it**: a report that repairs hides the problem it exists to
+  surface, and a test pins that two consecutive audits see the same drift. `None` when there is no
+  index (absence is not drift) or when the sidecar is locked/corrupt (not a vault-health finding).
+  Costs **zero new tools and zero new parameters** — a result field is free in schema terms, which
+  matters with 52 chars of headroom on the ADR-0063 budget gate; the one-line description edit
+  overran it by 2 chars and was trimmed to fit rather than the gate being raised (10,790 / 10,800).
+- **`ARCHITECTURE.md` answers the standing architectural questions** (ADR-0069) — what the kit is (a
+  memory substrate over MCP, not a framework), which representation governs (Markdown,
+  structurally — the index is derived and rebuilt from it), how much intelligence belongs in the
+  engine versus the model (the measured answer: 45,247 chars of fixed prior, being moved to
+  mechanism), whether it works without the skills (yes — `--rules-profile minimal`, 16% of the
+  block), **how far it scales (unproven past a few thousand notes; the retrieval bench is 19
+  notes)**, whether it self-repairs (it detects and refuses to act, deliberately), and **what the
+  global quality metric is (there isn't one — a real gap)**. Several answers are admissions, on
+  purpose: an architecture document that only records strengths is marketing.
 
 - **Cost accounting in every bench run** (`evals/lib/subject-runner.mjs`, ADR-0065) — every live-LLM
   bench measured Δquality and none measured what it cost, so "the kit wins by 20 points" and "the kit
@@ -150,88 +291,6 @@ when` (`always` / `on-trigger` / `on-call` / `opt-in`) as markdown or `--json`, 
   New tests: `test/canary.test.mjs`, `test/persistent-cache.test.mjs`, plus cases added to
   `test/obscura-cli.test.mjs`, `test/expand-query.test.mjs`, `test/ollama-client.test.mjs`,
   `test/serp.test.mjs`, `test/research.test.mjs`.
-
-### Changed
-
-- **`vkm-discipline`'s trigger narrowed, and "deliver more than asked" made conditional** (ADR-0068).
-  The skill advertised itself as firing on _"any non-trivial task — coding, debugging, data, infra,
-  writing, review"_, which is why it reached explanation, non-technical writing, summarisation and
-  decisions that are the user's — task types where its own contract (_"deliver more than asked"_,
-  _"no two approaches"_) is actively wrong. The description is now noun-anchored with explicit
-  negatives (one-line edits, questions, explainers, chat/log recaps, diagrams, web research, options
-  or scope the user reserved), `Deliver more than asked` is conditional on the user not having
-  scoped the request and defers to the ADR-0067 arbitration rule, and the domain table is documented
-  as deliberately wider than the trigger (every domain stays reachable via explicit
-  `/vkm-discipline`). `evals/skills-triggering/cases.jsonl` grows 64 → 72 with negatives for exactly
-  what the narrowing must hold: two explicit "give me options, I decide" cases, a fenced scope, a
-  review whose right answer is "no changes needed", non-technical writing, an explainer and an
-  opinion. **Predicted, not measured** — the bench must be re-run at more than one model tier before
-  any claim, since the failure mode here is model-dependent clause anchoring.
-- **Every pre-existing `RESULTS.md` re-labelled against the ADR-0064 reporting rule** — each bench
-  gains a banner stating the standard, and its under-powered deltas are re-labelled `directional`.
-  **No measurement changed**; only the weight placed on it. `implementer-bench` needed no change (it
-  already declined to claim a verdict at n=3) and `token-quality-ab`'s n=9 round keeps its weight.
-- **`obscura_search` / `obscura_research` scrape-chain now rotates across many engines**
-  (ADR-0051 amendment). `DEFAULT_CHAIN` went from DuckDuckGo-only to
-  `duckduckgo → bing → brave → mojeek → marginalia → ecosia → bing-rss`: when one engine is
-  banned/empty the next is tried, and the native-fallback signal fires only after **all** fail —
-  previously a single DuckDuckGo rate-limit fell straight to native, which is what stopped
-  deep-research jobs mid-run (`scanned:0` → `engines_suspended`). The new engines
-  (`mojeek`/`marginalia`/`ecosia`; `startpage` env-only) are **generic-extraction** engines: no
-  bespoke HTML parser, their SERP is scraped by the existing similarity-ranked `genericExtractLinks`,
-  so each costs only a search-URL pattern instead of a drift-prone per-engine parser (their URL
-  patterns are best-effort/unverified — a wrong one returns nothing and the chain rotates on).
-  `bing-rss` stays last as the never-rate-limited structured-XML last resort;
-  `OBSCURA_SEARCH_ENGINES` still overrides per-machine. For the widest, most relevant many-engine
-  (incl. regional / non-English) search, **SearXNG** (Layer 1, ~100 upstream-maintained engines)
-  remains the primary mechanism. Four tests added to `test/serp.test.mjs` (two rotation, two
-  generic-engine).
-- **`obscura_search` now translates a non-English query to English before searching** (`translate`,
-  default on; ADR-0051 amendment). Primary technical sources are in English, so this surfaces them —
-  the light half of what `obscura_research`'s query expansion already does. Gated by a cheap
-  heuristic (an English-looking query skips the model call entirely) and an enhancement-not-dependency
-  (Ollama down / any failure → the original query is searched, never an error); the response carries
-  `translatedFrom` when a translation happened. The LLM still answers the user in their own language;
-  only the search is lifted to English. `translate: false` searches verbatim. New `translateQuery` +
-  `looksNonEnglish` in `ollama-client.mjs` (uses `OBSCURA_OLLAMA_EXPAND_MODEL`, no new model to pull);
-  nine tests added.
-
-### Fixed
-
-- **obscura-web: `obscura_research_start` no longer dies on engine rate-limits**
-  (observed live: job `deep-mrvnd4nz-e30773d5` ended `failed` at 3.7 min of a
-  30-min budget after 3 consecutive search errors, 4 of 6 seeds unresearched,
-  7 `pendingLeads` dropped; second occurrence after
-  `RESEARCH/winoptengine-go-to-market`). Root cause was the scheduler, not the
-  crawl: `MAX_CONSECUTIVE_ERRORS = 3` turned a transient SearXNG suspension
-  (`suspended_times`: 180s–3600s) into a fatal job state, discarding the failed
-  seed and the whole remaining budget, and surfacing serp.mjs's interactive
-  "Fall back to the native WebSearch tool" advice as the background job's cause
-  of death. The scheduler now treats suspension as weather: failed/banned
-  queries re-enqueue at the END of the frontier (bounded `MAX_ITEM_ATTEMPTS`,
-  never silently dropped — leftovers land in `abandonedQueries` and the run
-  report); a streak of suspicious rounds parks the job in a global exponential
-  cooldown (`cooldown_ms` param / `OBSCURA_DEEP_COOLDOWN_MS`, default 2 min,
-  doubling to a 10-min cap, zero upstream requests while waiting, visible as
-  `cooldownUntil` in `obscura_research_status`, stop-responsive in 5s slices);
-  and the final state is honest: `failed` ONLY when not one useful round was
-  banked, `done-partial` when useful rounds exist but work remains (listed as
-  resumable — the report's "Unexplored leads"/"Abandoned after retries" plus a
-  Resume hint), `budgetUnusedMs` reported so an early death can never masquerade
-  as a spent budget again. No extra request volume anywhere — the fix only ever
-  waits longer and retries later (ADR-0057's one-job/ban constraint intact).
-  Covered by `test/deep-research-resilience.test.mjs` (fake clock, no network:
-  re-enqueue order, exponential cooldown + visibility, failed-vs-done-partial,
-  stop-during-cooldown) plus updated scheduler/MCP suites; 331/331 green.
-- **`--update` no longer deletes assets other kit modules installed** (ADR-0061
-  amendment). The sidecar manifest (`~/.claude/vkm-kit.assets.json`) is shared by every
-  hash-tracked asset — skills/agents AND the token-saver's `vkm-terse` output style —
-  but `--update`'s plan only enumerated skills+agents, so the orphan sweep read the
-  live, active `~/.claude/output-styles/vkm-terse.md` as "recorded but no longer
-  shipped" and removed it. `buildUpdatePlan` now takes `managedRoots` (the documented
-  `~/.claude/skills/` + `~/.claude/agents/` scope, passed by both `--check-update` and
-  `--update`); sidecar entries outside those roots are omitted from the plan entirely.
-  Regression tests cover the scoped sweep and the exact token-saver reproduction.
 
 ## [4.5.1] - 2026-07-21
 

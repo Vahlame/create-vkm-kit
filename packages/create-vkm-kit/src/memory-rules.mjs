@@ -106,7 +106,7 @@ const MEMORY = {
 3. No leas más automáticamente.
 
 - **Primer paso (sesión no trivial):** si las tools \`vault_*\` aparecen como **deferred**, cárgalas con \`ToolSearch\` (\`select:vault_hybrid_search,vault_read_file,vault_edit_file,vault_write_file\`) **ANTES** de tocar memoria. El \`Write\` nativo tienta; resístelo (hooks \`PreToolUse\`/\`Stop\` refuerzan esto — ADR-0030 — pero no dependas de ellos).
-- **Recall** = \`vault_hybrid_search\`. **Cierre** = \`vault_edit_file\`/\`vault_write_file\` → \`SESSION_LOG.md\` (1 línea al final) + \`PROJECTS/<proyecto>.md\` (incremental, **arriba de \`## Relacionado\`**) + \`STACKS\`/\`PRACTICES\` si aplica.
+- **Recall** = \`vault_hybrid_search\`. **Cierre** = \`vault_append_file\` → \`SESSION_LOG.md\` (1 línea al final, sin ancla) · \`vault_edit_file\`/\`vault_write_file\` → \`PROJECTS/<proyecto>.md\` (incremental, **arriba de \`## Relacionado\`**) + \`STACKS\`/\`PRACTICES\` si aplica.
 - **Ancla cada \`vault_edit_file\` en UNA sola línea** (las notas están en CRLF; un \`oldText\` multilínea rebota). **No commitees** el vault (el daemon \`obsidian-memoryd\` sincroniza).
 
 ### Consultar el vault sin que te lo pidan
@@ -149,7 +149,7 @@ Solo lo **reutilizable más allá de la sesión** (arquitectura cerrada, decisio
 3. Don't read more automatically.
 
 - **First step (non-trivial session):** if the \`vault_*\` tools show up as **deferred**, load them with \`ToolSearch\` (\`select:vault_hybrid_search,vault_read_file,vault_edit_file,vault_write_file\`) **BEFORE** touching memory. The native \`Write\` tool tempts; resist it (\`PreToolUse\`/\`Stop\` hooks reinforce this — ADR-0030 — but don't rely on them).
-- **Recall** = \`vault_hybrid_search\`. **Close** = \`vault_edit_file\`/\`vault_write_file\` → \`SESSION_LOG.md\` (1 line at the end) + \`PROJECTS/<project>.md\` (incremental, **above \`## Related\`**) + \`STACKS\`/\`PRACTICES\` if it applies.
+- **Recall** = \`vault_hybrid_search\`. **Close** = \`vault_append_file\` → \`SESSION_LOG.md\` (1 line at the end, no anchor) · \`vault_edit_file\`/\`vault_write_file\` → \`PROJECTS/<project>.md\` (incremental, **above \`## Related\`**) + \`STACKS\`/\`PRACTICES\` if it applies.
 - **Anchor each \`vault_edit_file\` on ONE single line** (notes are CRLF; a multi-line \`oldText\` won't match). **Don't commit** the vault (the \`obsidian-memoryd\` daemon syncs).
 
 ### Consult the vault without being asked
