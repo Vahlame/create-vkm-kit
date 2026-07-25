@@ -41,6 +41,24 @@ jobs:
             --embedder fastembed \
             --assert-recall 0.90 --assert-mrr 0.85 --assert-hit1 0.80 \
             --assert-ndcg 0.88 --assert-map 0.88 --assert-p95-ms 2000
+      # The decisive half of ADR-0074. Cross-project leakage was measured on the
+      # deterministic hashing embedder — a dependency-free fallback with poor semantic
+      # discrimination — where 3 of 4 top-3 foreign-project hits arrive `sem`-only. A
+      # `--full` install ships fastembed, so whether that leak survives a real embedder
+      # is the question, and it can only be asked where the model can be downloaded.
+      # Reported, never gated: a floor here would freeze a number from one embedder.
+      - name: cross-project leakage, neural vs the hashing baseline (ADR-0074)
+        run: |
+          echo "::group::hashing (the CI baseline)"
+          python evals/cross-project/probe.py \
+            --corpus evals/retrieval/corpus \
+            --queries evals/retrieval/queries.jsonl --embedder hashing
+          echo "::endgroup::"
+          echo "::group::fastembed (what a --full install actually runs)"
+          python evals/cross-project/probe.py \
+            --corpus evals/retrieval/corpus \
+            --queries evals/retrieval/queries.jsonl --embedder fastembed
+          echo "::endgroup::"
       - name: neural + pin-failures lever (ADR-0038 on the neural embedder)
         run: |
           python -m obsidian_memory_rag bench-recall \

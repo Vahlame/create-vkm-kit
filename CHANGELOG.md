@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Cross-project leakage probe** (`evals/cross-project/probe.py`, ADR-0074) — a proposed
+  `project:` filter was closed by measurement instead of code. The headline 92% leak rate at
+  k=5/k=10 is a density artifact (the semantic pass makes every note a candidate, and k=10 on a
+  19-note corpus is half the vault); the number that costs an agent anything is the **top-3: 4
+  hits, all the same note**. Three of those four arrive `why: "sem"` — already flagged by the
+  provenance label from ADR-0072, on a question it was not designed for. Whether the leak
+  survives a **neural** embedder is the decisive test and cannot run in blocking CI (~100 MB
+  model), so the probe takes `--embedder` and runs both arms in `nightly-benchmarks.yml`.
+  No tool, no parameter, no schema characters.
 - **`evals/limit/` — a bench that can say no** (ADR-0073). The case for lowering the search
   `limit` below 10 rested on `evals/tokens/` reporting 100% answered at k=3 — but that corpus is
   7 notes with ground truths of at most 2, so every `k >= 2` passes its completeness gate by
