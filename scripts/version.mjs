@@ -4,7 +4,9 @@
  *
  * The kit's version lives in several places that historically drifted (README
  * badge said 3.6.0 while the packages said 3.5.0 and no git tag existed; later
- * README.en.md fell behind to 3.8.1 while everything else was 3.9.1). This
+ * README.en.md fell behind to 3.8.1 while everything else was 3.9.1; later still
+ * `package-lock.json` sat at 4.5.1 while every package's own `package.json` said
+ * 4.7.0, because the lock was re-synced by hand and nothing checked it). This
  * script makes drift impossible to ship:
  *
  *   - `node scripts/version.mjs check`        assert all markers agree with the
@@ -27,7 +29,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 
 /** A version marker: where it lives, how to read it, how to rewrite it. */
-const MARKERS = [
+const FILE_MARKERS = [
   {
     name: "create-vkm-kit/package.json",
     file: "packages/create-vkm-kit/package.json",
@@ -123,6 +125,62 @@ const MARKERS = [
   }
 ];
 
+const LOCKFILE = "package-lock.json";
+
+/**
+ * The npm workspace directories, derived from the table above instead of listed a
+ * second time: adding a package means adding its `packages/<dir>/package.json` marker,
+ * and its lockfile entry is checked and rewritten from that moment on.
+ */
+const WORKSPACES = FILE_MARKERS.map(
+  (mk) => (mk.file.match(/^(packages\/[^/]+)\/package\.json$/) || [])[1]
+).filter(Boolean);
+
+/**
+ * `package-lock.json` records every workspace's version a SECOND time, and npm rewrites
+ * it on install — so the lock is a version marker like any other. It was missing from
+ * this table and drifted for two releases (4.5.1 in the lock while every package's
+ * own `package.json` said 4.7.0): `npm ci` installs a workspace from its own
+ * `package.json` and never compares the two, so the drift is silent by construction and
+ * only a check like this one can see it.
+ *
+ * The write is a scoped string replace rather than a JSON round-trip: it keeps the diff
+ * to the one line that changed, and a lock whose shape it cannot match trips `set`'s
+ * "refusing partial write" guard instead of quietly reformatting 200 KB of file.
+ */
+function lockMarker(workspace) {
+  // Anchored on the entry's own `"<dir>": {`, and `[^{}]` cannot cross into a nested
+  // object — so this only ever rewrites that workspace's top-level "version", never a
+  // nested dependency's, and never `packages/<dir>/node_modules/...` (a different key,
+  // which the closing quote before the colon already excludes).
+  const own = new RegExp(`("${workspace}":\\s*\\{[^{}]*?"version":\\s*")[^"]+(")`);
+  return {
+    name: `${LOCKFILE} (${workspace})`,
+    file: LOCKFILE,
+    workspace,
+    read: (s) => JSON.parse(s).packages?.[workspace]?.version ?? null,
+    write: (s, v) => s.replace(own, `$1${v}$2`)
+  };
+}
+
+const MARKERS = [...FILE_MARKERS, ...WORKSPACES.map(lockMarker)];
+
+/**
+ * Workspace entries the lock declares that no marker covers. npm regenerates the lock
+ * on install, so a package added without its `package.json` marker surfaces here — the
+ * one drift deriving WORKSPACES from the table cannot see from the table alone.
+ */
+function uncoveredLockWorkspaces() {
+  let packages;
+  try {
+    packages = JSON.parse(read(LOCKFILE)).packages ?? {};
+  } catch {
+    return []; // an unreadable lock is already reported by every lock marker's own row
+  }
+  const covered = new Set(WORKSPACES);
+  return Object.keys(packages).filter((k) => /^packages\/[^/]+$/.test(k) && !covered.has(k));
+}
+
 function read(file) {
   return readFileSync(path.join(ROOT, file), "utf8");
 }
@@ -160,6 +218,13 @@ function cmdCheck() {
     drift = drift || !ok;
     const status = ok ? "ok  " : "DRIFT";
     console.log(`  [${status}] ${r.name}: ${r.error ? `<error: ${r.error}>` : r.value}`);
+  }
+  for (const ws of uncoveredLockWorkspaces()) {
+    drift = true;
+    console.log(
+      `  [DRIFT] ${LOCKFILE} (${ws}): npm workspace with no marker — add its ` +
+        `package.json to FILE_MARKERS`
+    );
   }
   if (drift) {
     console.error(
