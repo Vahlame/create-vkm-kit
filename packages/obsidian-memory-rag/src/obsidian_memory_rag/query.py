@@ -508,6 +508,30 @@ def _mmr_order(
     return [(p, rel[p]) for p in selected]
 
 
+def _why(hit) -> str:
+    """Which rankers put this hit in the result — the provenance label on the wire.
+
+    Ordered lexical-first so the cheap, high-precision signal reads first:
+    ``lex+sem`` (both agreed), ``lex`` (literal terms only), ``sem`` (embedding
+    similarity only), ``graph`` (surfaced through the [[wikilink]] graph).
+
+    Unlike the fused score this is not recoverable from hit order, and it is the
+    one distinction an agent can act on: ``sem`` on a query naming an exact
+    identifier means the literal token was never found, so ``vault_fts_search``
+    is the better next call. See ADR-0072.
+    """
+    parts = [
+        name
+        for name, rank in (
+            ("lex", hit.bm25_rank),
+            ("sem", hit.vector_rank),
+            ("graph", hit.graph_rank),
+        )
+        if rank is not None
+    ]
+    return "+".join(parts)
+
+
 def hybrid_search(
     vault: Path,
     query: str,

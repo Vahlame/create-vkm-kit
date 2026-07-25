@@ -52,7 +52,7 @@ from .audit import _estimate_tokens
 from .bench_recall import load_queries
 from .embeddings import get_embedder
 from .indexer import index_vault, index_vectors
-from .query import hybrid_search
+from .query import _why, hybrid_search
 
 if TYPE_CHECKING:
     from .embeddings import Embedder
@@ -79,7 +79,7 @@ def wire_response_tokens(hits: list) -> int:
     """Token estimate of the compact JSON response for ``hits`` (ADR-0034).
 
     Serializes the default (no ``--explain``) ``json-hybrid-search`` hit shape
-    — path, heading, snippet, score rounded to 5 decimals — inside the real
+    — path, heading, snippet, why (the provenance label, ADR-0072) — inside the real
     response envelope (``hits`` + ``count`` + ``_trust``), compact separators,
     ``ensure_ascii=False``: byte-for-byte the wire format the MCP emits.
     """
@@ -89,7 +89,7 @@ def wire_response_tokens(hits: list) -> int:
                 "path": h.path,
                 "heading": h.heading,
                 "snippet": h.snippet,
-                "score": round(h.score, 5),
+                "why": _why(h),
             }
             for h in hits
         ],

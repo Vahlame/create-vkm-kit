@@ -10,7 +10,7 @@ from obsidian_memory_rag import (
     index_vectors,
     semantic_search,
 )
-from obsidian_memory_rag.query import reciprocal_rank_fusion
+from obsidian_memory_rag.query import _why, reciprocal_rank_fusion
 
 
 def _dot(u, v) -> float:
@@ -185,3 +185,37 @@ def test_hybrid_returns_relevant_chunk_not_whole_note(tmp_path: Path) -> None:
     assert "production" in top.snippet.lower()
     assert "pancakes" not in top.snippet.lower()
     assert top.heading == "Deployment"
+
+
+def test_why_names_the_rankers_that_matched() -> None:
+    """The provenance label on the wire (ADR-0072), lexical-first."""
+
+    class Hit:
+        def __init__(self, bm=None, vec=None, graph=None):
+            self.bm25_rank, self.vector_rank, self.graph_rank = bm, vec, graph
+
+    assert _why(Hit(bm=1, vec=3)) == "lex+sem"
+    assert _why(Hit(bm=2)) == "lex"
+    assert _why(Hit(vec=1)) == "sem"
+    assert _why(Hit(graph=4)) == "graph"
+    # Order is fixed lexical-first regardless of which rank is better, so the
+    # label is a stable token an agent can match on rather than a permutation.
+    assert _why(Hit(bm=9, vec=1, graph=2)) == "lex+sem+graph"
+    # Rank 0 is a real rank; only None means "this ranker did not contribute".
+    assert _why(Hit(bm=0)) == "lex"
+
+
+def test_default_hybrid_hit_carries_a_usable_why(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    (vault / "deploy.md").write_text(
+        "# Deploy\n\n## Rollout\n\nShip the service with zero downtime.\n", encoding="utf-8"
+    )
+    emb = HashingEmbedder(dim=256)
+    index_vault(vault)
+    index_vectors(vault, emb)
+    hits = hybrid_search(vault, "zero downtime rollout", emb, limit=3)
+    assert hits
+    # A hit matching both literal terms and embedding similarity must say so —
+    # this is the distinction that tells an agent whether to retry via FTS.
+    assert _why(hits[0]) == "lex+sem"
