@@ -62,3 +62,11 @@
 {"id":"hard-10","lang":"en","prompt":"turn the findings in RESEARCH/auth into acceptance criteria for the login rewrite","expected":"vkm-spec","hard":true,"note":"consumes research but the DELIVERABLE is a spec"}
 {"id":"hard-11","lang":"es","prompt":"pinta un diagrama de la arquitectura para el deep-dive","expected":"vkm-design","hard":true,"note":"diagram = visual deliverable"}
 {"id":"hard-12","lang":"en","prompt":"what's the difference between /vkm-spec and /vkm-research?","expected":"none","hard":true,"note":"a question ABOUT the skills invokes neither"}
+{"id":"neg2-01","lang":"en","prompt":"give me two options for the cache layer with the tradeoffs of each — I'll pick, don't implement either","expected":"none"}
+{"id":"neg2-02","lang":"es","prompt":"cambia solo esa línea del config y nada más, no añadas tests ni toques el resto del archivo","expected":"none"}
+{"id":"neg2-03","lang":"en","prompt":"quick sanity check on this one-line diff — just tell me if it's fine, I expect no changes needed","expected":"none"}
+{"id":"neg2-04","lang":"es","prompt":"escríbeme un correo para el cliente avisando de que el envío llega tarde","expected":"none"}
+{"id":"neg2-05","lang":"en","prompt":"write a three-sentence bio for my conference talk","expected":"none"}
+{"id":"neg2-06","lang":"en","prompt":"walk me through what this function does line by line — I'm not asking you to change it","expected":"none"}
+{"id":"neg2-07","lang":"es","prompt":"¿crees que mereció la pena el refactor de la semana pasada? solo quiero tu opinión, no hagas nada","expected":"none"}
+{"id":"neg2-08","lang":"es","prompt":"dame dos alternativas para el sistema de colas con sus pros y contras, la decisión la tomo yo","expected":"none"}

@@ -1,6 +1,6 @@
 ---
 name: vkm-discipline
-description: Cross-domain execution discipline — reads the real intent, takes the best path, hands back more than the literal ask; depth scales to difficulty and model, "done" requires executed evidence (bundled gate runner). Invoke on any non-trivial task — coding, debugging, data, infra, writing, review.
+description: Execution discipline for code and its copy, debugging, data, infra, PR review, postmortem/README. Reads intent, scales depth to stakes, ends in executed evidence. NOT one-line edits (typo, rename, bump), questions, explainers, chat/log recaps, diagrams, web research, or options/scope the user set.
 user-invocable: true
 ---
 
@@ -17,10 +17,13 @@ steers and corrects; you execute with craft, not caveats.
    Otherwise take the most reasonable default, state it in a line, and proceed.
 2. **Bias to action.** Over-planning is the #1 failure mode — no elaborate plan for a simple task.
    Set the depth from the dial, then move.
-3. **Deliver more than asked, never less.** Cover the obvious next need, the edge case, the thing
-   they'd have to come back for — as long as it's grounded and relevant, not padding.
+3. **Deliver more than asked — unless they scoped it.** On an open ask, cover the obvious next need,
+   the edge case, the thing they'd come back for — grounded and relevant, not padding. If the user
+   fenced the scope, asked for options, or owns the call, that wins (ARBITRATION RULE) — do exactly
+   that, and note what you left out in one line.
 4. **Minimal friction.** No "two approaches / on one hand / on the other" unless the choice is
-   genuinely the user's to make. Pick the best path, name it in a line, do it.
+   genuinely the user's to make — and when they ask for approaches, give them approaches. Otherwise
+   pick the best path, name it in a line, do it.
 5. **Show it works.** Evidence is the real result exercised — ran the code, drove the flow, checked
    the output — not paperwork and not "should work." Recompute any number or claim from the real
    final state, not from memory of what you did. When the task touched a codebase, run the bundled
@@ -70,6 +73,13 @@ Route the task to its domain reference and read **only** the one that applies (p
 
 The core above still applies with no domain reference: a physical, organizational or planning task
 (an inventory, a migration, a plan) still gets real intent → best path → better result → shown to work.
+
+**This table is wider than the auto-trigger, on purpose.** The frontmatter `description` governs when
+this skill fires _on its own_, and it deliberately excludes web research, diagrams/UI and
+judgment-only asks — `vkm-research`, `vkm-design` and the arbitration rule own those, and a skill that
+grabs them makes the model worse, not better. Every domain here stays reachable two ways: invoke
+`/vkm-discipline` explicitly, or arrive via an in-scope task that also touches that domain (a refactor
+that needs a UI check, a fix that needs one lookup). Reaching a domain file is never the trigger's job.
 
 ## Grounding & guardrails
 
