@@ -2,6 +2,11 @@
 
 Newest first. Raw subject outputs + graded rows under `results/<date-round>/`.
 
+> **Reporting standard (ADR-0064).** Nothing to re-label here: this bench already
+> reported a null result at n=3 without bolding it and said so in the text
+> ("No verdict beyond that is claimed from n=3"). It is the behaviour
+> `evals/lib/stats.mjs` now makes automatic rather than voluntary.
+
 ## 2026-07-21 · round 1 (in-session, Agent-tool subjects) — honest null result
 
 - **Method**: spec-shaped tasks, condition `implementer` (the installed agent's real
