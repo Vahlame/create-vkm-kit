@@ -117,17 +117,22 @@ async function main() {
     for (const t of tasks)
       for (const c of conditions)
         for (let r = 1; r <= n; r++) {
-          const { answer } = await runSubject({
+          const { answer, cost } = await runSubject({
             prompt: subjectPrompt(t, c),
             agentCmd: `${agentCmdBase} ${model}`
           });
+          // This bench asks "does the saving mechanism cost quality?" — carrying the
+          // token cost on the row (ADR-0065) lets the same run answer "and how much
+          // did it actually save?", which until now was measured separately or not
+          // at all.
           answers.push({
             id: t.id,
             condition: c,
             replica: r,
             model,
             answer,
-            score: grade(t, answer)
+            score: grade(t, answer),
+            cost
           });
           process.stderr.write(".");
         }

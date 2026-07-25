@@ -131,12 +131,14 @@ async function main() {
     for (const t of TASKS)
       for (const c of conditions)
         for (let r = 1; r <= n; r++) {
-          const { answer } = await runSubject({
+          const { answer, cost } = await runSubject({
             prompt: subjectPrompt(t, c),
             agentCmd: `${get("--agent-cmd") ?? "claude -p --output-format json --model"} ${model}`
           });
           const score = gradeSolution(t, answer, `${model}-${c}-${r}.mjs`);
-          console.log(JSON.stringify({ id: t, condition: c, replica: r, model, score }));
+          // `cost` rides on the row (ADR-0065): this bench's honest null result is
+          // exactly the case where "no quality gain, and what did it cost?" matters.
+          console.log(JSON.stringify({ id: t, condition: c, replica: r, model, score, cost }));
         }
 }
 
