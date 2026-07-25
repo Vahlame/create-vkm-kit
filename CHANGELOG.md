@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [4.6.0] - 2026-07-25
+
+**What changes for you when you update.** This release is the first output of a measurement
+programme rather than a feature drop: the kit's fixed per-session cost was measured for the first
+time, the rules block was split so it can be turned down, and several long-standing defects were
+found by instrumenting things nobody had instrumented. Four changes you will actually notice:
+
+1. **The rules block is rewritten in place** across all four surfaces (`AGENTS.md`,
+   `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `.cursor/rules/`). Same protection, regrouped into
+   `core` / `memory` / `doctrine`, plus a new **arbitration rule** that settles what wins when the
+   block, a skill and your own request disagree: your preferences and the current chat beat every
+   rule here; brevity belongs to the prose and never to the code; low stakes → decide and proceed,
+   medium or high → ask before assuming.
+2. **`/vkm-discipline` no longer auto-fires** on explanation, non-technical writing, chat/log
+   recaps, diagrams, web research, or a decision you reserved for yourself. It stays fully available
+   by invoking it explicitly. This is the most visible day-to-day change.
+3. **New `--rules-profile minimal | standard | full`** (default `full`, unchanged behaviour).
+   `minimal` is a documented kill switch at **16% of the block's size** for when the kit's style is
+   getting in your way.
+4. **`vault_edit_file` no longer writes mixed line endings** into CRLF notes — a real data-quality
+   fix for anyone whose vault came from Windows or Obsidian.
+
+**Honest framing:** the behavioural changes in (1) and (2) are **predicted, not yet measured**. The
+instruments to measure them were built in this release; the runs come next. Every claim carries a
+falsifiable prediction in its ADR rather than a number nobody checked.
+
 ### Fixed
 
 - **The audit measured a different vault than search does** (ADR-0070) — `indexer._should_skip_dir`
