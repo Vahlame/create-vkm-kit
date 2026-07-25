@@ -153,6 +153,20 @@ when` (`always` / `on-trigger` / `on-call` / `opt-in`) as markdown or `--json`, 
 
 ### Changed
 
+- **`vkm-discipline`'s trigger narrowed, and "deliver more than asked" made conditional** (ADR-0068).
+  The skill advertised itself as firing on _"any non-trivial task — coding, debugging, data, infra,
+  writing, review"_, which is why it reached explanation, non-technical writing, summarisation and
+  decisions that are the user's — task types where its own contract (_"deliver more than asked"_,
+  _"no two approaches"_) is actively wrong. The description is now noun-anchored with explicit
+  negatives (one-line edits, questions, explainers, chat/log recaps, diagrams, web research, options
+  or scope the user reserved), `Deliver more than asked` is conditional on the user not having
+  scoped the request and defers to the ADR-0067 arbitration rule, and the domain table is documented
+  as deliberately wider than the trigger (every domain stays reachable via explicit
+  `/vkm-discipline`). `evals/skills-triggering/cases.jsonl` grows 64 → 72 with negatives for exactly
+  what the narrowing must hold: two explicit "give me options, I decide" cases, a fenced scope, a
+  review whose right answer is "no changes needed", non-technical writing, an explainer and an
+  opinion. **Predicted, not measured** — the bench must be re-run at more than one model tier before
+  any claim, since the failure mode here is model-dependent clause anchoring.
 - **Every pre-existing `RESULTS.md` re-labelled against the ADR-0064 reporting rule** — each bench
   gains a banner stating the standard, and its under-powered deltas are re-labelled `directional`.
   **No measurement changed**; only the weight placed on it. `implementer-bench` needed no change (it
