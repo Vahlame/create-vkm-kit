@@ -6,8 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **`vault_hybrid_search` hits now carry `why` instead of `score`** (ADR-0072) — which
+  rankers matched (`lex+sem`, `sem`, `graph`) replaces the rounded RRF score in the default
+  payload. The score was measured to be monotone with hit position (380 hits, 0 violations),
+  so it said nothing the result order did not; `why` is not recoverable from order and is
+  actionable — a `sem`-only hit on a query naming an exact identifier means the literal token
+  was never found, so `vault_fts_search` is the better next call. The score moves behind
+  `explain: true` alongside the other diagnostics. Anything parsing `hit.score` from a default
+  response must read it from `explain` instead.
+
 ### Added
 
+- A **truncation signal** for the search envelope was designed, measured and **rejected**
+  (ADR-0072): it would fire on 100% of queries in both eval corpora, because the semantic pass
+  is dense and makes the candidate pool the whole vault. Recorded so it is not re-proposed.
 - **Verified bench arms** (`evals/lib/arm-install.mjs`, ADR-0071) — installs the kit into a
   throwaway HOME with a declared subset of the fixed layer and **throws if the subset did not
   land**. Five arms: `off` (control, no install), `core`, `standard`, `rules-full`, `full`.

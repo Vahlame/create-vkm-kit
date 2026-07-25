@@ -46,10 +46,11 @@ Each search/index/audit/complete command has a `json-*` twin
 `json-complete`) that prints one JSON object for the MCP bridge / scripting.
 Searches auto-refresh the index first (D8); pass `--no-auto-index` to opt out.
 The `json-search` / `json-hybrid-search` wire format is **compact by default**
-(ADR-0034): hits carry `path` / `title`-or-`heading` / `snippet` (+ a 5-decimal
-`score` on hybrid); pass `--explain` to include the ranking diagnostics
-(`score_raw`, `bm25_rank`, `vector_rank`, `graph_rank`, `rerank_score`, raw
-`bm25`, `mtime_ns`) — they cost ~20 tokens/hit, so they're opt-in.
+(ADR-0034): hits carry `path` / `title`-or-`heading` / `snippet` (+ `why` on
+hybrid — which rankers matched: `lex+sem`, `sem`, `graph`; ADR-0072); pass
+`--explain` to include the ranking diagnostics (`score`, `score_raw`,
+`bm25_rank`, `vector_rank`, `graph_rank`, `rerank_score`, raw `bm25`,
+`mtime_ns`) — they cost ~20 tokens/hit, so they're opt-in.
 
 ## MCP bridge (IDE)
 

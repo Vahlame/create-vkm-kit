@@ -105,15 +105,23 @@ test("python json-hybrid-search returns fused JSON after semantic index", () => 
   const data = JSON.parse(r2.stdout);
   assert.ok(data.count >= 1);
   assert.equal(data.hits[0].path, "deploy.md");
-  // Compact wire contract (ADR-0034): the agent-facing default carries only
-  // path/heading/snippet + a 5-decimal score; per-ranker diagnostics (mostly
-  // null, ~20 tokens/hit) require --explain.
+  // Compact wire contract (ADR-0034/0072): the agent-facing default carries only
+  // path/heading/snippet + `why`; the fused score and per-ranker diagnostics
+  // (mostly null, ~20 tokens/hit) require --explain.
   const hit = data.hits[0];
   assert.ok(!("bm25_rank" in hit), "default hit must omit bm25_rank");
   assert.ok(!("vector_rank" in hit), "default hit must omit vector_rank");
   assert.ok(!("graph_rank" in hit), "default hit must omit graph_rank");
   assert.ok(!("rerank_score" in hit), "default hit must omit rerank_score");
-  assert.equal(hit.score, Number(hit.score.toFixed(5)), "score must be rounded to 5 decimals");
+  // The score is monotone with hit position in the default payload, so it says
+  // nothing the order does not (ADR-0072) — it moved behind --explain.
+  assert.ok(!("score" in hit), "default hit must omit the fused score");
+  assert.ok(!("score_raw" in hit), "default hit must omit score_raw");
+  assert.match(
+    hit.why,
+    /^(lex|sem|graph)(\+(lex|sem|graph))*$/,
+    `why must name the rankers that matched, got ${JSON.stringify(hit.why)}`
+  );
   const r3 = spawnSync(
     py,
     [
