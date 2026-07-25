@@ -30,7 +30,7 @@ bench had no number to compare.
 
 `runSubject` returns a normalized `cost` alongside `answer`:
 
-```js
+```text
 { inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens,
   totalTokens, turns, costUsd, wallClockMs }
 ```
