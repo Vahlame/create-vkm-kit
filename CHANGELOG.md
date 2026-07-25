@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [4.7.0] - 2026-07-25
+
+**What changes for you when you update.** This release is almost entirely _measurement_: six
+questions about how the kit's memory behaves were asked with a falsifiable prediction written
+first, and **five of them ended in "do not build that"**. Only one behaviour actually changes:
+
+1. **A superseded decision no longer outranks its replacement.** If your vault records
+   `- supersedes [[old-note]]`, search now returns the current decision above the obsolete one.
+   Turning on `graph: true` used to make the _wrong_ answer deterministic — the edge lives in the
+   new note, so the new note became a graph seed and the old note collected the boost. Measured
+   5/5 obsolete-first before, 0/5 after. A strict no-op if your vault does not use the relation.
+2. **Search hits carry `why` instead of `score`** (from 4.6.0's line of work, shipped here):
+   each hit says which rankers matched it — `lex+sem`, `sem`, `graph`. A `sem`-only hit on a query
+   naming an exact identifier means the literal token was never found, so `vault_fts_search` is
+   the better next call. The old fused score said nothing the result order did not (measured: 380
+   hits, 0 cases where it rose as rank fell) and moved behind `explain: true`.
+3. **The default `limit` stays at 10.** The case for lowering it rested on a benchmark that could
+   not fail — 7 notes, ground truths of at most 2. On 74 real notes, k=5 answers 13% of
+   multi-note questions where k=10 answers 60%. Your `limit: 3-5` habit for looking up one known
+   fact is still right; that is a different question shape.
+
+Nothing else in your install changes. No new tool, no new parameter, no schema characters, and
+no migration.
+
 ### Added
 
 - **Confidence in ranking: measured and closed** (ADR-0076). The doctrine asks the model to mark
