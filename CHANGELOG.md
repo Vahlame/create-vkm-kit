@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [4.7.1] - 2026-07-25
+
+**What changes for you when you update.** Nothing in the installed contract — no new tool, no new
+parameter, no behaviour change. Housekeeping: the front page now answers "what is this and how do I
+start" on the first screen instead of the fifth, the release process can no longer ship a lockfile
+naming a previous version, and two dependency advisories are closed.
+
+### Changed
+
+- **The README leads with the promise and a three-step start, not with the architecture.** The
+  landing page opened with theory — what MCP is, how information flows, a ten-row component table,
+  the measured token economy, ADR references — with every paragraph duplicated inline in Spanish and
+  English even though a full English README already exists one link away. A reader deciding in
+  thirty seconds whether this is for them had to parse an engineering document first, and the
+  visible surface (`doctor`, `spec`, `obscura`, `downloads`, `research`, `hybrid`, `rag`, `daemon`,
+  `graph`, `telemetry`) made a one-command install look like an ecosystem migration. The first
+  screen is now the promise in one sentence, then **install → restart → ask it one question**, then
+  an explicit "that is everything you need to get started". `--full`, the agent-driven install, the
+  update flow, the component table and the benchmark wall moved behind `<details>`, and the inline
+  bilingual duplication at the top is gone (the language switcher stays). No content was deleted and
+  every link still resolves — what changed is disclosure order.
+
 ### Fixed
 
 - **`package-lock.json` is a version marker now, so a stale lock cannot ship**
@@ -24,6 +46,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   **Nothing about the published packages changes.** npm packs the version from
   `package.json`, so no release was ever mis-versioned; what was wrong is the repo's own
   record of what it released.
+
+- **The `.claude` directory is now ignored by eslint and markdownlint.** It holds the agent
+  worktrees — full nested checkouts of this same repo — so locally both linters reported every file
+  once per live worktree and failed on half-written code from an unrelated branch. CI never saw it
+  (the directory is gitignored), so local and CI disagreed about what a clean tree is; now they
+  don't.
+
+### Security
+
+- **Two high-severity advisories in transitive dependencies closed** (both build-time, neither
+  reachable from a running install): `brace-expansion` 5.0.7 → 5.0.8 (unbounded expansion → an
+  out-of-memory crash; reached only via `eslint → minimatch`) and `fast-uri` 3.1.2 → 3.1.4 (host
+  confusion via a literal backslash authority delimiter; reached via
+  `@modelcontextprotocol/sdk → ajv`). `@hono/node-server`'s `serve-static` Windows path traversal
+  (GHSA-frvp-7c67-39w9, moderate) stays **open and documented**: the patch lands in 2.0.5 while
+  `@modelcontextprotocol/sdk@1.29.0` — the newest published SDK — pins `^1.19.9`, so npm's only
+  offers are downgrading the SDK to 1.24.3 or overriding a major outside its declared range, which
+  would risk breaking the Streamable-HTTP transport in a path no test here covers. The kit never
+  imports it: every HTTP server in this repo is `http.createServer` bound to `127.0.0.1`, and the MCP
+  servers speak stdio. Revisit when the SDK bumps.
 
 ## [4.7.0] - 2026-07-25
 
@@ -2662,7 +2704,9 @@ Prior history was undocumented and is summarized only in git log. Highlights:
 - Addition of `AGENTS.md` and `manifest.json` for machine-readable discoverability.
 - Seven hardening fixes for real-world install gaps.
 
-[Unreleased]: https://github.com/Vahlame/create-vkm-kit/compare/v4.5.1...HEAD
+[Unreleased]: https://github.com/Vahlame/create-vkm-kit/compare/v4.7.0...HEAD
+[4.7.0]: https://github.com/Vahlame/create-vkm-kit/compare/v4.6.0...v4.7.0
+[4.6.0]: https://github.com/Vahlame/create-vkm-kit/compare/v4.5.1...v4.6.0
 [4.5.1]: https://github.com/Vahlame/create-vkm-kit/compare/v4.5.0...v4.5.1
 [4.5.0]: https://github.com/Vahlame/create-vkm-kit/compare/v4.4.0...v4.5.0
 [4.4.0]: https://github.com/Vahlame/create-vkm-kit/compare/v4.3.0...v4.4.0
