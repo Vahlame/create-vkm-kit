@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Harness conformance matrix** (`scripts/harness-matrix.mjs`, ADR-0066) — "cross-platform" in this
+  repo has always meant _operating system_: `e2e-smoke.mjs` installs with `--ide none` and proves the
+  stack works on Windows/macOS/Linux. It never asked whether wiring **Codex**, **Cursor** or anything
+  that is not Claude Code produces a working install. The matrix runs a **real install per harness**
+  into a throwaway HOME and asserts the config artifact that harness actually reads, wired into the
+  existing `e2e-smoke` CI job. Cells come in two classes with different evidence value: **wiring**
+  (filesystem, runs anywhere) and **live** (needs the CLI). A harness whose CLI is absent reports
+  `not-installed` — **never** inferred as green from the wiring cell next to it, because a matrix
+  that turns an absent CLI into a tick is a claim nobody checked wearing the costume of evidence.
+  The matrix also carries a **deterministic enforcement** column, which states the architectural
+  finding plainly: all seven hooks and the output style install into `~/.claude/`, so **outside
+  Claude Code the kit is an MCP server plus a prose block**, and every rule in it depends on the
+  model choosing to follow it.
+
 - **Seed-URL site crawler** (`obscura_crawl_start` / `obscura_crawl_status` /
   `obscura_crawl_stop`, ADR-0062) — the complement to `obscura_research`: it follows a site's own
   internal `<a href>` links breadth-first from your seed URLs (not search-engine results), to
