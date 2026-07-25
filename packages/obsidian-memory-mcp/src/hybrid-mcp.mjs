@@ -883,7 +883,7 @@ export async function buildServer() {
     {
       title: "Audit the vault for token-bloat risks",
       description:
-        "Audit the vault for token-bloat risks: notes over a token budget, broken [[wikilinks]], and SESSION_LOG size. Returns JSON; use it to decide what to split or rotate.",
+        "Audit the vault: notes over a token budget, broken [[wikilinks]], SESSION_LOG size, and index_drift (SQLite index vs the Markdown it derives from; reindex if nonzero). JSON; what to split, rotate or reindex.",
       inputSchema: {
         budget: z
           .number()
