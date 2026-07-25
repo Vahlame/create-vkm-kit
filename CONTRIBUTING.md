@@ -94,8 +94,8 @@ trim repo to prompt + readme; agent generates scripts locally
 
 The maintainer cuts releases. The release process is:
 
-1. Update `CHANGELOG.md` (Keep a Changelog format).
-2. Bump version in `agent.toml` -> `version` when releasing.
+1. Update `CHANGELOG.md` (Keep a Changelog format) — its newest `## [X.Y.Z]` heading is the canonical version everything else is checked against.
+2. `npm run version:set X.Y.Z`. It rewrites **every** marker — each workspace `package.json` and its `package-lock.json` entry (ADR-0077), `pyproject.toml`, both README badges, `agent.toml`, and the Go daemon's two copies. Bump nothing by hand; `npm run version:check` must exit 0 before you tag.
 3. Tag `vX.Y.Z` and push.
 4. GitHub Actions publishes a Release with notes copied from `CHANGELOG.md`.
 
