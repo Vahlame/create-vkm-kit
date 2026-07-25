@@ -71,6 +71,36 @@ everything beyond them.
 bench scores "did the model pick the cheaper write path" or "did it ask at high
 stakes", so claiming a number would be inventing one.
 
+### 4. The audit measured a different vault than search does
+
+`indexer._should_skip_dir` skips **any** dot-directory; `audit._iter_md_files`
+excluded only three by name. `vault_delete_file` soft-deletes into `.trash/` **inside
+the vault**, so trashed notes counted toward the audit's token budget, appeared in
+`oversized`, and had their `[[wikilinks]]` scanned — reporting on notes retrieval can
+never return.
+
+It also produced **false `index_drift`** in the feature added one commit earlier
+(ADR-0069): a soft-deleted note showed as `missing` forever, because the index is
+correct to omit it. Reproduced live before fixing — a real vault with one trashed note
+reported `drift_total: 1`.
+
+An honest note on how this was found: the working hypothesis was the opposite and
+stronger — that soft-deleted notes stay **searchable**. An empirical probe (index a
+vault with a note in `.trash/`, then search for its distinctive content) refuted it:
+`_should_skip_dir` already excludes it. The real bug was the _audit_ side, and only the
+probe distinguished them.
+
+Fixed at the root — the audit now applies the same dot-directory rule as the indexer —
+rather than by special-casing `.trash` in `index_drift`.
+
+### 5. Two sources of truth for the default search limit
+
+`DEFAULT_SEARCH_LIMIT` is derived once from `VKM_DEFAULT_LIMIT` (ADR-0034's A/B lever),
+used in both search tools' schema defaults — and then contradicted by a hardcoded
+`String(limit ?? 10)` in both handlers. Harmless today because the schema default
+always populates `limit`; a lie that would silently ignore the lever the moment that
+default moved. Both now read the constant.
+
 ## Alternatives considered
 
 - **Also normalize `oldText` before matching**, which would make multi-line anchors
