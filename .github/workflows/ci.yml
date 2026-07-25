@@ -48,8 +48,8 @@ jobs:
       # a shell glob would not expand on the Windows matrix leg. Pure computation with
       # no OS surface, so this deterministic ubuntu job is the right home — a new
       # eval library gets its test added to this line.
-      - name: eval libraries (stats, subject-runner)
-        run: node --test evals/lib/stats.test.mjs evals/lib/subject-runner.test.mjs
+      - name: eval libraries (stats, subject-runner, arm-install)
+        run: node --test evals/lib/stats.test.mjs evals/lib/subject-runner.test.mjs evals/lib/arm-install.test.mjs
       - name: version consistency (badge == packages == CHANGELOG)
         run: node scripts/version.mjs check
       # `**/*.md` does NOT match inside dot-directories, so the second pattern is
@@ -267,6 +267,13 @@ jobs:
       # a harness whose CLI is absent is reported unmeasured, never inferred as green.
       - name: harness conformance matrix (per-harness wiring)
         run: node scripts/harness-matrix.mjs
+      # Bench arms are only comparable if each carries exactly the layer it claims
+      # (ADR-0071). This builds every arm for real and fails if any installs something
+      # other than its declaration — the check that keeps a behavioural A/B from
+      # measuring an arm that quietly lost the layer under test. The `full` arm needs
+      # the `claude` CLI to register MCP, so it reports as skipped here, never green.
+      - name: eval arm integrity (real installs, declared layers land)
+        run: node evals/lib/arm-install.mjs
 
   eval-harness-smoke:
     # NOT a model adherence eval. This verifies the eval *harness* runs end-to-end

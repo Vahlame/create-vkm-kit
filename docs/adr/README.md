@@ -65,6 +65,16 @@ Each file in this directory captures one design decision: what was chosen, what 
 | [ADR-0059](./0059-vkm-downloads-background-jobs-and-mirrors.md)    | vkm-downloads: background jobs, sets, resume, and fastest-mirror selection                | Accepted                                       |
 | [ADR-0060](./0060-obscura-deep-research-background-job.md)         | Background deep-research jobs: depth that outlives an agent-loop turn                     | Accepted                                       |
 | [ADR-0061](./0061-kit-update-and-skill-structure-gate.md)          | Kit update path (three-way hash classification) + skill-structure gate                    | Accepted                                       |
+| [ADR-0062](./0062-obscura-seed-url-crawler.md)                     | obscura seed-URL site crawler (`obscura_crawl_start`)                                     | Accepted                                       |
+| [ADR-0063](./0063-fixed-context-budget-inventory.md)               | Fixed-context budget inventory (measure the permanent prior before touching it)           | Accepted                                       |
+| [ADR-0064](./0064-eval-statistics-and-reporting-rule.md)           | Shared eval statistics and an executable reporting rule                                   | Accepted                                       |
+| [ADR-0065](./0065-bench-cost-accounting.md)                        | Cost accounting in every bench run                                                        | Accepted                                       |
+| [ADR-0066](./0066-harness-conformance-matrix.md)                   | Harness conformance matrix — what the kit delivers per agent, and where it stops          | Accepted                                       |
+| [ADR-0067](./0067-rules-block-levels.md)                           | Split the rules block into core / memory / doctrine                                       | Accepted                                       |
+| [ADR-0068](./0068-narrow-the-discipline-trigger.md)                | Narrow the `vkm-discipline` trigger, and make "deliver more" conditional                  | Accepted                                       |
+| [ADR-0069](./0069-index-drift-detection.md)                        | Detect index drift, and answer the architectural questions in the repo                    | Accepted                                       |
+| [ADR-0070](./0070-eol-invariance-and-doctrine-consistency.md)      | EOL invariance across the write paths, and three doctrine contradictions                  | Accepted                                       |
+| [ADR-0071](./0071-verified-bench-arms.md)                          | Bench arms that prove what they carry                                                     | Accepted                                       |
 
 ## Template
 
