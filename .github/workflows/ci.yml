@@ -252,6 +252,12 @@ jobs:
       - run: npm ci
       - name: install → index → search → write → search-again (real stdio MCP)
         run: node scripts/e2e-smoke.mjs
+      # The above proves the stack works on this OS with `--ide none`. This proves the
+      # wiring lands for each HARNESS (ADR-0066) — a different question, and the one
+      # "cross-platform" never answered. Exits non-zero on any broken wiring cell;
+      # a harness whose CLI is absent is reported unmeasured, never inferred as green.
+      - name: harness conformance matrix (per-harness wiring)
+        run: node scripts/harness-matrix.mjs
 
   eval-harness-smoke:
     # NOT a model adherence eval. This verifies the eval *harness* runs end-to-end
