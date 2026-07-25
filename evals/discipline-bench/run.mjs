@@ -14,7 +14,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { runSubject } from "../lib/subject-runner.mjs";
+import { runSubject, aggregateCost, formatCost } from "../lib/subject-runner.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SKILL = path.join(
@@ -102,25 +102,29 @@ async function main() {
     for (const t of taskIds())
       for (const c of conditions)
         for (let r = 1; r <= n; r++) {
-          const { answer } = await runSubject({
+          const { answer, cost } = await runSubject({
             prompt: promptFor(t, c),
             agentCmd: `${get("--agent-cmd") ?? "claude -p --output-format json --model"} ${model}`
           });
           const score = gradeSolution(t, answer, `${model}-${c}-${r}.mjs`);
-          rows.push({ model, task: t, condition: c, replica: r, score });
+          rows.push({ model, task: t, condition: c, replica: r, score, cost });
           process.stderr.write(".");
         }
   process.stderr.write("\n");
   for (const model of models)
     for (const t of taskIds())
       for (const c of conditions) {
-        const cell = rows
-          .filter((x) => x.model === model && x.task === t && x.condition === c)
-          .map((x) => x.score);
-        if (cell.length)
-          console.log(
-            `${model} · ${t} · ${c}: [${cell.join(",")}] mean=${(cell.reduce((a, b) => a + b, 0) / cell.length).toFixed(1)}`
-          );
+        const runs = rows.filter((x) => x.model === model && x.task === t && x.condition === c);
+        if (!runs.length) continue;
+        const cell = runs.map((x) => x.score);
+        // Cost travels with the score from here on (ADR-0065): a cell that wins on
+        // quality while spending twice the tokens is a different result from one
+        // that wins for free, and the report has to be able to say which.
+        const cost = aggregateCost(runs.map((x) => x.cost));
+        console.log(
+          `${model} · ${t} · ${c}: [${cell.join(",")}] ` +
+            `mean=${(cell.reduce((a, b) => a + b, 0) / cell.length).toFixed(1)} ${formatCost(cost)}`
+        );
       }
 }
 
