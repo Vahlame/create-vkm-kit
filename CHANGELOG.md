@@ -8,6 +8,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **`vault_audit` now reports `index_drift`** (ADR-0069) — Markdown is this system's single source of
+  truth and the SQLite index is rebuilt from it, but incremental indexing keys each note on
+  `(mtime_ns, size_bytes)` and **cannot see an edit that preserves both** (a `git checkout` that
+  restores an mtime, a two-character swap inside one filesystem tick, a restored backup); a note
+  deleted outside an indexing pass also leaves its row behind. In a memory system that is worse than
+  a missing index — a missing index fails loudly, a stale one keeps answering from text no longer on
+  disk. The audit now reports `missing` / `orphaned` / `stale` counts and names its own fix
+  (`vault_fts_index`), and **never applies it**: a report that repairs hides the problem it exists to
+  surface, and a test pins that two consecutive audits see the same drift. `None` when there is no
+  index (absence is not drift) or when the sidecar is locked/corrupt (not a vault-health finding).
+  Costs **zero new tools and zero new parameters** — a result field is free in schema terms, which
+  matters with 52 chars of headroom on the ADR-0063 budget gate; the one-line description edit
+  overran it by 2 chars and was trimmed to fit rather than the gate being raised (10,790 / 10,800).
+- **`ARCHITECTURE.md` answers the standing architectural questions** (ADR-0069) — what the kit is (a
+  memory substrate over MCP, not a framework), which representation governs (Markdown,
+  structurally — the index is derived and rebuilt from it), how much intelligence belongs in the
+  engine versus the model (the measured answer: 45,247 chars of fixed prior, being moved to
+  mechanism), whether it works without the skills (yes — `--rules-profile minimal`, 16% of the
+  block), **how far it scales (unproven past a few thousand notes; the retrieval bench is 19
+  notes)**, whether it self-repairs (it detects and refuses to act, deliberately), and **what the
+  global quality metric is (there isn't one — a real gap)**. Several answers are admissions, on
+  purpose: an architecture document that only records strengths is marketing.
+
 - **Cost accounting in every bench run** (`evals/lib/subject-runner.mjs`, ADR-0065) — every live-LLM
   bench measured Δquality and none measured what it cost, so "the kit wins by 20 points" and "the kit
   wins by 20 points while spending 3× the tokens" were the same reported result. `runSubject` now
