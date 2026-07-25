@@ -218,3 +218,68 @@ def test_passage_window_enriches_snippet_without_changing_ranking(tmp_path: Path
     top_plain = next(h for h in plain if h.path == "STACKS/sqlite.md")
     top_win = next(h for h in windowed if h.path == "STACKS/sqlite.md")
     assert len(top_win.snippet) >= len(top_plain.snippet)
+
+
+# --- Supersession-aware ordering (ADR-0075) --------------------------------------
+
+
+def _supersession_vault(tmp_path: Path) -> Path:
+    v = tmp_path / "v"
+    _write(
+        v,
+        "PROJECTS/auth-old.md",
+        "# Auth v1\n\n## Decision\n\n- [decision] Autenticacion con sesiones en cookie "
+        "firmada y Redis para el portal de clientes.\n",
+    )
+    _write(
+        v,
+        "PROJECTS/auth-new.md",
+        "# Auth v2\n\n## Decision\n\n- supersedes [[PROJECTS/auth-old]]\n"
+        "- [decision] Autenticacion con tokens JWT de vida corta y refresh rotativo "
+        "para el portal de clientes.\n",
+    )
+    for i in range(4):
+        _write(v, f"PROJECTS/filler-{i}.md", f"# Filler {i}\n\nNota de relleno del portal.\n")
+    return v
+
+
+def test_superseded_decision_never_outranks_its_replacement(tmp_path: Path) -> None:
+    """The defect ADR-0075 fixes: the `supersedes` edge is authored in the NEW note, so
+    the OBSOLETE note collects the graph neighbour boost and ranked first — measured
+    5/5 on independent pairs before the fix."""
+    v = _supersession_vault(tmp_path)
+    emb = HashingEmbedder(dim=256)
+    index_vault(v)
+    index_vectors(v, emb)
+    for kwargs in ({}, {"graph": True}, {"graph": True, "graph_typed": True}):
+        paths = [h.path for h in hybrid_search(v, "autenticacion del portal de clientes", emb, limit=5, **kwargs)]
+        assert "PROJECTS/auth-new.md" in paths, kwargs
+        assert "PROJECTS/auth-old.md" in paths, kwargs
+        assert paths.index("PROJECTS/auth-new.md") < paths.index("PROJECTS/auth-old.md"), (
+            f"superseded note outranked its replacement with {kwargs}: {paths}"
+        )
+
+
+def test_supersession_keeps_the_old_note_in_the_result(tmp_path: Path) -> None:
+    """Membership-preserving on purpose: ADR-0027's navigation case ("what did this
+    note supersede?") must still get the old note back, just below its replacement."""
+    v = _supersession_vault(tmp_path)
+    emb = HashingEmbedder(dim=256)
+    index_vault(v)
+    index_vectors(v, emb)
+    paths = [h.path for h in hybrid_search(v, "autenticacion del portal de clientes", emb, limit=5, graph=True)]
+    assert "PROJECTS/auth-old.md" in paths
+
+
+def test_supersession_is_a_noop_without_relations(tmp_path: Path) -> None:
+    """A vault that authors no `supersedes` edges must rank byte-identically."""
+    v = tmp_path / "v"
+    _write(v, "PROJECTS/a.md", "# a\n\nDespliegue del backend con contenedores.\n")
+    _write(v, "PROJECTS/b.md", "# b\n\nDespliegue del backend con blue-green.\n")
+    _write(v, "PROJECTS/c.md", "# c\n\nOtra nota sobre el backend.\n")
+    emb = HashingEmbedder(dim=256)
+    index_vault(v)
+    index_vectors(v, emb)
+    hits = hybrid_search(v, "despliegue del backend", emb, limit=3)
+    assert [h.path for h in hits] == [h.path for h in hybrid_search(v, "despliegue del backend", emb, limit=3)]
+    assert len(hits) == 3
