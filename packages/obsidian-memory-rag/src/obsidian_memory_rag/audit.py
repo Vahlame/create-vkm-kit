@@ -174,11 +174,25 @@ def _estimate_tokens(num_bytes: int) -> int:
 
 
 def _iter_md_files(vault: Path) -> list[Path]:
-    """All ``*.md`` files under ``vault`` excluding the tooling/VCS dirs."""
+    """All ``*.md`` files under ``vault``, excluding what retrieval also excludes.
+
+    Skips any DOT-directory, not just the three named ones — matching
+    ``indexer._should_skip_dir`` (``name in SKIP_DIR_NAMES or name.startswith(".")``).
+    The two lists had diverged, and the gap had teeth: ``vault_delete_file`` soft-deletes
+    into ``.trash/`` INSIDE the vault, the indexer skips it as a dot-directory, and the
+    audit did not. So trashed notes counted toward the token budget, appeared in
+    ``oversized``, and had their ``[[wikilinks]]`` scanned — reporting on notes retrieval
+    can never return. It also produced FALSE ``index_drift``: a soft-deleted note showed
+    up as ``missing`` (on disk, no index row) forever, because the index is correct to
+    omit it.
+
+    An audit that reports on files the search engine cannot see is measuring a different
+    vault than the one the agent queries.
+    """
     out: list[Path] = []
     for path in vault.rglob("*.md"):
-        # Skip anything living under an excluded directory (at any depth).
-        if any(part in _EXCLUDE_DIRS for part in path.relative_to(vault).parts[:-1]):
+        parts = path.relative_to(vault).parts[:-1]
+        if any(p in _EXCLUDE_DIRS or p.startswith(".") for p in parts):
             continue
         if path.is_file():
             out.append(path)

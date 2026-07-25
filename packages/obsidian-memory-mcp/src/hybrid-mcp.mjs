@@ -208,7 +208,15 @@ export async function buildServer() {
     },
     toolHandler(async ({ query, limit, explain, section }) => {
       const v = requireVault();
-      const args = ["json-search", "--vault", v, "--query", query, "--limit", String(limit ?? 10)];
+      const args = [
+        "json-search",
+        "--vault",
+        v,
+        "--query",
+        query,
+        "--limit",
+        String(limit ?? DEFAULT_SEARCH_LIMIT)
+      ];
       if (explain) args.push("--explain");
       if (section) args.push("--section", section);
       if (recallLogEnabled()) args.push("--log-recall");
@@ -360,7 +368,7 @@ export async function buildServer() {
           "--query",
           query,
           "--limit",
-          String(limit ?? 10)
+          String(limit ?? DEFAULT_SEARCH_LIMIT)
         ];
         if (explain) args.push("--explain");
         if (graph || graphTyped) args.push("--graph");

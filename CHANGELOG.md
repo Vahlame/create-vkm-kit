@@ -8,6 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The audit measured a different vault than search does** (ADR-0070) — `indexer._should_skip_dir`
+  skips **any** dot-directory; the audit excluded only three by name. `vault_delete_file`
+  soft-deletes into `.trash/` **inside the vault**, so trashed notes counted toward the token
+  budget, appeared in `oversized`, and had their `[[wikilinks]]` scanned — reporting on notes
+  retrieval can never return. It also produced **false `index_drift`** (reproduced live:
+  `drift_total: 1` from one soft-deleted note). The audit now applies the indexer's rule, fixed at
+  the root rather than by special-casing `.trash`. _The working hypothesis was the opposite and
+  stronger — that soft-deleted notes stay searchable. An empirical probe refuted it; only the probe
+  told the two apart._
+- **Two sources of truth for the default search limit** (ADR-0070) — `DEFAULT_SEARCH_LIMIT` is
+  derived from `VKM_DEFAULT_LIMIT` (ADR-0034's A/B lever) and used in both schema defaults, then
+  contradicted by a hardcoded `String(limit ?? 10)` in both handlers. Harmless today because the
+  schema default always populates `limit`; a lie that would silently ignore the lever the moment
+  that default moved. Both now read the constant.
+
 - **`vault_edit_file` no longer writes mixed line endings** (ADR-0070) — `vaultAppendFile` has always
   normalized its chunk to the file's own EOL; `vaultEditFile` spliced `newText` in raw. Vault notes
   are commonly **CRLF** (the shipped doctrine says so, and tells the model to anchor each edit on ONE

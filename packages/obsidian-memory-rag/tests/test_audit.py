@@ -431,3 +431,29 @@ def test_index_drift_is_read_only(tmp_path: Path) -> None:
     second = audit_vault(vault)["index_drift"]
     assert first["missing"] == second["missing"] == ["b.md"]
     assert second["drift_total"] == 1, "auditing must not have fixed the drift"
+
+
+def test_audit_ignores_dot_directories_like_the_indexer(tmp_path: Path) -> None:
+    # vault_delete_file soft-deletes into .trash/ INSIDE the vault and the indexer
+    # skips every dot-directory, so an audit that walked them measured a different
+    # vault than the one search can return — inflating the token budget, listing
+    # oversized notes nobody can retrieve, and (once index_drift existed) reporting
+    # every trashed note as permanently `missing`.
+    vault = tmp_path / "vault"
+    _write(vault / "live.md", "# Live\n\nbody\n")
+    _write(vault / ".trash" / "deleted.md", "# Deleted\n\n" + ("x" * 8000))
+    _write(vault / ".obsidian" / "workspace.md", "# Config\n")
+
+    report = audit_vault(vault, budget_tokens=100)
+    assert report["totals"]["notes"] == 1, "only the live note is the agent's vault"
+    assert report["oversized"] == [], "a trashed note is not an oversize problem"
+
+
+def test_index_drift_ignores_trashed_notes(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    _write(vault / "live.md", "# Live\n\nbody\n")
+    _index(vault)
+    _write(vault / ".trash" / "deleted.md", "# Deleted\n\nbody\n")
+
+    drift = audit_vault(vault)["index_drift"]
+    assert drift["drift_total"] == 0, f"soft-deleted notes must not read as drift: {drift}"
