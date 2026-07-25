@@ -6,20 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Fixed
-
-- **A superseded decision could outrank its replacement** (ADR-0075). The `- supersedes [[old]]`
-  edge is authored in the **new** note, so the new note became a graph seed and the **obsolete**
-  note collected the neighbour boost. Measured on five independent supersession pairs: with
-  `graph: true` the obsolete decision ranked first **5/5**; with the graph off, 3/5 — ranking had
-  no notion of currency at all. `hybrid_search` now orders each superseding note above the note
-  it supersedes, before the cut to `limit`. Obsolete-first is now **0/5** in every configuration.
-  Membership-preserving (the old note is still returned, one position lower, so ADR-0027's
-  navigation case survives) and a strict no-op on vaults with no `supersedes` relations — the
-  token bench wire total is byte-identical at 11,810 and `recall@5` stays 1.000.
-
 ### Added
 
+- **Confidence in ranking: measured and closed** (ADR-0076). The doctrine asks the model to mark
+  hypotheses (`status: hypothesis`), but retrieval never consulted it. Five topics, each with a
+  hypothesis note and a confirmed note: with natural hedged wording the confirmed note wins 4/5 —
+  reassuring, and an artifact of the fixtures' prose. Rephrase the hypothesis to match the query
+  and it wins **5/5** while declaring itself unconfirmed. No fix ships: a tie-break needs to pair
+  two notes with no relation between them (the semantic-duplicate problem already killed by
+  measurement), and surfacing `status` on the hit needs an index-schema migration, since
+  frontmatter is not indexed at all. The gap is documented rather than papered over.
 - **Cross-project leakage probe** (`evals/cross-project/probe.py`, ADR-0074) — a proposed
   `project:` filter was closed by measurement instead of code. The headline 92% leak rate at
   k=5/k=10 is a density artifact (the semantic pass makes every note a candidate, and k=10 on a
@@ -49,6 +45,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   because that subject is missing the layer under test. Runs on every push in `e2e-smoke`.
 - All ADRs from 0062 to 0071 added to the `docs/adr/README.md` index, which had drifted nine
   entries behind.
+
+### Fixed
+
+- **A superseded decision could outrank its replacement** (ADR-0075). The `- supersedes [[old]]`
+  edge is authored in the **new** note, so the new note became a graph seed and the **obsolete**
+  note collected the neighbour boost. Measured on five independent supersession pairs: with
+  `graph: true` the obsolete decision ranked first **5/5**; with the graph off, 3/5 — ranking had
+  no notion of currency at all. `hybrid_search` now orders each superseding note above the note
+  it supersedes, before the cut to `limit`. Obsolete-first is now **0/5** in every configuration.
+  Membership-preserving (the old note is still returned, one position lower, so ADR-0027's
+  navigation case survives) and a strict no-op on vaults with no `supersedes` relations — the
+  token bench wire total is byte-identical at 11,810 and `recall@5` stays 1.000.
 
 ### Changed
 
