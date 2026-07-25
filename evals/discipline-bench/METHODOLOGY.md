@@ -155,6 +155,21 @@ scored 94 on one run and 81 on the next (one replica forgot to sort/dedup) — t
   to the effect you need to detect; report significance (or at least CIs) for model-vs-model claims,
   not raw point differences.
 
+**Use the shared implementation, not your own** (ADR-0064). `evals/lib/stats.mjs` computes the
+seeded-bootstrap CI, Cliff's delta and Hedges' g, and applies the reporting rule for you:
+
+| n     | interval                                   | label          | may be bold? |
+| ----- | ------------------------------------------ | -------------- | ------------ |
+| `< 5` | —                                          | `directional`  | no           |
+| `≥ 5` | excludes 0 (and clears a pre-registered ε) | `significant`  | **yes**      |
+| `≥ 5` | includes 0                                 | `inconclusive` | no           |
+
+`classify(a, b, { epsilon })` returns the verdict and `formatDelta()` renders it, so a bold delta
+off n=2 cannot be produced by accident. This section prescribed CIs and effect sizes long before
+anything computed them — the gap is why every pre-2026-07-24 `RESULTS.md` carries a re-labelling
+banner. Copy the pre-registration pattern from `evals/token-quality-ab/README.md`: thresholds, n and
+decision rule land in a commit **before** the first run.
+
 ---
 
 ## 6. Contamination — the silent validity killer

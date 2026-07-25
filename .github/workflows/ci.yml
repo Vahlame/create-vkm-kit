@@ -41,6 +41,12 @@ jobs:
           python-version: "3.12"
       - name: install
         run: npm ci
+      # evals/ is not an npm workspace, so `npm test --workspaces` never covered it.
+      # These libraries are what every bench number is computed from, so they get the
+      # same gate as shipped code (ADR-0064). Pure computation, no OS surface — this
+      # deterministic ubuntu job, not the 3-OS matrix.
+      - name: eval libraries (stats)
+        run: node --test evals/lib/stats.test.mjs
       - name: version consistency (badge == packages == CHANGELOG)
         run: node scripts/version.mjs check
       # `**/*.md` does NOT match inside dot-directories, so the second pattern is
