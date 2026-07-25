@@ -143,12 +143,20 @@ async function main() {
     for (const t of TOPICS)
       for (const c of conditions)
         for (let r = 1; r <= n; r++) {
-          const { answer } = await runSubject({
+          const { answer, cost } = await runSubject({
             prompt: subjectPrompt(t, c),
             agentCmd: `${get("--agent-cmd") ?? "claude -p --output-format json --model"} ${model}`
           });
+          // `cost` rides on the row (ADR-0065).
           console.log(
-            JSON.stringify({ id: t.id, condition: c, replica: r, model, score: grade(t, answer) })
+            JSON.stringify({
+              id: t.id,
+              condition: c,
+              replica: r,
+              model,
+              score: grade(t, answer),
+              cost
+            })
           );
         }
 }

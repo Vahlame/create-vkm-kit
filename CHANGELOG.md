@@ -8,6 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Cost accounting in every bench run** (`evals/lib/subject-runner.mjs`, ADR-0065) — every live-LLM
+  bench measured Δquality and none measured what it cost, so "the kit wins by 20 points" and "the kit
+  wins by 20 points while spending 3× the tokens" were the same reported result. `runSubject` now
+  returns a normalized `cost` (`inputTokens` / `outputTokens` / `cacheRead*` / `totalTokens` /
+  `turns` / `costUsd` / `wallClockMs`) and all five runners carry it on their emitted rows — the
+  `usage` field was already being returned and every call site dropped it one line later.
+  `costEfficiency()` gives the Δquality/Δtokens column (quality per 1,000 extra tokens), and
+  `toTelemetryTotals()` re-keys a cell into the exact shape `vkm-doctor` aggregates local OTLP into,
+  so lab cost and real-session cost are finally the same units. **Unreported cost stays `null`, never
+  `0`** — a partially-reported cell refuses to average rather than quietly reading as cheaper.
+
 - **Shared eval statistics + an executable reporting rule** (`evals/lib/stats.mjs`, ADR-0064) —
   `METHODOLOGY.md` §5 has always prescribed replicas, confidence intervals and effect sizes, and
   nothing in the repo computed any of them; the result was **18 bold deltas across the benches, all
