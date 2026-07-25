@@ -33,6 +33,7 @@ import {
   SEMANTIC_EMBEDDER
 } from "./mcp-merge.mjs";
 import { installRules } from "./rules-merge.mjs";
+import { PROFILES, DEFAULT_PROFILE } from "./memory-rules.mjs";
 import {
   configureClaudeNativeMemory,
   uninstallClaudeNativeMemory
@@ -171,7 +172,14 @@ function nonInteractiveFromArgs() {
 
 // Long flags that consume the NEXT token as their value, so it isn't mistaken
 // for the positional vault path.
-const VALUE_FLAGS = new Set(["--vault", "--ide", "--repo-root", "--lang", "--rules"]);
+const VALUE_FLAGS = new Set([
+  "--vault",
+  "--ide",
+  "--repo-root",
+  "--lang",
+  "--rules",
+  "--rules-profile"
+]);
 
 /**
  * First bare (non-flag) CLI argument = vault path shorthand, so you can write
@@ -228,6 +236,31 @@ function rulesTargetsFromArgs(argv, ides, { defaultFromIde = false, full = false
   // Interactive derives a default from the selected IDEs, then asks for confirmation.
   if (!defaultFromIde) return [];
   return rulesFromIdes(ides);
+}
+
+/**
+ * Which rule LEVELS to inject (ADR-0067): `--rules-profile minimal|standard|full`.
+ *
+ * Default `full` — the kit's advertised default is the full stack, and quietly
+ * shipping less doctrine than the docs describe would be its own kind of drift.
+ * `--minimal` (basic-memory only) implies `standard`: `core` alone never teaches
+ * recall or the close ritual, so a minimal install with minimal rules would wire
+ * memory tools the model is never told to use.
+ *
+ * An unrecognized value falls back to the default rather than throwing — a typo in
+ * an install flag should not abort an install half-way through.
+ * @param {string[]} argv
+ * @param {{ minimal?: boolean }} [opts]
+ * @returns {import("./memory-rules.mjs").RulesProfile}
+ */
+function rulesProfileFromArgs(argv, { minimal = false } = {}) {
+  const raw = flagValue(argv, "--rules-profile");
+  const v = raw?.trim().toLowerCase();
+  if (v && Object.prototype.hasOwnProperty.call(PROFILES, v)) {
+    return /** @type {import("./memory-rules.mjs").RulesProfile} */ (v);
+  }
+  if (v) console.warn(pc.yellow(`Unknown --rules-profile "${raw}"; using the default.`));
+  return minimal ? "standard" : DEFAULT_PROFILE;
 }
 
 /** Project AGENTS.md + the global rules file for each wired agent. */
@@ -1120,8 +1153,9 @@ async function runNonInteractive(argv) {
 
   // Rules ship by default too (part of "everything"); --no-rules / --minimal opt out.
   const ruleTargets = rulesTargetsFromArgs(argv, ides, { full: !minimal });
+  const rulesProfile = rulesProfileFromArgs(argv, { minimal });
   if (ruleTargets.length) {
-    await installRules(ruleTargets, lang, { home, cwd, dryRun });
+    await installRules(ruleTargets, lang, { home, cwd, dryRun, profile: rulesProfile });
   }
 
   if (!noGitInit && dryRun) {
@@ -1295,6 +1329,22 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
                   choose. Interactive asks (deriving from --ide). Idempotent marked block
                   (obsidian-memory:start/end) — never clobbers content.
   --no-rules      Don't write any rules file.
+  --rules-profile <minimal|standard|full>
+                  WHICH rule levels go in the block (ADR-0067). The block is a
+                  permanent prior on every session, so it is split by what each part
+                  earns its place with:
+                    core      always — memory precedence, the untrusted-data boundary,
+                              "if no MCP answers, say so", and the arbitration rule.
+                    memory    the protocol proper: recall, close ritual, which tool,
+                              what is worth saving. Without it the tools are wired and
+                              the model is never told when to use them.
+                    doctrine  general working style (terseness, self-check, coaching,
+                              model adaptation). Real value, but a prior on ALL work,
+                              not memory protocol.
+                  full (default) = all three · standard = core+memory ·
+                  minimal = core only — the documented KILL SWITCH when the kit's
+                  style is getting in the way of your work. Reinstalling with a
+                  different profile rewrites the managed block in place.
 
 Claude Code native-memory override (when --ide includes claude):
   By default a Claude Code install also DISABLES Claude's native per-project
@@ -1677,7 +1727,12 @@ Claude Code native-memory override (when --ide includes claude):
     if (!rules) ruleTargets = [];
   }
   if (ruleTargets.length) {
-    await installRules(ruleTargets, lang, { home, cwd, dryRun });
+    await installRules(ruleTargets, lang, {
+      home,
+      cwd,
+      dryRun,
+      profile: rulesProfileFromArgs(process.argv)
+    });
   }
 
   const others = (ides || []).filter((x) => x !== "cursor" && x !== "claude" && x !== "codex");
