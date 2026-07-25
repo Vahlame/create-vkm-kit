@@ -6,19 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Changed
-
-- **`vault_hybrid_search` hits now carry `why` instead of `score`** (ADR-0072) — which
-  rankers matched (`lex+sem`, `sem`, `graph`) replaces the rounded RRF score in the default
-  payload. The score was measured to be monotone with hit position (380 hits, 0 violations),
-  so it said nothing the result order did not; `why` is not recoverable from order and is
-  actionable — a `sem`-only hit on a query naming an exact identifier means the literal token
-  was never found, so `vault_fts_search` is the better next call. The score moves behind
-  `explain: true` alongside the other diagnostics. Anything parsing `hit.score` from a default
-  response must read it from `explain` instead.
-
 ### Added
 
+- **`evals/limit/` — a bench that can say no** (ADR-0073). The case for lowering the search
+  `limit` below 10 rested on `evals/tokens/` reporting 100% answered at k=3 — but that corpus is
+  7 notes with ground truths of at most 2, so every `k >= 2` passes its completeness gate by
+  construction. On 74 real ADRs with 3-6 note ground truths, **k=5 answers 13% of multi-note
+  queries where k=10 answers 60%**, and k=10 also saves more, because a query that fails the
+  completeness gate contributes no savings at all. **The default stays at 10** — no code changed.
+  The doctrine's `limit: 3-5` advice for targeted single-fact recall is unaffected and still
+  correct; the two are different query shapes.
 - A **truncation signal** for the search envelope was designed, measured and **rejected**
   (ADR-0072): it would fire on 100% of queries in both eval corpora, because the semantic pass
   is dense and makes the candidate pool the whole vault. Recorded so it is not re-proposed.
@@ -31,6 +28,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   because that subject is missing the layer under test. Runs on every push in `e2e-smoke`.
 - All ADRs from 0062 to 0071 added to the `docs/adr/README.md` index, which had drifted nine
   entries behind.
+
+### Changed
+
+- **`vault_hybrid_search` hits now carry `why` instead of `score`** (ADR-0072) — which
+  rankers matched (`lex+sem`, `sem`, `graph`) replaces the rounded RRF score in the default
+  payload. The score was measured to be monotone with hit position (380 hits, 0 violations),
+  so it said nothing the result order did not; `why` is not recoverable from order and is
+  actionable — a `sem`-only hit on a query naming an exact identifier means the literal token
+  was never found, so `vault_fts_search` is the better next call. The score moves behind
+  `explain: true` alongside the other diagnostics. Anything parsing `hit.score` from a default
+  response must read it from `explain` instead.
 
 ## [4.6.0] - 2026-07-25
 

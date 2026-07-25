@@ -184,3 +184,38 @@ def test_evaluate_tokens_math_and_gate(tmp_path: Path) -> None:
     # Aggregates come from the answered query alone.
     assert report.median_savings == pytest.approx(good.savings)
     assert report.total_full_tokens == good.full_tokens
+
+
+# The limit falsifier (ADR-0073) labels REAL ADR filenames, so renaming an ADR would
+# silently turn a label into an unreachable path — and an unreachable label looks
+# exactly like "a low limit missed it", which is the one conclusion this set exists to
+# make trustworthy. Not a CI gate on the numbers (the corpus grows by design); a gate on
+# the labels still pointing at something.
+LIMIT_QUERIES = REPO_ROOT / "evals" / "limit" / "queries.jsonl"
+ADR_CORPUS = REPO_ROOT / "docs" / "adr"
+
+
+@pytest.mark.skipif(
+    not (LIMIT_QUERIES.is_file() and ADR_CORPUS.is_dir()),
+    reason="limit fixture (evals/limit) not present (package shipped standalone)",
+)
+def test_limit_falsifier_labels_resolve() -> None:
+    import json
+
+    rows = [
+        json.loads(line)
+        for line in LIMIT_QUERIES.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    assert len(rows) >= 15, "the falsifier needs its query set intact"
+    missing = [
+        (r["query"], rel)
+        for r in rows
+        for rel in r["relevant"]
+        if not (ADR_CORPUS / rel).is_file()
+    ]
+    assert not missing, f"labels point at ADRs that no longer exist: {missing}"
+    # Ground truths must stay bigger than the limits under test — a set whose labels
+    # fit inside k=5 cannot fail at k=5, which is precisely the defect in the corpus
+    # that made "k=3 answers 100%" look like evidence.
+    assert max(len(r["relevant"]) for r in rows) > 5, "ground truths must exceed k=5"
