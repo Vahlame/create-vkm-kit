@@ -78,11 +78,15 @@ async function installRulesFile(fp, block, { dryRun = false, newFilePrefix = "" 
  * Install the memory-rules block into the requested targets.
  * @param {string[]} targets - any of "claude" | "agents" | "cursor" | "codex"
  * @param {"es"|"en"} lang
- * @param {{ home: string, cwd: string, dryRun?: boolean }} ctx
+ * @param {{ home: string, cwd: string, dryRun?: boolean, profile?: import("./memory-rules.mjs").RulesProfile }} ctx
+ *   `profile` selects which rule levels are injected (ADR-0067): `minimal` = core only
+ *   (the documented kill switch), `standard` = core + memory, `full` (default) = all
+ *   three. Reinstalling with a different profile rewrites the managed block in place,
+ *   so switching is one command and never leaves two levels' worth of stale text.
  * @returns {Promise<string[]>} files written
  */
-export async function installRules(targets, lang, { home, cwd, dryRun = false }) {
-  const block = memoryRulesBlock(lang);
+export async function installRules(targets, lang, { home, cwd, dryRun = false, profile }) {
+  const block = memoryRulesBlock(lang, profile);
   const written = [];
   if (targets.includes("claude")) {
     const fp = path.join(home, ".claude", "CLAUDE.md");
