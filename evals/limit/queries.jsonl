@@ -1,0 +1,25 @@
+# Multi-relevant golden set for the DEFAULT-LIMIT question (ADR-0073).
+#
+# Corpus: docs/adr/ — 74 real ADRs, human-written, heavy shared vocabulary. Not a
+# synthetic vault: fabricated notes would let the ranker look better or worse than it
+# is, and the point of this set is to be able to say NO.
+#
+# Labelling rule (auditable): a note is `relevant` when it DECIDES part of the answer,
+# not when it mentions the topic. Grep finds 8-14 ADRs per theme; the label keeps the
+# 3-7 that a reader would have to open. Ground truths span >5 notes on purpose — the
+# existing token corpus tops out at 2, which is why it cannot falsify a low limit.
+{"query": "what does the fixed context layer cost every session and how is it measured", "relevant": ["0063-fixed-context-budget-inventory.md", "0035-fixed-cost-diet-schema-budget.md", "0036-rules-block-diet-and-drift-gate.md", "0067-rules-block-levels.md"], "kind": "multi-decision"}
+{"query": "which hooks make the doctrine deterministic in Claude Code", "relevant": ["0030-deterministic-enforcement-hooks.md", "0031-effort-gate-hook.md", "0029-disable-claude-native-auto-memory.md", "0043-token-saver-posttooluse-compaction.md"], "kind": "multi-decision"}
+{"query": "opt-in ranking levers in hybrid search", "relevant": ["0019-graph-aware-retrieval.md", "0021-ranking-upgrades-and-graded-metrics.md", "0026-cross-encoder-reranker.md", "0027-type-weighted-graph-and-importance.md", "0028-mmr-and-passage-window.md", "0038-evolutive-memory-loop.md"], "kind": "multi-decision"}
+{"query": "how do we know a benchmark number is honest and not invented", "relevant": ["0064-eval-statistics-and-reporting-rule.md", "0065-bench-cost-accounting.md", "0066-harness-conformance-matrix.md", "0071-verified-bench-arms.md", "0020-measured-retrieval-quality.md"], "kind": "multi-decision"}
+{"query": "where do the token savings the kit claims come from", "relevant": ["0032-token-discipline-and-token-economy-benchmark.md", "0034-compact-wire-format-and-lower-default-limit.md", "0045-assemble-context-single-call.md", "0018-multi-agent-token-efficiency.md", "0043-token-saver-posttooluse-compaction.md"], "kind": "multi-decision"}
+{"query": "local web research: how material is gathered and curated", "relevant": ["0054-obscura-research-local-deep-crawl.md", "0055-obscura-research-local-llm-curation.md", "0057-obscura-research-gather-over-rank.md", "0060-obscura-deep-research-background-job.md", "0062-obscura-seed-url-crawler.md", "0056-research-knowledge-bank.md"], "kind": "multi-decision"}
+{"query": "what was decided about the vault as a system of record and its limits", "relevant": ["0037-vault-vs-database-system-of-record.md", "0039-rules-contract.md", "0024-memory-reports-and-compaction.md", "0038-evolutive-memory-loop.md"], "kind": "multi-decision"}
+{"query": "vector acceleration and embeddings for semantic search", "relevant": ["0014-hybrid-retrieval-sqlite-vec.md", "0017-hybrid-query-embeddings.md", "0025-optional-sqlite-vec-acceleration.md", "0026-cross-encoder-reranker.md"], "kind": "multi-decision"}
+{"query": "vault sync on Windows with no console window", "relevant": ["0012-go-daemon-cross-platform.md", "0007-windows-first-pattern.md", "0004-sync-order-add-commit-pull-push.md", "0013-syncthing-as-transport.md"], "kind": "multi-decision"}
+{"query": "which skills are installed and when they trigger", "relevant": ["0049-discipline-doctrine-three-channels.md", "0053-vkm-design-skill.md", "0068-narrow-the-discipline-trigger.md", "0061-kit-update-and-skill-structure-gate.md"], "kind": "multi-decision"}
+{"query": "typed knowledge graph and relations between notes", "relevant": ["0023-structured-knowledge-graph.md", "0027-type-weighted-graph-and-importance.md", "0019-graph-aware-retrieval.md"], "kind": "multi-decision"}
+{"query": "what shape is the search response the agent reads", "relevant": ["0034-compact-wire-format-and-lower-default-limit.md", "0072-search-hit-provenance.md", "0035-fixed-cost-diet-schema-budget.md"], "kind": "multi-decision"}
+{"query": "download manager: background jobs and mirrors", "relevant": ["0058-vkm-downloads-file-download-tool.md", "0059-vkm-downloads-background-jobs-and-mirrors.md"], "kind": "narrow"}
+{"query": "default localhost MCP port", "relevant": ["0016-localhost-mcp-default-port.md"], "kind": "narrow"}
+{"query": "the vkm-kit rename and backward compatibility", "relevant": ["0041-vkm-kit-rename-and-back-compat.md", "0042-version-locked-suite-packages.md", "0050-release-train-and-npm-shim.md"], "kind": "narrow"}

@@ -108,6 +108,15 @@ main token lever**: k=3 still answers everything here and saves strictly more
 (`tests/test_bench_tokens.py` pins both as contracts, plus the wire-arm floor).
 The CI job and the tests gate on the k=5 floor with a margin.
 
+> **Do not read "k=3 answers 100%" as a case for lowering the default.** It is a
+> fact about **this** corpus: 7 notes, ground truths of at most 2, so every
+> `k >= 2` passes the completeness gate and the table has no failing case. On a
+> 74-note corpus with 3-6 note ground truths, k=5 answers **13%** where k=10
+> answers **60%** — see [`limit/`](./limit/) and
+> [ADR-0073](../docs/adr/0073-default-limit-stays-at-10.md). The `limit: 3-5`
+> advice remains right for **targeted single-fact recall**, which is the query
+> shape this corpus actually contains.
+
 ### Fixed costs are gated too (not here, but gated)
 
 The wire benchmark covers the **per-call** cost. The kit's **fixed** per-session
