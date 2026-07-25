@@ -26,7 +26,11 @@ const typeAwareRules = {
 
 export default [
   {
-    ignores: ["**/node_modules/**", "bin/**", "packages/obsidian-memory-rag/**"]
+    // `.claude/` is machine-local agent state (gitignored) and, crucially, holds
+    // `.claude/worktrees/*` — full nested checkouts of this same repo. Without this
+    // ignore, every file gets linted once per live worktree and `npm run lint` fails
+    // on half-written code from an unrelated branch.
+    ignores: ["**/node_modules/**", "bin/**", ".claude/**", "packages/obsidian-memory-rag/**"]
   },
   js.configs.recommended,
   {
