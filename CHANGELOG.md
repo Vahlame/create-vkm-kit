@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **`package-lock.json` is a version marker now, so a stale lock cannot ship**
+  (ADR-0077). `version:set` rewrote 13 markers and left the lockfile out, and
+  `version:check` never read it — so **4.6.0 and 4.7.0 both shipped with every workspace
+  recorded at 4.5.1 in the lock** while every `package.json`, badge, `agent.toml`,
+  `pyproject.toml` and the Go daemon said otherwise. Nothing failed loudly because
+  `npm ci` installs a workspace from its own `package.json` and never compares it with
+  the lock's copy (measured: `npm ci --dry-run` exits 0 against the drifted lock). `set`
+  now rewrites each workspace's lock entry — a replace scoped to that entry, so a bump is
+  7 changed lines and never a whole-file reformat — and `check` surveys them: **20
+  markers, up from 13**. A lock entry for a workspace with no marker is reported too,
+  which closes the older hole where a package added without markers drifted unseen
+  everywhere.
+
+  **Nothing about the published packages changes.** npm packs the version from
+  `package.json`, so no release was ever mis-versioned; what was wrong is the repo's own
+  record of what it released.
+
 ## [4.7.0] - 2026-07-25
 
 **What changes for you when you update.** This release is almost entirely _measurement_: six

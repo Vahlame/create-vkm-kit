@@ -14,6 +14,12 @@
  *
  * Net effect: the documented build command could print a stale version forever, and
  * both `set` and `check` would stay silent about it. These tests pin the split.
+ *
+ * `package-lock.json` is the same failure in a different file: it records every
+ * workspace's version a second time, `npm ci` installs each workspace from its own
+ * `package.json` and never compares the two, so a stale lock is silent by construction
+ * (4.7.0 shipped with 4.5.1 in the lock). The tests below pin that its entries are
+ * markers, and that a marker's write touches its own entry and nothing adjacent.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -35,6 +41,29 @@ function goSource({ varVersion, ldflags }) {
 }
 
 const goMarkers = () => MARKERS.filter((m) => m.file === GO_FILE);
+
+const LOCK_FILE = "package-lock.json";
+const lockMarkers = () => MARKERS.filter((m) => m.file === LOCK_FILE);
+const byName = (a, b) => a.localeCompare(b);
+
+/**
+ * A lockfile in npm's own shape: the root entry, one entry per workspace, and a nested
+ * dependency whose key starts with a workspace path — the neighbour a looser regex
+ * would rewrite instead of, or as well as, the workspace entry itself.
+ */
+function lockSource(version = "1.0.0", overrides = {}) {
+  const packages = { "": { name: "vkm-kit" } };
+  for (const { workspace } of lockMarkers()) {
+    packages[workspace] = {
+      name: `@vkmikc/${workspace.slice("packages/".length)}`,
+      version: overrides[workspace] ?? version,
+      license: "MIT",
+      dependencies: { execa: "^9.6.1" }
+    };
+  }
+  packages[`${lockMarkers()[0].workspace}/node_modules/execa`] = { version: "9.6.1" };
+  return `${JSON.stringify({ lockfileVersion: 3, packages }, null, 2)}\n`;
+}
 
 test("the Go daemon's two version copies are separate markers, not one", () => {
   const markers = goMarkers();
@@ -73,6 +102,44 @@ test("writing an already-correct file is a no-op, so `set` stays idempotent", ()
   assert.equal(after, src);
 });
 
+test("every workspace package.json marker has a package-lock.json marker", () => {
+  const fromPackages = MARKERS.map(
+    (m) => (m.file.match(/^(packages\/[^/]+)\/package\.json$/) || [])[1]
+  ).filter(Boolean);
+  assert.ok(fromPackages.length > 0, "the table must still describe npm workspaces");
+  assert.deepEqual(
+    lockMarkers()
+      .map((m) => m.workspace)
+      .sort(byName),
+    fromPackages.sort(byName),
+    "a workspace whose lock entry has no marker drifts unseen: nothing compares the " +
+      "lock against the package.json it duplicates"
+  );
+});
+
+test("a stale lockfile entry is READ as drifted even when its package.json is right", () => {
+  const [first, second] = lockMarkers();
+  const src = lockSource("4.7.0", { [first.workspace]: "4.5.1" });
+  assert.equal(
+    first.read(src),
+    "4.5.1",
+    "this is the drift 4.7.0 shipped with — check() must be able to see it"
+  );
+  assert.equal(second.read(src), "4.7.0");
+});
+
+test("a lockfile marker rewrites only its own workspace entry", () => {
+  const [first, second] = lockMarkers();
+  const { packages } = JSON.parse(first.write(lockSource("4.7.0"), "9.8.7"));
+  assert.equal(packages[first.workspace].version, "9.8.7");
+  assert.equal(packages[second.workspace].version, "4.7.0", "no sibling workspace touched");
+  assert.equal(
+    packages[`${first.workspace}/node_modules/execa`].version,
+    "9.6.1",
+    "a nested dependency sharing the workspace's path prefix is not a version marker"
+  );
+});
+
 test("every marker reads back exactly what it wrote (read/write are inverses)", () => {
   // Guards the whole table, not just the Go pair: a regex that writes a shape its own
   // reader cannot parse would make `set` produce permanent, self-inflicted drift.
@@ -90,7 +157,10 @@ test("every marker reads back exactly what it wrote (read/write are inverses)", 
       '<img src="https://img.shields.io/badge/release-v1.0.0-orange.svg" alt="Release">\n',
     "README.en.md":
       '<img src="https://img.shields.io/badge/release-v1.0.0-orange.svg" alt="Release">\n',
-    [GO_FILE]: goSource({ varVersion: "1.0.0", ldflags: "1.0.0" })
+    [GO_FILE]: goSource({ varVersion: "1.0.0", ldflags: "1.0.0" }),
+    // One fixture serves every lock marker: each writes its own entry, from the same
+    // pristine string, and must read that entry back.
+    [LOCK_FILE]: lockSource()
   };
 
   for (const marker of MARKERS) {
