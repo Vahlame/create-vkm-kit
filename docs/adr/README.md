@@ -77,6 +77,7 @@ Each file in this directory captures one design decision: what was chosen, what 
 | [ADR-0071](./0071-verified-bench-arms.md)                          | Bench arms that prove what they carry                                                     | Accepted                                       |
 | [ADR-0072](./0072-search-hit-provenance.md)                        | Tell the agent why a hit surfaced, not what it scored                                     | Accepted                                       |
 | [ADR-0073](./0073-default-limit-stays-at-10.md)                    | The default search limit stays at 10, and the corpus that said otherwise could not fail   | Accepted                                       |
+| [ADR-0074](./0074-cross-project-leakage.md)                        | Cross-project isolation — measured, and the mitigation already shipped                    | Accepted                                       |
 
 ## Template
 
