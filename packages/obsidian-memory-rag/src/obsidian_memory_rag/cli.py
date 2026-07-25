@@ -18,7 +18,7 @@ from .complete import complete as complete_prefix
 from .embeddings import embedder_for_identity, get_embedder
 from .indexer import ensure_fresh, index_vault, index_vectors
 from .kg_query import observations_query, relations_for, suggest_structure
-from .query import hybrid_search, search_vault
+from .query import _why, hybrid_search, search_vault
 from .recall_log import log_events
 from .reflect import build_reflection, format_reflection, write_reflection_note
 from .report import build_report
@@ -812,20 +812,28 @@ def main() -> None:
         hits = hybrid_search(args.vault, args.query, embedder, **_hybrid_kwargs(args))
         if args.log_recall and hits:
             log_events(args.vault, "returned", [h.path for h in hits], query=args.query)
-        # Compact wire format (ADR-0034): default hits carry only what an agent
-        # acts on (path, heading, snippet, rounded score). Per-ranker ranks and
-        # the full-precision score — mostly-null diagnostics costing ~25 tokens
-        # per hit — ship only under --explain. round(score, 5) keeps adjacent
-        # RRF ranks (Δ ≈ 2e-4 at k=60) distinguishable.
+        # Compact wire format (ADR-0034/0072): default hits carry only what an
+        # agent acts on (path, heading, snippet, why). Per-ranker ranks and the
+        # full-precision score — mostly-null diagnostics costing ~25 tokens per
+        # hit — ship only under --explain.
+        #
+        # `why` replaced the rounded fused score (ADR-0072): RRF scores are
+        # rank-derived, so in the default payload the score is monotone with hit
+        # position (measured: 0 violations in 380 hits) and therefore says nothing
+        # the order does not already say. Which RANKERS matched is not recoverable
+        # from order and is actionable — a hit that surfaced on embedding
+        # similarity alone ("sem") is weak evidence for a query naming an exact
+        # identifier, and tells the agent to retry via vault_fts_search.
         payload = {
             "hits": [
                 {
                     "path": h.path,
                     "heading": h.heading,
                     "snippet": h.snippet,
-                    "score": round(h.score, 5),
+                    "why": _why(h),
                     **(
                         {
+                            "score": round(h.score, 5),
                             "score_raw": h.score,
                             "bm25_rank": h.bm25_rank,
                             "vector_rank": h.vector_rank,

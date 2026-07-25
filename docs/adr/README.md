@@ -75,6 +75,7 @@ Each file in this directory captures one design decision: what was chosen, what 
 | [ADR-0069](./0069-index-drift-detection.md)                        | Detect index drift, and answer the architectural questions in the repo                    | Accepted                                       |
 | [ADR-0070](./0070-eol-invariance-and-doctrine-consistency.md)      | EOL invariance across the write paths, and three doctrine contradictions                  | Accepted                                       |
 | [ADR-0071](./0071-verified-bench-arms.md)                          | Bench arms that prove what they carry                                                     | Accepted                                       |
+| [ADR-0072](./0072-search-hit-provenance.md)                        | Tell the agent why a hit surfaced, not what it scored                                     | Accepted                                       |
 
 ## Template
 
