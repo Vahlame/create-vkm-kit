@@ -9,7 +9,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from .graphlink import _build_resolver, neighbor_paths, typed_neighbor_paths
+from .graphlink import (
+    _build_resolver,
+    demote_superseded,
+    neighbor_paths,
+    superseded_map,
+    typed_neighbor_paths,
+)
 from .paths import in_section, index_db_path, section_sql_filter, validate_section
 from .store import connect, init_schema
 from .vector_store import ChunkHit, fetch_adjacent_chunks, fetch_chunk_vecs, search_chunks
@@ -680,6 +686,22 @@ def hybrid_search(
     if recency or importance or usage:
         # Same deterministic tie-break as reciprocal_rank_fusion: score desc, path asc.
         fused.sort(key=lambda kv: (-kv[1], kv[0]))
+
+    # Supersession (ADR-0075): order each superseding note above the note it
+    # supersedes, BEFORE any stage cuts to `limit` — otherwise the current decision can
+    # be the one that falls off the end. No-op unless the vault authors `supersedes`
+    # relations, so it cannot move an existing ranking.
+    sup_db = index_db_path(vault.resolve()) if fused else None
+    if sup_db is not None and sup_db.is_file():
+        conn_sup = connect(sup_db)
+        try:
+            init_schema(conn_sup)
+            sup = superseded_map(conn_sup, [p for p, _ in fused])
+        finally:
+            conn_sup.close()
+        if sup:
+            by_path = dict(fused)
+            fused = [(p, by_path[p]) for p in demote_superseded([p for p, _ in fused], sup)]
 
     bm_rank = {p: i + 1 for i, p in enumerate(bm_paths)}
     sem_rank = {p: i + 1 for i, p in enumerate(sem_paths)}
