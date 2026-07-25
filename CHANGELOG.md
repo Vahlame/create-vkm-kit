@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **A superseded decision could outrank its replacement** (ADR-0075). The `- supersedes [[old]]`
+  edge is authored in the **new** note, so the new note became a graph seed and the **obsolete**
+  note collected the neighbour boost. Measured on five independent supersession pairs: with
+  `graph: true` the obsolete decision ranked first **5/5**; with the graph off, 3/5 — ranking had
+  no notion of currency at all. `hybrid_search` now orders each superseding note above the note
+  it supersedes, before the cut to `limit`. Obsolete-first is now **0/5** in every configuration.
+  Membership-preserving (the old note is still returned, one position lower, so ADR-0027's
+  navigation case survives) and a strict no-op on vaults with no `supersedes` relations — the
+  token bench wire total is byte-identical at 11,810 and `recall@5` stays 1.000.
+
 ### Added
 
 - **Cross-project leakage probe** (`evals/cross-project/probe.py`, ADR-0074) — a proposed

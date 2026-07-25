@@ -210,3 +210,62 @@ def neighbor_paths(
 
     ranked = sorted(score.items(), key=lambda kv: (-kv[1], kv[0]))
     return [path for path, _ in ranked[:limit]]
+
+
+def superseded_map(conn: sqlite3.Connection, paths: list[str]) -> dict[str, str]:
+    """``{obsolete_path: superseding_path}`` for ``supersedes`` edges inside ``paths``.
+
+    Only pairs where BOTH ends are in ``paths`` are returned: this exists to order a
+    result set that already contains both notes, never to pull a note in or drop one.
+
+    Why memory recall needs this at all (ADR-0075): the edge is authored in the NEW
+    note (``- supersedes [[old]]``), so when the new note matches a query it becomes a
+    graph seed and the OBSOLETE note collects the neighbour boost — while the new note
+    gets nothing from its own out-edge. Turning on ``graph`` therefore ranks the
+    superseded decision first, measured 5/5 on independent supersession pairs.
+    """
+    if len(paths) < 2:
+        return {}
+    in_set = set(paths)
+    try:
+        rows = conn.execute(
+            "SELECT source_path, target FROM relations WHERE relation_type = 'supersedes'"
+        ).fetchall()
+    except sqlite3.OperationalError:  # relations table absent (pre-v2 index)
+        return {}
+    if not rows:
+        return {}
+    resolve = _build_resolver(_fts_paths(conn))
+    out: dict[str, str] = {}
+    for r in rows:
+        src = str(r["source_path"])
+        dst = resolve(str(r["target"]))
+        # First writer wins, so a note superseded by two others keeps a stable anchor.
+        if dst is not None and dst != src and src in in_set and dst in in_set:
+            out.setdefault(dst, src)
+    return out
+
+
+def demote_superseded(ranked: list[str], superseded: dict[str, str]) -> list[str]:
+    """Reorder so each superseding note precedes the note it supersedes.
+
+    Stable and membership-preserving: nothing is added or removed, so ADR-0027's
+    navigation case ("what did this note supersede?") still gets the old note back —
+    just below its replacement. A cycle (A supersedes B, B supersedes A) is data the
+    vault should not contain; it resolves to "leave that pair alone" rather than
+    looping, because a ranking function must always terminate.
+    """
+    if not superseded:
+        return ranked
+    out = list(ranked)
+    for obsolete, superseder in superseded.items():
+        if superseded.get(superseder) == obsolete:  # mutual: unorderable, skip
+            continue
+        try:
+            i_obs, i_sup = out.index(obsolete), out.index(superseder)
+        except ValueError:
+            continue
+        if i_obs < i_sup:
+            out.pop(i_obs)
+            out.insert(out.index(superseder) + 1, obsolete)
+    return out
