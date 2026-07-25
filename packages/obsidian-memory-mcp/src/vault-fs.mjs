@@ -278,6 +278,21 @@ function wouldSelfPasteFrontmatter(originalText, finalText) {
  * @param {Array<{oldText: string, newText: string}>} edits
  * @param {{ifMatch?: string}} [opts]
  */
+/**
+ * Rewrite `s`'s line endings to `eol`.
+ *
+ * Shared by the edit and append paths on purpose. They had drifted: append
+ * normalized, edit spliced raw, so the same LF-composed text produced a clean note
+ * through one tool and a mixed-ending note through the other. One helper, both
+ * callers, no way to fix a bug in one and leave it in the other.
+ *
+ * @param {string} s
+ * @param {"\r\n"|"\n"} eol
+ */
+export function toFileEol(s, eol) {
+  return s.replace(/\r\n/g, "\n").split("\n").join(eol);
+}
+
 export async function vaultEditFile(vaultAbs, relPath, edits, opts = {}) {
   if (!Array.isArray(edits) || edits.length === 0) {
     throw new Error("edits must be a non-empty array of {oldText, newText}");
@@ -290,6 +305,8 @@ export async function vaultEditFile(vaultAbs, relPath, edits, opts = {}) {
       ? await assertEtagMatches(fp, opts.ifMatch)
       : await readFile(fp, "utf8");
     let text = original;
+    // The file's own line ending, decided once from what is already on disk.
+    const eol = original.includes("\r\n") ? "\r\n" : "\n";
     const applied = [];
     for (const [i, edit] of edits.entries()) {
       if (typeof edit.oldText !== "string" || typeof edit.newText !== "string") {
@@ -304,7 +321,14 @@ export async function vaultEditFile(vaultAbs, relPath, edits, opts = {}) {
           `edit ${i}: oldText matches ${occurrences} times — provide more surrounding context to make it unique`
         );
       }
-      text = text.replace(edit.oldText, edit.newText);
+      // Normalize newText to the file's own EOL before splicing it in. Vault notes
+      // are commonly CRLF (the doctrine says so, and tells the model to anchor edits
+      // on ONE line precisely because of it), while a model composes newText with LF.
+      // Splicing raw leaves the note with mixed endings, which then breaks the
+      // single-line anchoring that rule exists to protect — and noises up every
+      // subsequent git diff. vaultAppendFile has always normalized (see below); this
+      // path never did. Single-line newText is unaffected: no newlines, no change.
+      text = text.replace(edit.oldText, toFileEol(edit.newText, eol));
       applied.push(i);
     }
     if (wouldSelfPasteFrontmatter(original, text)) {
@@ -480,7 +504,7 @@ export async function vaultAppendFile(vaultAbs, relPath, text, opts = {}) {
       }
     }
     const eol = original != null && original.includes("\r\n") ? "\r\n" : "\n";
-    let chunk = text.replace(/\r\n/g, "\n").split("\n").join(eol);
+    let chunk = toFileEol(text, eol);
     if (!chunk.endsWith(eol)) chunk += eol;
     let finalText;
     const created = original == null;

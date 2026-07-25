@@ -17,6 +17,7 @@ import time
 from math import ceil
 from pathlib import Path
 
+from .paths import index_db_path
 from .text_scrub import strip_code_regions
 
 # Directories that never hold user notes: VCS metadata, the Obsidian app config,
@@ -173,11 +174,25 @@ def _estimate_tokens(num_bytes: int) -> int:
 
 
 def _iter_md_files(vault: Path) -> list[Path]:
-    """All ``*.md`` files under ``vault`` excluding the tooling/VCS dirs."""
+    """All ``*.md`` files under ``vault``, excluding what retrieval also excludes.
+
+    Skips any DOT-directory, not just the three named ones — matching
+    ``indexer._should_skip_dir`` (``name in SKIP_DIR_NAMES or name.startswith(".")``).
+    The two lists had diverged, and the gap had teeth: ``vault_delete_file`` soft-deletes
+    into ``.trash/`` INSIDE the vault, the indexer skips it as a dot-directory, and the
+    audit did not. So trashed notes counted toward the token budget, appeared in
+    ``oversized``, and had their ``[[wikilinks]]`` scanned — reporting on notes retrieval
+    can never return. It also produced FALSE ``index_drift``: a soft-deleted note showed
+    up as ``missing`` (on disk, no index row) forever, because the index is correct to
+    omit it.
+
+    An audit that reports on files the search engine cannot see is measuring a different
+    vault than the one the agent queries.
+    """
     out: list[Path] = []
     for path in vault.rglob("*.md"):
-        # Skip anything living under an excluded directory (at any depth).
-        if any(part in _EXCLUDE_DIRS for part in path.relative_to(vault).parts[:-1]):
+        parts = path.relative_to(vault).parts[:-1]
+        if any(p in _EXCLUDE_DIRS or p.startswith(".") for p in parts):
             continue
         if path.is_file():
             out.append(path)
@@ -197,6 +212,79 @@ def _wikilink_target(raw: str) -> str:
     if target.lower().endswith(".md"):
         target = target[:-3]
     return target.strip()
+
+
+def index_drift(vault: Path, files: list[Path], *, limit: int = 100) -> dict | None:
+    """Compare the derived SQLite index against the Markdown it is derived from.
+
+    Markdown is this system's single source of truth and the index is rebuilt from
+    it — but incremental indexing keys each note on ``(mtime_ns, size_bytes)``
+    (``indexer.py``), and that key cannot see an edit which preserves both. A
+    ``git checkout`` that restores an mtime, or a two-character swap inside one
+    filesystem timestamp tick, leaves the note indexed at its OLD content with no
+    error anywhere. Silent staleness in a memory system is worse than a missing
+    index: search keeps answering, from text that is no longer on disk.
+
+    So this reports three classes, cheaply and read-only:
+
+    - ``missing``: on disk, no index row — never indexed, or indexed then lost.
+    - ``orphaned``: index row, no file — deleted outside an indexing pass, so its
+      text can still surface in results.
+    - ``stale``: both exist but ``(mtime_ns, size_bytes)`` disagree — the honest
+      subset of drift this key CAN see.
+
+    Returns ``None`` when there is no index yet (nothing to drift from), so an
+    unindexed vault reports absence rather than a false alarm.
+
+    Deliberately a REPORT, not a repair: the fix is ``vault_fts_index``, which is
+    already a tool. Nothing here writes.
+    """
+    db = index_db_path(vault)
+    if not db.exists():
+        return None
+    import sqlite3
+
+    try:
+        conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+        conn.row_factory = sqlite3.Row
+        try:
+            rows = {
+                str(r["path"]): (int(r["mtime_ns"]), int(r["size_bytes"]))
+                for r in conn.execute("SELECT path, mtime_ns, size_bytes FROM indexed_files")
+            }
+        finally:
+            conn.close()
+    except sqlite3.Error:
+        # A locked, corrupt or pre-schema database is not a vault-health finding —
+        # the audit must still return the rest of its report.
+        return None
+
+    on_disk: dict[str, tuple[int, int]] = {}
+    for f in files:
+        rel = f.relative_to(vault).as_posix()
+        try:
+            st = f.stat()
+        except OSError:
+            continue
+        on_disk[rel] = (int(st.st_mtime_ns), int(st.st_size))
+
+    missing = sorted(set(on_disk) - set(rows))
+    orphaned = sorted(set(rows) - set(on_disk))
+    stale = sorted(p for p, meta in on_disk.items() if p in rows and rows[p] != meta)
+
+    total = len(missing) + len(orphaned) + len(stale)
+    return {
+        "indexed": len(rows),
+        "on_disk": len(on_disk),
+        "missing": missing[:limit],
+        "missing_total": len(missing),
+        "orphaned": orphaned[:limit],
+        "orphaned_total": len(orphaned),
+        "stale": stale[:limit],
+        "stale_total": len(stale),
+        "drift_total": total,
+        "fix": "vault_fts_index" if total else None,
+    }
 
 
 def audit_vault(
@@ -225,6 +313,8 @@ def audit_vault(
       write, older than an hour.
     - ``git_state``: in-progress rebase/merge markers (``None`` if not a git repo)
       — the state the sync daemon leaves when it aborts on conflict.
+    - ``index_drift``: the derived SQLite index versus the Markdown it is derived
+      from (``None`` when no index exists). See :func:`index_drift`.
     """
     vault = vault.resolve()
     files = _iter_md_files(vault)
@@ -340,6 +430,7 @@ def audit_vault(
         "stale_tmp": stale_tmp[:limit],
         "stale_tmp_total": stale_tmp_total,
         "git_state": _git_state(vault),
+        "index_drift": index_drift(vault, files, limit=limit),
         # None = no memory-schema.json (validation unconfigured), mirroring
         # git_state's absent-vs-clean distinction.
         "schema_violations": (

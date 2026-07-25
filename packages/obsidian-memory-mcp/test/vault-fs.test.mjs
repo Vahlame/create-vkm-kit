@@ -923,3 +923,54 @@ test("vaultBacklinks: works for a note that no longer exists", async () => {
     await rm(vault, { recursive: true });
   }
 });
+
+// --- EOL invariance across the write paths (ADR-0070) -----------------------
+//
+// Vault notes are commonly CRLF — the shipped doctrine says so, and tells the model
+// to anchor each edit on ONE line precisely because of it. A model composes newText
+// with LF. vaultAppendFile has always normalized to the file's EOL; vaultEditFile
+// spliced raw, so the same text produced a clean note through one tool and a
+// mixed-ending note through the other — which then breaks the single-line anchoring
+// that rule exists to protect.
+
+async function crlfVault(name = "n.md", body = "# Note\r\n\r\n- uno\r\n") {
+  const root = await mkdtemp(join(tmpdir(), "vault-eol-"));
+  await writeFile(join(root, name), body, "utf8");
+  return root;
+}
+
+test("vault_edit_file writes multi-line newText in the file's own EOL (CRLF)", async () => {
+  const vault = await crlfVault("n.md", "# Note\r\n\r\n## Decisiones\r\n\r\n- uno\r\n");
+  await vaultEditFile(vault, "n.md", [{ oldText: "- uno", newText: "- uno\n- dos\n- tres" }]);
+
+  const after = await readFile(join(vault, "n.md"), "utf8");
+  assert.ok(!/[^\r]\n/.test(after), `mixed line endings written: ${JSON.stringify(after)}`);
+  assert.ok(after.includes("- dos\r\n- tres"), "the inserted lines use CRLF");
+});
+
+test("vault_edit_file leaves an LF note as LF", async () => {
+  const vault = await crlfVault("n.md", "# Note\n\n- uno\n");
+  await vaultEditFile(vault, "n.md", [{ oldText: "- uno", newText: "- uno\r\n- dos" }]);
+
+  const after = await readFile(join(vault, "n.md"), "utf8");
+  assert.ok(!after.includes("\r"), "an LF note must not gain CRLF from newText");
+  assert.ok(after.includes("- uno\n- dos"));
+});
+
+test("single-line newText is byte-identical either way (no behaviour change)", async () => {
+  const vault = await crlfVault();
+  await vaultEditFile(vault, "n.md", [{ oldText: "- uno", newText: "- ONE" }]);
+  assert.equal(await readFile(join(vault, "n.md"), "utf8"), "# Note\r\n\r\n- ONE\r\n");
+});
+
+test("edit and append agree on EOL for the same input", async () => {
+  // The regression this pins: the two write paths drifting apart again.
+  const vault = await crlfVault("e.md", "# A\r\n\r\n- seed\r\n");
+  await writeFile(join(vault, "a.md"), "# A\r\n\r\n- seed\r\n", "utf8");
+
+  await vaultEditFile(vault, "e.md", [{ oldText: "- seed", newText: "- seed\n- added" }]);
+  await vaultAppendFile(vault, "a.md", "- added");
+
+  assert.ok((await readFile(join(vault, "e.md"), "utf8")).includes("- added\r\n"));
+  assert.ok((await readFile(join(vault, "a.md"), "utf8")).includes("- added\r\n"));
+});

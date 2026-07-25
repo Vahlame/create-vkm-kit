@@ -337,6 +337,103 @@ Two **local** surfaces (no hosted backend; see [`docs/observability.md`](./docs/
 
 CI (`.github/workflows/ci.yml`) mirrors these across a lint/test/smoke matrix.
 
+## Architectural questions, answered
+
+These come up repeatedly — from contributors, from reviewers, and from anyone sizing
+the kit up against a graph database or a hosted memory service. Each answer states
+what the code actually does today, and where the answer is "unproven" it says so
+rather than guessing.
+
+### What is this, exactly?
+
+**A memory substrate exposed over MCP.** Not a framework, not an agent runtime, not a
+knowledge platform. Two facts fix the identity: the only layer every harness can see
+is the MCP server (ADR-0066), and the vault is plain Markdown under git, so it
+outlives the tool that produced it. Anything that would make the vault unreadable
+without this kit is out of scope by construction.
+
+### Which representation governs?
+
+**Markdown. Structurally, not by convention.** The index is derived from the files:
+`indexer.py` keys each note on `(mtime_ns, size_b)`, drops rows whose file left disk,
+and rebuilds that note's typed relations and observations from the text in the same
+pass. A `SCHEMA_VERSION` bump clears the bookkeeping so every note is reprocessed —
+"no note can stay stale". Nothing writes to the graph, the FTS table or the vectors
+independently of a note.
+
+So the graph is **derived, deliberately**. Making it primary would buy multi-hop
+traversal at the price of the property the whole design rests on: your knowledge
+surviving this software. That trade is refused.
+
+### Is the derived state guaranteed to match the Markdown?
+
+**No, and this is the honest weak point.** Incremental indexing keys on
+`(mtime_ns, size_b)`. An edit that preserves both — a `git checkout` that restores an
+mtime, a two-character swap inside one filesystem timestamp tick — is invisible to it.
+`vault_audit` therefore reports an `indexDrift` block (added in ADR-0069): notes on
+disk with no index row, index rows with no file, and rows whose content hash no longer
+matches. It is a **report**, not a repair; `vault_fts_index` is the repair.
+
+### How much intelligence should live in the engine versus the model?
+
+**As much as can be moved, and the kit is actively moving it.** The fixed layer — text
+every session pays before any tool is called — was measured at **45,247 chars
+(~11,312 tokens)** in ADR-0063, of which the rules block was ~9,200 chars of prose
+asking the model to remember to apply rules. ADR-0067 split that into `core` /
+`memory` / `doctrine` with a `minimal` profile at 1,487 chars.
+
+The governing rule: **any obligation that can become a result field, a schema default,
+a server-side rejection or a two-step confirmation should be one.** Prose degrades
+with model capability, context length and session pressure; a field does not.
+Whatever survives as prose only works on frontier models, and an ADR that leaves it
+there has to say so.
+
+### Does it work without the skills and the rules block?
+
+**Yes, with more friction — and that is now selectable rather than argued.**
+`--rules-profile minimal` installs 1,487 chars (16% of the full block) and the MCP
+tools are unaffected; skills are opt-in triggers, not dependencies. How much quality
+that costs is not yet measured.
+
+### How far does Markdown scale?
+
+**Unproven past a few thousand notes, and the repo should stop implying otherwise.**
+The retrieval benchmark runs on a **19-note** fixture. `recall@5 = 1.000` there says
+nothing about 2,000 notes and nothing at all about 100,000. FTS5 and a flat cosine
+scan (optionally sqlite-vec accelerated, ADR-0025) are fine into the low tens of
+thousands; beyond that the honest answer is that nobody has run it.
+
+### Can it learn, consolidate and forget on its own?
+
+**It detects; it does not act — on purpose.** `vault_audit` says plainly that it
+"NEVER rewrites — act with the human's confirmation", and `vault_memory_report`
+proposes rather than applies. Automatic deletion on a personal knowledge bank is how
+you lose the thing that mattered. The gap worth closing is not autonomy, it is the
+missing **cheap approval path** between "here are 40 hygiene findings" and the manual
+work of acting on them.
+
+### What is the global quality metric?
+
+**There isn't one, and that is a real gap.** Retrieval quality (recall/nDCG/MAP),
+token cost, and skill behaviour are each gated separately; nothing combines them, so
+"the vault got better" has no single number. ADR-0065 made cost travel with quality on
+the same row, which is the precondition for one.
+
+### What happens when the model changes?
+
+**Unknown.** Every behavioural number in `evals/` was produced on Claude models. The
+kit's deterministic guarantees live in Claude Code hooks (ADR-0066), so on any other
+harness the behaviour is whatever the model does with prose. A capability probe across
+tiers and families is designed but not built.
+
+### Single user or team?
+
+**Single user, by design, stated in ADR-0037**: the vault is the memory layer, not the
+system of record. There is no concurrency control beyond an advisory write lock and an
+opt-in `ifMatch` precondition (ADR-0037), no access control, and no multi-writer
+conflict resolution beyond git's. Two agents writing the same note concurrently is
+resolved the way git resolves it.
+
 ## Where design decisions live
 
 [`docs/adr/`](./docs/adr/) holds one file per decision. The load-bearing ones for

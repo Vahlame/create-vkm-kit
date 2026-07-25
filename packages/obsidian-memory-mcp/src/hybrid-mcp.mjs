@@ -208,7 +208,15 @@ export async function buildServer() {
     },
     toolHandler(async ({ query, limit, explain, section }) => {
       const v = requireVault();
-      const args = ["json-search", "--vault", v, "--query", query, "--limit", String(limit ?? 10)];
+      const args = [
+        "json-search",
+        "--vault",
+        v,
+        "--query",
+        query,
+        "--limit",
+        String(limit ?? DEFAULT_SEARCH_LIMIT)
+      ];
       if (explain) args.push("--explain");
       if (section) args.push("--section", section);
       if (recallLogEnabled()) args.push("--log-recall");
@@ -360,7 +368,7 @@ export async function buildServer() {
           "--query",
           query,
           "--limit",
-          String(limit ?? 10)
+          String(limit ?? DEFAULT_SEARCH_LIMIT)
         ];
         if (explain) args.push("--explain");
         if (graph || graphTyped) args.push("--graph");
@@ -883,7 +891,7 @@ export async function buildServer() {
     {
       title: "Audit the vault for token-bloat risks",
       description:
-        "Audit the vault for token-bloat risks: notes over a token budget, broken [[wikilinks]], and SESSION_LOG size. Returns JSON; use it to decide what to split or rotate.",
+        "Audit the vault: notes over a token budget, broken [[wikilinks]], SESSION_LOG size, and index_drift (SQLite index vs the Markdown it derives from; reindex if nonzero). JSON; what to split, rotate or reindex.",
       inputSchema: {
         budget: z
           .number()
