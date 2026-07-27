@@ -17,7 +17,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-import { curatePage, DEFAULT_OLLAMA_HOST } from "./ollama-client.mjs";
+import { curatePage, DEFAULT_OLLAMA_HOST } from "../src/ollama-client.mjs";
 import { evaluateCuration, formatCurationReport } from "./bench-curate.mjs";
 import { CURATION_FIXTURES_DIR, fixturePath, loadCurationSet } from "./bench-curate-capture.mjs";
 

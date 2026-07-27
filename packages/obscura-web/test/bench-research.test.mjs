@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { averagePrecision, evaluate, formatReport, ndcgAtK } from "../src/bench-research.mjs";
+import { averagePrecision, evaluate, formatReport, ndcgAtK } from "../bench/bench-research.mjs";
 
 const close = (got, want, eps = 1e-9) =>
   assert.ok(Math.abs(got - want) < eps, `expected ~${want}, got ${got}`);

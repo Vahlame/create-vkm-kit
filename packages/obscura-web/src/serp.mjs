@@ -19,6 +19,7 @@
 import { obscuraFetch } from "./obscura-cli.mjs";
 import { similarityRatio } from "./text-similarity.mjs";
 import { cacheFilePath, loadCacheFile, saveCacheFile } from "./persistent-cache.mjs";
+import { canonicalizeUrl } from "./url-identity.mjs";
 
 // ── HTML helpers ────────────────────────────────────────────────────────────
 const ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
@@ -578,13 +579,28 @@ async function throttle() {
   lastCallAt = Date.now();
 }
 
-/** Dedupe by URL, preserving order, capped at `limit`. */
+/**
+ * Dedupe by URL IDENTITY, preserving order, capped at `limit`.
+ *
+ * Keyed on `canonicalizeUrl` rather than the raw string. url-identity.mjs's own header
+ * says this module was already converted — it was not, and this is the highest-traffic
+ * consumer of the three it names. Exact string matching lets the same page through
+ * several times whenever engines disagree about the parts that do not identify it:
+ * `http` vs `https`, `www.`, a trailing slash, a `#fragment`, or the utm_* parameters a
+ * SERP appends. Each duplicate then costs a fetch, a curation call and a result slot.
+ *
+ * The FIRST spelling seen is what survives, so the response still carries the URL the
+ * engine actually returned — the canonical form is an identity for comparison, not a
+ * rewrite of the user's result.
+ */
 function dedupe(results, limit) {
   const seen = new Set();
   const out = [];
   for (const r of results) {
-    if (!r || !r.url || seen.has(r.url)) continue;
-    seen.add(r.url);
+    if (!r || !r.url) continue;
+    const key = canonicalizeUrl(r.url);
+    if (seen.has(key)) continue;
+    seen.add(key);
     out.push(r);
     if (out.length >= limit) break;
   }

@@ -24,7 +24,7 @@ import {
   getResearchJob,
   stopResearchJob,
   clearResearchJobs
-} from "../src/deep-research.mjs";
+} from "../src/research-job.mjs";
 
 beforeEach(() => {
   clearResearchJobs();

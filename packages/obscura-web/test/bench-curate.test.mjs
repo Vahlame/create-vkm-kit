@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { evaluateCuration, formatCurationReport } from "../src/bench-curate.mjs";
+import { evaluateCuration, formatCurationReport } from "../bench/bench-curate.mjs";
 
 const ENTRIES = [
   { query: "q", url: "https://good.example/a", label: "relevant" },

@@ -29,7 +29,7 @@ import { toolHandler, pkgVersionFrom } from "@vkmikc/vkm-core/mcp-result";
 import { obscuraFetch } from "./obscura-cli.mjs";
 import { searchWeb } from "./serp.mjs";
 import { deepResearch } from "./research.mjs";
-import { startResearchJob, getResearchJob, stopResearchJob } from "./deep-research.mjs";
+import { startResearchJob, getResearchJob, stopResearchJob } from "./research-job.mjs";
 import { startCrawlJob, getCrawlJob, stopCrawlJob } from "./crawl-job.mjs";
 import { ensureSearxng } from "./ensure-searxng.mjs";
 import { logSearch } from "./search-log.mjs";

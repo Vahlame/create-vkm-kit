@@ -1,10 +1,10 @@
 /**
  * Background seed-URL crawl orchestrator (ADR-0062) — the job wrapper around crawlSite, mirroring
- * exactly how deep-research.mjs wraps research.mjs.
+ * exactly how research-job.mjs wraps research.mjs.
  *
  * A "crawl a whole doc/tutorial site" job is minutes of work (hundreds of pages, paced politely),
  * so it cannot live inside one MCP tool call — the SDK's 60 s client-side wall would kill it (see
- * deep-research.mjs's header for the same constraint). The loop therefore runs INSIDE the server
+ * research-job.mjs's header for the same constraint). The loop therefore runs INSIDE the server
  * process: `startCrawlJob` returns a `job_id` in milliseconds, crawlSite persists to disk as it
  * goes (a killed process loses only the unflushed tail), and `getCrawlJob` is an in-memory snapshot
  * read — no polling transport, no client timer to babysit.
@@ -13,6 +13,7 @@
  * run report, and the shared one-job-at-a-time slot. The crawl itself (BFS, scope, dedup, gating,
  * persistence, assets, export) is crawlSite's, injected whole and never re-implemented here.
  */
+import { clampOrDefault, createJobRegistry } from "./job-registry.mjs";
 import { randomUUID } from "node:crypto";
 import { crawlSite } from "./crawl.mjs";
 import { obscuraFetch, isHttpUrl } from "./obscura-cli.mjs";
@@ -28,9 +29,6 @@ import {
 import { acquireJobSlot, releaseJobSlot, jobSlotHolder } from "./job-lock.mjs";
 import { hostOf } from "./url-identity.mjs";
 
-/** How many finished jobs the registry keeps for later inspection — bounded like deep-research's,
- * since this is a long-lived MCP process and an unbounded history is a slow leak. */
-const JOB_HISTORY_MAX = 5;
 /** Recent-page ring and gated-page list caps kept on the snapshot (the full record is the export
  * JSON on disk; these are just for a cheap status poll). */
 const RECENT_PAGES_MAX = 20;
@@ -46,20 +44,6 @@ export class CrawlJobError extends Error {
     this.code = code;
   }
 }
-
-/** @param {unknown} value @param {number} lo @param {number} hi @param {number} fallback */
-function clampOrDefault(value, lo, hi, fallback) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return fallback;
-  return Math.min(Math.max(n, lo), hi);
-}
-
-// ── Registry (module-level — a job outlives the tool call that started it) ─────────────────
-/** @type {Map<string, any>} */
-const JOBS = new Map();
-/** @type {string|null} */
-let mostRecentId = null;
-
 /** JSON-safe projection of a job record — never the live record (which holds injected fns). */
 function toSnapshot(job) {
   const finished = job.state !== "running";
@@ -94,17 +78,6 @@ function toSnapshot(job) {
   return structuredClone(view);
 }
 
-/** Evict oldest finished jobs until fewer than {@link JOB_HISTORY_MAX} remain. */
-function evictOldFinished() {
-  const finished = [...JOBS.values()]
-    .filter((j) => j.state !== "running")
-    .sort((a, b) => a.startedAtMs - b.startedAtMs);
-  while (finished.length >= JOB_HISTORY_MAX) {
-    const oldest = finished.shift();
-    JOBS.delete(oldest.id);
-  }
-}
-
 /**
  * Validate params synchronously, claim the shared network-job slot, register the job, and kick off
  * the (unawaited, `.catch`-guarded) crawl loop.
@@ -131,14 +104,7 @@ export function startCrawlJob(params, deps = {}) {
   const topic = validateTopic(params.topic); // propagates ResearchPersistError as-is
 
   // Per-type guard first (clearer message), then the cross-type shared slot below.
-  for (const job of JOBS.values()) {
-    if (job.state === "running") {
-      throw new CrawlJobError(
-        `another crawl job "${job.id}" is still running — one at a time (fan-out bans the machine)`,
-        "job_active"
-      );
-    }
-  }
+  registry.assertIdle("one at a time (fan-out bans the machine)");
 
   const budgetMs = clampOrDefault(params.budgetMs, 60_000, 3_600_000, 900_000);
   const {
@@ -159,8 +125,6 @@ export function startCrawlJob(params, deps = {}) {
   // Cross-type exclusion: refuse if a research job (or another crawl) holds the shared slot. Done
   // AFTER the per-type check so a same-type collision gets the clearer message above.
   acquireJobSlot(id, "crawl"); // throws JobSlotError("job_active") if held elsewhere
-
-  evictOldFinished();
 
   const job = {
     id,
@@ -210,8 +174,7 @@ export function startCrawlJob(params, deps = {}) {
     nowImpl: now
   };
 
-  JOBS.set(id, job);
-  mostRecentId = id;
+  registry.register(job);
 
   const promise = runJob(job, {
     crawlImpl,
@@ -362,6 +325,11 @@ async function runJob(job, deps) {
     releaseJobSlot(job.id);
   }
 }
+/**
+ * This tool's background jobs. Same bookkeeping as the research jobs (job-registry.mjs);
+ * the record shape, the crawl loop and the report renderer stay here.
+ */
+const registry = createJobRegistry({ kind: "crawl", ErrorClass: CrawlJobError, toSnapshot });
 
 /**
  * Read-only snapshot (JSON-safe, never the live record).
@@ -369,10 +337,7 @@ async function runJob(job, deps) {
  * @returns {object|null}
  */
 export function getCrawlJob(jobId) {
-  const id = jobId ?? mostRecentId;
-  const job = id ? JOBS.get(id) : undefined;
-  if (!job) return null;
-  return toSnapshot(job);
+  return registry.get(jobId);
 }
 
 /**
@@ -382,34 +347,16 @@ export function getCrawlJob(jobId) {
  * @returns {object}
  */
 export function stopCrawlJob(jobId) {
-  const id = jobId ?? mostRecentId;
-  const job = id ? JOBS.get(id) : undefined;
-  if (!job) {
-    throw new CrawlJobError(
-      id ? `no crawl job "${id}" found` : "no crawl job has been started",
-      "unknown_job"
-    );
-  }
-  job.stopRequested = true;
-  return toSnapshot(job);
+  return registry.stop(jobId);
 }
 
 /** Test helper: reset the registry. Refuses while any job is running (its promise would leak). */
 export function clearCrawlJobs() {
-  for (const job of JOBS.values()) {
-    if (job.state === "running") {
-      throw new CrawlJobError(
-        "a crawl job is still running — stop it and let it finish before clearing",
-        "job_active"
-      );
-    }
-  }
-  // Release the shared slot only if THIS registry's (now-cleared) job holds it — never stomp a
-  // research job's slot.
+  registry.clear();
+  // Release the shared cross-type slot only if THIS registry's job holds it — never stomp a
+  // research job's slot. `registry.clear()` has already refused if anything is still running.
   const holder = jobSlotHolder();
   if (holder && holder.kind === "crawl") releaseJobSlot(holder.id);
-  JOBS.clear();
-  mostRecentId = null;
 }
 
 /**

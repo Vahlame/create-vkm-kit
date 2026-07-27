@@ -12,7 +12,7 @@
  * the ban-avoidance risk the rest of the package works around avoiding. Run it manually or on a
  * schedule via `node src/canary-run.mjs`.
  */
-import { searchWeb, ENGINES, _clearSearchCache } from "./serp.mjs";
+import { searchWeb, ENGINES, _clearSearchCache } from "../src/serp.mjs";
 
 /**
  * Common enough that any working general-purpose engine returns SOMETHING for both, but

@@ -25,9 +25,9 @@ import { join } from "node:path";
 
 import { evaluate, formatReport, loadQueries } from "./bench-research.mjs";
 import { EVALS_DIR, FIXTURES_DIR, QUERIES_PATH, fixtureName } from "./bench-capture.mjs";
-import { rankCandidates } from "./research.mjs";
-import { reciprocalRankFusion } from "./rank.mjs";
-import { dedupeByUrl } from "./url-identity.mjs";
+import { rankCandidates } from "../src/research.mjs";
+import { reciprocalRankFusion } from "../src/rank.mjs";
+import { dedupeByUrl } from "../src/url-identity.mjs";
 
 /** SearXNG's `PAGE_SIZE` as research.mjs hardcodes it today (research.mjs:213). */
 const TODAY_PAGE_SIZE = 10;

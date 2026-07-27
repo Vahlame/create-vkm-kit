@@ -23,7 +23,7 @@
 
 import { readFile } from "node:fs/promises";
 
-import { canonicalizeUrl } from "./url-identity.mjs";
+import { canonicalizeUrl } from "../src/url-identity.mjs";
 
 /** Normalized Discounted Cumulative Gain over a ranked URL list (BEIR/MTEB convention).
  *

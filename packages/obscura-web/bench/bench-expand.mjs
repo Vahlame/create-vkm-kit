@@ -19,12 +19,12 @@
  *   node src/bench-expand.mjs --kind lexical                   # a different bucket
  */
 
-import { ensureSearxng, stopSearxng } from "./ensure-searxng.mjs";
-import { expandQuery, ensureOllamaServer } from "./ollama-client.mjs";
+import { ensureSearxng, stopSearxng } from "../src/ensure-searxng.mjs";
+import { expandQuery, ensureOllamaServer } from "../src/ollama-client.mjs";
 import { loadQueries } from "./bench-research.mjs";
 import { QUERIES_PATH, searxngRaw } from "./bench-capture.mjs";
-import { canonicalizeUrl } from "./url-identity.mjs";
-import { reciprocalRankFusion } from "./rank.mjs";
+import { canonicalizeUrl } from "../src/url-identity.mjs";
+import { reciprocalRankFusion } from "../src/rank.mjs";
 
 const SOCIAL = /instagram|facebook|tiktok|twitter|x\.com|reddit|youtube|pinterest|linkedin/i;
 

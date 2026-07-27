@@ -1,5 +1,5 @@
 /**
- * `deep-research.mjs`'s background job loop, fully injected and deterministic — no real
+ * `research-job.mjs`'s background job loop, fully injected and deterministic — no real
  * timers, no real network. Two clocks are in play and must not be confused: the injected `now`
  * (fake ms counter, advanced only by `sleepImpl`/scripted deps) drives every budget/pacing
  * decision inside the loop; real `setImmediate` ticks (in `waitForDone`/`waitForCurrentQuery`)
@@ -19,7 +19,7 @@ import {
   stopResearchJob,
   clearResearchJobs,
   renderRunReport
-} from "../src/deep-research.mjs";
+} from "../src/research-job.mjs";
 import { ResearchPersistError } from "../src/research-persist.mjs";
 import { hash8 } from "../src/url-identity.mjs";
 import { randomUUID } from "node:crypto";

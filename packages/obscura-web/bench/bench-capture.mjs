@@ -20,7 +20,7 @@ import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { ensureSearxng, stopSearxng } from "./ensure-searxng.mjs";
+import { ensureSearxng, stopSearxng } from "../src/ensure-searxng.mjs";
 import { loadQueries } from "./bench-research.mjs";
 
 /** Pause between captures. Each query fans out to ~108 upstream engines; capturing the golden

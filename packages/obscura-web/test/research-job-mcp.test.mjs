@@ -5,7 +5,7 @@
  *  - all three tools are registered;
  *  - start maps budget_minutes/top_k/etc. to the exact params object startResearchJob expects,
  *    and applies the MCP-layer defaults (budget_minutes/top_k/max_candidates/sub_queries only —
- *    every other optional field is left undefined for deep-research.mjs's own defaults to fill);
+ *    every other optional field is left undefined for research-job.mjs's own defaults to fill);
  *  - start fails typed (isError mentioning OBSCURA_RESEARCH_DIR) before ever calling
  *    startJobImpl when the research root isn't configured;
  *  - start returns job_id + a descriptive note on success;
@@ -27,7 +27,7 @@ import path from "node:path";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { buildServer } from "../src/obscura-mcp.mjs";
-import { DeepResearchError } from "../src/deep-research.mjs";
+import { DeepResearchError } from "../src/research-job.mjs";
 
 async function connect(deps) {
   const server = buildServer(deps);
@@ -39,7 +39,7 @@ async function connect(deps) {
 
 const textOf = (r) => r.content[0].text;
 
-/** Minimal but shape-complete stand-in for deep-research.mjs's JSON-safe snapshot. */
+/** Minimal but shape-complete stand-in for research-job.mjs's JSON-safe snapshot. */
 function fakeSnapshot(overrides = {}) {
   return {
     id: "deep-test-1",
@@ -190,7 +190,7 @@ test("obscura_research_start: applies MCP-layer defaults when optional fields ar
   assert.equal(seenParams.topK, 12, "top_k defaults to 12");
   assert.equal(seenParams.maxCandidates, 60, "max_candidates defaults to 60");
   assert.equal(seenParams.subQueries, 4, "sub_queries defaults to 4");
-  assert.equal(seenParams.roundMs, undefined, "no MCP-layer default — deep-research.mjs owns it");
+  assert.equal(seenParams.roundMs, undefined, "no MCP-layer default — research-job.mjs owns it");
   assert.equal(seenParams.paceMs, undefined);
   assert.equal(seenParams.cooldownMs, undefined);
   assert.equal(seenParams.maxDepth, undefined);

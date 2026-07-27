@@ -34,6 +34,7 @@
  * report. The earlier design (fail hard after 3 consecutive errors, terminal stop after 2
  * banned rounds) burned 26 of a 30-minute budget exactly the way this paragraph forbids.
  */
+import { clampOrDefault, createJobRegistry } from "./job-registry.mjs";
 import { randomUUID } from "node:crypto";
 import { deepResearch } from "./research.mjs";
 import {
@@ -97,10 +98,7 @@ const COOLDOWN_SLICE_MS = 5_000;
 /** Hard ceiling on rounds regardless of remaining budget — a runaway lead generator (or a
  * pathological `similarityRatio` miss) must not turn one job into an unbounded crawl. */
 const MAX_ROUNDS = 40;
-/** How many FINISHED jobs the registry keeps for later inspection (`getResearchJob` by id).
- * Bounded because this is a long-lived MCP process — an unbounded job history is a slow leak
- * exactly like the caches in research.mjs. */
-const JOB_HISTORY_MAX = 5;
+
 /** How many curated findings the job keeps in memory (`job.topFindings`, sorted by relevance) —
  * feeds both the live status snapshot and the final run report's "Top findings" section. Raised
  * from an earlier 15 so a report grouping findings by topic actually has enough per topic to
@@ -127,15 +125,6 @@ export class DeepResearchError extends Error {
     this.code = code;
   }
 }
-
-/** @param {unknown} value @param {number} lo @param {number} hi @param {number} fallback
- * @returns {number} */
-function clampOrDefault(value, lo, hi, fallback) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return fallback;
-  return Math.min(Math.max(n, lo), hi);
-}
-
 /** @param {unknown} value @param {number} fallback @returns {number} */
 function numOr(value, fallback) {
   const n = Number(value);
@@ -161,18 +150,6 @@ function stripInteractiveAdvice(message) {
     .replace(/\s*Fall back to the native WebSearch tool for this query\.?/i, "")
     .trim();
 }
-
-// ── Registry ─────────────────────────────────────────────────────────────────────────────
-// Module-level Map, not per-call state: a background job must outlive the tool call that
-// started it, and `getResearchJob`/`stopResearchJob` need to find it from a LATER, unrelated
-// tool call in the same server process.
-
-/** @type {Map<string, any>} jobId -> internal job record (never returned to a caller directly —
- * see {@link toSnapshot}) */
-const JOBS = new Map();
-/** @type {string|null} id of the most recently STARTED job — what `jobId` omitted resolves to. */
-let mostRecentId = null;
-
 /**
  * Deep, JSON-safe view of an internal job record — never the record itself, which holds a
  * mutable `frontier` array, a stored promise, and injected fn references. `structuredClone`
@@ -234,19 +211,6 @@ function toSnapshot(job) {
   return structuredClone(view);
 }
 
-/** Evict the oldest finished jobs until fewer than {@link JOB_HISTORY_MAX} remain — called
- * right before a new job is registered, so the new (running) job never counts against its own
- * limit. Only ever touches non-running jobs; the caller has already confirmed none are running. */
-function evictOldFinished() {
-  const finished = [...JOBS.values()]
-    .filter((j) => j.state !== "running")
-    .sort((a, b) => a.startedAtMs - b.startedAtMs);
-  while (finished.length >= JOB_HISTORY_MAX) {
-    const oldest = finished.shift();
-    JOBS.delete(oldest.id);
-  }
-}
-
 /**
  * Validate params synchronously and register a new background research job; the async crawl
  * loop is kicked off unawaited (its promise is stored on the job and `.catch`-handled — the
@@ -288,16 +252,7 @@ export function startResearchJob(params, deps = {}) {
   // matching on ITS codes (invalid_topic) doesn't have to also know this module's codes.
   const topic = validateTopic(params.topic);
 
-  for (const job of JOBS.values()) {
-    if (job.state === "running") {
-      throw new DeepResearchError(
-        `another research job "${job.id}" is still running — one at a time (fan-out bans the ` +
-          `machine, ADR-0057)`,
-        "job_active"
-      );
-    }
-  }
-  evictOldFinished();
+  registry.assertIdle("one at a time (fan-out bans the machine, ADR-0057)");
 
   const budgetMs = clampOrDefault(params.budgetMs, 60_000, 1_800_000, 900_000);
   const roundMs = clampOrDefault(
@@ -344,8 +299,9 @@ export function startResearchJob(params, deps = {}) {
   const id = `deep-${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`;
 
   // Cross-type exclusion with the seed-URL crawler (ADR-0062): refuse if either kind of background
-  // job holds the shared network slot. The per-type JOBS check above already covers research-vs-
-  // research; this adds research-vs-crawl. Thrown before JOBS.set so a rejected start registers nothing.
+  // job holds the shared network slot. The per-type `registry.assertIdle` above already covers
+  // research-vs-research; this adds research-vs-crawl. Thrown before `registry.register` so a
+  // rejected start registers nothing.
   acquireJobSlot(id, "research");
 
   const job = {
@@ -408,8 +364,7 @@ export function startResearchJob(params, deps = {}) {
     nowImpl: now
   };
 
-  JOBS.set(id, job);
-  mostRecentId = id;
+  registry.register(job);
 
   const promise = runJob(job, {
     researchImpl,
@@ -866,6 +821,15 @@ async function runJob(job, deps) {
     releaseJobSlot(job.id);
   }
 }
+/**
+ * This tool's background jobs. The record shape, the round loop and the report renderer are
+ * research-specific; the bookkeeping around them is not — see job-registry.mjs.
+ */
+const registry = createJobRegistry({
+  kind: "research",
+  ErrorClass: DeepResearchError,
+  toSnapshot
+});
 
 /**
  * Read-only snapshot of a job's current state. JSON-safe (see {@link toSnapshot}), never the
@@ -874,10 +838,7 @@ async function runJob(job, deps) {
  * @returns {object|null} `null` when no such job (or no job at all) has ever been started
  */
 export function getResearchJob(jobId) {
-  const id = jobId ?? mostRecentId;
-  const job = id ? JOBS.get(id) : undefined;
-  if (!job) return null;
-  return toSnapshot(job);
+  return registry.get(jobId);
 }
 
 /**
@@ -889,36 +850,23 @@ export function getResearchJob(jobId) {
  * @returns {object} the job's snapshot, immediately after the flag is set
  */
 export function stopResearchJob(jobId) {
-  const id = jobId ?? mostRecentId;
-  const job = id ? JOBS.get(id) : undefined;
-  if (!job) {
-    throw new DeepResearchError(
-      id ? `no research job "${id}" found` : "no research job has been started",
-      "unknown_job"
-    );
-  }
-  job.stopRequested = true;
-  return toSnapshot(job);
+  return registry.stop(jobId);
 }
 
 /** Test helper: reset the registry. Refuses while any job is `running` — silently discarding a
  * live job's handle would leak its promise (still executing, `.catch`-handled but now
  * unreachable from any tool) and make the "one job at a time" guarantee meaningless.
  * @returns {void} */
+/** Test helper: reset the registry. Refuses while any job is `running` — silently discarding a
+ * live job's handle would leak its promise (still executing, `.catch`-handled but now
+ * unreachable from any tool) and make the "one job at a time" guarantee meaningless.
+ * @returns {void} */
 export function clearResearchJobs() {
-  for (const job of JOBS.values()) {
-    if (job.state === "running") {
-      throw new DeepResearchError(
-        "a research job is still running — stop it and let it finish before clearing",
-        "job_active"
-      );
-    }
-  }
-  // Release the shared slot only if THIS registry's job holds it — never stomp a crawl's slot.
+  registry.clear();
+  // Release the shared cross-type slot only if THIS registry's job holds it — never stomp
+  // a crawl's slot. `registry.clear()` has already refused if anything is still running.
   const holder = jobSlotHolder();
   if (holder && holder.kind === "research") releaseJobSlot(holder.id);
-  JOBS.clear();
-  mostRecentId = null;
 }
 
 /** @param {Map<string|null, any[]>} byParent @param {string|null} parentKey @param {number} depth

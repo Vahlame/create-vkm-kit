@@ -17,9 +17,9 @@ import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { obscuraFetch } from "./obscura-cli.mjs";
-import { stripHiddenContent } from "./sanitize.mjs";
-import { hash8 } from "./url-identity.mjs";
+import { obscuraFetch } from "../src/obscura-cli.mjs";
+import { stripHiddenContent } from "../src/sanitize.mjs";
+import { hash8 } from "../src/url-identity.mjs";
 import { EVALS_DIR } from "./bench-capture.mjs";
 
 export const CURATION_QUERIES_PATH = join(EVALS_DIR, "curation.jsonl");

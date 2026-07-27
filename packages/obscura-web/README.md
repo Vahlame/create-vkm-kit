@@ -108,7 +108,7 @@ only the SEARCH is lifted to English. Set `translate: false` to search verbatim.
    returned in document order (inspired by [Scrapling](https://github.com/D4Vinci/Scrapling)'s
    adaptive matching, adapted to this package's flat SERP records rather than a DOM tree — see
    ADR-0057's addendum). A drift break can also be caught **proactively**, before a real query hits
-   it: `node src/canary-run.mjs` probes every registered engine with known-good queries and reports
+   it: `node bench/canary-run.mjs` probes every registered engine with known-good queries and reports
    which ones came back empty — run it manually or on a schedule, never from `npm test` (it hits real
    engines over the network).
 3. **Native `WebSearch` fallback** — if every source fails or returns nothing AND there's no cached
@@ -556,7 +556,7 @@ timers or network — covering round pacing, lead near-dup filtering, the single
 (`test/deep-research.test.mjs`, `test/deep-research-mcp.test.mjs`, `test/generate-leads.test.mjs`,
 `test/run-report.test.mjs`). A separate offline CI gate (`test/bench-gate.test.mjs`) runs the real crawl over
 frozen SearXNG fixtures (`evals/research/`) and asserts it holds its measured retrieval floor — see
-`packages/obscura-web/src/bench-run.mjs` for the full per-arm decomposition and
+`packages/obscura-web/bench/bench-run.mjs` for the full per-arm decomposition and
 `docs/adr/0057-obscura-research-gather-over-rank.md` for what it measured.
 
 Also covered: `obscura_fetch`'s retry/backoff on a transient failure and non-retry on `ENOENT`/a

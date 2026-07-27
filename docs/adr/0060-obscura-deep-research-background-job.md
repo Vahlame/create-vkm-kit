@@ -200,7 +200,7 @@ for one caller." That is the gap this ADR closes.
 
 ## References
 
-- `packages/obscura-web/src/deep-research.mjs` (job registry, `startResearchJob`/
+- `packages/obscura-web/src/research-job.mjs` (job registry, `startResearchJob`/
   `getResearchJob`/`stopResearchJob`/`runJob`/`renderRunReport`), `src/ollama-client.mjs#generateLeads`
   (+ `LEAD_KINDS`, `LEADS_SYSTEM_PROMPT`), `src/research-persist.mjs#writeRunReport`,
   `src/obscura-mcp.mjs` (`obscura_research_start`/`obscura_research_status`/`obscura_research_stop`).
