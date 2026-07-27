@@ -165,7 +165,9 @@ def index_vault(
             meta[rel] = (mtime_ns, size_b)
 
         cur = conn.execute("SELECT path, mtime_ns, size_bytes FROM indexed_files")
-        db_indexed = {str(r["path"]): (int(r["mtime_ns"]), int(r["size_bytes"])) for r in cur.fetchall()}
+        db_indexed = {
+            str(r["path"]): (int(r["mtime_ns"]), int(r["size_bytes"])) for r in cur.fetchall()
+        }
 
         for path_str in set(db_indexed) - disk_paths:
             conn.execute("DELETE FROM vault_fts WHERE path = ?", (path_str,))
@@ -175,7 +177,9 @@ def index_vault(
             stats.removed += 1
 
         cur = conn.execute("SELECT path, mtime_ns, size_bytes FROM indexed_files")
-        db_indexed = {str(r["path"]): (int(r["mtime_ns"]), int(r["size_bytes"])) for r in cur.fetchall()}
+        db_indexed = {
+            str(r["path"]): (int(r["mtime_ns"]), int(r["size_bytes"])) for r in cur.fetchall()
+        }
 
         pending = 0
         for rel, (mtime_ns, size_b) in meta.items():
@@ -200,7 +204,8 @@ def index_vault(
             )
             conn.execute(
                 """INSERT INTO indexed_files(path, mtime_ns, size_bytes) VALUES (?, ?, ?)
-                   ON CONFLICT(path) DO UPDATE SET mtime_ns=excluded.mtime_ns, size_bytes=excluded.size_bytes""",
+                   ON CONFLICT(path) DO UPDATE SET
+                       mtime_ns=excluded.mtime_ns, size_bytes=excluded.size_bytes""",
                 (rel, mtime_ns, size_b),
             )
 
@@ -260,7 +265,7 @@ def ensure_fresh(
     vault: Path,
     *,
     semantic: bool = False,
-    embedder: "Embedder | None" = None,
+    embedder: Embedder | None = None,
     max_file_bytes: int = 1_048_576,
 ) -> FreshStats:
     """Refresh the index just before a search so recent edits are visible (D8).
@@ -325,7 +330,7 @@ class VectorStats:
 
 def index_vectors(
     vault: Path,
-    embedder: "Embedder",
+    embedder: Embedder,
     *,
     max_file_bytes: int = 1_048_576,
     batch_commit_every: int = 64,
@@ -372,7 +377,9 @@ def index_vectors(
             texts = [f"{c.heading}\n{c.text}" if c.heading else c.text for c in chunks]
             vecs = embedder.embed(texts)
             delete_chunks_for_path(conn, rel, embedder.name)
-            for c, vec in zip(chunks, vecs):
+            # strict: an embedder returning fewer vectors than texts would silently
+            # drop the tail chunks from the index instead of failing.
+            for c, vec in zip(chunks, vecs, strict=True):
                 upsert_chunk(
                     conn, rel, c.ordinal, mtime_ns, embedder.name, c.heading, c.text, vec
                 )

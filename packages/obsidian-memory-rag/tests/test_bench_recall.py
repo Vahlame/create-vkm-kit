@@ -124,7 +124,11 @@ def test_evaluate_scoring_math(tmp_path: Path) -> None:
     index_vectors(vault, emb)
     queries = [
         {"query": "daemon go git sync reintentos", "relevant": ["STACKS/go.md"], "kind": "lexical"},
-        {"query": "FTS5 BM25 embeddings motor", "relevant": ["STACKS/python.md"], "kind": "lexical"},
+        {
+            "query": "FTS5 BM25 embeddings motor",
+            "relevant": ["STACKS/python.md"],
+            "kind": "lexical",
+        },
     ]
     report = evaluate(vault, queries, emb, k=2)
     assert report.n == 2

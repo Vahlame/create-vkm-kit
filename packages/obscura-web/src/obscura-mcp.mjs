@@ -21,12 +21,11 @@
  *  - OBSCURA_SEARCH_ENGINES    comma list overriding the scrape chain (default rotates
  *                              duckduckgo,bing,brave,bing-rss in order — see serp.mjs's DEFAULT_CHAIN)
  */
-import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { toolHandler } from "./mcp-result.mjs";
+import { toolHandler, pkgVersionFrom } from "@vkmikc/vkm-core/mcp-result";
 import { obscuraFetch } from "./obscura-cli.mjs";
 import { searchWeb } from "./serp.mjs";
 import { deepResearch } from "./research.mjs";
@@ -35,6 +34,7 @@ import { startCrawlJob, getCrawlJob, stopCrawlJob } from "./crawl-job.mjs";
 import { ensureSearxng } from "./ensure-searxng.mjs";
 import { logSearch } from "./search-log.mjs";
 import { wrapUntrustedWeb, flagResultInjection } from "./untrusted-web.mjs";
+import { mapWithConcurrency } from "./concurrency.mjs";
 import { selectText } from "./sanitize.mjs";
 import { translateQuery, looksNonEnglish } from "./ollama-client.mjs";
 import {
@@ -45,13 +45,7 @@ import {
   ResearchPersistError
 } from "./research-persist.mjs";
 
-const pkgVersion = (() => {
-  try {
-    return JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
-  } catch {
-    return "0.0.0";
-  }
-})();
+const pkgVersion = pkgVersionFrom(import.meta.url);
 
 /** Turn a fetch/search failure into a message that steers the agent to the native fallback. */
 function nativeFallbackHint(err, nativeTool) {
@@ -85,6 +79,37 @@ function capContent(text) {
     s.slice(0, max) +
     `\n\n[…truncated ${s.length - max} chars — narrow the URL or use format:"text"]`
   );
+}
+
+/**
+ * Cap a BATCH of fetched pages so `obscura_fetch_many` cannot blow the MCP output limit.
+ *
+ * `capContent` bounds each URL, and `urls` is `.max(10)` — so the per-page cap alone
+ * permitted 10 × 60,000 = 600,000 chars, roughly six times the ~25,000-token wall that
+ * `capResults` below exists to describe. Past that wall the host spills the output to a
+ * file and the agent gets an error instead of an answer, which is the worst outcome of
+ * the three: the work was done, paid for, and thrown away.
+ *
+ * Default 90,000 chars (~22.5k tokens) leaves headroom under the default wall while
+ * keeping the tool worth calling with several URLs. Same policy as `capResults`: drop
+ * WHOLE blocks from the tail rather than truncate one mid-page (each block is already a
+ * complete untrusted-data envelope, and half an envelope is worse than a named absence),
+ * and report the count instead of dropping silently.
+ *
+ * @param {string[]} blocks
+ * @returns {{ kept: string[], dropped: number }}
+ */
+function capBatch(blocks) {
+  const max = Number(process.env.OBSCURA_FETCH_MANY_MAX_CHARS) || 90000;
+  const kept = [];
+  let used = 0;
+  for (const b of blocks) {
+    const cost = (b?.length ?? 0) + 2; // + the "\n\n" join
+    if (used + cost > max && kept.length) break;
+    kept.push(b);
+    used += cost;
+  }
+  return { kept, dropped: blocks.length - kept.length };
 }
 
 /**
@@ -287,30 +312,28 @@ export function buildServer(deps = {}) {
       annotations: { readOnlyHint: true }
     },
     toolHandler(async ({ urls, format, stealth, timeout_ms, concurrency }) => {
-      const limit = Math.min(concurrency ?? 4, urls.length);
-      const blocks = new Array(urls.length);
       const failed = new Array(urls.length).fill(false);
-      let next = 0;
-      const worker = async () => {
-        for (;;) {
-          const i = next++;
-          if (i >= urls.length) return;
-          const url = urls[i];
+      const blocks = await mapWithConcurrency(
+        urls,
+        Math.max(1, Math.min(concurrency ?? 4, urls.length)),
+        async (url, i) => {
           try {
             const res = await fetchImpl(url, { format, stealth, timeoutMs: timeout_ms });
-            blocks[i] = wrapUntrustedWeb(capContent(res.content), url);
+            return wrapUntrustedWeb(capContent(res.content), url);
           } catch (e) {
             // One bad URL must not sink the batch — matches obscura_fetch's own single-URL
             // failure message shape so a caller sees the same native-fallback hint either way.
             failed[i] = true;
-            blocks[i] = `⚠️ "${url}" failed — ${nativeFallbackHint(e, "WebFetch")}`;
+            return `⚠️ "${url}" failed — ${nativeFallbackHint(e, "WebFetch")}`;
           }
         }
-      };
-      await Promise.all(Array.from({ length: Math.max(1, limit) }, worker));
+      );
+      const { kept, dropped } = capBatch(blocks);
       const failedCount = failed.filter(Boolean).length;
-      const summary = `Fetched ${urls.length - failedCount}/${urls.length} URLs (${failedCount} failed).`;
-      return `${summary}\n\n${blocks.join("\n\n")}`;
+      const summary =
+        `Fetched ${urls.length - failedCount}/${urls.length} URLs (${failedCount} failed).` +
+        (dropped ? ` ${dropped} dropped to stay under the output limit.` : "");
+      return `${summary}\n\n${kept.join("\n\n")}`;
     })
   );
 

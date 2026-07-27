@@ -60,7 +60,22 @@ export default [
     // `.claude/worktrees/*` — full nested checkouts of this same repo. Without this
     // ignore, every file gets linted once per live worktree and `npm run lint` fails
     // on half-written code from an unrelated branch.
-    ignores: ["**/node_modules/**", "bin/**", ".claude/**", "packages/obsidian-memory-rag/**"]
+    //
+    // `evals/*/{results,solutions}/**` is committed verbatim model output — 88 files of
+    // experimental record. `.prettierignore` already exempts them with the reason
+    // ("reformatting would falsify the record") but eslint and the checkJs gate still
+    // processed them, which meant a bench round could turn CI red by generating code the
+    // linter dislikes, and the only legal fix would be to edit the evidence. They are also
+    // 94 of the 877 `noImplicitAny` errors tsconfig.checkjs.json's //strict note prices as
+    // the pending ratchet. Same policy, three tools.
+    ignores: [
+      "**/node_modules/**",
+      "bin/**",
+      ".claude/**",
+      "packages/obsidian-memory-rag/**",
+      "evals/*/results/**",
+      "evals/*/solutions/**"
+    ]
   },
   js.configs.recommended,
   {

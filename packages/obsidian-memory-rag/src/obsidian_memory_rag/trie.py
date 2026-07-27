@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 
 @dataclass
 class _Node:
-    children: dict[str, "_Node"] = field(default_factory=dict)
+    children: dict[str, _Node] = field(default_factory=dict)
     values: set[str] = field(default_factory=set)  # display strings ending here
 
 

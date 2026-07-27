@@ -10,13 +10,12 @@
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": [
-    "*.mjs",
-    "packages/**/*.js",
-    "packages/**/*.mjs",
-    "scripts/**/*.mjs",
-    "evals/**/*.mjs",
-    "evals/**/*.cjs"
-  ],
-  "exclude": ["**/node_modules", "**/test/**", "packages/create-vkm-kit/templates/**"]
+  "//include": "Inherited verbatim from tsconfig.eslint.json — both files sit in the repo root, so the relative globs resolve identically and re-declaring them here only created a second copy to keep in sync.",
+  "exclude": [
+    "**/node_modules",
+    "**/test/**",
+    "packages/create-vkm-kit/templates/**",
+    "evals/*/results/**",
+    "evals/*/solutions/**"
+  ]
 }

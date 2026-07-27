@@ -173,16 +173,16 @@ def _resolve_hybrid_embedder(vault, explicit_name, *, no_auto_index: bool):
     return get_embedder(None)
 
 
-def main() -> None:
-    # The Node MCP bridge consumes this CLI's stdout, and vault content is often
-    # non-ASCII (e.g. Spanish notes). Force UTF-8 so json.dumps(ensure_ascii=False)
-    # and snippet printing never crash under a legacy console codepage (cp1252 on
-    # Windows). Guarded because captured streams (pytest) lack reconfigure().
-    try:
-        sys.stdout.reconfigure(encoding="utf-8")
-    except (AttributeError, ValueError):
-        pass
+def build_parser() -> argparse.ArgumentParser:
+    """The full subcommand surface, built without parsing or dispatching.
 
+    Separate from ``main`` so the surface can be inspected — enumerating
+    ``parser._subparsers`` is how ``tests/test_cli_smoke.py`` proves its
+    invocation table covers every subcommand, rather than covering whichever
+    ones someone remembered. The subcommand NAMES are a public contract: the
+    Node MCP bridge spawns the twelve ``json-*`` twins by name and CI invokes
+    ``bench-recall`` / ``bench-tokens`` / ``bench-assemble`` by name.
+    """
     p = argparse.ArgumentParser(prog="obsidian-memory-rag")
     sub = p.add_subparsers(dest="cmd", required=True)
 
@@ -243,7 +243,9 @@ def main() -> None:
     ):
         br = sub.add_parser(name, help=helptext)
         br.add_argument("--corpus", type=Path, required=True, help="Folder of Markdown notes")
-        br.add_argument("--queries", type=Path, required=True, help="JSONL: {query, relevant, kind?}")
+        br.add_argument(
+            "--queries", type=Path, required=True, help="JSONL: {query, relevant, kind?}"
+        )
         br.add_argument("--k", type=int, default=5)
         br.add_argument("--embedder", default=None)
         br.add_argument("--graph", action="store_true", help="Fuse in [[wikilink]] neighbours")
@@ -299,7 +301,9 @@ def main() -> None:
     ):
         bt = sub.add_parser(name, help=helptext)
         bt.add_argument("--corpus", type=Path, required=True, help="Folder of Markdown notes")
-        bt.add_argument("--queries", type=Path, required=True, help="JSONL: {query, relevant, kind?}")
+        bt.add_argument(
+            "--queries", type=Path, required=True, help="JSONL: {query, relevant, kind?}"
+        )
         bt.add_argument("--k", type=int, default=5)
         bt.add_argument("--embedder", default=None)
         bt.add_argument(
@@ -613,7 +617,23 @@ def main() -> None:
         )
         rf.add_argument("--no-auto-index", action="store_true")
 
-    args = p.parse_args()
+    return p
+
+
+def main(argv: list[str] | None = None) -> None:
+    # The Node MCP bridge consumes this CLI's stdout, and vault content is often
+    # non-ASCII (e.g. Spanish notes). Force UTF-8 so json.dumps(ensure_ascii=False)
+    # and snippet printing never crash under a legacy console codepage (cp1252 on
+    # Windows). Guarded because captured streams (pytest) lack reconfigure().
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
+    # `argv=None` keeps argparse's own sys.argv[1:] default for the real CLI, and
+    # lets a test drive a subcommand as a plain function call instead of patching
+    # process state.
+    args = build_parser().parse_args(argv)
     if args.cmd == "index":
         stats = index_vault(args.vault, max_file_bytes=args.max_file_bytes)
         print(

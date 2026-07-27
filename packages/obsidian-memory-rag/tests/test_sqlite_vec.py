@@ -71,7 +71,7 @@ def test_sqlite_vec_ranking_matches_bruteforce(tmp_path: Path, monkeypatch) -> N
         conn.close()
 
     assert [h.path for h in accel] == [h.path for h in brute], "ranking must be identical"
-    for a, b in zip(accel, brute):
+    for a, b in zip(accel, brute, strict=True):
         assert abs(a.score - b.score) < 1e-4, "cosine score must match within float tolerance"
 
 

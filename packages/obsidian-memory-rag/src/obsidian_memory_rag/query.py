@@ -149,7 +149,7 @@ class HybridHit:
 
 
 def semantic_search(
-    vault: Path, query: str, embedder: "Embedder", *, limit: int = 20,
+    vault: Path, query: str, embedder: Embedder, *, limit: int = 20,
     section: str | None = None,
 ) -> list[ChunkHit]:
     """Rank note *chunks* by embedding cosine similarity to ``query`` (best first).
@@ -277,7 +277,9 @@ def reciprocal_rank_fusion(
     if weights is None:
         weights = [1.0] * len(rankings)
     scores: dict[str, float] = {}
-    for weight, ranking in zip(weights, rankings):
+    # strict: a caller-supplied `weights` shorter than `rankings` would drop whole
+    # rankings out of the fusion without a word.
+    for weight, ranking in zip(weights, rankings, strict=True):
         for rank, path in enumerate(ranking, start=1):
             scores[path] = scores.get(path, 0.0) + weight / (k + rank)
     # Path ascending as the explicit tie-break: without it, ties fall back to dict
@@ -322,7 +324,7 @@ def typed_graph_neighbors(vault: Path, seeds: list[str], *, limit: int = 50) -> 
         conn.close()
 
 
-def _chunk_vecs(vault: Path, embedder_name: str, items: list[tuple[str, int]]) -> dict[str, "_Array"]:
+def _chunk_vecs(vault: Path, embedder_name: str, items: list[tuple[str, int]]) -> dict[str, _Array]:
     """Open the index and return ``{path: vec}`` for the given chunk keys (MMR)."""
     if not items:
         return {}
@@ -463,16 +465,16 @@ def _failure_note_paths(vault: Path) -> set[str]:
     return {str(r["source_path"]) for r in rows}
 
 
-def _cosine(a: "_Array | None", b: "_Array | None") -> float:
+def _cosine(a: _Array | None, b: _Array | None) -> float:
     """Dot product of two L2-normalized vectors (== cosine), 0.0 if either missing."""
     if a is None or b is None or len(a) != len(b):
         return 0.0
-    return math.fsum(x * y for x, y in zip(a, b))
+    return math.fsum(x * y for x, y in zip(a, b, strict=True))
 
 
 def _mmr_order(
     fused: list[tuple[str, float]],
-    chunk_vecs: dict[str, "_Array"],
+    chunk_vecs: dict[str, _Array],
     lambda_: float,
     limit: int,
 ) -> list[tuple[str, float]]:
@@ -541,7 +543,7 @@ def _why(hit) -> str:
 def hybrid_search(
     vault: Path,
     query: str,
-    embedder: "Embedder",
+    embedder: Embedder,
     *,
     limit: int = 20,
     candidate_pool: int = 50,
@@ -561,7 +563,7 @@ def hybrid_search(
     mmr: bool = False,
     mmr_lambda: float = 0.5,
     passage_window: int = 0,
-    reranker: "Reranker | None" = None,
+    reranker: Reranker | None = None,
     rerank_pool: int = RERANK_POOL,
     rerank_margin: float | None = RERANK_MARGIN,
     section: str | None = None,

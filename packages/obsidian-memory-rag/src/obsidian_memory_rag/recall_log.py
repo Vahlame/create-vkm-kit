@@ -8,8 +8,8 @@ Two implicit-feedback events, logged by the CLI on behalf of the Node sidecar
   fire-and-forget from ``vault_read_file``).
 
 ``search returned it AND the agent opened it`` is the cheap, deterministic
-signal that a memory actually helped. :func:`usage_counts` feeds the opt-in
-``usage`` ranking boost; zero-event notes feed the cold-notes decay report.
+signal that a memory actually helped. :func:`usage_counts_decayed` feeds the
+opt-in ``usage`` ranking boost; zero-event notes feed the cold-notes decay report.
 The table is telemetry, not derived state — reindexes never touch it, and a
 lost/deleted DB only loses history, never memory (markdown stays truth).
 
@@ -72,48 +72,15 @@ def log_events(vault: Path, event: str, paths: list[str], *, query: str = "") ->
         return 0
 
 
-def usage_counts(vault: Path, paths: list[str], *, window_days: float = 90.0) -> dict[str, int]:
-    """``path -> count of 'used' events`` within the window, for the given paths.
-
-    Zeros (and an all-zero dict on any failure) so the ranking lever degrades to
-    a no-op — usage can only promote among candidates, never break a search.
-    """
-    out = {p: 0 for p in paths}
-    if not paths:
-        return out
-    db_path = index_db_path(vault.resolve())
-    if not db_path.is_file():
-        return out
-    try:
-        conn = connect(db_path)
-        try:
-            init_schema(conn)
-            cutoff = time.time_ns() - int(window_days * _NS_PER_DAY)
-            placeholders = ",".join("?" * len(paths))
-            rows = conn.execute(
-                f"SELECT path, COUNT(*) AS n FROM recall_log "
-                f"WHERE event = 'used' AND at_ns >= ? AND path IN ({placeholders}) "
-                f"GROUP BY path",
-                [cutoff, *paths],
-            ).fetchall()
-        finally:
-            conn.close()
-    except Exception:
-        return out
-    for r in rows:
-        out[str(r["path"])] = int(r["n"])
-    return out
-
-
 def usage_counts_decayed(
     vault: Path, paths: list[str], *, window_days: float = 90.0
 ) -> dict[str, float]:
     """Recency-weighted ``path -> effective 'used' count`` within the window.
 
-    :func:`usage_counts` is a flat count: every event inside ``window_days`` is
-    worth exactly 1, so a note used heavily near the *start* of the window (stale
-    but technically still in-window) keeps full credit right up to the moment it
-    ages out — a step function, not a taper. This variant weights each event by
+    A flat count — every event inside ``window_days`` worth exactly 1 — was the
+    original shape, and it is a step function, not a taper: a note used heavily
+    near the *start* of the window (stale but technically still in-window) keeps
+    full credit right up to the moment it ages out. This weights each event by
     its own recency instead: QUADRATIC decay from 1.0 at age 0 down to 0.0 at
     ``window_days`` old (``max(0.0, 1.0 - age_days / window_days) ** 2``). The
     taper is quadratic, not linear, deliberately: post-fusion scores sit on RRF's
@@ -129,7 +96,8 @@ def usage_counts_decayed(
     it stops being touched, rather than only fading when the whole window finally
     rolls past it (ADR-0038's recency-of-memory intent).
 
-    Same zero-on-empty / no-op-on-failure contract as :func:`usage_counts`.
+    Zero-on-empty, no-op on any failure: the lever can only promote among
+    candidates a search already found, never break the search.
     """
     out: dict[str, float] = {p: 0.0 for p in paths}
     if not paths:

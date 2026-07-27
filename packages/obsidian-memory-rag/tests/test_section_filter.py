@@ -92,7 +92,9 @@ def test_hybrid_search_section_research_only(tmp_path: Path) -> None:
     emb = HashingEmbedder(dim=256)
     index_vault(vault)
     index_vectors(vault, emb)
-    hits = hybrid_search(vault, "zoekt distributed search indexing", emb, limit=5, section="research")
+    hits = hybrid_search(
+        vault, "zoekt distributed search indexing", emb, limit=5, section="research"
+    )
     assert hits
     assert all(h.path.startswith(RESEARCH_PREFIX) for h in hits)
 

@@ -143,7 +143,7 @@ def load_queries(path: Path) -> list[dict]:
 def evaluate(
     vault: Path,
     queries: list[dict],
-    embedder: "Embedder",
+    embedder: Embedder,
     *,
     k: int = 5,
     graph: bool = False,
@@ -151,7 +151,7 @@ def evaluate(
     importance: bool = False,
     pin_failures: bool = False,
     mmr: bool = False,
-    reranker: "Reranker | None" = None,
+    reranker: Reranker | None = None,
 ) -> BenchReport:
     """Score ``hybrid_search`` for each query against its ground-truth labels.
 

@@ -74,7 +74,9 @@ def test_report_duplicates_opt_in(tmp_path: Path) -> None:
     body = "# {t}\n\nProduction deployment with zero downtime and rolling restarts.\n"
     (vault / "a.md").write_text(body.format(t="Deploy A"), encoding="utf-8")
     (vault / "b.md").write_text(body.format(t="Deploy B"), encoding="utf-8")
-    (vault / "c.md").write_text("# Cooking\n\nPancakes and bananas for breakfast.\n", encoding="utf-8")
+    (vault / "c.md").write_text(
+        "# Cooking\n\nPancakes and bananas for breakfast.\n", encoding="utf-8"
+    )
     emb = HashingEmbedder(dim=256)
     index_vault(vault)
     index_vectors(vault, emb)
@@ -122,7 +124,9 @@ def test_report_duplicates_truncated_signals_skip_not_silent_empty(tmp_path: Pat
     body = "# {t}\n\nProduction deployment with zero downtime and rolling restarts.\n"
     (vault / "a.md").write_text(body.format(t="Deploy A"), encoding="utf-8")
     (vault / "b.md").write_text(body.format(t="Deploy B"), encoding="utf-8")
-    (vault / "c.md").write_text("# Cooking\n\nPancakes and bananas for breakfast.\n", encoding="utf-8")
+    (vault / "c.md").write_text(
+        "# Cooking\n\nPancakes and bananas for breakfast.\n", encoding="utf-8"
+    )
     index_vault(vault)
     index_vectors(vault, HashingEmbedder(dim=256))
 

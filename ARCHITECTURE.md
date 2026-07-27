@@ -50,6 +50,7 @@ flowchart LR
 | Path                                 | Language       | Role                                                                                                                                      |
 | ------------------------------------ | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `cmd/obsidian-memoryd/`              | Go             | Daemon: filesystem watch → debounced git sync; `doctor` health report                                                                     |
+| `packages/vkm-core/`                 | Node (ESM)     | Internal shared layer for the MCP sidecars: result shaping, stdio plumbing, the prompt-injection scanner. Private, never published        |
 | `packages/obsidian-memory-mcp/`      | Node (ESM)     | The "hybrid" MCP sidecar (stdio): vault-locked file + search tools                                                                        |
 | `packages/obscura-web/`              | Node (ESM)     | Stealth web MCP sidecar (stdio, opt-in): `obscura_fetch` + `obscura_search` via the local obscura headless browser                        |
 | `packages/obsidian-memory-rag/`      | Python         | FTS5 indexer + BM25 search (the search engine the sidecar bridges to)                                                                     |
@@ -112,8 +113,8 @@ without spawning the transport.
   - [`vault-lint.mjs`](./packages/obsidian-memory-mcp/src/vault-lint.mjs) — **write-time hygiene lint** wired into every write/edit/append: non-canonical observation categories (`[DECISIÓN]` → suggests `[decision]`; extend the canonical set via `memory-schema.json` → `observationCategories`), `[[wikilinks]]` that resolve to no note (template placeholders `<…>` exempt), and knowledge notes born with zero links (orphan-at-birth). Lints ONLY the text the call introduces — never pre-existing lines — and warns without ever blocking a write. Born from the 2026-07-12 manual hygiene pass: every class of drift it checks was found accumulated in a real vault (17 mis-categorized lines, 6 broken links, 18 orphans) because nothing guarded the write path.
   - [`vault-git.mjs`](./packages/obsidian-memory-mcp/src/vault-git.mjs) — read-only git history/old-version reads against the sync repo (pure; no MCP dependency).
   - [`extract.mjs`](./packages/obsidian-memory-mcp/src/extract.mjs) — bullet/term extraction helpers for the close ritual.
-  - [`mcp-result.mjs`](./packages/obsidian-memory-mcp/src/mcp-result.mjs) — `toolHandler()` wrapper that shapes every tool's return value and centralizes error→`isError` handling. Structured results serialize as **compact JSON** (no pretty-print indentation) — the consumer is an LLM, so the indentation is pure token cost.
-  - [`telemetry.mjs`](./packages/obsidian-memory-mcp/src/telemetry.mjs) — Pino logging + opt-in OpenTelemetry (see [Observability](#observability)).
+  - [`untrusted.mjs`](./packages/obsidian-memory-mcp/src/untrusted.mjs) — the VAULT DATA envelope. The prompt-injection heuristics themselves are shared (see `vkm-core` below); only the envelope wording is vault-specific.
+  - [`telemetry.mjs`](./packages/obsidian-memory-mcp/src/telemetry.mjs) — opt-in OpenTelemetry startup (see [Observability](#observability)). Nothing in this package may write to **stdout**: that stream is the JSON-RPC transport, so status messages go to stderr.
 
 ### 3. `obsidian-memory-rag` — retrieval engine (Python)
 
@@ -198,6 +199,19 @@ server exposing eight tools, backed by the local
 - **Layered search:** [`serp.mjs`](./packages/obscura-web/src/serp.mjs) tries a structured SearXNG JSON backend first, then obscura-rendered DuckDuckGo/Bing/Brave SERPs (resilient per-engine parsers + per-query cache), then steers to the native `WebSearch`.
 - **On-demand SearXNG (ADR-0052):** [`ensure-searxng.mjs`](./packages/obscura-web/src/ensure-searxng.mjs) starts a local SearXNG only while searching and stops it after an idle window — it never keeps the MCP loop alive (`unref`), is killed on exit, and an externally-run instance is used but never killed. Each search is logged ([`search-log.mjs`](./packages/obscura-web/src/search-log.mjs)) for the stdlib-only desktop monitor ([`searxng/searxng-gui.pyw`](./packages/obscura-web/searxng/searxng-gui.pyw)).
 - **Third-party binary:** the pinned obscura release is downloaded + SHA-256-verified by `create-vkm-kit`'s [`obscura-setup.mjs`](./packages/create-vkm-kit/src/obscura-setup.mjs) into `~/.vkm/obscura/` (best-effort, opt-in; it refuses an unverified binary). See [`SECURITY.md`](./SECURITY.md) §5.
+
+### 8. `vkm-core` — the shared layer under the sidecars (Node, private)
+
+Three stdio MCP servers ship in this repo (vault, obscura-web, downloads) and they were
+built by copy-paste from each other. This package is where the parts that are genuinely
+the same now live, so a fix lands once:
+
+- [`src/mcp-result.mjs`](./packages/vkm-core/src/mcp-result.mjs) — `toolHandler()`, which shapes every tool's return value and centralizes error→`isError` handling (structured results serialize as **compact JSON**: the consumer is an LLM, so pretty-print indentation is pure token cost), plus `pkgVersionFrom()` for the handshake and `isEntryPoint()` for the don't-spawn-on-import guard.
+- [`src/untrusted.mjs`](./packages/vkm-core/src/untrusted.mjs) — the bilingual prompt-injection scanner and the envelope builder. It exists because the two forks it replaces drifted in **both** directions, leaving the scanner that guards arbitrary fetched web pages weaker in Spanish than the one guarding the user's own notes. The pattern list is the union of both. Each package keeps only its own envelope wording (VAULT DATA vs WEB PAGE DATA).
+
+It is `private: true` and has no runtime dependencies. The dependency direction is the
+point: `vkm-downloads` importing a helper out of the _memory_ MCP would be an edge that
+only makes sense as an accident of history.
 
 ## Data flows
 

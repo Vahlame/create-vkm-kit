@@ -20,9 +20,11 @@ import math
 import os
 import re
 from array import array
-from importlib.metadata import PackageNotFoundError, version as _pkg_version
+from collections.abc import Sequence
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
 from pathlib import Path
-from typing import Protocol, Sequence
+from typing import Protocol
 
 # `[^\W_]` = word chars minus underscore = Unicode letters+digits, matching the
 # original [a-z0-9]+ alnum-run semantics but across any script — accented Latin
@@ -113,7 +115,8 @@ def _fastembed_cache_dir() -> str:
     ``OBSIDIAN_MEMORY_FASTEMBED_CACHE`` for users who keep models elsewhere.
     """
     override = os.environ.get("OBSIDIAN_MEMORY_FASTEMBED_CACHE", "").strip()
-    base = Path(override) if override else Path.home() / ".cache" / "obsidian-memory-rag" / "fastembed"
+    durable = Path.home() / ".cache" / "obsidian-memory-rag" / "fastembed"
+    base = Path(override) if override else durable
     base.mkdir(parents=True, exist_ok=True)
     return str(base)
 

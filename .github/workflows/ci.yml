@@ -166,6 +166,12 @@ jobs:
           python-version: "3.12"
       - run: pip install pytest
       - run: pip install -e ./packages/obsidian-memory-rag
+      # `ruff check` only, pinned like every other tool here. Config and the reasons
+      # for `check`-without-`format` live in the package's pyproject.toml [tool.ruff].
+      # ~2s, and it is the gate that catches what pytest cannot when modules move:
+      # import cycles, shadowed names, helpers orphaned by a relocation.
+      - run: pip install ruff==0.16.0
+      - run: ruff check packages/obsidian-memory-rag
       - run: pytest packages/obsidian-memory-rag/tests
 
   retrieval-bench:

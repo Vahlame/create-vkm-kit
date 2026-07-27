@@ -143,7 +143,7 @@ def _read_note_tokens(vault: Path, rel: str) -> int:
 def evaluate_tokens(
     vault: Path,
     queries: list[dict],
-    embedder: "Embedder",
+    embedder: Embedder,
     *,
     k: int = 5,
 ) -> TokenBenchReport:

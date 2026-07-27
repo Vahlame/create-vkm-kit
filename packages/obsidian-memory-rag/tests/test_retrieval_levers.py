@@ -52,7 +52,11 @@ def test_typed_neighbor_weights_strong_verb_above_weak(tmp_path: Path) -> None:
     v = tmp_path / "v"
     # `alpha` (relates_to) sorts before `zeta` (supersedes) lexicographically, so an
     # untyped +1 tie-break would rank alpha first; type weighting must flip that.
-    _write(v, "PROJECTS/a.md", "# a\n\nProyecto A.\n\n- supersedes [[PROJECTS/zeta]]\n- relates_to [[PROJECTS/alpha]]\n")
+    _write(
+        v,
+        "PROJECTS/a.md",
+        "# a\n\nProyecto A.\n\n- supersedes [[PROJECTS/zeta]]\n- relates_to [[PROJECTS/alpha]]\n",
+    )
     _write(v, "PROJECTS/zeta.md", "# zeta\n\nNota zeta.\n")
     _write(v, "PROJECTS/alpha.md", "# alpha\n\nNota alpha.\n")
     index_vault(v)
@@ -252,7 +256,10 @@ def test_superseded_decision_never_outranks_its_replacement(tmp_path: Path) -> N
     index_vault(v)
     index_vectors(v, emb)
     for kwargs in ({}, {"graph": True}, {"graph": True, "graph_typed": True}):
-        paths = [h.path for h in hybrid_search(v, "autenticacion del portal de clientes", emb, limit=5, **kwargs)]
+        hits = hybrid_search(
+            v, "autenticacion del portal de clientes", emb, limit=5, **kwargs
+        )
+        paths = [h.path for h in hits]
         assert "PROJECTS/auth-new.md" in paths, kwargs
         assert "PROJECTS/auth-old.md" in paths, kwargs
         assert paths.index("PROJECTS/auth-new.md") < paths.index("PROJECTS/auth-old.md"), (
@@ -267,7 +274,10 @@ def test_supersession_keeps_the_old_note_in_the_result(tmp_path: Path) -> None:
     emb = HashingEmbedder(dim=256)
     index_vault(v)
     index_vectors(v, emb)
-    paths = [h.path for h in hybrid_search(v, "autenticacion del portal de clientes", emb, limit=5, graph=True)]
+    hits = hybrid_search(
+        v, "autenticacion del portal de clientes", emb, limit=5, graph=True
+    )
+    paths = [h.path for h in hits]
     assert "PROJECTS/auth-old.md" in paths
 
 
@@ -281,5 +291,6 @@ def test_supersession_is_a_noop_without_relations(tmp_path: Path) -> None:
     index_vault(v)
     index_vectors(v, emb)
     hits = hybrid_search(v, "despliegue del backend", emb, limit=3)
-    assert [h.path for h in hits] == [h.path for h in hybrid_search(v, "despliegue del backend", emb, limit=3)]
+    again = hybrid_search(v, "despliegue del backend", emb, limit=3)
+    assert [h.path for h in hits] == [h.path for h in again]
     assert len(hits) == 3

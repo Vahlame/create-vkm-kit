@@ -18,7 +18,8 @@ to order passages within one query, not calibrated across queries.
 from __future__ import annotations
 
 import os
-from typing import Protocol, Sequence
+from collections.abc import Sequence
+from typing import Protocol
 
 from .embeddings import _fastembed_cache_dir, _fastembed_identity
 
@@ -64,7 +65,7 @@ class FastEmbedReranker:
         return [float(s) for s in self._model.rerank(query, passages)]
 
 
-def get_reranker(name: str | None = None) -> "Reranker | None":
+def get_reranker(name: str | None = None) -> Reranker | None:
     """Resolve a reranker, or ``None`` when reranking is disabled (the default).
 
     - ``name is None`` → read the environment: enabled only if

@@ -36,3 +36,26 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+# `ruff check` only — deliberately NOT `ruff format`.
+#
+# This code did not need a linter to reach 4.x: an AST scan across all 53 modules
+# found zero unused imports and nine lines over 100 chars. The gate is forward-looking.
+# The v5 refactor relocates ~1,500 lines between modules (cli.py -> commands/, the
+# shared SQLite helper, the bench harness), and relocation is exactly when import
+# cycles, shadowed names and orphaned helpers appear — none of which pytest sees.
+#
+# `format` is excluded because it would rewrite every hand-wrapped line in one commit
+# and bury the refactor diff underneath it. That is a separate decision, to be made
+# after, on a quiet tree. Same reasoning declines mypy: the annotations are already
+# good, and the sqlite3.Row access style would need ~50 new ones for little return.
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+# E/F  pycodestyle + pyflakes — the undefined name and unused import baseline.
+# I    import sorting, so a moved module cannot quietly reorder a cycle into existence.
+# B    bugbear — mutable default args, loop-variable capture, the real bug classes.
+# UP   pyupgrade, bounded by requires-python = ">=3.11".
+select = ["E", "F", "I", "B", "UP"]

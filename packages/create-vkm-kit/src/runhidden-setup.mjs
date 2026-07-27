@@ -93,3 +93,43 @@ export async function installRunHidden(home, dryRun) {
     return null;
   }
 }
+
+/**
+ * Remove the launcher `installRunHidden` put in `<home>/.claude/bin/`.
+ *
+ * `--uninstall` removed the hook entries, the hook scripts, the skills and the output
+ * style, and left this executable behind — the one piece of the teardown that was
+ * missing, and the newest one. Same never-delete-on-doubt policy as the hook scripts:
+ * only a byte-for-byte match against the copy this package ships is ours to remove, so
+ * a launcher the user built or replaced themselves survives. Never throws.
+ *
+ * @param {string} home
+ * @param {boolean} dryRun
+ * @returns {Promise<boolean>} whether the file was (or would be) removed
+ */
+export async function uninstallRunHidden(home, dryRun) {
+  const dest = installedRunHidden(home);
+  try {
+    if (!(await fse.pathExists(dest))) return false;
+    const src = packagedRunHidden();
+    if (!(await fse.pathExists(src)) || (await sha256(src)) !== (await sha256(dest))) {
+      console.log(
+        pc.yellow("Left in place (not recognized as this kit's launcher):"),
+        pc.dim(dest)
+      );
+      return false;
+    }
+    if (dryRun) {
+      console.log(pc.cyan("[dry-run] would remove the windowless hook launcher"), pc.dim(dest));
+      return true;
+    }
+    await fse.remove(dest);
+    console.log(pc.green("Removed the windowless hook launcher:"), pc.dim(dest));
+    return true;
+  } catch (e) {
+    // A launcher still on disk after `--uninstall` is inert once its hook entries are
+    // gone (nothing invokes it), so a failure here is worth reporting, not throwing.
+    console.warn(pc.yellow("Could not remove the hook launcher:"), e?.message || e);
+    return false;
+  }
+}

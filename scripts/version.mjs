@@ -21,62 +21,48 @@
  *
  * Pure Node built-ins (no deps) so it runs in CI before `npm ci`.
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 
+/**
+ * Every `packages/<dir>/package.json`, discovered rather than listed.
+ *
+ * Each suite package is version-locked to the kit (ADR-0042, extended by ADR-0051
+ * and ADR-0058), so the rule is uniform and a literal table only encoded which
+ * packages happened to exist the day it was written: adding, renaming or deleting
+ * a package silently dropped it from `check` until someone remembered this file.
+ * `scripts/license-sync.mjs` already derives its own targets from this directory;
+ * this is the same read, so the two gates can no longer disagree about the package
+ * list. `uncoveredLockWorkspaces()` below stays as the backstop for the one thing a
+ * directory scan cannot see — a lock entry for a workspace that is not a directory here.
+ *
+ * A directory only counts if it actually holds a `package.json`: `obsidian-memory-rag`
+ * is a Python distribution whose version lives in `pyproject.toml` (its own explicit
+ * marker below), and `packages/*` is the npm workspace glob, so "is a directory" and
+ * "is an npm package" are not the same predicate.
+ */
+function packageJsonMarkers() {
+  const packagesDir = path.join(ROOT, "packages");
+  return readdirSync(packagesDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .filter((dir) => existsSync(path.join(packagesDir, dir, "package.json")))
+    .sort((a, b) => a.localeCompare(b))
+    .map((dir) => ({
+      name: `${dir}/package.json`,
+      file: `packages/${dir}/package.json`,
+      read: (s) => JSON.parse(s).version,
+      write: (s, v) => s.replace(/("version":\s*")[^"]+(")/, `$1${v}$2`)
+    }));
+}
+
 /** A version marker: where it lives, how to read it, how to rewrite it. */
 const FILE_MARKERS = [
-  {
-    name: "create-vkm-kit/package.json",
-    file: "packages/create-vkm-kit/package.json",
-    read: (s) => JSON.parse(s).version,
-    write: (s, v) => s.replace(/("version":\s*")[^"]+(")/, `$1${v}$2`)
-  },
-  {
-    name: "obsidian-memory-mcp/package.json",
-    file: "packages/obsidian-memory-mcp/package.json",
-    read: (s) => JSON.parse(s).version,
-    write: (s, v) => s.replace(/("version":\s*")[^"]+(")/, `$1${v}$2`)
-  },
-  {
-    // vkm-kit efficiency-suite packages are version-locked to the kit (ADR-0042 — the
-    // opposite call to the old prompt-compiler precedent, per the 4.0.0 plan).
-    name: "vkm-doctor/package.json",
-    file: "packages/vkm-doctor/package.json",
-    read: (s) => JSON.parse(s).version,
-    write: (s, v) => s.replace(/("version":\s*")[^"]+(")/, `$1${v}$2`)
-  },
-  {
-    name: "vkm-spec/package.json",
-    file: "packages/vkm-spec/package.json",
-    read: (s) => JSON.parse(s).version,
-    write: (s, v) => s.replace(/("version":\s*")[^"]+(")/, `$1${v}$2`)
-  },
-  {
-    // Efficiency-suite package, version-locked to the kit (ADR-0051, same call as ADR-0042).
-    name: "obscura-web/package.json",
-    file: "packages/obscura-web/package.json",
-    read: (s) => JSON.parse(s).version,
-    write: (s, v) => s.replace(/("version":\s*")[^"]+(")/, `$1${v}$2`)
-  },
-  {
-    // Efficiency-suite package, version-locked to the kit (ADR-0058, same call as ADR-0042/0051).
-    name: "vkm-downloads/package.json",
-    file: "packages/vkm-downloads/package.json",
-    read: (s) => JSON.parse(s).version,
-    write: (s, v) => s.replace(/("version":\s*")[^"]+(")/, `$1${v}$2`)
-  },
-  {
-    // The forwarding shim published on the pre-rename npm name (ADR-0041/0050).
-    name: "create-obsidian-memory-shim/package.json",
-    file: "packages/create-obsidian-memory-shim/package.json",
-    read: (s) => JSON.parse(s).version,
-    write: (s, v) => s.replace(/("version":\s*")[^"]+(")/, `$1${v}$2`)
-  },
+  ...packageJsonMarkers(),
   {
     name: "obsidian-memory-rag/pyproject.toml",
     file: "packages/obsidian-memory-rag/pyproject.toml",

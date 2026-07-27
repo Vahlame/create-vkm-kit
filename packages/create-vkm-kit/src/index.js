@@ -40,7 +40,7 @@ import {
 } from "./claude-native-memory.mjs";
 import { configureTokenSaver, uninstallTokenSaver } from "./token-saver.mjs";
 import { configureTelemetry, uninstallTelemetry } from "./telemetry.mjs";
-import { installRunHidden } from "./runhidden-setup.mjs";
+import { installRunHidden, uninstallRunHidden } from "./runhidden-setup.mjs";
 import { configureSkillAssets, uninstallSkillAssets, skillAssetFiles } from "./skills-install.mjs";
 import { maybeInstallOllama } from "./ollama-setup.mjs";
 import { maybeInstallObscura } from "./obscura-setup.mjs";
@@ -95,8 +95,6 @@ const messages = {
     createVault: "Crear un vault nuevo en ~/Documents/obsidian-memory-vault",
     ides: "IDEs a configurar (espacio para MCP)",
     gitleaks: "Activar hook pre-commit gitleaks",
-    age: "Activar cifrado age para datos sensibles (mas friccion)",
-    daemon: "Instalar obsidian-memoryd como servicio de usuario",
     summary: "Listo. Pasos siguientes",
     otherIdes: "Copia este bloque MCP en la config del IDE:",
     ftsHint:
@@ -114,8 +112,6 @@ const messages = {
     createVault: "Create a new vault at ~/Documents/obsidian-memory-vault",
     ides: "IDEs to wire for MCP",
     gitleaks: "Enable gitleaks pre-commit hook",
-    age: "Enable age encryption (more friction)",
-    daemon: "Install obsidian-memoryd user service",
     summary: "Done. Next steps",
     otherIdes: "Paste this MCP block into each IDE's config:",
     ftsHint:
@@ -340,6 +336,18 @@ async function writeVaultGitWorkspaceSettings(vault, dryRun) {
 }
 
 async function scaffoldNewVault(vault, lang, dryRun) {
+  // `--dry-run` promises "show what would be written (no writes)", and the interactive
+  // banner even prints "dry-run: Cursor mcp.json will not be written" — while this
+  // function went on to create .obsidian/, START_HERE.md, MEMORY.md, SESSION_LOG.md,
+  // PROJECTS/, STACKS/, PRACTICES/, RULES/, _meta/ and RESEARCH/ unconditionally. The
+  // parameter was threaded all the way down here and then read exactly once, on the
+  // last line. The headless path guarded the call site; the interactive path did not,
+  // so the default invocation was the one that wrote. Guard the function, not its
+  // callers: a caller that forgets is the bug this class of defect is made of.
+  if (dryRun) {
+    console.log(pc.yellow("[dry-run] would scaffold a starter vault at"), vault);
+    return;
+  }
   await fse.ensureDir(path.join(vault, ".obsidian"));
   const start =
     lang === "en"
@@ -914,12 +922,10 @@ async function runNonInteractive(argv) {
   // one-shot install shouldn't require pre-creating the folder by hand.
   let createdVault = false;
   if (!(await fse.pathExists(path.join(vault, ".obsidian")))) {
-    if (dryRun) {
-      console.log(pc.cyan("[dry-run] would create starter vault at"), vault);
-    } else {
-      await scaffoldNewVault(vault, lang, dryRun);
-      createdVault = true;
-    }
+    // scaffoldNewVault owns the dry-run check (it is the only place that can be
+    // sure nothing slipped past it); this branch only records what happened.
+    await scaffoldNewVault(vault, lang, dryRun);
+    createdVault = !dryRun;
   }
   const full = fullPresetFromArgs();
   const noCursorMcp = argv.includes("--no-cursor-mcp");
@@ -1089,11 +1095,14 @@ async function runNonInteractive(argv) {
     pc.dim(full ? "full preset" : minimal ? "minimal" : "full stack (default)")
   );
 
-  const mcpSnippet = {
-    command: "uvx",
-    args: ["basic-memory", "mcp"],
-    env: { BASIC_MEMORY_HOME: vault }
-  };
+  // The canonical server object, NOT a hand-built copy. Both flows used to inline
+  // `args: ["basic-memory", "mcp"]` here — dropping the `--from basic-memory==<pin>`
+  // that mcp-merge.mjs documents as a supply-chain control (an unpinned `uvx <pkg> mcp`
+  // re-resolves from PyPI on every client restart, so a package takeover is an RCE).
+  // This object is printed under "paste this MCP block into each IDE's config" for
+  // Cline/Windsurf/Zed users and in the run summary, so the one path the installer
+  // could not merge for the user was also the one path it handed them unpinned.
+  const mcpSnippet = basicMemoryServer(vault);
 
   const hybridOpts = {
     withHybrid: wantHybrid,
@@ -1531,6 +1540,7 @@ Claude Code native-memory override (when --ide includes claude):
     await uninstallTokenSaver(home, dryRun);
     await uninstallTelemetry(home, dryRun);
     await uninstallSkillAssets(home, dryRun);
+    await uninstallRunHidden(home, dryRun);
     return;
   }
 
@@ -1607,19 +1617,12 @@ Claude Code native-memory override (when --ide includes claude):
     initial: true
   });
 
-  const { age } = await prompts({
-    type: "confirm",
-    name: "age",
-    message: t.age,
-    initial: false
-  });
-
-  const { daemon } = await prompts({
-    type: "confirm",
-    name: "daemon",
-    message: t.daemon,
-    initial: process.platform !== "win32"
-  });
+  // Removed in 5.0: the "Enable age encryption" and "Install obsidian-memoryd user
+  // service" prompts installed nothing. Answering yes to the second one printed the
+  // command you still had to run yourself — a wizard that asks for consent and then
+  // does not act teaches users to distrust everything else it reports. The daemon
+  // command survives as an unconditional next-step line below; age was only ever a
+  // one-line reminder and belongs in the docs, not in a confirm dialog.
 
   let hybridOpts = { withHybrid: false, repoRoot: null };
   if (ides?.includes("cursor") || ides?.includes("claude") || ides?.includes("codex")) {
@@ -1663,11 +1666,14 @@ Claude Code native-memory override (when --ide includes claude):
     }
   }
 
-  const mcpSnippet = {
-    command: "uvx",
-    args: ["basic-memory", "mcp"],
-    env: { BASIC_MEMORY_HOME: vault }
-  };
+  // The canonical server object, NOT a hand-built copy. Both flows used to inline
+  // `args: ["basic-memory", "mcp"]` here — dropping the `--from basic-memory==<pin>`
+  // that mcp-merge.mjs documents as a supply-chain control (an unpinned `uvx <pkg> mcp`
+  // re-resolves from PyPI on every client restart, so a package takeover is an RCE).
+  // This object is printed under "paste this MCP block into each IDE's config" for
+  // Cline/Windsurf/Zed users and in the run summary, so the one path the installer
+  // could not merge for the user was also the one path it handed them unpinned.
+  const mcpSnippet = basicMemoryServer(vault);
 
   if (ides?.includes("cursor")) {
     await writeCursorMcp(home, vault, dryRun, hybridOpts);
@@ -1811,12 +1817,10 @@ Claude Code native-memory override (when --ide includes claude):
     console.log(
       "- gitleaks pre-commit hook: installed (vault/.git/hooks/pre-commit); install gitleaks CLI to activate"
     );
-  if (age) console.log("- age: document keys outside repo");
-  if (daemon)
-    console.log(
-      "- obsidian-memoryd:",
-      "`obsidian-memoryd service install --user && obsidian-memoryd service start`"
-    );
+  console.log(
+    "- Optional git sync daemon:",
+    "`obsidian-memoryd service install --user && obsidian-memoryd service start`"
+  );
   if (ruleTargets.length) {
     console.log("- Memory rules installed into:", ruleTargets.join(", "));
     if (ides?.includes("cursor")) {

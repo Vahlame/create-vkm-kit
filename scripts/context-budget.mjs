@@ -154,17 +154,43 @@ function readRepo(rel) {
 }
 
 /**
+ * The `BUDGET_CHARS` ceiling a package's schema-budget test enforces.
+ *
+ * Read from the test rather than restated here. Two rows of this report used to
+ * carry a hand-written "NO budget gate" note for surfaces that HAVE had a gate
+ * for releases — so the repo's own token dashboard told a reader that obscura's
+ * ~4,500-token surface was ungoverned and could be grown freely. It cannot; the
+ * first person to try would find out from a red build. Deriving the number means
+ * the note cannot disagree with the gate again, and it surfaces the headroom,
+ * which is the number that actually matters when the vault server sits ten
+ * characters under its ceiling.
+ * @param {string} testRel
+ * @returns {number | null}
+ */
+function schemaBudgetOf(testRel) {
+  const m = readRepo(testRel).match(/^const BUDGET_CHARS = (\d+);/m);
+  return m ? Number(m[1]) : null;
+}
+
+/**
  * @param {string} rel repo-relative path of an MCP server module
  * @param {string} id
  * @param {When} when
  * @param {string} note
+ * @param {string} testRel repo-relative path of the package's schema-budget test
  * @returns {Piece}
  */
-function mcpSchemaPiece(rel, id, when, note) {
+function mcpSchemaPiece(rel, id, when, note, testRel) {
   const src = readRepo(rel);
   const strings = extractSchemaStrings(src);
   const chars = strings.reduce((a, s) => a + s.length, 0);
   const tools = (src.match(/server\.registerTool\(/g) ?? []).length;
+  const budget = schemaBudgetOf(testRel);
+  const gate =
+    budget === null
+      ? `gate ${testRel} (BUDGET_CHARS unreadable — check the test)`
+      : `gated at ${budget.toLocaleString("en-US")} by ${testRel} ` +
+        `(headroom ${(budget - chars).toLocaleString("en-US")})`;
   return {
     id,
     group: "mcp-schemas",
@@ -172,7 +198,7 @@ function mcpSchemaPiece(rel, id, when, note) {
     tokens: approxTokens(chars),
     source: `${rel}:${lineOf(src, "server.registerTool(")}`,
     when,
-    note: `${tools} tools, ${strings.length} schema strings — ${note}`
+    note: `${tools} tools, ${strings.length} schema strings — ${note}; ${gate}`
   };
 }
 
@@ -246,7 +272,8 @@ export function measureRepo({ lang = "es" } = {}) {
       "packages/obsidian-memory-mcp/src/hybrid-mcp.mjs",
       "mcp-schemas:vault",
       "always",
-      "gated by schema-budget.test.mjs"
+      "the only surface every install pays",
+      "packages/obsidian-memory-mcp/test/schema-budget.test.mjs"
     )
   );
   push(
@@ -254,7 +281,8 @@ export function measureRepo({ lang = "es" } = {}) {
       "packages/obscura-web/src/obscura-mcp.mjs",
       "mcp-schemas:obscura",
       "always",
-      "wired by the default --full install; NO budget gate"
+      "wired by the default --full install",
+      "packages/obscura-web/test/schema-budget.test.mjs"
     )
   );
   push(
@@ -262,7 +290,8 @@ export function measureRepo({ lang = "es" } = {}) {
       "packages/vkm-downloads/src/downloads-mcp.mjs",
       "mcp-schemas:downloads",
       "opt-in",
-      "only with --downloads; NO budget gate"
+      "only with --downloads",
+      "packages/vkm-downloads/test/schema-budget.test.mjs"
     )
   );
 

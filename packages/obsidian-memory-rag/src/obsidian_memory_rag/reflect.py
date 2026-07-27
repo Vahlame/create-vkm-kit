@@ -264,7 +264,8 @@ def format_reflection(data: dict) -> str:
     lines.append("")
     lines.append(f"- sections digested: {ra['sections']}")
     if ra["top_tags"]:
-        lines.append("- top tags: " + ", ".join(f"#{t['tag']}×{t['count']}" for t in ra["top_tags"]))
+        tags = ", ".join(f"#{t['tag']}×{t['count']}" for t in ra["top_tags"])
+        lines.append("- top tags: " + tags)
     if ra["top_links"]:
         lines.append(
             "- top links: " + ", ".join(f"[[{t['target']}]]×{t['count']}" for t in ra["top_links"])

@@ -282,7 +282,7 @@ def search_chunks(
         vec = _from_blob(r["vec"])
         if len(vec) != len(query_vec):
             continue
-        score = math.fsum(x * y for x, y in zip(query_vec, vec))
+        score = math.fsum(x * y for x, y in zip(query_vec, vec, strict=True))
         hits.append(
             ChunkHit(
                 path,

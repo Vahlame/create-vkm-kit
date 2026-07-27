@@ -8,7 +8,6 @@
  * - OBSIDIAN_MEMORY_RAG_SRC — override path to .../obsidian-memory-rag/src
  * - OBSIDIAN_MEMORY_PYTHON — python executable (default: python3 non-Windows, python on Windows)
  */
-import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -26,7 +25,7 @@ import {
   vaultWriteFile
 } from "./vault-fs.mjs";
 import { vaultGitHistory } from "./vault-git.mjs";
-import { toolHandler } from "./mcp-result.mjs";
+import { toolHandler, pkgVersionFrom } from "@vkmikc/vkm-core/mcp-result";
 import { scanInjection, wrapUntrusted } from "./untrusted.mjs";
 import { maybeStartOtel } from "./telemetry.mjs";
 import { defaultRagSrc, requireVault, runRagJson } from "./rag-client.mjs";
@@ -39,13 +38,7 @@ export { extractBullets, pickQueryTerms };
 
 // Advertise the package's real version so the MCP handshake never drifts from
 // the kit version (this package.json is one of the version.mjs markers).
-const pkgVersion = (() => {
-  try {
-    return JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
-  } catch {
-    return "0.0.0";
-  }
-})();
+const pkgVersion = pkgVersionFrom(import.meta.url);
 
 /**
  * Augment a search/hybrid-search result object with untrusted-data signals:
