@@ -84,8 +84,27 @@ export async function installRunHidden(home, dryRun) {
     console.log(pc.green("Windowless hook launcher:"), pc.dim(dest));
     return dest;
   } catch (e) {
-    // An existing copy is still a working interpreter — only report a hard absence as a downgrade.
-    if (await fse.pathExists(dest)) return dest;
+    // An existing copy is still a working interpreter — only a hard absence is a downgrade.
+    //
+    // But it may be a STALE one, and staying quiet about that is how a fix appears to have
+    // been applied when it was not. The overwhelmingly common cause is Windows refusing to
+    // replace a mapped executable: the file IS the interpreter of every live hook and the
+    // launcher of every MCP server, so with an editor session open the copy fails with
+    // EBUSY and the user keeps whatever they had. That is exactly when they most need to
+    // be told, because they just ran the installer expecting the new behaviour.
+    if (await fse.pathExists(dest)) {
+      console.warn(
+        pc.yellow("Kept the EXISTING hook launcher — could not replace it:"),
+        e?.message || e
+      );
+      console.warn(
+        pc.dim(
+          "  Windows refuses to overwrite a running executable. Close every editor/agent " +
+            "session and re-run this installer to pick up the new launcher."
+        )
+      );
+      return dest;
+    }
     console.warn(
       pc.yellow("Could not install the hook launcher (hooks will use plain `node`):"),
       e?.message || e
