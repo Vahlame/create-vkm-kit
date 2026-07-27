@@ -14,6 +14,7 @@
  * can process an arbitrarily long crawl one page at a time without ever growing a context.
  */
 import { spawn } from "node:child_process";
+import { throughHiddenConsole } from "@vkmikc/vkm-core/hidden-console";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
@@ -216,25 +217,27 @@ const CURATION_JSON_SCHEMA = {
 };
 
 /**
- * Shared "one structured JSON call to /api/chat" plumbing behind both {@link curatePage}
- * (ADR-0055) and {@link summarizeNotes} (ADR-0056 local consolidation) — health-check, POST,
- * HTTP/JSON/abort error handling all collapse into the single {@link OllamaUnavailableError}
- * every caller degrades on. Returns the raw parsed JSON payload; the caller validates its own
- * schema (curation vs. summary shapes differ).
- * @param {{ host: string, model: string, keepAlive: string, systemPrompt: string,
- *           userContent: string, jsonSchema: object, signal?: AbortSignal, timeoutMs: number }} opts
- * @returns {Promise<unknown>}
+ * One POST to the local Ollama daemon, with every failure mode collapsed into
+ * {@link OllamaUnavailableError}.
+ *
+ * # Why this is shared
+ *
+ * `chatJSON` and `embedPassages` each carried the whole transport: the same AbortController
+ * plumbing, the same timer, the same health gate, the same HTTP/JSON error mapping. And the
+ * copy had already drifted where it counts — the embed path checked `health.version` and
+ * `health.hasModel` but NOT `health.ok`, so an Ollama older than {@link MIN_OLLAMA_VERSION}
+ * was correctly refused on /api/chat and quietly accepted on /api/embed. The compatibility
+ * floor is a single decision; it now has a single implementation.
+ *
+ * The two callers keep what is genuinely theirs: the request body they send and the shape
+ * they expect back.
+ *
+ * @param {string} endpoint path under the host, e.g. "/api/chat"
+ * @param {object} body JSON request body
+ * @param {{ host: string, model: string, signal?: AbortSignal, timeoutMs: number }} opts
+ * @returns {Promise<any>} the parsed JSON response body
  */
-async function chatJSON({
-  host,
-  model,
-  keepAlive,
-  systemPrompt,
-  userContent,
-  jsonSchema,
-  signal,
-  timeoutMs
-}) {
+async function ollamaPost(endpoint, body, { host, model, signal, timeoutMs }) {
   const controller = new AbortController();
   const onExternalAbort = () => controller.abort(signal?.reason ?? new Error("aborted"));
   if (signal) {
@@ -270,36 +273,15 @@ async function chatJSON({
 
     let res;
     try {
-      res = await fetch(`${host}/api/chat`, {
+      res = await fetch(`${host}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userContent }
-          ],
-          format: jsonSchema,
-          // Reasoning models (Qwen3, gpt-oss, …) think before answering, and every call here
-          // wants a small constrained JSON object, not deliberation. Measured on
-          // `qwen3.5:4b-q4_K_M`: with thinking on, 3 of 4 expansion calls came back with an
-          // EMPTY `message.content` ("Unexpected end of JSON input") and the one that answered
-          // took 40s against phi4-mini's ~1s — the model spent its budget in `message.thinking`,
-          // which is a separate field this client never reads.
-          //
-          // Safe on non-thinking models and on older Ollama alike: `think` landed in 0.9, and
-          // Ollama decodes request bodies with Go's encoding/json, which ignores unknown fields
-          // rather than rejecting them (it does not set DisallowUnknownFields — doing so would
-          // break every older client). So a pre-0.9 daemon drops this silently.
-          think: false,
-          stream: false,
-          keep_alive: keepAlive
-        }),
+        body: JSON.stringify(body),
         signal: controller.signal
       });
     } catch (e) {
       throw new OllamaUnavailableError(
-        `Could not POST /api/chat to ${host}: ${e?.message || e}`,
+        `Could not POST ${endpoint} to ${host}: ${e?.message || e}`,
         controller.signal.aborted ? "timeout" : classifyFetchError(e)
       );
     }
@@ -312,34 +294,85 @@ async function chatJSON({
         /* ignore body read failure */
       }
       throw new OllamaUnavailableError(
-        `Ollama /api/chat returned HTTP ${res.status}${detail ? `: ${detail}` : ""}`,
+        `Ollama ${endpoint} returned HTTP ${res.status}${detail ? `: ${detail}` : ""}`,
         res.status === 404 ? "model_missing" : "http_error"
       );
     }
 
-    let body;
+    let parsed;
     try {
-      body = await res.json();
+      parsed = await res.json();
     } catch (e) {
       throw new OllamaUnavailableError(
         `Ollama returned a non-JSON response: ${e?.message || e}`,
         "bad_json"
       );
     }
+    // Checked AFTER the read: an abort that lands mid-body surfaces as a timeout, which is
+    // what happened, rather than as a confusing parse error.
     if (controller.signal.aborted) {
       throw new OllamaUnavailableError(`Ollama request timed out after ${timeoutMs}ms`, "timeout");
     }
-
-    try {
-      return JSON.parse(body?.message?.content ?? "");
-    } catch (e) {
-      throw new OllamaUnavailableError(
-        `Ollama returned non-JSON content: ${e?.message || e}`,
-        "bad_json"
-      );
-    }
+    return parsed;
   } finally {
     cleanup();
+  }
+}
+
+/**
+ * Shared "one structured JSON call to /api/chat" plumbing behind both {@link curatePage}
+ * (ADR-0055) and {@link summarizeNotes} (ADR-0056 local consolidation) — health-check, POST,
+ * HTTP/JSON/abort error handling all collapse into the single {@link OllamaUnavailableError}
+ * every caller degrades on. Returns the raw parsed JSON payload; the caller validates its own
+ * schema (curation vs. summary shapes differ).
+ * @param {{ host: string, model: string, keepAlive: string, systemPrompt: string,
+ *           userContent: string, jsonSchema: object, signal?: AbortSignal, timeoutMs: number }} opts
+ * @returns {Promise<unknown>}
+ */
+async function chatJSON({
+  host,
+  model,
+  keepAlive,
+  systemPrompt,
+  userContent,
+  jsonSchema,
+  signal,
+  timeoutMs
+}) {
+  const body = await ollamaPost(
+    "/api/chat",
+    {
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userContent }
+      ],
+      format: jsonSchema,
+      // Reasoning models (Qwen3, gpt-oss, …) think before answering, and every call here
+      // wants a small constrained JSON object, not deliberation. Measured on
+      // `qwen3.5:4b-q4_K_M`: with thinking on, 3 of 4 expansion calls came back with an
+      // EMPTY `message.content` ("Unexpected end of JSON input") and the one that answered
+      // took 40s against phi4-mini's ~1s — the model spent its budget in `message.thinking`,
+      // which is a separate field this client never reads.
+      //
+      // Safe on non-thinking models and on older Ollama alike: `think` landed in 0.9, and
+      // Ollama decodes request bodies with Go's encoding/json, which ignores unknown fields
+      // rather than rejecting them (it does not set DisallowUnknownFields — doing so would
+      // break every older client). So a pre-0.9 daemon drops this silently.
+      think: false,
+      stream: false,
+      keep_alive: keepAlive
+    },
+    { host, model, signal, timeoutMs }
+  );
+
+  try {
+    return JSON.parse(body?.message?.content ?? "");
+  } catch (e) {
+    throw new OllamaUnavailableError(
+      `Ollama returned non-JSON content: ${e?.message || e}`,
+      "bad_json"
+    );
   }
 }
 
@@ -430,84 +463,22 @@ export async function embedPassages({
   const input = (texts ?? []).map((t) => String(t ?? ""));
   if (!input.length) return [];
 
-  const controller = new AbortController();
-  const onExternalAbort = () => controller.abort(signal?.reason ?? new Error("aborted"));
-  if (signal) {
-    if (signal.aborted) controller.abort(signal.reason ?? new Error("aborted"));
-    else signal.addEventListener("abort", onExternalAbort, { once: true });
+  const body = await ollamaPost(
+    "/api/embed",
+    { model, input, keep_alive: keepAlive },
+    { host, model, signal, timeoutMs }
+  );
+
+  // One vector per input, in order, or the caller cannot pair them up. A short array is a
+  // daemon-side failure, not something to paper over with padding.
+  const embeddings = Array.isArray(body?.embeddings) ? body.embeddings : null;
+  if (!embeddings || embeddings.length !== input.length) {
+    throw new OllamaUnavailableError(
+      `Ollama /api/embed returned ${embeddings?.length ?? 0} embeddings for ${input.length} inputs`,
+      "bad_json"
+    );
   }
-  const timer =
-    timeoutMs > 0
-      ? setTimeout(() => controller.abort(new Error(`timeout after ${timeoutMs}ms`)), timeoutMs)
-      : null;
-  const cleanup = () => {
-    if (timer) clearTimeout(timer);
-    if (signal) signal.removeEventListener("abort", onExternalAbort);
-  };
-
-  try {
-    const health = await checkOllama({ host, model, signal: controller.signal });
-    if (!health.version) {
-      throw new OllamaUnavailableError(`Ollama not reachable at ${host}`, "conn_refused");
-    }
-    if (!health.hasModel) {
-      throw new OllamaUnavailableError(
-        `Model "${model}" is not pulled on the Ollama host — run: ollama pull ${model}`,
-        "model_missing"
-      );
-    }
-
-    let res;
-    try {
-      res = await fetch(`${host}/api/embed`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model, input, keep_alive: keepAlive }),
-        signal: controller.signal
-      });
-    } catch (e) {
-      throw new OllamaUnavailableError(
-        `Could not POST /api/embed to ${host}: ${e?.message || e}`,
-        controller.signal.aborted ? "timeout" : classifyFetchError(e)
-      );
-    }
-
-    if (!res.ok) {
-      let detail = "";
-      try {
-        detail = (await res.text()).slice(0, 200);
-      } catch {
-        /* ignore body read failure */
-      }
-      throw new OllamaUnavailableError(
-        `Ollama /api/embed returned HTTP ${res.status}${detail ? `: ${detail}` : ""}`,
-        res.status === 404 ? "model_missing" : "http_error"
-      );
-    }
-
-    let body;
-    try {
-      body = await res.json();
-    } catch (e) {
-      throw new OllamaUnavailableError(
-        `Ollama returned a non-JSON response: ${e?.message || e}`,
-        "bad_json"
-      );
-    }
-    if (controller.signal.aborted) {
-      throw new OllamaUnavailableError(`Ollama request timed out after ${timeoutMs}ms`, "timeout");
-    }
-    const embeddings = Array.isArray(body?.embeddings) ? body.embeddings : null;
-    if (!embeddings || embeddings.length !== input.length) {
-      throw new OllamaUnavailableError(
-        `Ollama /api/embed returned ${embeddings?.length ?? 0} embeddings for ${input.length} inputs`,
-        "bad_json"
-      );
-    }
-    return embeddings;
-  } finally {
-    cleanup();
-  }
+  return embeddings;
 }
 
 // ── Query-transform cache (expandQuery + translateQuery) ─────────────────────────────────────
@@ -613,6 +584,33 @@ const EXPAND_SYSTEM_PROMPT = [
   "  - DO NOT INVENT specifics you were not given: no fabricated version numbers, product names,",
   "    error codes or standard IDs. Vague-but-true beats precise-but-invented, which returns",
   "    nothing at all.",
+  // ── Disambiguation: the failure the "don't be confidently wrong" rule above does NOT cover ──
+  //
+  // That rule guards against a term that is WRONG. This one guards against a term that is RIGHT
+  // and AMBIGUOUS, which is a different failure with the same symptom and no defence upstream.
+  //
+  // Observed live (RESEARCH/winoptengine-v19-candidates, 2026-07-27): a run about message-signalled
+  // interrupts expanded to queries containing the bare acronyms "MSI" and "MSIX". Both are correct
+  // terms. Both are also something else entirely — MSI the hardware brand, MSIX the Windows
+  // packaging format. SearXNG returned real, well-ranked pages for the OTHER meaning: a laptop
+  // catalogue, CPU-Z release notes, a Wikipedia article on CPUs, and five Brazilian federal
+  // statutes. The curator scored several 8-9, because relative to a query that literally says "MSI"
+  // they were not obviously wrong.
+  //
+  // The curator cannot fix this: by the time a page is judged, the only evidence of intent is the
+  // query, and the query is genuinely ambiguous. It has to be fixed here, where the intent is still
+  // known. Note this is NOT the curator revision measured and reverted in ADR-0057's seventh
+  // addendum — that one asked the judge to be stricter about domain match and cost more in false
+  // negatives than it won in false positives. This adds no strictness anywhere; it removes the
+  // ambiguity before the search happens.
+  "",
+  "  - DISAMBIGUATE. Before emitting a query, check every acronym and short name in it: could a",
+  "    search engine read it as a company, a product, a file format or a different field's term?",
+  "    Acronyms of three to five letters almost always can. If so, WRITE IT OUT — use the full",
+  "    phrase the term stands for, or add the word that fixes the domain. The engine matches",
+  "    characters, not your intent, and a page about the other meaning is not merely useless: it is",
+  "    a real, relevant-looking page for what you literally asked, so nothing downstream can tell it",
+  "    apart. Never leave a bare ambiguous acronym as the whole subject of a query.",
   "",
   "Respond ONLY with a JSON object matching the requested schema."
 ].join("\n");
@@ -1090,10 +1088,11 @@ export async function ensureOllamaServer({ host = DEFAULT_OLLAMA_HOST, waitMs = 
   if ((await checkOllama({ host })).version) return true;
   let spawnFailed = false;
   try {
-    const child = spawn(localOllamaBinary(), ["serve"], {
+    const launch = throughHiddenConsole(localOllamaBinary(), ["serve"]);
+    const child = spawn(launch.command, launch.args, {
       detached: true,
       stdio: "ignore",
-      windowsHide: true,
+      windowsHide: launch.windowsHide,
       env: {
         ...process.env,
         OLLAMA_MAX_LOADED_MODELS: process.env.OLLAMA_MAX_LOADED_MODELS || "1",

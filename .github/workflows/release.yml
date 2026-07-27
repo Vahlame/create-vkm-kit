@@ -85,8 +85,13 @@ jobs:
   # or you do not have permission"), which read like a missing package. Meanwhile
   # the old name was deprecated — so it serves the last real v3 kit (3.15.0) and
   # publishing 4.x to it would silently UN-deprecate the latest version. One
-  # signpost, not two live entry points: the old name stays frozen + deprecated,
-  # and packages/create-obsidian-memory-shim/ stays in-tree, unpublished.
+  # signpost, not two live entry points: the old name stays frozen + deprecated.
+  # The in-tree forwarding shim was deleted in 5.0 — a package that CI states can
+  # never publish is not a signpost, it is a second thing to keep in sync (its own
+  # version marker, lockfile entry, LICENSE mirror and workspace slot), and while it
+  # existed both READMEs were wrong: they said the old name does not forward, and the
+  # package's own description said it does. This comment stays because it is the
+  # reason the directory is gone; without it, someone re-creates it.
   #
   # FAILS LOUDLY if the NPM_TOKEN secret is missing — a "successful" release that
   # never reached npm shipped 4.2.0 and 4.3.0 late, and 4.4.0 hit the same wall
@@ -111,6 +116,16 @@ jobs:
           registry-url: "https://registry.npmjs.org"
       - name: guard — LICENSE.md mirror matches root
         run: node scripts/license-sync.mjs --check
+      # The Windows hook launcher is a build output, not a committed file, so the tarball only
+      # carries it if THIS job produces it. Cross-compiled from ubuntu: the command is pure
+      # `syscall` with CGO off, so no Windows toolchain is involved. Without this step the publish
+      # still succeeds and every Windows user silently gets the flashing consoles back — which is
+      # why the `prepack` gate below refuses to pack when the file is absent.
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: build the Windows hook launcher (GOOS=windows, shipped in the tarball)
+        run: npm run build:runhidden
       - name: publish create-vkm-kit
         working-directory: packages/create-vkm-kit
         env:

@@ -1,6 +1,6 @@
 {
   "name": "@vkmikc/obscura-web",
-  "version": "4.7.1",
+  "version": "5.0.0",
   "private": true,
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
@@ -14,6 +14,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@mozilla/readability": "^0.6.0",
+    "@vkmikc/vkm-core": "*",
     "cheerio": "^1.2.0",
     "execa": "^9.6.1",
     "jsdom": "^29.1.1",

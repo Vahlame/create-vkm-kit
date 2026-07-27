@@ -64,36 +64,15 @@ export function removeManagedEnv(existing, envMap) {
   return settings;
 }
 
-/** Append `rules` to `list` preserving the user's order and entries; ours land at the end,
- * deduped by exact string so re-runs never duplicate. */
-function mergeRuleList(list, rules) {
-  const prior = Array.isArray(list) ? [...list] : [];
-  for (const rule of rules) {
-    if (!prior.includes(rule)) prior.push(rule);
-  }
-  return prior;
-}
-
 /**
- * Merge managed permission rules into `settings.permissions.{deny,allow}` (exact-string
- * dedup; user rules and their order preserved; ours appended).
- * @param {unknown} existing
- * @param {{ deny?: string[], allow?: string[] }} rules
- * @returns {Record<string, unknown>}
- */
-export function mergeManagedPermissions(existing, { deny = [], allow = [] } = {}) {
-  const settings = asSettingsObject(existing);
-  const permissions = asSection(settings.permissions);
-  if (deny.length) permissions.deny = mergeRuleList(permissions.deny, deny);
-  if (allow.length) permissions.allow = mergeRuleList(permissions.allow, allow);
-  settings.permissions = permissions;
-  return settings;
-}
-
-/**
- * The removal counterpart to {@link mergeManagedPermissions}: strip exactly the given rule
- * strings, leaving every other rule (the user's own) untouched. Emptied arrays and an
- * emptied `permissions` section are deleted entirely.
+ * Strip exactly the given managed rule strings from `settings.permissions.{deny,allow}`,
+ * leaving every other rule (the user's own) untouched. Emptied arrays and an emptied
+ * `permissions` section are deleted entirely.
+ *
+ * There is no merge counterpart any more. `mergeManagedPermissions` existed for the
+ * token-saver's deny rules; those were retired when it became strip-only, and the
+ * function survived as an exported, tested code path that nothing called — which reads
+ * to the next contributor as a supported surface rather than as history.
  * @param {unknown} existing
  * @param {{ deny?: string[], allow?: string[] }} rules
  * @returns {Record<string, unknown>}

@@ -20,13 +20,14 @@ The whole user guide, in the recommended reading order.
 
 | Document                                                     | What for                                                                             |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| [5.0 migration](migration-5.0.md)                            | Coming from 4.x? One command, one Windows ordering rule, four breaking changes.      |
 | [4.0 migration](migration-4.0.md)                            | Coming from 3.x? What the vkm-kit rename changed, what's frozen, and how to upgrade. |
 | [Sync with git](sync.md)                                     | Backup and multi-machine: daemon, manual git, or same repo.                          |
 | [FAQ](faq.md)                                                | Common questions + an honest comparison with alternatives.                           |
 | [Glossary](glossary.md)                                      | What each term means (MCP, vault, FTS5…).                                            |
 | [Troubleshooting](troubleshooting.md)                        | Typical errors and how to fix them.                                                  |
 | [Web access (obscura)](../../packages/obscura-web/README.md) | Optional stealth web fetch + on-demand SearXNG search (`--obscura`).                 |
-| [Observability](../observability.md)                         | Daemon health, token/cache usage (`vkm-doctor`) and vault health — all local.        |
+| [Observability](observability.md)                            | Daemon health, token/cache usage (`vkm-doctor`) and vault health — all local.        |
 | [Security](../security/README.md)                            | Threat model in one paragraph + deep-dive security notes.                            |
 
 ## For kit contributors

@@ -30,7 +30,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const REPO = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const INSTALLER = path.join(REPO, "packages", "create-vkm-kit", "src", "index.js");
@@ -221,4 +221,5 @@ function main() {
     process.exitCode = 1;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) main();
+const isEntryPoint = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isEntryPoint) main();

@@ -14,7 +14,7 @@ from obsidian_memory_rag.query import _why, reciprocal_rank_fusion
 
 
 def _dot(u, v) -> float:
-    return sum(x * y for x, y in zip(u, v))
+    return sum(x * y for x, y in zip(u, v, strict=True))
 
 
 def test_hashing_embedder_is_deterministic_and_normalized() -> None:

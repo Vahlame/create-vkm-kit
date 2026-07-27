@@ -100,7 +100,7 @@ In principle yes. They consume the **same MCP server**. You'd translate the User
 
 ### How big can the vault get before it's a problem?
 
-In practice, multiple hundreds of MB are fine. Git diffs stay small; the optional **`obsidian-memory-rag`** index (FTS5 + per-chunk vectors) keeps search fast at any size. Reading `MEMORY.md` is bounded by model context because the agent reads **only what it needs**.
+Honestly: **fine into the low tens of thousands of notes, unproven beyond that.** The retrieval benchmark runs on a 19-note fixture, so any number past that is extrapolation, not measurement (ADR-0069). What is not extrapolation: git diffs stay small because notes are small, the optional **`obsidian-memory-rag`** index is incremental (only changed notes are re-read), and reading `MEMORY.md` is bounded by model context because the agent reads **only what it needs** — a passage, not a file. If you take a vault well past that and measure it, the numbers are worth a pull request.
 
 ### Can I share `MEMORY.md` with a teammate?
 

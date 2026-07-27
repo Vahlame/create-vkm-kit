@@ -22,4 +22,4 @@ the obscura binary SHA-256-verified, `gitleaks` scanning history in CI, and
 | [`mcp-remote-rce.md`](./mcp-remote-rce.md) | Why `mcp-remote` must be pinned `>= 0.1.16` on any legacy STDIO↔HTTP bridge. |
 
 Related: telemetry and privacy guarantees are documented in
-[`docs/observability.md`](../observability.md) (all sinks local-only).
+[`docs/en/observability.md`](../en/observability.md) (all sinks local-only).

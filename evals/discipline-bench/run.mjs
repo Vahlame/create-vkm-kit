@@ -1,20 +1,24 @@
 #!/usr/bin/env node
 /**
- * discipline-bench orchestrator over the shared subject runner (claude -p headless).
- * Conditions: stock (PROMPT alone) vs discipline (SKILL.md core + domains/coding.md
- * prepended). Grading: the task's own hidden-test grade.mjs (execution-graded).
+ * discipline-bench: does the vkm-discipline skill beat a bare prompt on tasks whose
+ * grade comes from hidden tests?
+ *
+ * Conditions: "discipline" (SKILL.md core + domains/coding.md prepended) vs "stock"
+ * (PROMPT alone). Grading: the task's own grade.mjs — execution-graded, never a rubric.
  *
  *   node evals/discipline-bench/run.mjs --models claude-haiku-4-5-20251001 --n 5
  *   node evals/discipline-bench/run.mjs --emit-prompts --n 5   # external subjects
  *
- * The Agent-tool method (README.md) and this runner are the same design — subjects
- * see only the prompt; solutions are saved under solutions/ and graded after.
+ * The Agent-tool method (README.md) and this runner are the same design — subjects see
+ * only the prompt; solutions are saved under solutions/ and graded after.
+ *
+ * Modes and reporting come from evals/lib/bench-cli.mjs.
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { runSubject, aggregateCost, formatCost } from "../lib/subject-runner.mjs";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { runBenchCli } from "../lib/bench-cli.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SKILL = path.join(
@@ -28,11 +32,16 @@ const SKILL = path.join(
   "vkm-discipline"
 );
 
-function taskIds() {
-  return readdirSync(path.join(HERE, "tasks")).sort();
+/** Every directory under tasks/ is a task; its id is its directory name. */
+export function taskCases() {
+  return readdirSync(path.join(HERE, "tasks"))
+    .sort()
+    .map((id) => ({ id }));
 }
-function promptFor(task, condition) {
-  const dir = path.join(HERE, "tasks", task);
+
+/** @param {{id:string}} t @param {string} condition — "discipline" | "stock" */
+export function subjectPrompt(t, condition) {
+  const dir = path.join(HERE, "tasks", t.id);
   const promptFile = existsSync(path.join(dir, "PROMPT.md")) ? "PROMPT.md" : "PROMPT-underspec.md";
   const taskText = readFileSync(path.join(dir, promptFile), "utf8");
   const head = "Return your solution as a SINGLE fenced js code block (ESM) and nothing else.\n\n";
@@ -44,88 +53,41 @@ function promptFor(task, condition) {
   const coding = readFileSync(path.join(SKILL, "domains", "coding.md"), "utf8");
   return `${head}=== Execution discipline you follow (loaded skill) ===\n${skillBody}\n${coding}\n=== Task ===\n${taskText}`;
 }
-function gradeSolution(task, answer, outName) {
+
+/**
+ * Extract the fenced solution, write it under solutions/, run the task's hidden tests.
+ * A grader that throws scores 0 — an unrunnable answer is a failed answer.
+ * @param {{id:string}} t
+ * @param {string} answer
+ * @param {{model?:string, condition:string, replica:number}} meta
+ */
+export function grade(t, answer, meta) {
   const code = String(answer).match(/```(?:js|javascript)?\n([\s\S]*?)```/)?.[1] ?? String(answer);
   const solDir = path.join(HERE, "solutions");
   mkdirSync(solDir, { recursive: true });
-  const sol = path.join(solDir, outName);
+  const sol = path.join(solDir, `${meta.model ?? "x"}-${meta.condition}-${meta.replica}.mjs`);
   writeFileSync(sol, code);
   try {
     return JSON.parse(
-      execFileSync("node", [path.join(HERE, "tasks", task, "grade.mjs"), sol], { encoding: "utf8" })
+      execFileSync("node", [path.join(HERE, "tasks", t.id, "grade.mjs"), sol], { encoding: "utf8" })
     ).score;
   } catch {
     return 0;
   }
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-  const get = (f) => (args.includes(f) ? args[args.indexOf(f) + 1] : undefined);
-  const n = Number(get("--n") ?? 3);
-  const conditions = ["stock", "discipline"];
+export const spec = {
+  name: "discipline-bench",
+  get cases() {
+    return taskCases();
+  },
+  // Treatment first, so a positive delta means "the skill helped" — the same sign
+  // convention as every other bench. This runner used to list stock first.
+  conditions: /** @type {[string, string]} */ (["discipline", "stock"]),
+  subjectPrompt,
+  grade,
+  defaultN: 3
+};
 
-  if (args.includes("--emit-prompts")) {
-    for (const t of taskIds())
-      for (const c of conditions)
-        for (let r = 1; r <= n; r++)
-          console.log(JSON.stringify({ id: t, condition: c, replica: r, prompt: promptFor(t, c) }));
-    return;
-  }
-  const gi = args.indexOf("--grade");
-  if (gi !== -1) {
-    for (const line of readFileSync(args[gi + 1], "utf8")
-      .split("\n")
-      .filter(Boolean)) {
-      const a = JSON.parse(line);
-      const score = gradeSolution(
-        a.id,
-        a.answer,
-        `${a.model ?? "x"}-${a.condition}-${a.replica}.mjs`
-      );
-      console.log(
-        JSON.stringify({
-          id: a.id,
-          condition: a.condition,
-          replica: a.replica,
-          model: a.model,
-          score
-        })
-      );
-    }
-    return;
-  }
-
-  const models = (get("--models") ?? "claude-haiku-4-5-20251001").split(",");
-  const rows = [];
-  for (const model of models)
-    for (const t of taskIds())
-      for (const c of conditions)
-        for (let r = 1; r <= n; r++) {
-          const { answer, cost } = await runSubject({
-            prompt: promptFor(t, c),
-            agentCmd: `${get("--agent-cmd") ?? "claude -p --output-format json --model"} ${model}`
-          });
-          const score = gradeSolution(t, answer, `${model}-${c}-${r}.mjs`);
-          rows.push({ model, task: t, condition: c, replica: r, score, cost });
-          process.stderr.write(".");
-        }
-  process.stderr.write("\n");
-  for (const model of models)
-    for (const t of taskIds())
-      for (const c of conditions) {
-        const runs = rows.filter((x) => x.model === model && x.task === t && x.condition === c);
-        if (!runs.length) continue;
-        const cell = runs.map((x) => x.score);
-        // Cost travels with the score from here on (ADR-0065): a cell that wins on
-        // quality while spending twice the tokens is a different result from one
-        // that wins for free, and the report has to be able to say which.
-        const cost = aggregateCost(runs.map((x) => x.cost));
-        console.log(
-          `${model} · ${t} · ${c}: [${cell.join(",")}] ` +
-            `mean=${(cell.reduce((a, b) => a + b, 0) / cell.length).toFixed(1)} ${formatCost(cost)}`
-        );
-      }
-}
-
-if (import.meta.url === `file://${process.argv[1]}`) await main();
+const isEntryPoint = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isEntryPoint) process.exit(await runBenchCli({ ...spec, cases: spec.cases }));

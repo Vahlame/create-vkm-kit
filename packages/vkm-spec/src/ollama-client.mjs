@@ -16,6 +16,7 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { throughHiddenConsole } from "@vkmikc/vkm-core/hidden-console";
 import { SpecSchema, SPEC_JSON_SCHEMA } from "./spec-schema.mjs";
 
 export const DEFAULT_OLLAMA_HOST = "http://127.0.0.1:11434";
@@ -298,10 +299,16 @@ export async function ensureOllamaServer({ host = DEFAULT_OLLAMA_HOST, waitMs = 
   if ((await checkOllama({ host })).version) return true;
   let spawnFailed = false;
   try {
-    const child = spawn(localOllamaBinary(), ["serve"], {
+    // `ollama serve` is the process ADR-0078 MEASURED: its model runner spawns a
+    // console-subsystem child per model load, and with CREATE_NO_WINDOW on the server
+    // each of those children gets a brand new VISIBLE console — one flash per load,
+    // stealing the foreground from whatever the user is doing. The launcher owns one
+    // hidden console that the whole tree inherits instead.
+    const launch = throughHiddenConsole(localOllamaBinary(), ["serve"]);
+    const child = spawn(launch.command, launch.args, {
       detached: true,
       stdio: "ignore",
-      windowsHide: true,
+      windowsHide: launch.windowsHide,
       env: {
         ...process.env,
         OLLAMA_MAX_LOADED_MODELS: process.env.OLLAMA_MAX_LOADED_MODELS || "1",

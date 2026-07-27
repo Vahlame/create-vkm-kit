@@ -167,18 +167,22 @@ git por sí sola.
 ### Parpadea una consola grande al sincronizar o al arrancar el MCP
 
 **Causa.** El binario de `obsidian-memoryd` se compiló como app de **consola**
-(sin el flag `-H windowsgui`), o sus subprocesos `git` no llevan el flag
-`CREATE_NO_WINDOW` (esto es comportamiento pre-v3).
+(sin el flag `-H windowsgui`).
 
-**Solución (kit v3+).** Compílalo como app sin ventana:
+**Solución.** Compílalo como app sin ventana:
 
 ```bash
 go build -ldflags="-H windowsgui" -o bin/obsidian-memoryd.exe ./cmd/obsidian-memoryd
 ```
 
-El repo incluye `proc_windows.go`, que añade `CREATE_NO_WINDOW + HideWindow` a
-cada subproceso `git`, eliminando el parpadeo incluso al lanzarse desde un
-ejecutable windowsgui. Mira la guía de sincronización para más detalle.
+**Qué cambió en 5.0.** Hasta entonces el daemon además aplicaba `CREATE_NO_WINDOW`
+a cada subproceso `git`, y esta misma página lo recomendaba. Era la cura
+equivocada: un hijo **sin** consola cuyo nieto es de subsistema consola —
+`git-remote-https`, `ssh`, un credential helper — hace que Windows le asigne a ese
+nieto una consola **nueva y visible**. Ahora el daemon crea UNA consola al empezar
+`watch`, la oculta, y deja que todo hijo `git` la herede: la misma estrategia que
+`vkm-runhidden.exe` usa para los hooks. Ver
+[ADR-0078](../adr/0078-allocate-and-hide-a-console.md).
 
 ### El código de salida de `doctor` sale vacío en PowerShell, o su salida se ve desordenada
 
@@ -242,6 +246,51 @@ Para **menos ventanas**, desactiva los MCP que no uses, o ejecuta
 **Para diagnosticar,** abre **Administrador de tareas → Detalles** (activa la
 columna de línea de comando) o **Monitor de recursos** mientras ocurre el
 problema, para ver exactamente qué programa abre las ventanas.
+
+### Parpadean consolas mientras el agente trabaja (hooks, ollama) — Windows
+
+**Causa.** Cada hook del kit es un script de Node y Claude Code arranca **un proceso por
+evento**; dos de ellos (`compact-tool-output`, `compact-mcp-output`) se disparan en **cada**
+llamada `Bash` y en **cada** llamada MCP, así que una sesión de investigación lanza cientos.
+`node.exe` es un binario de **subsistema consola**: Windows le asigna una ventana real que
+aparece, **roba el foco** y desaparece en milisegundos. Lo contraintuitivo es que la protección
+obvia (`CREATE_NO_WINDOW`) **provoca** el problema: deja al hijo sin consola, y un nieto de
+subsistema consola cuyo padre no tiene ninguna no hereda nada — Windows le crea una **nueva y
+visible**. Es exactamente lo que hacía el runner de modelos de ollama, una por cada carga.
+
+**Solución (automática).** El instalador copia `vkm-runhidden.exe` en `~/.claude/bin/` y apunta
+ahí las entradas de hooks. Ese binario se compila como **GUI-subsystem**, así que el cargador no
+le asigna consola; él crea una, la **oculta**, y arranca el programa real sin `CREATE_NO_WINDOW`
+para que todo el árbol herede esa única consola oculta. Reenvía stdin, stdout y el **código de
+salida** tal cual, de modo que un guard `PreToolUse` sigue pudiendo bloquear una llamada.
+Detalle completo en [ADR-0078](../adr/0078-allocate-and-hide-a-console.md).
+
+**Comprueba que está instalado:**
+
+```powershell
+Test-Path "$env:USERPROFILE\.claude\bin\vkm-runhidden.exe"
+```
+
+**Si devuelve `False`** (una instalación anterior a este arreglo, o el archivo se borró), corre de nuevo
+el instalador — es idempotente y repara la entrada:
+
+```bash
+npx --yes @vkmikc/create-vkm-kit@latest
+```
+
+**Desde un checkout del repo** (necesita Go), el equivalente es:
+
+```bash
+npm run build:runhidden && npm run install:runhidden
+```
+
+**Qué esperar si falta.** Nada se rompe: los hooks caen a `node` a secas y se comportan igual —
+solo vuelven a parpadear. Los hooks se leen al iniciar sesión, así que **reinicia Claude Code**
+después de instalarlo.
+
+**Lo que NO hace, a propósito.** Si lanzas `vkm-runhidden.exe` desde una terminal, **no** oculta
+esa terminal. Heredó esa consola y `ShowWindow(SW_HIDE)` no tiene vuelta atrás aquí: te dejaría
+la shell viva y sin ventana, recuperable solo desde el Administrador de tareas.
 
 ### Cada pocos segundos aparece `conhost` y su padre es `git` (Windows)
 

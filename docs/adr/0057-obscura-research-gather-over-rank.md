@@ -647,9 +647,9 @@ clearly, not yet", and that answer is recorded so it does not have to be re-meas
 
 ## References
 
-- `evals/research/` (golden set + frozen fixtures), `packages/obscura-web/src/bench-research.mjs`
+- `evals/research/` (golden set + frozen fixtures), `packages/obscura-web/bench/bench-research.mjs`
   (metrics ported from `bench_recall.py`, plus the GATHER-vs-RANKING attribution that surfaced §4),
-  `src/bench-capture.mjs`, `src/bench-run.mjs`, `src/rank.mjs`, `src/url-identity.mjs`.
+  `bench/bench-capture.mjs`, `bench/bench-run.mjs`, `src/rank.mjs`, `src/url-identity.mjs`.
 - Scrapling (github.com/D4Vinci/Scrapling), `scrapling/parser.py:1048-1214` (`__calculate_similarity_score`,
   `__are_alike`, `find_similar` — verified against the actual source for the addendum above, not its
   README). `src/text-similarity.mjs`, `src/robots.mjs`, `src/serp.mjs#genericExtractLinks`, the
@@ -670,8 +670,8 @@ clearly, not yet", and that answer is recorded so it does not have to be re-meas
 - ADR-0021 / ADR-0026 (the measured precedents for why this ADR is bench-gated), ADR-0054
   (base pipeline), ADR-0055 (curation; §5/§6 superseded here), ADR-0056 (`RESEARCH/` bank).
 - `evals/research/curation.jsonl` + `curation-fixtures/` (curator bake-off golden set, fifth
-  addendum), `src/bench-curate.mjs` (scorer), `src/bench-curate-capture.mjs` (fixture freeze),
-  `src/bench-curate-run.mjs` (the runnable bake-off itself — re-run it to re-check this addendum's
+  addendum), `bench/bench-curate.mjs` (scorer), `bench/bench-curate-capture.mjs` (fixture freeze),
+  `bench/bench-curate-run.mjs` (the runnable bake-off itself — re-run it to re-check this addendum's
   numbers, don't just trust the table).
 - `src/chunk.mjs` (sliding-window chunking, unit-tested, deliberately unwired — sixth addendum),
   `src/ollama-client.mjs#embedPassages` (batched `/api/embed`), `src/rank.mjs#mmr` — plus their

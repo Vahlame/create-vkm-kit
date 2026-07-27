@@ -10,6 +10,7 @@
  * deterministic grader for the spec-bench eval — keep changes backward-compatible.
  */
 import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
 const SECTIONS = [
   "system_role",
@@ -186,4 +187,7 @@ function main() {
   process.exit(result.ok ? 0 : 1);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) main();
+// `file://${process.argv[1]}` never matches on Windows (backslashes, no `/C:/` drive-letter
+// form) — same bug found and fixed in vkm-research's validate_summary.mjs (KNOWN_FAILURES
+// 2026-07-23). pathToFileURL normalizes both platforms' path shapes into a comparable URL.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();

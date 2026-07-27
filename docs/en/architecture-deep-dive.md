@@ -204,7 +204,7 @@ mindmap
 ## 4. Decision map — what holds each piece up
 
 Every load-bearing behavior traces to an ADR. The full list is
-[`docs/adr/`](../adr/README.md) (61 records); these are the structural ones:
+[`docs/adr/`](../adr/README.md); these are the structural ones:
 
 | Piece / behavior                                                | ADR                                                                                                                                                                                                   |
 | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

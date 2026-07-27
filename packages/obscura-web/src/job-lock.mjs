@@ -1,7 +1,7 @@
 /**
  * One background network-job at a time, ACROSS job types (ADR-0062, extending ADR-0057 §6).
  *
- * deep-research.mjs already enforces "one research job at a time" via its own registry, for a
+ * research-job.mjs already enforces "one research job at a time" via its own registry, for a
  * documented reason: an unattended multi-round fan-out is exactly what suspends every SearXNG
  * engine on the machine. A seed-URL crawl (crawl-job.mjs) fans out just as hard against target
  * sites. Running one of each CONCURRENTLY doubles that pressure and is the fastest way to get the
@@ -15,7 +15,7 @@
  */
 
 /** The one typed error acquisition failure raises — `code:"job_active"` matches the code
- * deep-research.mjs already uses for its own singleton rejection, so a caller/test matching on it
+ * research-job.mjs already uses for its own singleton rejection, so a caller/test matching on it
  * doesn't care which guard fired. */
 export class JobSlotError extends Error {
   /** @param {string} message @param {string} code */

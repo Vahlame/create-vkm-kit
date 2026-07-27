@@ -4,7 +4,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { runCanary, CANARY_QUERIES } from "../src/canary.mjs";
+import { runCanary, CANARY_QUERIES } from "../bench/canary.mjs";
 
 const noThrottle = async () => {};
 

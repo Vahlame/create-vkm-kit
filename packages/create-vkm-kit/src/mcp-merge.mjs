@@ -1,4 +1,5 @@
 import path from "node:path";
+import { hookInterpreter } from "./hook-interpreter.mjs";
 import { fileURLToPath } from "node:url";
 
 /**
@@ -32,6 +33,61 @@ export const BASIC_MEMORY_VERSION = "0.21.4";
 export const SEMANTIC_EMBEDDER =
   "fastembed:sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2";
 
+/**
+ * Rewrite a server's `{command, args}` to start through `vkm-runhidden.exe`.
+ *
+ * # Why the MCP SERVERS need this, not just the hooks
+ *
+ * ADR-0078 routed hook entries through the launcher and stopped there. But an MCP server
+ * is a long-lived process the agent host starts the same way it starts a hook — from a
+ * `command` string in a config file — and every one of ours is console-subsystem:
+ * `node` for the three Node sidecars, `uvx` (Python) for basic-memory. Whichever way the
+ * host spawns them, the user loses:
+ *
+ *   - host does NOT pass CREATE_NO_WINDOW  -> each server gets a real console window at
+ *     session start, appearing and taking the foreground.
+ *   - host DOES pass CREATE_NO_WINDOW      -> each server has NO console, so every child
+ *     it later spawns — the Python RAG backend on every vault search, one obscura process
+ *     per fetched page during research — is handed a brand new VISIBLE one by Windows.
+ *
+ * The second case is the nastier one, because it is not fixable downstream: a child cannot
+ * inherit a console its parent does not have. Fixing the registration fixes both ends at
+ * once — the server itself is windowless, and it owns a hidden console for its whole tree.
+ *
+ * Same contract and same caveat as {@link hookInterpreter}: the value is written into a
+ * config file as an ABSOLUTE path, so it is only ever used after `installRunHidden` has
+ * put the launcher there in this same run. Off Windows, or with the launcher genuinely
+ * absent (a source checkout with no Go), the server object is returned untouched and
+ * everything behaves identically — it just flashes like it used to.
+ *
+ * `launcher` is an explicit INPUT rather than something this function probes for. These
+ * builders describe a config file's contents and must be pure: a version that called
+ * `hookInterpreter()` itself produced a different server object depending on whether the
+ * machine running it happened to have `~/.claude/bin/vkm-runhidden.exe` — which made the
+ * output untestable and the decision invisible at the call site. `resolveLauncher()`
+ * makes that probe once, where the install actually happens.
+ *
+ * @template {{ command: string, args?: string[] }} T
+ * @param {T} server
+ * @param {string|null|undefined} launcher absolute path, or null for "start it directly"
+ * @returns {T} the same shape, started through the launcher when one was given
+ */
+function viaRunHidden(server, launcher) {
+  if (!launcher) return server;
+  return { ...server, command: launcher, args: [server.command, ...(server.args ?? [])] };
+}
+
+/**
+ * The launcher to register servers through on this machine, or null when there is none
+ * to use (off Windows, or a checkout that never built it). Call it ONCE per install and
+ * thread the result — see {@link viaRunHidden} for why the builders do not probe.
+ * @returns {string|null}
+ */
+export function resolveLauncher() {
+  const interpreter = hookInterpreter();
+  return interpreter === "node" ? null : interpreter;
+}
+
 function basicMemoryArgs() {
   return ["--from", `basic-memory==${BASIC_MEMORY_VERSION}`, "basic-memory", "mcp"];
 }
@@ -39,9 +95,15 @@ function basicMemoryArgs() {
 /**
  * Canonical `basic-memory` stdio server object ({command, args, env}).
  * @param {string} vaultAbs
+ * @param {{ launcher?: string|null }} [opts] - `launcher` starts the server through
+ *   `vkm-runhidden.exe` so it (and everything it spawns) stays windowless; see
+ *   {@link viaRunHidden}. Omitted = started directly, the pre-5.0 behaviour.
  */
-export function basicMemoryServer(vaultAbs) {
-  return { command: "uvx", args: basicMemoryArgs(), env: { BASIC_MEMORY_HOME: vaultAbs } };
+export function basicMemoryServer(vaultAbs, opts = {}) {
+  return viaRunHidden(
+    { command: "uvx", args: basicMemoryArgs(), env: { BASIC_MEMORY_HOME: vaultAbs } },
+    opts.launcher
+  );
 }
 
 /**
@@ -50,7 +112,9 @@ export function basicMemoryServer(vaultAbs) {
  * neural embedder. Shared by the Cursor merge and the Claude Code CLI path.
  * @param {string} vaultAbs
  * @param {string} kitRepoAbs
- * @param {{ semantic?: boolean, vec?: boolean, rerank?: boolean, pinFailures?: boolean, usage?: boolean }} [opts] - `vec`
+ * @param {{ semantic?: boolean, vec?: boolean, rerank?: boolean, pinFailures?: boolean,
+ *   usage?: boolean, launcher?: string|null }} [opts] - `launcher` starts the server through
+ *   `vkm-runhidden.exe` (see {@link viaRunHidden}); the rest: `vec`
  *   enables the sqlite-vec acceleration (ADR-0025) via OBSIDIAN_MEMORY_SQLITE_VEC=1
  *   (ranking-identical, safe fallback, on under `--full`). `rerank` turns on the
  *   cross-encoder reranker (ADR-0026) via OBSIDIAN_MEMORY_RERANK=1 — opt-in only
@@ -74,7 +138,7 @@ export function hybridServer(vaultAbs, kitRepoAbs, opts = {}) {
   if (opts && opts.rerank) env.OBSIDIAN_MEMORY_RERANK = "1";
   if (opts && opts.pinFailures) env.OBSIDIAN_MEMORY_PIN_FAILURES = "1";
   if (opts && opts.usage) env.OBSIDIAN_MEMORY_USAGE_BOOST = "1";
-  return { command: "node", args: [hybridJs], env };
+  return viaRunHidden({ command: "node", args: [hybridJs], env }, opts.launcher);
 }
 
 /**
@@ -83,7 +147,9 @@ export function hybridServer(vaultAbs, kitRepoAbs, opts = {}) {
  * browser (ADR-0051) and, for research persistence + consolidation (ADR-0056), the vault's
  * `RESEARCH/` section. Shared by the Cursor merge and the Claude Code / Codex CLI paths.
  * @param {string} kitRepoAbs absolute path to the kit clone (contains packages/)
- * @param {{ binPath?: string|null, searxngUrl?: string|null, researchDir?: string|null }} [opts] - `binPath` wires
+ * @param {{ binPath?: string|null, searxngUrl?: string|null, researchDir?: string|null,
+ *   launcher?: string|null }} [opts] - `launcher` starts the server through
+ *   `vkm-runhidden.exe` (see {@link viaRunHidden}). `binPath` wires
  *   OBSCURA_BIN (the installer's ~/.vkm/obscura binary); when null, obscura-web uses
  *   `obscura` on PATH. `searxngUrl` wires OBSCURA_SEARXNG_URL for the structured search layer.
  *   `researchDir` wires OBSCURA_RESEARCH_DIR (root for `obscura_research({persist:true})` and
@@ -97,7 +163,7 @@ export function obscuraWebServer(kitRepoAbs, opts = {}) {
   if (opts && opts.binPath) env.OBSCURA_BIN = opts.binPath;
   if (opts && opts.searxngUrl) env.OBSCURA_SEARXNG_URL = opts.searxngUrl;
   if (opts && opts.researchDir) env.OBSCURA_RESEARCH_DIR = opts.researchDir;
-  return { command: "node", args: [obscuraMcpJs], env };
+  return viaRunHidden({ command: "node", args: [obscuraMcpJs], env }, opts.launcher);
 }
 
 /**
@@ -107,7 +173,9 @@ export function obscuraWebServer(kitRepoAbs, opts = {}) {
  * risk surface, so opting into stealth web READS (--obscura) must not silently grant disk WRITES.
  * Shared by the Cursor merge and the Claude Code / Codex CLI paths.
  * @param {string} kitRepoAbs absolute path to the kit clone (contains packages/)
- * @param {{ downloadDir?: string|null, maxBytes?: number|null }} [opts] - `downloadDir` wires
+ * @param {{ downloadDir?: string|null, maxBytes?: number|null, launcher?: string|null }} [opts] -
+ *   `launcher` starts the server through `vkm-runhidden.exe` (see {@link viaRunHidden}).
+ *   `downloadDir` wires
  *   VKM_DOWNLOAD_DIR (default, when unset, is ~/Downloads/vkm-kit inside the server); `maxBytes`
  *   wires VKM_DOWNLOAD_MAX_BYTES (default 500MB).
  */
@@ -117,7 +185,7 @@ export function downloadsServer(kitRepoAbs, opts = {}) {
   const env = {};
   if (opts && opts.downloadDir) env.VKM_DOWNLOAD_DIR = opts.downloadDir;
   if (opts && opts.maxBytes) env.VKM_DOWNLOAD_MAX_BYTES = String(opts.maxBytes);
-  return { command: "node", args: [downloadsMcpJs], env };
+  return viaRunHidden({ command: "node", args: [downloadsMcpJs], env }, opts.launcher);
 }
 
 /**
@@ -191,12 +259,22 @@ export function codexTomlBlock(name, server) {
 }
 
 /**
- * Merge basic-memory MCP server entry into an existing mcp.json object.
- * @param {unknown} raw - parsed JSON root object
- * @param {string} vaultAbs - absolute vault path for BASIC_MEMORY_HOME
+ * Return a deep copy of an mcp.json-shaped object with `name` set to `server`.
+ *
+ * The four `merge*Server` helpers below were this exact function written out four
+ * times — clone through JSON, re-create `mcpServers` unless it is a real object,
+ * assign one key — differing only in the id and which factory produced the value.
+ *
+ * Copying rather than mutating is deliberate: the caller's `parsed` is the user's
+ * own `~/.cursor/mcp.json`, and a merge that failed half-way must not leave it
+ * partly rewritten in memory before the atomic write.
+ *
+ * @param {unknown} raw an mcp.json-shaped object (anything else starts from empty)
+ * @param {string} name the server id — a FROZEN contract, see buildServerList
+ * @param {object} server the server object to install under it
  * @returns {Record<string, unknown>}
  */
-export function mergeBasicMemoryServer(raw, vaultAbs) {
+function withServer(raw, name, server) {
   const base =
     typeof raw === "object" && raw !== null && !Array.isArray(raw)
       ? /** @type {Record<string, unknown>} */ (JSON.parse(JSON.stringify(raw)))
@@ -205,64 +283,57 @@ export function mergeBasicMemoryServer(raw, vaultAbs) {
   if (!servers || typeof servers !== "object" || Array.isArray(servers)) {
     base.mcpServers = {};
   }
-  const mcpServers = /** @type {Record<string, unknown>} */ (base.mcpServers);
-  mcpServers["basic-memory"] = basicMemoryServer(vaultAbs);
+  /** @type {Record<string, unknown>} */ (base.mcpServers)[name] = server;
   return base;
 }
 
 /**
- * Add `obsidian-memory-hybrid` MCP (Node bridge + Python FTS5) after `basic-memory` is set.
- * @param {Record<string, unknown>} merged - output of mergeBasicMemoryServer (or compatible)
- * @param {string} vaultAbs - absolute vault root
- * @param {string} kitRepoAbs - absolute path to vkm-kit clone (contains packages/)
- * @param {{ semantic?: boolean, vec?: boolean, rerank?: boolean, pinFailures?: boolean, usage?: boolean }} [opts] -
- *   semantic:true wires OBSIDIAN_MEMORY_EMBEDDER=fastembed so vault_hybrid_search ranks
- *   by meaning (needs the Python `[semantic]` extra); vec:true wires
- *   OBSIDIAN_MEMORY_SQLITE_VEC=1 for the in-file sqlite-vec acceleration (needs the
- *   `[vec]` extra; ADR-0025); pinFailures/usage wire the ADR-0038 retrieval levers.
- *   Passed straight to hybridServer — see its JSDoc for the full mapping.
+ * Set `basic-memory` — the one required server — in an mcp.json-shaped object.
+ * @param {unknown} raw
+ * @param {string} vaultAbs absolute vault root
+ * @param {{ launcher?: string|null }} [opts] see {@link basicMemoryServer}
+ * @returns {Record<string, unknown>}
+ */
+export function mergeBasicMemoryServer(raw, vaultAbs, opts = {}) {
+  return withServer(raw, "basic-memory", basicMemoryServer(vaultAbs, opts));
+}
+
+/**
+ * Add `obsidian-memory-hybrid` (Node bridge + Python FTS5) after `basic-memory` is set.
+ * @param {Record<string, unknown>} merged output of mergeBasicMemoryServer (or compatible)
+ * @param {string} vaultAbs absolute vault root
+ * @param {string} kitRepoAbs absolute path to the kit clone (contains packages/)
+ * @param {{ semantic?: boolean, vec?: boolean, rerank?: boolean, pinFailures?: boolean,
+ *   usage?: boolean, launcher?: string|null }} [opts] passed straight to
+ *   {@link hybridServer} — see its JSDoc for the full mapping.
+ * @returns {Record<string, unknown>}
  */
 export function mergeObsidianHybridServer(merged, vaultAbs, kitRepoAbs, opts = {}) {
-  const base = /** @type {Record<string, unknown>} */ (JSON.parse(JSON.stringify(merged)));
-  const servers = base.mcpServers;
-  if (!servers || typeof servers !== "object" || Array.isArray(servers)) {
-    base.mcpServers = {};
-  }
-  const mcpServers = /** @type {Record<string, unknown>} */ (base.mcpServers);
-  mcpServers["obsidian-memory-hybrid"] = hybridServer(vaultAbs, kitRepoAbs, opts);
-  return base;
+  return withServer(merged, "obsidian-memory-hybrid", hybridServer(vaultAbs, kitRepoAbs, opts));
 }
 
 /**
- * Add `obscura-web` MCP (stealth fetch + robust search via the local obscura browser).
- * @param {Record<string, unknown>} merged - output of a prior merge (or compatible)
- * @param {string} kitRepoAbs - absolute path to the kit clone (contains packages/)
- * @param {{ binPath?: string|null, searxngUrl?: string|null, researchDir?: string|null }} [opts] - passed to obscuraWebServer
+ * Add `obscura-web` (stealth fetch + robust search via the local obscura browser).
+ * @param {Record<string, unknown>} merged output of a prior merge (or compatible)
+ * @param {string} kitRepoAbs absolute path to the kit clone
+ * @param {{ binPath?: string|null, searxngUrl?: string|null, researchDir?: string|null,
+ *   launcher?: string|null }} [opts] passed to {@link obscuraWebServer}
+ * @returns {Record<string, unknown>}
  */
 export function mergeObscuraWebServer(merged, kitRepoAbs, opts = {}) {
-  const base = /** @type {Record<string, unknown>} */ (JSON.parse(JSON.stringify(merged)));
-  if (!base.mcpServers || typeof base.mcpServers !== "object" || Array.isArray(base.mcpServers)) {
-    base.mcpServers = {};
-  }
-  const mcpServers = /** @type {Record<string, unknown>} */ (base.mcpServers);
-  mcpServers["obscura-web"] = obscuraWebServer(path.resolve(kitRepoAbs), opts);
-  return base;
+  return withServer(merged, "obscura-web", obscuraWebServer(path.resolve(kitRepoAbs), opts));
 }
 
 /**
- * Add `vkm-downloads` MCP (guarded file-download manager — download_resolve / download_file).
- * @param {Record<string, unknown>} merged - output of a prior merge (or compatible)
- * @param {string} kitRepoAbs - absolute path to the kit clone (contains packages/)
- * @param {{ downloadDir?: string|null, maxBytes?: number|null }} [opts] - passed to downloadsServer
+ * Add `vkm-downloads` (guarded file-download manager, ADR-0058).
+ * @param {Record<string, unknown>} merged output of a prior merge (or compatible)
+ * @param {string} kitRepoAbs absolute path to the kit clone
+ * @param {{ downloadDir?: string|null, launcher?: string|null }} [opts] passed to
+ *   {@link downloadsServer}
+ * @returns {Record<string, unknown>}
  */
 export function mergeDownloadsServer(merged, kitRepoAbs, opts = {}) {
-  const base = /** @type {Record<string, unknown>} */ (JSON.parse(JSON.stringify(merged)));
-  if (!base.mcpServers || typeof base.mcpServers !== "object" || Array.isArray(base.mcpServers)) {
-    base.mcpServers = {};
-  }
-  const mcpServers = /** @type {Record<string, unknown>} */ (base.mcpServers);
-  mcpServers["vkm-downloads"] = downloadsServer(path.resolve(kitRepoAbs), opts);
-  return base;
+  return withServer(merged, "vkm-downloads", downloadsServer(path.resolve(kitRepoAbs), opts));
 }
 
 /** @param {string} dir */

@@ -48,8 +48,8 @@ jobs:
       # a shell glob would not expand on the Windows matrix leg. Pure computation with
       # no OS surface, so this deterministic ubuntu job is the right home — a new
       # eval library gets its test added to this line.
-      - name: eval libraries (stats, subject-runner, arm-install)
-        run: node --test evals/lib/stats.test.mjs evals/lib/subject-runner.test.mjs evals/lib/arm-install.test.mjs
+      - name: eval libraries (stats, subject-runner, bench-cli, arm-install)
+        run: node --test evals/lib/stats.test.mjs evals/lib/subject-runner.test.mjs evals/lib/bench-cli.test.mjs evals/lib/arm-install.test.mjs
       - name: version consistency (badge == packages == CHANGELOG)
         run: node scripts/version.mjs check
       # `**/*.md` does NOT match inside dot-directories, so the second pattern is
@@ -75,6 +75,12 @@ jobs:
         run: npm run linkcheck
       - name: license mirrors (packages/* == root LICENSE.md)
         run: npm run license:sync:check
+      # A hand-maintained table over 78 records drifts silently in two directions: a new
+      # ADR with no row, or a row outliving its file. It also checks supersession is
+      # RECIPROCAL — ADR-0055 read "Accepted" for releases while ADR-0057, four days
+      # newer, declared in its own header that it superseded two of its sections.
+      - name: ADR index (every record rowed, supersession reciprocal)
+        run: npm run adr:check
       - name: validate agent.toml (tomllib)
         run: python -c "import pathlib,tomllib;tomllib.loads(pathlib.Path('agent.toml').read_text(encoding='utf-8'));print('agent.toml ok')"
 
@@ -144,7 +150,30 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - run: npm ci
-      - run: npm test --workspaces --if-present
+      # Windows only, and before the tests: the launcher end-to-end test (does a hook's exit code
+      # survive the trip through vkm-runhidden.exe?) can only run against a real binary, and
+      # without one it SKIPS — a green leg that proved nothing about the console-flash fix. Go is
+      # already a dependency of this repo; setting it up here is what makes that test real.
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: runner.os == 'Windows'
+        with:
+          go-version-file: go.mod
+      - name: build the hook launcher (so the end-to-end launcher test is not skipped)
+        if: runner.os == 'Windows'
+        run: npm run build:runhidden
+      # VKM_RUNHIDDEN points the launcher lookup at the binary just built, instead of
+      # `~/.claude/bin/` — which does not exist on a runner, so every launcher path would
+      # fall back to plain `node` and the tests would pass having exercised nothing. This
+      # is what makes the kill-propagation test real: without the job object, the RAG
+      # timeout test does not time out, it runs for 1,000 seconds.
+      - name: tests (Windows — through the real launcher)
+        if: runner.os == 'Windows'
+        run: npm test --workspaces --if-present
+        env:
+          VKM_RUNHIDDEN: ${{ github.workspace }}\packages\create-vkm-kit\bin\vkm-runhidden.exe
+      - name: tests
+        if: runner.os != 'Windows'
+        run: npm test --workspaces --if-present
 
   test-python:
     runs-on: ubuntu-latest
@@ -155,6 +184,12 @@ jobs:
           python-version: "3.12"
       - run: pip install pytest
       - run: pip install -e ./packages/obsidian-memory-rag
+      # `ruff check` only, pinned like every other tool here. Config and the reasons
+      # for `check`-without-`format` live in the package's pyproject.toml [tool.ruff].
+      # ~2s, and it is the gate that catches what pytest cannot when modules move:
+      # import cycles, shadowed names, helpers orphaned by a relocation.
+      - run: pip install ruff==0.16.0
+      - run: ruff check packages/obsidian-memory-rag
       - run: pytest packages/obsidian-memory-rag/tests
 
   retrieval-bench:

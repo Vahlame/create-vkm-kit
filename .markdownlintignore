@@ -13,3 +13,6 @@ evals/design-bench/samples/**
 # Research-bench fixtures reproduce raw pipeline output (bare url: seams are the
 # POINT — the validator detects them); captured evidence, never linted as prose.
 evals/*/fixtures/
+# The starter vault written into a user's own directory — payload, not repo prose.
+# See the matching note in .prettierignore: these bytes are the contract.
+packages/create-vkm-kit/templates/vault/**

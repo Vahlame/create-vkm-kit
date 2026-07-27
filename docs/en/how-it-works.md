@@ -135,7 +135,7 @@ not the core. Technical detail: [ADR-0017](../adr/0017-hybrid-query-embeddings.m
 
 ### The retrieval stack at a glance (old + new)
 
-The same question is answered by **three rankers at once**, then **fused** — none wins outright, which is what keeps results balanced. Lexical and semantic are the original layers; the **graph** ranker is opt-in (new in 3.5). Newer **opt-in, off-by-default** stages (3.9) can then sharpen the order: a light reorder (recency · importance · MMR diversification) and an optional **cross-encoder reranker** that re-reads each candidate _with_ the query. Since 3.13 two **learning levers** join the family (ADR-0038): `pin_failures` fuses a fourth low-weight ranking of matched notes that carry `[failure]`/`[gotcha]` lessons, and `usage` boosts memory that demonstrably helped before. Everything after RRF is off unless you ask for it, so the default path is unchanged:
+The same question is answered by **three rankers at once**, then **fused** — none wins outright, which is what keeps results balanced. Lexical and semantic are the original layers; the **graph** ranker is opt-in. Newer **opt-in, off-by-default** stages (3.9) can then sharpen the order: a light reorder (recency · importance · MMR diversification) and an optional **cross-encoder reranker** that re-reads each candidate _with_ the query. Since 3.13 two **learning levers** join the family (ADR-0038): `pin_failures` fuses a fourth low-weight ranking of matched notes that carry `[failure]`/`[gotcha]` lessons, and `usage` boosts memory that demonstrably helped before. Everything after RRF is off unless you ask for it, so the default path is unchanged:
 
 ```mermaid
 flowchart LR
@@ -165,7 +165,7 @@ flowchart LR
 
 (`vault_complete` is the small sibling: type a prefix, get the titles / filenames / `#tags` that actually exist — a Trie lookup, no search needed.)
 
-### Measured, not just claimed (new in 3.7)
+### Measured, not just claimed
 
 "Surfaces the right note" is no longer just a claim — it's a number. A fixed, labelled corpus
 plus query set is scored on every change (**recall@k / MRR / hit@1**), and a regression **fails
@@ -175,7 +175,7 @@ to OR** when a strict match finds nothing, so one missing or mistyped word no lo
 relevant note. Detail: [`evals/retrieval`](https://github.com/Vahlame/create-vkm-kit/tree/main/evals/retrieval) ·
 [ADR-0020](../adr/0020-measured-retrieval-quality.md).
 
-### Asking the graph questions — typed relations + observations (new in 3.8)
+### Asking the graph questions — typed relations + observations
 
 **The analogy.** A plain search finds a book by its title. The **knowledge graph** is the library's
 **card catalog** on top of the books: cross-reference cards that say _how_ two books relate ("this
@@ -225,7 +225,7 @@ links to `python`?" (`vault_relations`, both directions); "show every `[decision
 from its prose — but **never writes**; you confirm and edit. Detail:
 [ADR-0023](../adr/0023-structured-knowledge-graph.md).
 
-### Keeping memory healthy — the memory report (new in 3.8)
+### Keeping memory healthy — the memory report
 
 **The analogy.** A yearly **health check-up**, or the dashboard warning lights in a car. As a vault
 grows it can quietly get unhealthy — a bloated log, notes that grew too big, links pointing nowhere,
@@ -253,7 +253,7 @@ detection is semantic reasoning the deterministic engine doesn't claim); **"cond
 means the report _flags_ candidates and the agent condenses with your confirmation. Detail:
 [ADR-0024](../adr/0024-memory-reports-and-compaction.md).
 
-### Scaling semantic search — optional sqlite-vec (new in 3.8)
+### Scaling semantic search — optional sqlite-vec
 
 **The analogy.** _Same recipe, faster oven._ The math — **cosine similarity** between your query and
 each note chunk — does not change at all. We just move it from being computed chunk-by-chunk in
@@ -307,7 +307,7 @@ flowchart LR
   S1 & S2 & S3 -. only a hybrid_search,<br/>no whole-note reads .-> V[("vault")]
 ```
 
-### The savings, measured on the wire — and a cheaper wire (new in 3.12)
+### The savings, measured on the wire — and a cheaper wire
 
 **The analogy.** We used to measure the savings by weighing only the goods; now we weigh **the full
 parcel, packaging included** (the JSON the model actually reads) — and we trimmed the packaging
@@ -359,7 +359,7 @@ The `limit` ladder is yours: **3–5** when you know what you're after (what the
 recommend), 10 by default, more only for broad surveys. Reproducible numbers and methodology in
 [`evals/README`](https://github.com/Vahlame/create-vkm-kit/tree/main/evals).
 
-### The fixed rent, also on a diet — and under lock (new in 3.12)
+### The fixed rent, also on a diet — and under lock
 
 **The analogy.** The above makes every _call_ cheaper; but an agent also pays **rent**: text that
 enters its context every session even if it never calls anything. The kit attacks all three layers,
@@ -388,7 +388,7 @@ too. Detail: [ADR-0035](../adr/0035-fixed-cost-diet-schema-budget.md) ·
 
 ---
 
-## Safe with several writers + memory that learns (new in 3.13)
+## Safe with several writers + memory that learns
 
 Two answers to one critique ("flat markdown = races and static notes"), both additive and opt-in
 (detail: [ADR-0037](../adr/0037-vault-vs-database-system-of-record.md) ·

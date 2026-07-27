@@ -8,10 +8,10 @@
  * optionally, its PDF/image assets. It exists for the "download whole doc/tutorial sites" job the
  * search-driven crawl structurally can't do.
  *
- * Design mirrors research.mjs/deep-research.mjs's split: the pure, single-responsibility helpers
+ * Design mirrors research.mjs/research-job.mjs's split: the pure, single-responsibility helpers
  * and the whole BFS live HERE (fully unit-testable with injected deps — no real network, no real
  * clock, no real filesystem); the background-job registry (state, budget, snapshot, run report)
- * is the thin wrapper in crawl-job.mjs, exactly as deep-research.mjs wraps research.mjs.
+ * is the thin wrapper in crawl-job.mjs, exactly as research-job.mjs wraps research.mjs.
  *
  * Reuses, never re-implements: `stripHiddenContent` (sanitize.mjs) for the same hidden-content
  * defense the research crawl uses; `canonicalizeUrl`/`hostOf`/`hash8` (url-identity.mjs) for

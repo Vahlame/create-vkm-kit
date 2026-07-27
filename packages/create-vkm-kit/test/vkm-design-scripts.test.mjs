@@ -29,6 +29,18 @@ import {
   SEMANTIC_HUES
 } from "../templates/skills/vkm-design/scripts/palette.mjs";
 import {
+  arg,
+  dilate4,
+  erode4,
+  fillHoles,
+  isolateSubject,
+  largestComponent,
+  loadJimp,
+  maskBounds,
+  morph8,
+  otsu
+} from "../templates/skills/vkm-design/scripts/raster.mjs";
+import {
   extractCustomProps,
   resolveVars,
   extractPairs,
@@ -552,4 +564,182 @@ test("palette CLI: table, --json, usage errors", () => {
   assert.equal(tokens.color.neutral["99"].$type, "color");
   assert.match(tokens.color.accent["48"].$value, /^oklch\(/);
   assert.match(tokens.color.semantic.danger.onLight.$value, /^oklch\(/);
+});
+
+// --- raster.mjs: the mask geometry both image scripts share -------------------------
+//
+// These four operations existed twice — once inside trace-svg.mjs, once inside
+// treat-photo.mjs — as the same algorithm with different variable names, and neither
+// copy could be tested: both files ran their whole pipeline at import time and called
+// `process.exit` on bad argv. Extracted, they are pure functions over a flat mask.
+
+/** Build a mask from an ASCII picture: '#' = subject, anything else = background. */
+function maskOf(rows) {
+  const H = rows.length;
+  const W = rows[0].length;
+  const m = new Uint8Array(W * H);
+  rows.forEach((row, y) => [...row].forEach((ch, x) => (m[y * W + x] = ch === "#" ? 1 : 0)));
+  return { m, W, H };
+}
+const render = (m, W, H) =>
+  Array.from({ length: H }, (_row, y) =>
+    Array.from({ length: W }, (_col, x) => (m[y * W + x] ? "#" : ".")).join("")
+  );
+
+test("otsu splits a clean bimodal histogram between the two modes", () => {
+  const hist = new Array(256).fill(0);
+  hist[20] = 500;
+  hist[200] = 500;
+  // Every t in [20, 199] separates {20} from {200} with the same between-class variance;
+  // the first maximum wins, so the answer is the lower mode. What matters is that the cut
+  // puts one mode on each side, not which of the tied optima it lands on.
+  const thr = otsu(hist, 1000);
+  assert.ok(thr >= 20 && thr < 200, `expected a cut separating the modes, got ${thr}`);
+});
+
+test("otsu returns a usable number for a degenerate histogram", () => {
+  const hist = new Array(256).fill(0);
+  hist[128] = 100;
+  assert.equal(otsu(hist, 100), 127); // no meaningful cut exists; must not throw or NaN
+});
+
+test("largestComponent keeps the biggest blob and drops the specks", () => {
+  const { m, W, H } = maskOf([".....", ".##..", ".##..", "....#", "....."]);
+  assert.deepEqual(render(largestComponent(m, W, H), W, H), [
+    ".....",
+    ".##..",
+    ".##..",
+    ".....",
+    "....."
+  ]);
+});
+
+test("largestComponent is 4-connected: a diagonal touch is a separate blob", () => {
+  const { m, W, H } = maskOf(["##..", "##..", "..#.", "...."]);
+  const out = largestComponent(m, W, H);
+  assert.equal(out[2 * 4 + 2], 0, "the diagonally-adjacent pixel is not part of the square");
+});
+
+test("largestComponent on an empty mask returns an empty mask", () => {
+  const { m, W, H } = maskOf(["...", "..."]);
+  assert.equal(
+    largestComponent(m, W, H).reduce((a, b) => a + b, 0),
+    0
+  );
+});
+
+test("fillHoles closes an enclosed gap and leaves the outside alone", () => {
+  const { m, W, H } = maskOf([".....", ".###.", ".#.#.", ".###.", "....."]);
+  assert.deepEqual(render(fillHoles(m, W, H), W, H), [".....", ".###.", ".###.", ".###.", "....."]);
+});
+
+test("fillHoles does not fill a bay that reaches the border", () => {
+  const { m, W, H } = maskOf(["###", "#.#", "#.#"]); // the gap opens onto the bottom edge
+  assert.deepEqual(render(fillHoles(m, W, H), W, H), ["###", "#.#", "#.#"]);
+});
+
+test("erode4 then dilate4 removes a one-pixel bridge but keeps both bodies", () => {
+  // The bridge has to be at least 3 px long for a radius-1 opening to break it: a
+  // shorter one is flanked by material that survives the erosion and grows back over it.
+  const { m, W, H } = maskOf([
+    "...........",
+    ".###...###.",
+    ".#########.", // cols 4-6 are the 3-px isthmus between the two 3x3 blocks
+    ".###...###.",
+    "..........."
+  ]);
+  const opened = dilate4(erode4(m, W, H, 1), W, H, 1);
+  assert.equal(opened[2 * W + 5], 0, "the middle of the isthmus must not survive the opening");
+  assert.equal(opened[2 * W + 2], 1, "the left block must survive it");
+  assert.equal(opened[2 * W + 8], 1, "and so must the right one");
+});
+
+test("erode4 does not eat the mask inward from the image border", () => {
+  const { m, W, H } = maskOf(["###", "###", "###"]); // fills the frame
+  assert.deepEqual(render(erode4(m, W, H, 1), W, H), ["###", "###", "###"]);
+});
+
+test("dilate4 grows by exactly one 4-neighbour ring per iteration", () => {
+  const { m, W, H } = maskOf([".....", ".....", "..#..", ".....", "....."]);
+  assert.deepEqual(render(dilate4(m, W, H, 1), W, H), [
+    ".....",
+    "..#..",
+    ".###.",
+    "..#..",
+    "....."
+  ]);
+});
+
+test("morph8 is 8-connected, unlike dilate4", () => {
+  const { m, W, H } = maskOf(["...", ".#.", "..."]);
+  assert.deepEqual(render(morph8(m, W, H, true), W, H), ["###", "###", "###"]);
+});
+
+test("isolateSubject picks the subject before eroding, not after", () => {
+  // A thin 8-px bar against a compact 4x4 block (16 px), sized so the two orders disagree:
+  // erode-first dissolves the 1-px bar and crowns the block; largest-first crowns the bar
+  // on the full evidence and then finds the opening dissolves it. The block winning would
+  // mean a different subject was traced.
+  const { m, W, H } = maskOf([
+    "......................",
+    ".####################.", // 20 px, but 1 px thin: an opening dissolves it
+    "......................",
+    "..###.................", // 9 px, compact: an opening leaves a core
+    "..###.................",
+    "..###.................",
+    "......................"
+  ]);
+  const out = isolateSubject(m, W, H, 1);
+  assert.equal(out[4 * W + 3], 0, "the compact block must not win");
+  assert.equal(
+    out.reduce((a, b) => a + b, 0),
+    0,
+    "the chosen subject did not survive the open"
+  );
+});
+
+test("isolateSubject on a mask with no subject returns nothing, not the whole frame", () => {
+  // The bug this inherited: an empty mask came back FULL, so a threshold that found no
+  // subject reported the entire image as one.
+  const empty = new Uint8Array(25);
+  assert.equal(
+    isolateSubject(empty, 5, 5, 0).reduce((a, b) => a + b, 0),
+    0
+  );
+});
+
+test("isolateSubject with isolate=0 is just largest-component plus hole filling", () => {
+  const { m, W, H } = maskOf([".....", ".###.", ".#.#.", ".###.", "#...."]);
+  assert.deepEqual(render(isolateSubject(m, W, H, 0), W, H), [
+    ".....",
+    ".###.",
+    ".###.",
+    ".###.",
+    "....."
+  ]);
+});
+
+test("maskBounds reports the tight box, and null for an empty mask", () => {
+  const { m, W, H } = maskOf([".....", "..##.", "..##.", ".....", "....."]);
+  assert.deepEqual(maskBounds(m, W, H), { x0: 2, y0: 1, x1: 3, y1: 2 });
+  assert.equal(maskBounds(new Uint8Array(9), 3, 3), null);
+});
+
+test("loadJimp reports the version problem instead of crashing at import", async () => {
+  // The whole reason raster.mjs exposes this as a function: a static `import Jimp from
+  // "jimp"` against jimp v1 throws a SyntaxError before any of our code runs, so nothing
+  // can catch it and say what to do. Here the module imported fine and we can assert on
+  // the outcome either way.
+  try {
+    const Jimp = await loadJimp();
+    assert.equal(typeof Jimp.MIME_PNG, "string");
+  } catch (e) {
+    assert.match(e.message, /jimp@0\.22\.x/);
+    assert.match(e.message, /npm install/);
+  }
+});
+
+test("arg reads a flag from an explicit argv, defaulting when absent", () => {
+  assert.equal(arg("--w", "440", ["node", "s.mjs", "--w", "900"]), "900");
+  assert.equal(arg("--w", "440", ["node", "s.mjs"]), "440");
 });

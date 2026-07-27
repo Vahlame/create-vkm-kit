@@ -1,6 +1,6 @@
 {
   "name": "@vkmikc/vkm-downloads",
-  "version": "4.7.1",
+  "version": "5.0.0",
   "private": true,
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@vkmikc/vkm-core": "*",
     "zod": "^4.4.3"
   }
 }

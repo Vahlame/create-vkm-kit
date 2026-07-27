@@ -107,7 +107,7 @@ El servidor complementario opcional en Node.js (`packages/obsidian-memory-mcp`).
 
 ### `obsidian-memory-rag`
 
-El motor opcional en **Python** (`packages/obsidian-memory-rag`) que construye un índice **[SQLite](#fts5) FTS5 + vectores por fragmento** bajo `<vault>/.obsidian-memory-rag/`, lo que habilita búsqueda rápida por palabras clave (BM25) y [semántica](#semantic-search-búsqueda-semántica). Incluye una línea de comandos con `index` (acepta `--semantic` para construir los vectores neuronales), `search`, `hybrid-search`, `bench`, [`audit`](#vault_audit) y `rotate-log`. `search` indexa automáticamente antes de consultar (pasa `--no-auto-index` para desactivarlo). Sin dependencias por defecto; las incrustaciones neuronales están disponibles mediante el extra `[semantic]`.
+El motor opcional en **Python** (`packages/obsidian-memory-rag`) que construye un índice **[SQLite](#fts5) FTS5 + vectores por fragmento** bajo `<vault>/.obsidian-memory-rag/`, lo que habilita búsqueda rápida por palabras clave (BM25) y [semántica](#semantic-search-búsqueda-semántica). Incluye una línea de comandos con `index` (acepta `--semantic` para construir los vectores neuronales), `search`, `hybrid-search`, [`audit`](#vault_audit) y `rotate-log`. `search` indexa automáticamente antes de consultar (pasa `--no-auto-index` para desactivarlo). Sin dependencias por defecto; las incrustaciones neuronales están disponibles mediante el extra `[semantic]`.
 
 ### PROJECTS/
 
@@ -184,9 +184,20 @@ La carpeta de la que tu servidor MCP lee y en la que escribe — archivos Markdo
 
 Una comprobación de salud del vault, disponible tanto como la herramienta [MCP](#mcp) `vault_audit` (vía [`obsidian-memory-hybrid`](#obsidian-memory-hybrid)) como los subcomandos `audit` / `json-audit` de la línea de comandos de [`obsidian-memory-rag`](#obsidian-memory-rag). Reporta las notas que superan el presupuesto de tokens por nota (~8k), los `[[wikilinks]]` rotos (una señal de memoria obsoleta) y el tamaño de `SESSION_LOG.md`. Combínala con el comando `rotate-log`, que archiva las secciones `##` antiguas en `SESSION_LOG/archive.md`. Ver ADR-0018.
 
+### vkm
+
+El prefijo de marca, no unas siglas — no se expande a nada. Marca lo que pertenece a esta
+suite en los lugares donde un nombre es visible: el scope de npm `@vkmikc`, el comando `vkm`,
+las [skills](#skills-habilidades) `/vkm-*` y el directorio de estado `~/.vkm/`. Los nombres
+que **no** lo llevan (`obsidian-memory-hybrid`, `obsidian-memoryd`, `BASIC_MEMORY_HOME`, las
+variables `OBSIDIAN_MEMORY_*`) son nombres de compatibilidad congelados, a propósito, porque
+viven en archivos que este kit no controla. El
+[ADR-0079](../adr/0079-naming-and-compatibility-tiers.md) dice qué nombres pueden cambiar y
+cuáles no.
+
 ### `vkm-doctor`
 
-El doctor de uso local de la suite (`packages/vkm-doctor`): un hook `SessionStart` levanta un **sink OTLP/HTTP JSON** en `127.0.0.1:4319` que guarda la telemetría de Claude Code como NDJSON bajo `~/.vkm/telemetry/` (poda a 90 días) — **nada sale de tu máquina**. La CLI `vkm-doctor` reporta tokens, coste y el **ratio de cache-hit**, con diagnóstico de caché rota; `--include-transcripts` añade una sección derivada de transcripts claramente etiquetada. Ver ADR-0044 y [`docs/observability.md`](../observability.md).
+El doctor de uso local de la suite (`packages/vkm-doctor`): un hook `SessionStart` levanta un **sink OTLP/HTTP JSON** en `127.0.0.1:4319` que guarda la telemetría de Claude Code como NDJSON bajo `~/.vkm/telemetry/` (poda a 90 días) — **nada sale de tu máquina**. La CLI `vkm-doctor` reporta tokens, coste y el **ratio de cache-hit**, con diagnóstico de caché rota; `--include-transcripts` añade una sección derivada de transcripts claramente etiquetada. Ver ADR-0044 y [`docs/en/observability.md`](../en/observability.md).
 
 ### vkm-kit
 

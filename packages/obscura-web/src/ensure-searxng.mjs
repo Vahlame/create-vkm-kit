@@ -19,6 +19,7 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { throughHiddenConsole } from "@vkmikc/vkm-core/hidden-console";
 
 function cfg() {
   const home = homedir();
@@ -132,11 +133,16 @@ export async function ensureSearxng(deps = {}) {
   if (starting) return starting; // a concurrent search is already booting it
   starting = (async () => {
     hookExit();
-    child = spawnImpl(c.py, ["-m", "searx.webapp"], {
+    // Same hidden-console treatment as ollama: this Python is console-subsystem and spawns further
+    // console-subsystem children, each of which allocates a VISIBLE console of its own when the
+    // parent has none. See hidden-console.mjs for why CREATE_NO_WINDOW is what causes that.
+    const launch = throughHiddenConsole(c.py, ["-m", "searx.webapp"]);
+
+    child = spawnImpl(launch.command, launch.args, {
       cwd: c.src,
       env: { ...process.env, SEARXNG_SETTINGS_PATH: c.settings },
       stdio: "ignore",
-      windowsHide: true
+      windowsHide: launch.windowsHide
     });
     child.once("exit", () => {
       child = null;

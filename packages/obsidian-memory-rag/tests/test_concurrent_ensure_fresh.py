@@ -18,8 +18,8 @@ from __future__ import annotations
 import threading
 import time
 from array import array
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 from obsidian_memory_rag import ensure_fresh, search_vault
 from obsidian_memory_rag.embeddings import HashingEmbedder
@@ -98,4 +98,6 @@ def test_two_ensure_fresh_calls_on_same_vault_do_not_crash(tmp_path: Path) -> No
     finally:
         conn.close()
     for i in range(N_NOTES):
-        assert f"note{i}.md" in have, f"note{i}.md missing from vector index after concurrent ensure_fresh"
+        assert (
+            f"note{i}.md" in have
+        ), f"note{i}.md missing from vector index after concurrent ensure_fresh"

@@ -5,9 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import statistics
 import sys
-import time
 from pathlib import Path
 
 from .audit import audit_vault
@@ -173,16 +171,16 @@ def _resolve_hybrid_embedder(vault, explicit_name, *, no_auto_index: bool):
     return get_embedder(None)
 
 
-def main() -> None:
-    # The Node MCP bridge consumes this CLI's stdout, and vault content is often
-    # non-ASCII (e.g. Spanish notes). Force UTF-8 so json.dumps(ensure_ascii=False)
-    # and snippet printing never crash under a legacy console codepage (cp1252 on
-    # Windows). Guarded because captured streams (pytest) lack reconfigure().
-    try:
-        sys.stdout.reconfigure(encoding="utf-8")
-    except (AttributeError, ValueError):
-        pass
+def build_parser() -> argparse.ArgumentParser:
+    """The full subcommand surface, built without parsing or dispatching.
 
+    Separate from ``main`` so the surface can be inspected — enumerating
+    ``parser._subparsers`` is how ``tests/test_cli_smoke.py`` proves its
+    invocation table covers every subcommand, rather than covering whichever
+    ones someone remembered. The subcommand NAMES are a public contract: the
+    Node MCP bridge spawns the twelve ``json-*`` twins by name and CI invokes
+    ``bench-recall`` / ``bench-tokens`` / ``bench-assemble`` by name.
+    """
     p = argparse.ArgumentParser(prog="obsidian-memory-rag")
     sub = p.add_subparsers(dest="cmd", required=True)
 
@@ -231,19 +229,15 @@ def main() -> None:
     hs.add_argument("--embedder", default=None)
     _add_hybrid_flags(hs)
 
-    b = sub.add_parser("bench", help="Micro-benchmark repeated search (local perf smoke)")
-    b.add_argument("--vault", type=Path, required=True)
-    b.add_argument("--query", default="memory")
-    b.add_argument("--iterations", type=int, default=200)
-    b.add_argument("--limit", type=int, default=10)
-
     for name, helptext in (
         ("bench-recall", "Measure retrieval quality (recall@k / MRR / hit@1) vs a labelled corpus"),
         ("json-bench-recall", "Same as bench-recall but print one JSON object (for scripting)"),
     ):
         br = sub.add_parser(name, help=helptext)
         br.add_argument("--corpus", type=Path, required=True, help="Folder of Markdown notes")
-        br.add_argument("--queries", type=Path, required=True, help="JSONL: {query, relevant, kind?}")
+        br.add_argument(
+            "--queries", type=Path, required=True, help="JSONL: {query, relevant, kind?}"
+        )
         br.add_argument("--k", type=int, default=5)
         br.add_argument("--embedder", default=None)
         br.add_argument("--graph", action="store_true", help="Fuse in [[wikilink]] neighbours")
@@ -299,7 +293,9 @@ def main() -> None:
     ):
         bt = sub.add_parser(name, help=helptext)
         bt.add_argument("--corpus", type=Path, required=True, help="Folder of Markdown notes")
-        bt.add_argument("--queries", type=Path, required=True, help="JSONL: {query, relevant, kind?}")
+        bt.add_argument(
+            "--queries", type=Path, required=True, help="JSONL: {query, relevant, kind?}"
+        )
         bt.add_argument("--k", type=int, default=5)
         bt.add_argument("--embedder", default=None)
         bt.add_argument(
@@ -613,7 +609,23 @@ def main() -> None:
         )
         rf.add_argument("--no-auto-index", action="store_true")
 
-    args = p.parse_args()
+    return p
+
+
+def main(argv: list[str] | None = None) -> None:
+    # The Node MCP bridge consumes this CLI's stdout, and vault content is often
+    # non-ASCII (e.g. Spanish notes). Force UTF-8 so json.dumps(ensure_ascii=False)
+    # and snippet printing never crash under a legacy console codepage (cp1252 on
+    # Windows). Guarded because captured streams (pytest) lack reconfigure().
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
+    # `argv=None` keeps argparse's own sys.argv[1:] default for the real CLI, and
+    # lets a test drive a subcommand as a plain function call instead of patching
+    # process state.
+    args = build_parser().parse_args(argv)
     if args.cmd == "index":
         stats = index_vault(args.vault, max_file_bytes=args.max_file_bytes)
         print(
@@ -670,21 +682,6 @@ def main() -> None:
             )
             if h.snippet:
                 print(f"  {h.snippet}")
-    elif args.cmd == "bench":
-        hits = search_vault(args.vault, args.query, limit=args.limit)
-        if not hits:
-            print("no hits: index the vault and use a query that matches content")
-            raise SystemExit(2)
-        lat: list[float] = []
-        for _ in range(args.iterations):
-            t0 = time.perf_counter()
-            _ = search_vault(args.vault, args.query, limit=args.limit)
-            lat.append((time.perf_counter() - t0) * 1000.0)
-        lat.sort()
-        p50 = statistics.median(lat)
-        p95 = lat[int(0.95 * (len(lat) - 1))]
-        print(f"iterations={args.iterations} query={args.query!r} limit={args.limit}")
-        print(f"latency_ms p50={p50:.3f} p95={p95:.3f} min={lat[0]:.3f} max={lat[-1]:.3f}")
     elif args.cmd in ("bench-recall", "json-bench-recall"):
         report = run_benchmark(
             args.corpus,

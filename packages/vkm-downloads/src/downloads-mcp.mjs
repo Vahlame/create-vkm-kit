@@ -30,24 +30,17 @@
  *                               guard for big files is free disk space)
  *  - VKM_DOWNLOAD_LOG           audit-log path (default ~/.vkm/downloads/downloads.log)
  */
-import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { toolHandler } from "./mcp-result.mjs";
+import { toolHandler, pkgVersionFrom } from "@vkmikc/vkm-core/mcp-result";
 import { downloadTo, resolveMetadata, downloadDir } from "./download.mjs";
 import { logDownload } from "./download-log.mjs";
 import { probeMirrors } from "./mirror.mjs";
 import { defaultManager } from "./jobs.mjs";
 
-const pkgVersion = (() => {
-  try {
-    return JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
-  } catch {
-    return "0.0.0";
-  }
-})();
+const pkgVersion = pkgVersionFrom(import.meta.url);
 
 /**
  * Build the McpServer with both tools registered (no transport connected) so tests can drive the

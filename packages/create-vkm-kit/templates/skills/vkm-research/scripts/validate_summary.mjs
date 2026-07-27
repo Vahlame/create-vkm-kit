@@ -14,6 +14,7 @@
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 const WIKILINK_RE = /\[\[[^\]]+\]\]/g;
 // The typed relation, optionally followed by a " — what changed" comment (the
@@ -42,7 +43,14 @@ function splitFrontmatter(text) {
 export function validateSummary(text, opts = {}) {
   const errors = [];
   const warnings = [];
-  const { fm, body } = splitFrontmatter(text);
+  // Vault notes are CRLF (obsidian-memoryd normalizes them on write). Every check below
+  // either splits on "\n" alone (leaving a trailing "\r" per line) or anchors "$" on a
+  // per-line regex without the "m" flag — both silently fail to match on a CRLF line
+  // whose real content is otherwise well-formed (found live: a valid "- supersedes
+  // [[target]] — comment" line reported as malformed solely because of the trailing "\r").
+  // Normalizing once here, before any split, fixes every downstream check at once instead
+  // of patching each regex individually.
+  const { fm, body } = splitFrontmatter(text.replace(/\r\n/g, "\n"));
 
   if (!fm) {
     errors.push(
@@ -171,4 +179,8 @@ function main() {
   process.exit(result.ok ? 0 : 1);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) main();
+// `file://${process.argv[1]}` never matches on Windows (backslashes, no `/C:/` drive-letter
+// form) — the guard silently never ran main(), so `node validate_summary.mjs ...` exited 0
+// with ZERO output, indistinguishable from a real pass to anything that only checks the exit
+// code. pathToFileURL normalizes both platforms' path shapes into a real, comparable file URL.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();

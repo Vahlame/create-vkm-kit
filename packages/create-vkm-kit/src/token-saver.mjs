@@ -13,6 +13,7 @@
 // `settings-io.mjs`, and template files tracked by content hash (`asset-install.mjs`) so
 // uninstall never deletes a user-modified file.
 import path from "node:path";
+import { hookInterpreter } from "./hook-interpreter.mjs";
 import { fileURLToPath } from "node:url";
 import fse from "fs-extra";
 import pc from "picocolors";
@@ -65,9 +66,15 @@ function packagedPath(...segments) {
   return path.join(path.dirname(fileURLToPath(import.meta.url)), ...segments);
 }
 
-/** Exec-form hook entry (same rationale as `hookCommand` in claude-native-memory.mjs). */
-export function compactHookCommand(hookPath) {
-  return { command: "node", args: [hookPath] };
+/** Exec-form hook entry (same rationale as `hookCommand` in claude-native-memory.mjs).
+ *
+ * `interpreter` is a PARAMETER with a plain default, not a `hookInterpreter()` probe inside the
+ * factory: probing here reads the CURRENT user's `~/.claude`, which is not necessarily the
+ * `home` the caller is installing into (every test installs into a temp home, and so does
+ * `--home`). Resolved once at the composition root below and passed down.
+ */
+export function compactHookCommand(hookPath, interpreter = "node") {
+  return { command: interpreter, args: [hookPath] };
 }
 
 /**
@@ -87,6 +94,8 @@ export async function configureTokenSaver(home, dryRun, { hooks = true, terseSty
   const bashHookDest = path.join(hooksDir, COMPACT_BASH_HOOK_BASENAME);
   const mcpHookDest = path.join(hooksDir, COMPACT_MCP_HOOK_BASENAME);
   const styleDest = path.join(claudeDir, "output-styles", TERSE_STYLE_BASENAME);
+  // Composition root: the one filesystem probe, against the claudeDir actually being installed into.
+  const interpreter = hookInterpreter(claudeDir);
 
   try {
     let { existing, priorBytes, invalidJson, rawText } = await readSettingsSafe(settingsFp);
@@ -165,14 +174,14 @@ export async function configureTokenSaver(home, dryRun, { hooks = true, terseSty
         hookMap,
         "PostToolUse",
         "Bash",
-        compactHookCommand(bashHookDest),
+        compactHookCommand(bashHookDest, interpreter),
         COMPACT_BASH_HOOK_STEM
       );
       hookMap = mergeManagedHook(
         hookMap,
         "PostToolUse",
         "mcp__.*",
-        compactHookCommand(mcpHookDest),
+        compactHookCommand(mcpHookDest, interpreter),
         COMPACT_MCP_HOOK_STEM
       );
     } else {

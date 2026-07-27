@@ -17,7 +17,8 @@ import time
 from math import ceil
 from pathlib import Path
 
-from .paths import index_db_path
+from .graphlink import WIKILINK_RE, normalize_target
+from .paths import index_db_path, is_generated_duplicate
 from .text_scrub import strip_code_regions
 
 # Directories that never hold user notes: VCS metadata, the Obsidian app config,
@@ -25,7 +26,6 @@ from .text_scrub import strip_code_regions
 _EXCLUDE_DIRS = frozenset({".git", ".obsidian", ".obsidian-memory-rag"})
 
 # [[target]] / [[target|alias]] / [[target#section]] — capture only the target.
-_WIKILINK_RE = re.compile(r"\[\[([^\[\]]+?)\]\]")
 
 # Token estimate heuristic: ~4 bytes per token. This is the same rough rule used
 # across the kit (good enough for a budget alarm; we never tokenize for real here).
@@ -194,21 +194,28 @@ def _iter_md_files(vault: Path) -> list[Path]:
         parts = path.relative_to(vault).parts[:-1]
         if any(p in _EXCLUDE_DIRS or p.startswith(".") for p in parts):
             continue
+        # Same reason the dot-directory rule is mirrored: a file retrieval never returns
+        # must not be audited as though it could. Auditing generated concatenations would
+        # double-count their bytes against the token budget, list them in ``oversized``,
+        # and report them as permanently ``missing`` from an index that is right to omit
+        # them. See paths.GENERATED_SKIP_FILENAMES.
+        if is_generated_duplicate(path.name):
+            continue
         if path.is_file():
             out.append(path)
     return out
 
 
-def _wikilink_target(raw: str) -> str:
-    """Normalize a raw ``[[...]]`` inner text to its target basename.
+def _display_target(raw: str) -> str:
+    """The link target as a HUMAN should see it in the broken-links report.
 
-    Strips a trailing ``#section`` anchor and a ``|alias`` display label, then the
-    surrounding whitespace. ``[[Note#Heading|Label]]`` -> ``Note``.
+    Same alias/anchor/``.md`` stripping as :func:`graphlink.normalize_target`, but it
+    stops there: case and path separators are left exactly as the note wrote them, so
+    the report quotes the user's own link back at them. The normalized key used for
+    COMPARISON comes from ``normalize_target`` — this function is only for display,
+    which is the one thing that genuinely differs between the two.
     """
-    target = raw.split("|", 1)[0]  # drop display alias
-    target = target.split("#", 1)[0]  # drop section anchor
-    target = target.strip()
-    # Obsidian links may include the .md extension explicitly ([[note.md]]); normalize it off.
+    target = raw.split("|", 1)[0].split("#", 1)[0].strip()
     if target.lower().endswith(".md"):
         target = target[:-3]
     return target.strip()
@@ -370,8 +377,8 @@ def audit_vault(
                 # First marker per note is enough to flag it for a human.
                 conflict_markers.append({"path": rel, "line": lineno})
                 break
-        for match in _WIKILINK_RE.finditer(scan_text):
-            target = _wikilink_target(match.group(1))
+        for match in WIKILINK_RE.finditer(scan_text):
+            target = _display_target(match.group(1))
             if not target:
                 continue
             # Template placeholders ([[PROJECTS/<proyecto>]]) are deliberate
@@ -379,7 +386,7 @@ def audit_vault(
             # lint in the MCP (vault-lint.mjs).
             if "<" in target or ">" in target:
                 continue
-            norm = target.replace("\\", "/").strip("/").lower()
+            norm = normalize_target(match.group(1))
             basename = norm.rsplit("/", 1)[-1]
             if basename in known_basenames or norm in known_relpaths:
                 continue

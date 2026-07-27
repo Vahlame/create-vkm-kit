@@ -145,7 +145,7 @@ test("every marker reads back exactly what it wrote (read/write are inverses)", 
   // reader cannot parse would make `set` produce permanent, self-inflicted drift.
   const fixtures = {
     "packages/create-vkm-kit/package.json": '{\n  "name": "x",\n  "version": "1.0.0"\n}\n',
-    "packages/create-obsidian-memory-shim/package.json": '{\n  "version": "1.0.0"\n}\n',
+    "packages/vkm-core/package.json": '{\n  "version": "1.0.0"\n}\n',
     "packages/obsidian-memory-mcp/package.json": '{\n  "version": "1.0.0"\n}\n',
     "packages/vkm-doctor/package.json": '{\n  "version": "1.0.0"\n}\n',
     "packages/vkm-spec/package.json": '{\n  "version": "1.0.0"\n}\n',

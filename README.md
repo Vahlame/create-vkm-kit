@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="./LICENSE.md"><img src="https://img.shields.io/badge/licencia-MIT--derivada_%2B_atribuci%C3%B3n_(no_OSI)-blue.svg" alt="Licencia"></a>
-  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v4.7.1-orange.svg" alt="Release"></a>
+  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v5.0.0-orange.svg" alt="Release"></a>
   <a href="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.npmjs.com/package/@vkmikc/create-vkm-kit"><img src="https://img.shields.io/npm/v/%40vkmikc%2Fcreate-vkm-kit?label=npm&color=cb3837" alt="npm"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A5%2020-43853d.svg" alt="Node ≥ 20">
@@ -155,7 +155,7 @@ pides — por eso la instalación es un comando aunque la lista sea larga.
 
 > ℹ️ **obscura** es software de terceros bajo licencia **Apache-2.0** ([h4ckf0r0day/obscura](https://github.com/h4ckf0r0day/obscura)). El kit **lo descarga** del release oficial y lo verifica por SHA-256 — **no lo empaqueta ni redistribuye**. Búsqueda estructurada vía **SearXNG on-demand** (se levanta solo al buscar, se apaga al terminar; monitor de escritorio opcional) — [ADR-0052](docs/adr/0052-searxng-on-demand-lifecycle.md).
 >
-> 🧭 **Skills que instala el kit** (además de los paquetes): **`/vkm-discipline`** — disciplina de ejecución cross-dominio (infiere la intención real, entrega más que lo literal, con evidencia ejecutada) que sube el rendimiento de **cualquier modelo**, Haiku a Opus — **`/vkm-spec`** (idea → spec anclada al vault) — y **`/vkm-design`** (diseño profesional anti-genérico para cualquier UI/medio: dirección antes de píxeles, checks computados, librerías reales verificadas online, loop visual). Detalle: [ADR-0049](docs/adr/0049-discipline-doctrine-three-channels.md) y [ADR-0053](docs/adr/0053-vkm-design-skill.md).
+> 🧭 **Skills que instala el kit** (además de los paquetes): **`/vkm-discipline`** — disciplina de ejecución cross-dominio (infiere la intención real, entrega más que lo literal, con evidencia ejecutada) que sube el rendimiento de **cualquier modelo**, Haiku a Opus — **`/vkm-spec`** (idea → spec anclada al vault) — **`/vkm-design`** (diseño profesional anti-genérico para cualquier UI/medio: dirección antes de píxeles, checks computados, librerías reales verificadas online, loop visual) — y **`/vkm-research`** (consolida un banco `RESEARCH/<tema>` en un `summary.md` con wikilinks y supersesión). Detalle: [ADR-0049](docs/adr/0049-discipline-doctrine-three-channels.md), [ADR-0053](docs/adr/0053-vkm-design-skill.md) y [ADR-0056](docs/adr/0056-research-knowledge-bank.md).
 
 Mapa técnico completo y diagramas de flujo: [`ARCHITECTURE.md`](ARCHITECTURE.md). El _porqué_ de
 cada decisión: [`docs/adr/`](docs/adr/). Cada pieza y cada conexión, con diagramas de secuencia por
@@ -179,10 +179,7 @@ no un leaderboard). Detalle · detail: [🇪🇸 cómo funciona](docs/es/como-fu
 [🇬🇧 how it works](docs/en/how-it-works.md) · [`evals/`](evals/).
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/bench-results-dark.svg">
-    <img src="docs/assets/bench-results.svg" alt="Dumbbell chart: puntuación con skill vs stock por bench y modelo — research-bench, design-bench y discipline-bench suben con la skill en Sonnet y Opus; Haiku plano en design" width="880">
-  </picture>
+  <img src="docs/assets/bench-results.svg" alt="Dumbbell chart: puntuación con skill vs stock por bench y modelo — research-bench, design-bench y discipline-bench suben con la skill en Sonnet y Opus; Haiku plano en design" width="880">
 </p>
 
 **Y con modelos vivos (ronda 2026-07-21, Haiku 4.5 + Sonnet 5, datos crudos commiteados):**
@@ -202,13 +199,14 @@ tocar a Sonnet. Además un **e2e smoke** en CI prueba el stack entero por stdio 
 ## Más · More
 
 - **Después de instalar · After installing:** [🇪🇸 guía de uso + situacional](docs/es/guia-de-uso.md) · [🇬🇧 usage + situational guide](docs/en/usage.md).
+- **¿Vienes de 4.x? · Coming from 4.x?** [🇪🇸 Migración a 5.0](docs/es/migracion-5.0.md) · [🇬🇧 5.0 migration](docs/en/migration-5.0.md) — en Windows, cierra todas las sesiones del editor **antes** de ejecutar el instalador.
 - **¿Vienes de 3.x? · Coming from 3.x?** [🇪🇸 Migración a 4.0](docs/es/migracion-4.0.md) · [🇬🇧 4.0 migration](docs/en/migration-4.0.md).
 - **Seguridad / confianza:** [`SECURITY.md`](SECURITY.md) — el vault es **datos**, no instrucciones.
 - **PC nuevo · Fresh PC (Claude Code):** [🇪🇸 instalar en PC nueva](docs/es/instalar-pc-nueva.md) · [🇬🇧 fresh-PC install](docs/en/install-fresh-pc.md).
 - **Comparación con alternativas:** [FAQ 🇪🇸](docs/es/faq.md) · [FAQ 🇬🇧](docs/en/faq.md).
 - **Contribuir:** [`CONTRIBUTING.md`](CONTRIBUTING.md) · **Para agentes que tocan este repo:** [`AGENTS.md`](AGENTS.md).
 - **Versionado · Versioning:** SemVer sobre el contrato instalado; majors congelados salvo ruptura inevitable — [política](CONTRIBUTING.md#versioning-policy-post-4x).
-- **Privacidad / telemetría:** [`docs/observability.md`](docs/observability.md).
+- **Privacidad / telemetría:** [`docs/en/observability.md`](docs/en/observability.md).
 
 ## Licencia · License
 

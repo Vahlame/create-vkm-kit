@@ -48,10 +48,10 @@ from __future__ import annotations
 
 import json
 import re
-import unicodedata
 import shutil
 import statistics
 import tempfile
+import unicodedata
 from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -216,7 +216,7 @@ def _apply_budget(bundle: AssembledBundle, budget_chars: int) -> None:
 def assemble_bundle(
     vault: Path,
     query: str,
-    embedder: "Embedder",
+    embedder: Embedder,
     *,
     project: str | None = None,
     budget_chars: int = DEFAULT_BUDGET_CHARS,
@@ -417,7 +417,7 @@ class AssembleBenchReport:
 def evaluate_assemble(
     vault: Path,
     queries: list[dict],
-    embedder: "Embedder",
+    embedder: Embedder,
 ) -> AssembleBenchReport:
     """Score the assemble arm against the naive multi-call arm for each query.
 

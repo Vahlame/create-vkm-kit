@@ -20,5 +20,6 @@
     "evals/**/*.mjs",
     "evals/**/*.cjs"
   ],
-  "exclude": ["**/node_modules"]
+  "//exclude": "evals/*/{results,solutions} is committed verbatim model output, exempted from prettier for the same reason (see .prettierignore): it is an experimental record, not source we may reformat or fix. Excluding it here is what lets eslint's ignore of the same paths take effect — a file in `ignores` that is still in the type-aware project is a parser error, not a skip.",
+  "exclude": ["**/node_modules", "evals/*/results/**", "evals/*/solutions/**"]
 }

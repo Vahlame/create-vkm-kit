@@ -164,18 +164,22 @@ Reload Window**. To open vault notes, use the MCP tools (`read_note`,
 ### A big console window flashes when syncing or starting the MCP
 
 **Cause.** The `obsidian-memoryd` binary was built as a **console** app (without
-the `-H windowsgui` flag), or its `git` subprocesses do not carry the
-`CREATE_NO_WINDOW` flag (this is pre-v3 behaviour).
+the `-H windowsgui` flag).
 
-**Fix (kit v3+).** Build it as a windowless app:
+**Fix.** Build it as a windowless app:
 
 ```bash
 go build -ldflags="-H windowsgui" -o bin/obsidian-memoryd.exe ./cmd/obsidian-memoryd
 ```
 
-The repo includes `proc_windows.go`, which adds `CREATE_NO_WINDOW + HideWindow`
-to every `git` subprocess, removing the flash even when launched from a
-windowsgui executable. See the sync guide for details.
+**What changed in 5.0.** Until then the daemon also applied `CREATE_NO_WINDOW` to
+every `git` subprocess, and this page recommended exactly that. It was the wrong
+cure: a child with **no** console whose own grandchild is console-subsystem —
+`git-remote-https`, `ssh`, a credential helper — makes Windows allocate that
+grandchild a **brand new, visible** console. The daemon now allocates ONE console
+at the start of `watch`, hides it, and lets every git child inherit it, which is
+the same strategy `vkm-runhidden.exe` uses for hooks. See
+[ADR-0078](../adr/0078-allocate-and-hide-a-console.md).
 
 ### `doctor`'s exit code reads empty in PowerShell, or its output looks out of order
 
@@ -236,6 +240,51 @@ stdio**.
 **To diagnose,** open **Task Manager → Details** (turn on the command-line
 column) or **Resource Monitor** while the problem is happening, so you can see
 exactly which program is opening the windows.
+
+### Consoles flash while the agent works (hooks, ollama) — Windows
+
+**Cause.** Every kit hook is a Node script and Claude Code starts **one process per event**; two
+of them (`compact-tool-output`, `compact-mcp-output`) fire on **every** `Bash` call and **every**
+MCP call, so a research session spawns hundreds. `node.exe` is a **console-subsystem** binary:
+Windows gives it a real window that appears, **steals focus**, and disappears milliseconds later.
+The counter-intuitive part is that the obvious protection (`CREATE_NO_WINDOW`) **causes** the
+problem: it leaves the child with no console, and a console-subsystem grandchild whose parent has
+none inherits nothing — Windows allocates it a **brand new, visible** one. That is exactly what
+ollama's model runner was doing, once per model load.
+
+**Fix (automatic).** The installer copies `vkm-runhidden.exe` into `~/.claude/bin/` and points the
+hook entries at it. That binary is built **GUI-subsystem**, so the loader allocates it no console;
+it creates one, **hides** it, and starts the real program without `CREATE_NO_WINDOW` so the whole
+tree inherits that single hidden console. It proxies stdin, stdout and the **exit code** verbatim,
+so a `PreToolUse` guard can still block a call. Full rationale in
+[ADR-0078](../adr/0078-allocate-and-hide-a-console.md).
+
+**Check that it is installed:**
+
+```powershell
+Test-Path "$env:USERPROFILE\.claude\bin\vkm-runhidden.exe"
+```
+
+**If that prints `False`** (an install from before this fix, or the file was deleted), re-run the
+installer — it is idempotent and repairs the entry:
+
+```bash
+npx --yes @vkmikc/create-vkm-kit@latest
+```
+
+**From a repo checkout** (needs Go), the equivalent is:
+
+```bash
+npm run build:runhidden && npm run install:runhidden
+```
+
+**What to expect if it is missing.** Nothing breaks: hooks fall back to plain `node` and behave
+identically — they just flash again. Hooks are read at session start, so **restart Claude Code**
+after installing it.
+
+**What it deliberately does NOT do.** If you run `vkm-runhidden.exe` from a terminal, it does
+**not** hide that terminal. It inherited that console, and `ShowWindow(SW_HIDE)` has no undo here:
+it would leave your shell running with no window, recoverable only through Task Manager.
 
 ### A `conhost` window appears every few seconds, with `git` as its parent (Windows)
 

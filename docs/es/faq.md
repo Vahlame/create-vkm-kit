@@ -101,7 +101,7 @@ En principio sí. Consumen el **mismo servidor MCP**. Tendrías que traducir las
 
 ### ¿Hasta qué tamaño puede crecer el vault?
 
-En la práctica, varios cientos de MB van bien. Los diffs de git se mantienen pequeños; el índice opcional **`obsidian-memory-rag`** (FTS5 + vectores por fragmento) mantiene la búsqueda rápida a cualquier tamaño. Leer `MEMORY.md` está acotado por el contexto del modelo, porque el agente lee **solo lo que necesita**.
+Con honestidad: **bien hasta unas decenas de miles de notas, sin comprobar más allá.** El benchmark de retrieval corre sobre un fixture de 19 notas, así que cualquier cifra por encima es extrapolación, no medición (ADR-0069). Lo que sí está comprobado: los diffs de git se mantienen pequeños porque las notas lo son, el índice opcional **`obsidian-memory-rag`** es incremental (solo relee las notas que cambiaron), y leer `MEMORY.md` está acotado por el contexto del modelo porque el agente lee **solo lo que necesita** — un pasaje, no un archivo. Si llevas un vault mucho más allá y lo mides, esos números valen un pull request.
 
 ### ¿Puedo compartir `MEMORY.md` con un compañero?
 

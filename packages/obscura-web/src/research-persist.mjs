@@ -11,9 +11,12 @@
  * of the kit's atomic-write convention (see obsidian-memory-mcp/src/vault-fs.mjs).
  *
  * Layout (D1'):
- *   <root>/_index.md                 — global topic table (sources, last run, summary?)
+ *   <root>/_index.md                 — global topic table (sources, last run, summary?, compiled?)
  *   <root>/<topic>/_index.md         — hub: query log (pipeline-owned) + huecos (user-owned)
- *   <root>/<topic>/summary.md        — status: draft-local (this module) | consolidated (Claude)
+ *   <root>/<topic>/summary.md        — status: draft-local (this module, auto-refreshed on every
+ *                                       persist via Ollama or, absent that, a heuristic fallback —
+ *                                       see `method:`) | consolidated (Claude, /vkm-research only)
+ *   <root>/<topic>/compiled-sources.md — every source concatenated verbatim (see {@link writeCompiled})
  *   <root>/<topic>/sources/<hash8>-<slug>.md — one verbatim extract per source URL
  */
 import { readFile, writeFile, mkdir, rename, readdir, stat } from "node:fs/promises";
@@ -262,6 +265,7 @@ async function updateGlobalIndex(root, topic) {
   const fp = safeResearchPath(root, "_index.md");
   const sourceCount = await countSources(safeResearchPath(root, topic, "sources"));
   const hasSummary = await fileExists(safeResearchPath(root, topic, "summary.md"));
+  const hasCompiled = await fileExists(safeResearchPath(root, topic, "compiled-sources.md"));
   const nowIso = new Date().toISOString();
 
   let rows = [];
@@ -272,13 +276,16 @@ async function updateGlobalIndex(root, topic) {
   } catch {
     /* first-ever topic — start fresh */
   }
-  const newRow = `| ${topic} | ${sourceCount} | ${nowIso} | ${hasSummary ? "yes" : "no"} |`;
+  const newRow =
+    `| ${topic} | ${sourceCount} | ${nowIso} | ${hasSummary ? "yes" : "no"} | ` +
+    `${hasCompiled ? "yes" : "no"} |`;
   const idx = rows.findIndex((r) => r.split("|")[1]?.trim() === topic);
   if (idx >= 0) rows[idx] = newRow;
   else rows.push(newRow);
 
   const header =
-    "# Research index\n\n| Topic | Sources | Last run | Summary |\n|---|---|---|---|\n";
+    "# Research index\n\n| Topic | Sources | Last run | Summary | Compiled |\n" +
+    "|---|---|---|---|---|\n";
   await atomicWrite(fp, header + rows.join("\n") + "\n");
 }
 
@@ -333,9 +340,13 @@ export async function listCoveredHashes(topic, researchDir) {
  *           researchDir?: string }} [args] `topic` is `unknown`, not `string`: a missing/invalid
  *           topic is a caller error {@link validateTopic} rejects with a typed message, not a
  *           destructuring crash — so this must accept whatever a caller hands it, including {}.
+ * @param {{ checkOllamaImpl?: typeof checkOllama, ensureOllamaImpl?: typeof ensureOllamaServer,
+ *           summarizeImpl?: typeof summarizeNotes }} [deps] forwarded to {@link autoConsolidate}'s
+ *           Ollama attempt; production callers rely on the real implementations, tests inject
+ *           fakes the same way {@link consolidateTopic} already supports.
  * @returns {Promise<{ topic: string, written: number, updated: number, dir: string }>}
  */
-export async function persistResults({ topic, query, results, researchDir } = {}) {
+export async function persistResults({ topic, query, results, researchDir } = {}, deps = {}) {
   // A new binding, not a reassignment of `topic`: TS's control-flow narrowing does not carry an
   // `unknown` parameter's reassigned type through to later reads in checkJs (verified — a
   // `topic = validateTopic(topic)` reassignment still leaves `topic` typed `unknown` below).
@@ -383,9 +394,75 @@ export async function persistResults({ topic, query, results, researchDir } = {}
   }
 
   await updateHub(root, topicSlug, query, await countSources(sourcesDir));
+  // BEFORE updateGlobalIndex: its own `hasCompiled`/`hasSummary` checks must see what this call
+  // just wrote, not the pre-call state (which would lag by exactly one persist on every topic's
+  // first run).
+  await writeCompiled({ topic: topicSlug, researchDir: root });
+  try {
+    await autoConsolidate({ topic: topicSlug, researchDir: root }, deps);
+  } catch {
+    // Best-effort by design (spec requirement 2): a persist call's job is to bank the sources —
+    // it must never fail or block over a consolidation problem it didn't cause.
+  }
   await updateGlobalIndex(root, topicSlug);
 
   return { topic: topicSlug, written, updated, dir: topicDir };
+}
+
+// ── writeCompiled — every source, verbatim, in ONE file ─────────────────────────────────────
+
+/**
+ * Concatenate every note under `<topic>/sources/` into one human-readable
+ * `<topic>/compiled-sources.md` — the uncompressed counterpart to `summary.md` (which is a
+ * deliberately lossy distillation, ≤60% of source size by the consolidation validator's own
+ * rule). Refreshed on every {@link persistResults} call so it never drifts from what's actually
+ * in `sources/`. Scope is deliberately narrow: source content only, not a background job's
+ * `runs/` trace (objective/round-log) — those answer "how was this gathered", this answers
+ * "what was gathered", and conflating them would make neither easy to read.
+ * @param {{ topic?: unknown, researchDir?: string }} [args] `topic` is `unknown`, not `string`
+ *           — see the same note on {@link persistResults}.
+ * @returns {Promise<{ path: string, sources: number } | null>} `null` when `sources/` has
+ *           nothing yet — there is nothing to compile, and no empty file is written.
+ */
+export async function writeCompiled({ topic, researchDir } = {}) {
+  const topicSlug = validateTopic(topic);
+  const root = resolveResearchRoot(researchDir);
+  const sourcesDir = safeResearchPath(root, topicSlug, "sources");
+
+  let files;
+  try {
+    files = (await readdir(sourcesDir)).filter((f) => f.endsWith(".md")).sort();
+  } catch {
+    files = [];
+  }
+  if (!files.length) return null;
+
+  const sections = [];
+  for (const f of files) {
+    const { data, body } = parseFrontmatter(
+      await readFile(safeResearchPath(root, topicSlug, "sources", f), "utf8")
+    );
+    const attribution = [
+      data.url ? `<${data.url}>` : null,
+      data.author ? `by ${data.author}` : null,
+      data.published ? `published ${data.published}` : `retrieved ${data.retrieved ?? "?"}`
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    sections.push(`## ${data.title || f}\n\n${attribution}\n\n${body.trim()}`);
+  }
+
+  const fm = renderFrontmatter({
+    topic: topicSlug,
+    generated: new Date().toISOString(),
+    sources: files.length
+  });
+  const fp = safeResearchPath(root, topicSlug, "compiled-sources.md");
+  await atomicWrite(
+    fp,
+    `${fm}\n# ${topicSlug} — compiled sources\n\n${sections.join("\n\n---\n\n")}\n`
+  );
+  return { path: fp, sources: files.length };
 }
 
 // ── writeRunReport — deep-research job trace ────────────────────────────────────────────────
@@ -472,6 +549,29 @@ export async function writeCrawlExport({ topic, rows, researchDir } = {}) {
 }
 
 // ── obscura_consolidate (R7'/R8): local map-reduce draft summary ───────────────────────────
+
+/** Shared ceiling for every non-`consolidated` draft (Ollama or heuristic), mirroring
+ * `validate_summary.mjs`'s `MAX_COMPRESSION_RATIO` for the human-reviewed path: a draft that
+ * isn't meaningfully smaller than the sources it came from is a transcription, not a summary,
+ * regardless of which method wrote it. */
+const DRAFT_MAX_COMPRESSION_RATIO = 0.6;
+
+/** Truncate `text` so it never exceeds `maxRatio` of `totalSourceChars`, breaking at the last
+ * paragraph/sentence boundary before the cut so the result still reads as prose. A 200-char
+ * floor keeps tiny fixtures (tests, brand-new topics with one short source) from being clipped
+ * mid-word over a budget that would otherwise round to single digits. */
+function capToRatio(text, totalSourceChars, maxRatio = DRAFT_MAX_COMPRESSION_RATIO) {
+  const budget = Math.max(200, Math.floor(totalSourceChars * maxRatio));
+  if (text.length <= budget) return text;
+  // The notice is part of the output, so it must come OUT of the budget, not on top of it —
+  // otherwise a "capped" draft can end up longer than the ceiling it's reporting it respected.
+  const notice = `\n\n…(auto-truncated to stay under the ${Math.round(maxRatio * 100)}% compression ceiling)`;
+  const contentBudget = Math.max(50, budget - notice.length);
+  const cut = text.slice(0, contentBudget);
+  const lastBreak = Math.max(cut.lastIndexOf("\n\n"), cut.lastIndexOf(". "));
+  const kept = lastBreak > contentBudget * 0.5 ? cut.slice(0, lastBreak + 1) : cut;
+  return `${kept.trimEnd()}${notice}`;
+}
 
 /** Chunk pre-formatted note texts so no chunk's joined text exceeds `maxChars` — a note is
  * never split across chunks (each item was already truncated to fit alone, if needed, by the
@@ -597,25 +697,150 @@ export async function consolidateTopic(
   }
 
   const notes = [];
+  let totalSourceChars = 0;
   for (const f of files) {
     const { data, body } = parseFrontmatter(
       await readFile(safeResearchPath(root, topicSlug, "sources", f), "utf8")
     );
+    const bodyTrimmed = body.trim();
+    totalSourceChars += bodyTrimmed.length;
     notes.push({
-      text: `## ${f}\nurl: ${data.url ?? ""}\ntitle: ${data.title ?? ""}\n\n${body.trim()}`
+      text: `## ${f}\nurl: ${data.url ?? ""}\ntitle: ${data.title ?? ""}\n\n${bodyTrimmed}`
     });
   }
 
   const { summary, truncated } = await summarizeAll(notes, topicSlug, maxInputChars, summarizeImpl);
+  const cappedSummary = capToRatio(summary.trim(), totalSourceChars);
 
   const fm = renderFrontmatter({
     status: "draft-local",
+    method: "ollama",
     generated: new Date().toISOString(),
     model: DEFAULT_MODEL,
     sources: files
   });
-  await atomicWrite(summaryPath, `${fm}\n${summary.trim()}\n`);
+  await atomicWrite(summaryPath, `${fm}\n${cappedSummary}\n`);
   await updateGlobalIndex(root, topicSlug);
 
   return { sources_read: files.length, truncated, model: DEFAULT_MODEL, wrote: summaryPath };
+}
+
+// ── heuristicConsolidate — no-LLM fallback so a draft always exists ────────────────────────
+
+/** Leading excerpt of `text` capped at `maxChars`, breaking at the nearest sentence end past
+ * the halfway point so the cut doesn't land mid-word; an ellipsis marks a real truncation. */
+function extractLead(text, maxChars) {
+  if (text.length <= maxChars) return text;
+  const cut = text.slice(0, maxChars);
+  const lastSentenceEnd = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf(".\n"));
+  const kept = lastSentenceEnd > maxChars * 0.5 ? cut.slice(0, lastSentenceEnd + 1) : cut;
+  return `${kept.trim()}…`;
+}
+
+/**
+ * Mechanical, non-LLM fallback for `consolidateTopic`: an evenly-budgeted leading excerpt per
+ * source, one bullet each, so a topic never ends a persist call with sources but no summary.md
+ * at all just because Ollama isn't running. Deliberately NOT a claim of curation — the frontmatter
+ * says `method: "heuristic"` so a later `/vkm-research` pass (or a re-run once Ollama is back)
+ * knows this draft was never read by a model. Same `status: "draft-local"` as the Ollama path —
+ * `/vkm-research` is still the only route to `status: "consolidated"`.
+ * @param {{ topic?: unknown, researchDir?: string }} [args]
+ * @returns {Promise<{ sources_read: number, method: "heuristic", wrote: string }>}
+ */
+export async function heuristicConsolidate({ topic, researchDir } = {}) {
+  const topicSlug = validateTopic(topic);
+  const root = resolveResearchRoot(researchDir);
+  const sourcesDir = safeResearchPath(root, topicSlug, "sources");
+  const summaryPath = safeResearchPath(root, topicSlug, "summary.md");
+
+  let files;
+  try {
+    files = (await readdir(sourcesDir)).filter((f) => f.endsWith(".md")).sort();
+  } catch {
+    files = [];
+  }
+  if (!files.length) {
+    throw new ResearchPersistError(
+      `no sources found under ${topicSlug}/sources/ — nothing to consolidate`,
+      "no_sources"
+    );
+  }
+
+  const notes = [];
+  let totalSourceChars = 0;
+  for (const f of files) {
+    const { data, body } = parseFrontmatter(
+      await readFile(safeResearchPath(root, topicSlug, "sources", f), "utf8")
+    );
+    const bodyTrimmed = body.trim();
+    totalSourceChars += bodyTrimmed.length;
+    notes.push({ title: String(data.title || f), body: bodyTrimmed });
+  }
+
+  const budget = Math.max(200, Math.floor(totalSourceChars * DRAFT_MAX_COMPRESSION_RATIO));
+  const perSource = Math.max(40, Math.floor(budget / notes.length));
+  const bullets = notes.map((n) => `- **${n.title}**: ${extractLead(n.body, perSource)}`);
+  const draftBody = capToRatio(
+    `Unreviewed extractive digest (no LLM) — leading excerpt per source:\n\n${bullets.join("\n")}`,
+    totalSourceChars
+  );
+
+  const fm = renderFrontmatter({
+    status: "draft-local",
+    method: "heuristic",
+    generated: new Date().toISOString(),
+    sources: files
+  });
+  await atomicWrite(summaryPath, `${fm}\n${draftBody}\n`);
+  await updateGlobalIndex(root, topicSlug);
+
+  return { sources_read: files.length, method: "heuristic", wrote: summaryPath };
+}
+
+// ── autoConsolidate — persistResults' best-effort hook ──────────────────────────────────────
+
+/**
+ * Best-effort draft-or-refresh, called from `persistResults` after every persist that touches
+ * at least one source. Ollama first (richer draft); on `OllamaUnavailableError` specifically,
+ * falls back to {@link heuristicConsolidate} so a summary always exists. Never regenerates a
+ * `status: consolidated` summary (Claude-authored) — mirrors, and relies on, the same guard
+ * `consolidateTopic` already enforces. Any other error (a real bug, not "Ollama is down")
+ * propagates — only the documented "no Ollama" case has a defined fallback.
+ * @param {{ topic?: unknown, researchDir?: string }} [args]
+ * @param {{ checkOllamaImpl?: typeof checkOllama, ensureOllamaImpl?: typeof ensureOllamaServer,
+ *           summarizeImpl?: typeof summarizeNotes }} [deps]
+ * @returns {Promise<Awaited<ReturnType<typeof consolidateTopic>> | Awaited<ReturnType<typeof heuristicConsolidate>> | null>}
+ *          `null` when there is nothing to do (no sources yet, or already `consolidated`).
+ */
+export async function autoConsolidate({ topic, researchDir } = {}, deps = {}) {
+  const topicSlug = validateTopic(topic);
+  const root = resolveResearchRoot(researchDir);
+
+  let hasSources = false;
+  try {
+    hasSources = (await readdir(safeResearchPath(root, topicSlug, "sources"))).some((f) =>
+      f.endsWith(".md")
+    );
+  } catch {
+    /* sources/ doesn't exist yet — nothing to consolidate */
+  }
+  if (!hasSources) return null;
+
+  let existingStatus = null;
+  try {
+    const summaryText = await readFile(safeResearchPath(root, topicSlug, "summary.md"), "utf8");
+    existingStatus = parseFrontmatter(summaryText).data.status ?? null;
+  } catch {
+    /* no existing summary.md — fresh draft */
+  }
+  if (existingStatus === "consolidated") return null;
+
+  try {
+    return await consolidateTopic({ topic: topicSlug, force: true, researchDir: root }, deps);
+  } catch (err) {
+    if (err instanceof OllamaUnavailableError) {
+      return await heuristicConsolidate({ topic: topicSlug, researchDir: root });
+    }
+    throw err;
+  }
 }

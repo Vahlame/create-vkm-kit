@@ -15,6 +15,7 @@
  * Pure helper module (no MCP dependency), same rationale as vault-fs.mjs.
  */
 import { execa } from "execa";
+import { throughHiddenConsole } from "@vkmikc/vkm-core/hidden-console";
 import { realpath } from "node:fs/promises";
 import { relative, sep } from "node:path";
 import { safeVaultPath } from "./vault-fs.mjs";
@@ -38,9 +39,16 @@ const GIT_TIMEOUT_MS = 15_000;
 async function runGit(vaultReal, args) {
   let r;
   try {
-    r = await execa("git", ["-C", vaultReal, ...args], {
+    // git is the textbook case from ADR-0078: it spawns console-subsystem children of
+    // its own (pagers, credential helpers, git-remote-*), so its console state is not a
+    // detail. Routed through the launcher for the same reason as every other background
+    // spawn in the kit — nothing the agent does on its own initiative may put a window
+    // on screen while the user is in another application.
+    const launch = throughHiddenConsole("git", ["-C", vaultReal, ...args]);
+    r = await execa(launch.command, launch.args, {
       reject: false,
       stripFinalNewline: true,
+      windowsHide: launch.windowsHide,
       timeout: GIT_TIMEOUT_MS
     });
   } catch (e) {

@@ -20,8 +20,8 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import test, { beforeEach } from "node:test";
 
-import { FIXTURES_DIR, QUERIES_PATH, fixtureName } from "../src/bench-capture.mjs";
-import { evaluate, formatReport, loadQueries } from "../src/bench-research.mjs";
+import { FIXTURES_DIR, QUERIES_PATH, fixtureName } from "../bench/bench-capture.mjs";
+import { evaluate, formatReport, loadQueries } from "../bench/bench-research.mjs";
 import { deepResearch, clearFetchCache, clearSearxngCache } from "../src/research.mjs";
 
 // The SearXNG cache is module-global state (that is the point — it spans research calls to keep

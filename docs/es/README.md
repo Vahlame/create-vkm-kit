@@ -20,6 +20,7 @@ Toda la guía de usuario, en orden de lectura recomendado.
 
 | Documento                                                    | Para qué                                                                                  |
 | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| [Migración a 5.0](migracion-5.0.md)                          | ¿Vienes de 4.x? Un comando, una regla de orden en Windows, cuatro cambios que rompen.     |
 | [Migración a 4.0](migracion-4.0.md)                          | ¿Vienes de 3.x? Qué cambió con el rename a vkm-kit, qué está congelado y cómo actualizar. |
 | [Sincronización con git](sincronizacion.md)                  | Backup y multi-máquina: daemon, git manual, o mismo repo.                                 |
 | [Preguntas frecuentes](faq.md)                               | Dudas comunes + comparación honesta con alternativas.                                     |

@@ -8,6 +8,7 @@
 // wire-by-absolute-path model as the hybrid MCP server — so telemetry needs a kit clone
 // (callers pass `kitRoot`; without one this module is skipped with a hint).
 import path from "node:path";
+import { hookInterpreter } from "./hook-interpreter.mjs";
 import { fileURLToPath } from "node:url";
 import fse from "fs-extra";
 import pc from "picocolors";
@@ -54,6 +55,9 @@ export async function configureTelemetry(home, dryRun, { enable = true, kitRoot 
   const hooksDir = path.join(claudeDir, "hooks");
   const settingsFp = path.join(claudeDir, "settings.json");
   const hookDest = path.join(hooksDir, ENSURE_SINK_HOOK_BASENAME);
+  // Composition root: resolved ONCE against the claudeDir being installed into, not against the
+  // current user's `~/.claude` — `home` is a parameter here, and every test passes a temp one.
+  const interpreter = hookInterpreter(claudeDir);
 
   try {
     if (enable && !kitRoot) {
@@ -101,7 +105,7 @@ export async function configureTelemetry(home, dryRun, { enable = true, kitRoot 
           hookMap,
           "SessionStart",
           "*",
-          { command: "node", args: [hookDest, sinkScript] },
+          { command: interpreter, args: [hookDest, sinkScript] },
           ENSURE_SINK_HOOK_STEM
         )
       : removeManagedHook(hookMap, "SessionStart", ENSURE_SINK_HOOK_STEM);

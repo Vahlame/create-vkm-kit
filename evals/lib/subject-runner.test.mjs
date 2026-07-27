@@ -181,3 +181,43 @@ test("formatCost distinguishes unreported from free", () => {
     /tok=500 out=50 turns=3\.0 wall=2\.0s/
   );
 });
+
+// --- the command-line ceiling ------------------------------------------------------
+
+test("runSubject refuses a prompt that would not fit on the command line", async () => {
+  // design-bench already emits 26,852 chars and its injected SKILL.md files grow every
+  // release; the point of this guard is a legible error instead of an opaque spawn
+  // failure hundreds of paid model calls into a run.
+  const huge = "x".repeat(4 * 1024 * 1024);
+  await assert.rejects(
+    () => runSubject({ prompt: huge, agentCmd: "node -e 0" }),
+    /does not fit on the command line/
+  );
+});
+
+test("the ceiling error names the stdin escape hatch", async () => {
+  const huge = "x".repeat(4 * 1024 * 1024);
+  await assert.rejects(
+    () => runSubject({ prompt: huge, agentCmd: "node -e 0" }),
+    /--prompt-via stdin/
+  );
+});
+
+test('promptVia "stdin" bypasses the ceiling and the child reads the prompt', async () => {
+  // Same on-disk-fake-agent shape as above, for the same reason (agentCmd is split on
+  // whitespace). This one reports how many bytes reached its stdin.
+  const fp = path.join(agentDir, "stdin-agent.mjs");
+  fs.writeFileSync(
+    fp,
+    `let s = "";
+process.stdin.on("data", (d) => (s += d)).on("end", () => console.log(s.length));
+`
+  );
+  const big = "y".repeat(200_000); // over the Windows argv ceiling, well under ARG_MAX
+  const { answer } = await runSubject({
+    prompt: big,
+    agentCmd: `node ${fp}`,
+    promptVia: "stdin"
+  });
+  assert.equal(answer.trim(), String(big.length));
+});

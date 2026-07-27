@@ -10,26 +10,12 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import potrace from "potrace";
 import { svgPathBbox } from "svg-path-bbox";
+import { arg, fillHoles, largestComponent, loadJimp, maskBounds, morph8, otsu } from "./raster.mjs";
 
-// This script uses jimp's v0 API (default export, positional constructor, Jimp.MIME_PNG,
-// getBufferAsync) — jimp v1 (current npm default) removed the default export entirely, which
-// makes a STATIC `import Jimp from "jimp"` throw a raw SyntaxError before this file's body even
-// runs (verified live against real jimp@1.6.1). A dynamic import lets us check the version and
-// fail with a clear, actionable message instead of that cryptic crash (or a missing-package one).
-const { default: Jimp } = await import("jimp").catch(() => ({}));
-if (typeof Jimp?.MIME_PNG !== "string") {
-  console.error(
-    "error: this script needs jimp@0.22.x (the v0 API) — detected an incompatible or missing " +
-      "Jimp (no default export / no Jimp.MIME_PNG; jimp v1+ removed both). Run `npm install` " +
-      "in this scripts/ folder — package.json pins the working version."
-  );
+const Jimp = await loadJimp().catch((e) => {
+  console.error(`error: ${e.message}`);
   process.exit(2);
-}
-
-function arg(flag, def) {
-  const i = process.argv.indexOf(flag);
-  return i === -1 ? def : process.argv[i + 1];
-}
+});
 
 const [, , input, output] = process.argv;
 if (!input || !output) {
@@ -45,31 +31,6 @@ const outW = Number(arg("--w", "440"));
 const turdSize = Number(arg("--turd", "80"));
 const alphaMax = Number(arg("--smooth", "1"));
 let threshold = arg("--threshold", "auto");
-
-/** Otsu threshold on a grayscale histogram (0..255). */
-function otsu(hist, total) {
-  let sum = 0;
-  for (let t = 0; t < 256; t++) sum += t * hist[t];
-  let sumB = 0,
-    wB = 0,
-    max = 0,
-    thr = 127;
-  for (let t = 0; t < 256; t++) {
-    wB += hist[t];
-    if (wB === 0) continue;
-    const wF = total - wB;
-    if (wF === 0) break;
-    sumB += t * hist[t];
-    const mB = sumB / wB;
-    const mF = (sum - sumB) / wF;
-    const between = wB * wF * (mB - mF) ** 2;
-    if (between > max) {
-      max = between;
-      thr = t;
-    }
-  }
-  return thr;
-}
 
 const img = await Jimp.read(readFileSync(input));
 const { width: W, height: H } = img.bitmap;
@@ -108,81 +69,14 @@ for (let i = 0; i < W * H; i++) mask[i] = (bgIsLight ? gray[i] < thr : gray[i] >
 // artifacts (the "horrible" speckled look). Default cleaning: keep the largest connected
 // component (drop background blobs + floating specks), fill interior holes (kill the speckle),
 // then morphologically smooth the outline. Disable with --raw.
-function largestComponent(m) {
-  const lab = new Int32Array(W * H);
-  let cur = 0,
-    best = 0,
-    bestSize = 0;
-  const st = [];
-  for (let i = 0; i < W * H; i++) {
-    if (!m[i] || lab[i]) continue;
-    cur++;
-    let size = 0;
-    st.push(i);
-    lab[i] = cur;
-    while (st.length) {
-      const p = st.pop();
-      size++;
-      const x = p % W,
-        y = (p / W) | 0;
-      if (x + 1 < W && m[p + 1] && !lab[p + 1]) ((lab[p + 1] = cur), st.push(p + 1));
-      if (x - 1 >= 0 && m[p - 1] && !lab[p - 1]) ((lab[p - 1] = cur), st.push(p - 1));
-      if (y + 1 < H && m[p + W] && !lab[p + W]) ((lab[p + W] = cur), st.push(p + W));
-      if (y - 1 >= 0 && m[p - W] && !lab[p - W]) ((lab[p - W] = cur), st.push(p - W));
-    }
-    if (size > bestSize) ((bestSize = size), (best = cur));
-  }
-  const out = new Uint8Array(W * H);
-  for (let i = 0; i < W * H; i++) out[i] = lab[i] === best ? 1 : 0;
-  return out;
-}
-function fillHoles(m) {
-  const bg = new Uint8Array(W * H);
-  const st = [];
-  for (let x = 0; x < W; x++) (st.push(x), st.push((H - 1) * W + x));
-  for (let y = 0; y < H; y++) (st.push(y * W), st.push(y * W + W - 1));
-  while (st.length) {
-    const p = st.pop();
-    if (p < 0 || p >= W * H || bg[p] || m[p]) continue;
-    bg[p] = 1;
-    const x = p % W,
-      y = (p / W) | 0;
-    if (x + 1 < W) st.push(p + 1);
-    if (x - 1 >= 0) st.push(p - 1);
-    if (y + 1 < H) st.push(p + W);
-    if (y - 1 >= 0) st.push(p - W);
-  }
-  const out = new Uint8Array(W * H);
-  for (let i = 0; i < W * H; i++) out[i] = m[i] || !bg[i] ? 1 : 0;
-  return out;
-}
-function morph(m, dilate) {
-  const out = new Uint8Array(W * H);
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      let v = dilate ? 0 : 1;
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          const nx = Math.min(W - 1, Math.max(0, x + dx));
-          const ny = Math.min(H - 1, Math.max(0, y + dy));
-          const s = m[ny * W + nx];
-          if (dilate && s) v = 1;
-          if (!dilate && !s) v = 0;
-        }
-      }
-      out[y * W + x] = v;
-    }
-  }
-  return out;
-}
 if (!process.argv.includes("--raw")) {
-  mask = largestComponent(mask);
-  mask = fillHoles(mask);
+  mask = largestComponent(mask, W, H);
+  mask = fillHoles(mask, W, H);
   // close (dilate→erode) fills tiny gaps, open (erode→dilate) removes thin protrusions
-  mask = morph(morph(mask, true), false);
-  mask = morph(morph(mask, false), true);
-  mask = largestComponent(mask); // opening may split a thin bridge; keep the main body
-  mask = fillHoles(mask);
+  mask = morph8(morph8(mask, W, H, true), W, H, false);
+  mask = morph8(morph8(mask, W, H, false), W, H, true);
+  mask = largestComponent(mask, W, H); // opening may split a thin bridge; keep the main body
+  mask = fillHoles(mask, W, H);
 }
 
 // Build a black-subject-on-white mask bitmap for potrace, and keep the cleaned mask for IoU.
@@ -257,22 +151,11 @@ writeFileSync(output, svg);
 // Faithfulness: rasterize nothing extra — compare the mask we traced against a re-raster of the
 // trace via a fill-rule scanline is heavy; instead report mask coverage + path count as a proxy,
 // plus a self-check that the trace's own filled area (potrace bbox) matches the mask bbox.
-let mx0 = W,
-  mx1 = 0,
-  my0 = H,
-  my1 = 0,
-  area = 0;
-for (let y = 0; y < H; y++)
-  for (let x = 0; x < W; x++)
-    if (mask[y * W + x]) {
-      area++;
-      if (x < mx0) mx0 = x;
-      if (x > mx1) mx1 = x;
-      if (y < my0) my0 = y;
-      if (y > my1) my1 = y;
-    }
+let area = 0;
+for (let i = 0; i < W * H; i++) if (mask[i]) area++;
+const b = maskBounds(mask, W, H);
 const coverage = (area / (W * H)).toFixed(3);
-const bboxRatio = ((mx1 - mx0) / (my1 - my0) || 0).toFixed(2);
+const bboxRatio = b ? ((b.x1 - b.x0) / (b.y1 - b.y0) || 0).toFixed(2) : "0.00";
 console.log(
   JSON.stringify({
     output,

@@ -153,9 +153,7 @@ animates.
 
 ## Where this plugs in
 
-- `direction.md`: a direction = lineage capsule × **one contemporary current** — the cross is
-  usually the signature. Pick the current DURING direction, not as decoration after.
-- `modes/generate.md` step 5: implement the chosen move(s) as part of the build, tokens first.
-- `modes/critique.md`: "no memorable move in the first viewport" is a **Major** finding — cite
-  which move would fix it.
-- `modes/visual-loop.md`: the lineup test runs on the first-viewport screenshot every iteration.
+Pick the current DURING direction (`direction.md`: a direction = lineage capsule × **one**
+current, and the cross is usually the signature), build it in `modes/generate.md` step 5 tokens
+first, and defend it after: "no memorable move in the first viewport" is a **Major** finding in
+`modes/critique.md`, and `modes/visual-loop.md` re-runs the lineup test every iteration.

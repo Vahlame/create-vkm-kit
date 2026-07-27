@@ -33,10 +33,12 @@ import time
 from collections import Counter
 from pathlib import Path
 
+from .graphlink import extract_targets
 from .paths import index_db_path
 from .report import _degree, _near_duplicate_notes, _orphan_notes, _stale_notes
 from .rotate import _split_sections
 from .store import connect, init_schema
+from .tags import extract_tags
 from .text_scrub import strip_code_regions
 from .vector_store import has_any_chunks
 
@@ -46,8 +48,6 @@ _PENDING_RE = re.compile(
 )
 _FRONTMATTER_RE = re.compile(r"^---\r?\n(.*?)\r?\n---(?:\r?\n|$)", re.DOTALL)
 _STATUS_HYPOTHESIS_RE = re.compile(r"^status:\s*hypothesis\b", re.MULTILINE)
-_TAG_RE = re.compile(r"(?<!\w)#([\w][\w/-]*)")
-_WIKILINK_RE = re.compile(r"\[\[([^\[\]|#]+)")
 
 OBSERVATIONS_NOTE = "PRACTICES/observations.md"
 SESSION_LOG_NAME = "SESSION_LOG.md"
@@ -118,8 +118,12 @@ def _recent_activity(vault: Path, *, sections: int = 15) -> dict:
         # A section documenting the #tag/[[wikilink]] syntax in a fenced example
         # must not pollute the real usage counts below.
         scan = strip_code_regions(s)
-        tags.update(t.lower() for t in _TAG_RE.findall(scan))
-        links.update(t.strip().lower() for t in _WIKILINK_RE.findall(scan))
+        # Shared extractor: reflect's own regex matched `##Heading` as a tag and never
+        # applied the hex-colour filter, so an inline palette flooded the top-tags list.
+        tags.update(extract_tags(scan, lower=True))
+        # Same regex + normalizer as the graph itself, so the digest counts the edges
+        # the index actually holds rather than a third parser's approximation.
+        links.update(extract_targets(scan))
     return {
         "sections": len(newest),
         "top_tags": [{"tag": t, "count": n} for t, n in tags.most_common(8)],
@@ -264,7 +268,8 @@ def format_reflection(data: dict) -> str:
     lines.append("")
     lines.append(f"- sections digested: {ra['sections']}")
     if ra["top_tags"]:
-        lines.append("- top tags: " + ", ".join(f"#{t['tag']}×{t['count']}" for t in ra["top_tags"]))
+        tags = ", ".join(f"#{t['tag']}×{t['count']}" for t in ra["top_tags"])
+        lines.append("- top tags: " + tags)
     if ra["top_links"]:
         lines.append(
             "- top links: " + ", ".join(f"[[{t['target']}]]×{t['count']}" for t in ra["top_links"])

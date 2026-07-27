@@ -10,7 +10,7 @@ People use Markdown vaults for notes that may include **sensitive or personal** 
 
 ## Decision
 
-Document **short, jurisdiction-neutral** guidance in `docs/observability.md`, `SECURITY.md`, and related files: minimize what gets logged, prefer opaque IDs in traces, keep encryption (for example `age`) optional, and tell readers to run their own security and privacy review where their situation requires it.
+Document **short, jurisdiction-neutral** guidance in `docs/en/observability.md`, `SECURITY.md`, and related files: minimize what gets logged, prefer opaque IDs in traces, keep encryption (for example `age`) optional, and tell readers to run their own security and privacy review where their situation requires it.
 
 ## Consequences
 
@@ -24,5 +24,5 @@ Document **short, jurisdiction-neutral** guidance in `docs/observability.md`, `S
 
 ## References
 
-- `docs/observability.md`
+- `docs/en/observability.md`
 - `SECURITY.md`

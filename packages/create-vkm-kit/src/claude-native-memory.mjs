@@ -33,6 +33,7 @@
 // builds on the same removal path plus deletes the hook script files themselves, but only
 // when a marker check proves this kit wrote them (never a user's own same-named file).
 import path from "node:path";
+import { hookInterpreter } from "./hook-interpreter.mjs";
 import { fileURLToPath } from "node:url";
 import fse from "fs-extra";
 import pc from "picocolors";
@@ -94,25 +95,34 @@ function packagedHookPath(basename = HOOK_BASENAME) {
  * @param {string} [lang]
  * @returns {{ command: string, args: string[] }}
  */
-export function hookCommand(hookPath, vaultAbs, lang = "es") {
-  return { command: "node", args: [hookPath, vaultAbs, lang === "en" ? "en" : "es"] };
+/**
+ * The interpreter every hook entry is built with.
+ *
+ * A PARAMETER with a plain default, not a filesystem probe inside each factory. These functions
+ * describe what goes into settings.json, and a function whose output depends on whether a file
+ * happens to exist on the developer's machine is one that cannot be tested and produces a different
+ * config depending on who ran the installer. The environment lookup belongs at the composition
+ * root (configureClaudeNativeMemory), which does it once and passes the answer down.
+ */
+export function hookCommand(hookPath, vaultAbs, lang = "es", interpreter = "node") {
+  return { command: interpreter, args: [hookPath, vaultAbs, lang === "en" ? "en" : "es"] };
 }
 
 /** The `PreToolUse` guard hook entry: `node "<hook>" "<claudeDir>" <lang>` (exec form). */
-export function guardHookCommand(hookPath, claudeDir, lang = "es") {
-  return { command: "node", args: [hookPath, claudeDir, lang === "en" ? "en" : "es"] };
+export function guardHookCommand(hookPath, claudeDir, lang = "es", interpreter = "node") {
+  return { command: interpreter, args: [hookPath, claudeDir, lang === "en" ? "en" : "es"] };
 }
 
 /** The `Stop` nudge hook entry (exec form; no path arg — it reads the transcript path
  * Claude Code passes on stdin). */
-export function stopHookCommand(hookPath, lang = "es") {
-  return { command: "node", args: [hookPath, lang === "en" ? "en" : "es"] };
+export function stopHookCommand(hookPath, lang = "es", interpreter = "node") {
+  return { command: interpreter, args: [hookPath, lang === "en" ? "en" : "es"] };
 }
 
 /** The effort-gate hook entry (exec form; same shape as the Stop nudge — it also reads
  * `transcript_path` from stdin, not argv). */
-export function effortGateHookCommand(hookPath, lang = "es") {
-  return { command: "node", args: [hookPath, lang === "en" ? "en" : "es"] };
+export function effortGateHookCommand(hookPath, lang = "es", interpreter = "node") {
+  return { command: interpreter, args: [hookPath, lang === "en" ? "en" : "es"] };
 }
 
 // The shared merge/remove/read/write primitives (hookEntryMatchesStem, mergeManagedHook,
@@ -312,10 +322,17 @@ export async function configureClaudeNativeMemory(
   const wantEnforce = enable && enforce;
   const wantEffortGate = enable && effortGate;
 
-  const hookEntry = enable ? hookCommand(hookDest, vaultAbs, lang) : null;
-  const guardCommand = wantEnforce ? guardHookCommand(guardDest, claudeDir, lang) : null;
-  const stopCommand = wantEnforce ? stopHookCommand(stopDest, lang) : null;
-  const effortGateCommand = wantEffortGate ? effortGateHookCommand(effortGateDest, lang) : null;
+  // Resolved ONCE, here, and passed down: the factories stay pure so their output is the same
+  // wherever they run, and the one place that touches the filesystem is this one.
+  const interpreter = hookInterpreter(claudeDir);
+  const hookEntry = enable ? hookCommand(hookDest, vaultAbs, lang, interpreter) : null;
+  const guardCommand = wantEnforce
+    ? guardHookCommand(guardDest, claudeDir, lang, interpreter)
+    : null;
+  const stopCommand = wantEnforce ? stopHookCommand(stopDest, lang, interpreter) : null;
+  const effortGateCommand = wantEffortGate
+    ? effortGateHookCommand(effortGateDest, lang, interpreter)
+    : null;
 
   try {
     // Read existing settings up front — needed to reconcile installs AND removals, and to

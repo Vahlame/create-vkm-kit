@@ -400,3 +400,33 @@ test("searchWeb caches by query+limit (second call does not re-fetch)", async ()
   assert.equal(b.source, "duckduckgo");
   assert.equal(calls, 1, "second call served from cache");
 });
+
+test("dedupe keys on URL IDENTITY, not the raw string", async () => {
+  _clearSearchCache();
+  // The same page as six engines spell it. Exact string matching — what this did before —
+  // returns all six, and each duplicate then costs a fetch, a curation call and a slot.
+  const searxngImpl = async () => [
+    { title: "canonical", url: "https://example.com/docs/guide", snippet: "a" },
+    { title: "http", url: "http://example.com/docs/guide", snippet: "b" },
+    { title: "www", url: "https://www.example.com/docs/guide", snippet: "c" },
+    { title: "slash", url: "https://example.com/docs/guide/", snippet: "d" },
+    { title: "fragment", url: "https://example.com/docs/guide#install", snippet: "e" },
+    { title: "utm", url: "https://example.com/docs/guide?utm_source=ddg", snippet: "f" },
+    { title: "different", url: "https://example.com/docs/other", snippet: "g" }
+  ];
+  const out = await searchWeb(
+    "identity dedupe query",
+    { searxngUrl: "http://127.0.0.1:8888" },
+    { searxngImpl, fetchImpl: async () => "", throttleImpl: noThrottle }
+  );
+  assert.deepEqual(
+    out.results.map((r) => r.title),
+    ["canonical", "different"],
+    "six spellings of one page collapse to one; a genuinely different path survives"
+  );
+  assert.equal(
+    out.results[0].url,
+    "https://example.com/docs/guide",
+    "the FIRST spelling seen is returned — the canonical form is an identity, not a rewrite"
+  );
+});

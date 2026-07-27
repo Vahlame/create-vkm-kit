@@ -9,7 +9,11 @@ from pathlib import Path
 from obsidian_memory_rag import HashingEmbedder, index_vault, index_vectors
 from obsidian_memory_rag.paths import index_db_path
 from obsidian_memory_rag.query import hybrid_search
-from obsidian_memory_rag.recall_log import cold_notes, log_events, usage_counts, usage_counts_decayed
+from obsidian_memory_rag.recall_log import (
+    cold_notes,
+    log_events,
+    usage_counts_decayed,
+)
 from obsidian_memory_rag.report import build_report
 from obsidian_memory_rag.store import connect, init_schema
 
@@ -35,8 +39,11 @@ def test_log_events_and_usage_counts_roundtrip(tmp_path: Path) -> None:
     assert log_events(vault, "returned", ["a.md", "b.md"], query="q") == 2
     assert log_events(vault, "used", ["a.md"]) == 1
     assert log_events(vault, "used", ["a.md"]) == 1
-    counts = usage_counts(vault, ["a.md", "b.md"])
-    assert counts == {"a.md": 2, "b.md": 0}
+    # Fresh events, so the recency weight is ~1.0 each and the decayed count
+    # reproduces the flat one the deleted `usage_counts` used to return.
+    counts = usage_counts_decayed(vault, ["a.md", "b.md"])
+    assert counts["a.md"] > 1.9
+    assert counts["b.md"] == 0.0
     # Unknown events are rejected, not written.
     assert log_events(vault, "clicked", ["a.md"]) == 0
 
@@ -82,7 +89,7 @@ def test_recall_log_survives_schema_version_reindex(tmp_path: Path) -> None:
     finally:
         conn.close()
     index_vault(vault)  # triggers the version-mismatch rebuild path
-    assert usage_counts(vault, ["STACKS/helpful.md"])["STACKS/helpful.md"] == 1
+    assert usage_counts_decayed(vault, ["STACKS/helpful.md"])["STACKS/helpful.md"] > 0.9
 
 
 def test_cold_notes_only_with_telemetry_present(tmp_path: Path) -> None:

@@ -24,7 +24,7 @@ _FENCED_BLOCK_RE = re.compile(r"^([ \t]*)(```|~~~).*?^\1\2[ \t]*\r?$", re.MULTIL
 _INLINE_CODE_RE = re.compile(r"(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)")
 
 
-def _blank_fenced(match: "re.Match[str]") -> str:
+def _blank_fenced(match: re.Match[str]) -> str:
     return "\n".join(" " * len(line) for line in match.group(0).split("\n"))
 
 

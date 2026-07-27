@@ -205,7 +205,7 @@ mindmap
 ## 4. Mapa de decisiones — qué sostiene cada pieza
 
 Cada comportamiento estructural se remonta a un ADR. La lista completa está en
-[`docs/adr/`](../adr/README.md) (61 registros, en inglés); estos son los estructurales:
+[`docs/adr/`](../adr/README.md) (en inglés); estos son los estructurales:
 
 | Pieza / comportamiento                                                    | ADR                                                                                                                                                                                                   |
 | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

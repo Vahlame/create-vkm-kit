@@ -25,9 +25,9 @@ from pathlib import Path
 
 from .graphlink import WIKILINK_RE, _build_resolver, normalize_target
 from .knowledge_graph import (
-    RELATES_TO,
     _OBSERVATION_RE,
     _TYPED_REL_RE,
+    RELATES_TO,
     parse_observations,
     parse_relations,
 )

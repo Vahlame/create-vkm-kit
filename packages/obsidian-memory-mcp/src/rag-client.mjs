@@ -15,6 +15,7 @@
  * - OBSIDIAN_MEMORY_RAG_TIMEOUT_MS — subprocess timeout in ms (default 120000 / 2min)
  */
 import { execa } from "execa";
+import { throughHiddenConsole } from "@vkmikc/vkm-core/hidden-console";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -88,10 +89,18 @@ export async function runRagJsonRaw(command, spawnArgs, opts = {}) {
   const timeoutMs = opts.timeoutMs ?? defaultRagTimeoutMs();
   let r;
   try {
-    r = await execa(command, spawnArgs, {
+    // Every vault search, index refresh and assemble_context lands here, so this is the
+    // most-run spawn in the whole kit — and `python.exe` is a CONSOLE-subsystem binary.
+    // Whether it shows a window depends on a console state this process does not control:
+    // if the agent host started this MCP server without one, Windows hands the Python
+    // child a brand new VISIBLE console. Routing through the launcher makes the answer
+    // "no window" regardless of how the host started us. See ADR-0078.
+    const launch = throughHiddenConsole(command, spawnArgs);
+    r = await execa(launch.command, launch.args, {
       env: opts.env ?? process.env,
       reject: false,
       stripFinalNewline: true,
+      windowsHide: launch.windowsHide,
       // 0/undefined means "no timeout" to execa; only pass a positive value.
       ...(timeoutMs > 0 ? { timeout: timeoutMs } : {})
     });

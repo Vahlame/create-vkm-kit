@@ -44,7 +44,8 @@ def _all_paths(conn) -> list[str]:
 
 def _category_index(conn) -> list[dict]:
     rows = conn.execute(
-        "SELECT category, COUNT(*) AS n FROM observations GROUP BY category ORDER BY n DESC, category"
+        "SELECT category, COUNT(*) AS n FROM observations "
+        "GROUP BY category ORDER BY n DESC, category"
     ).fetchall()
     return [{"category": str(r["category"]), "count": int(r["n"])} for r in rows]
 
@@ -183,7 +184,7 @@ def _near_duplicate_notes(
             vj = vecs[paths[j]]
             if len(vi) != len(vj):
                 continue
-            cos = math.fsum(a * b for a, b in zip(vi, vj))
+            cos = math.fsum(a * b for a, b in zip(vi, vj, strict=True))
             if cos >= similarity:
                 pairs.append({"a": paths[i], "b": paths[j], "similarity": round(cos, 4)})
     pairs.sort(key=lambda d: -d["similarity"])

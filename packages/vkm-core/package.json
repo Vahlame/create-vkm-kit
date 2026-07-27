@@ -1,0 +1,22 @@
+{
+  "name": "@vkmikc/vkm-core",
+  "version": "5.0.0",
+  "private": true,
+  "description": "Internal shared layer for the vkm-kit MCP sidecars: stdio server plumbing and the untrusted-data scanner. Not published; imported across the workspace.",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "exports": {
+    "./hidden-console": "./src/hidden-console.mjs",
+    "./mcp-result": "./src/mcp-result.mjs",
+    "./untrusted": "./src/untrusted.mjs"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

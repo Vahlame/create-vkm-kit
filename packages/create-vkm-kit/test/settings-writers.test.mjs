@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import {
   mergeManagedEnv,
   removeManagedEnv,
-  mergeManagedPermissions,
   removeManagedPermissions,
   setManagedOutputStyle,
   clearManagedOutputStyle
@@ -58,33 +57,15 @@ test("removeManagedEnv is a safe no-op without an env section", () => {
 
 const DENY_RULES = ["Read(node_modules/**)", "Read(**/dist/**)"];
 
-test("mergeManagedPermissions appends deduped rules after the user's own", () => {
-  const existing = { permissions: { deny: ["Read(/secrets/**)"], allow: ["Bash(git *)"] } };
-  const merged = mergeManagedPermissions(existing, { deny: DENY_RULES });
-  assert.deepEqual(merged.permissions.deny, ["Read(/secrets/**)", ...DENY_RULES]);
-  assert.deepEqual(merged.permissions.allow, ["Bash(git *)"]); // untouched
-  const twice = mergeManagedPermissions(merged, { deny: DENY_RULES });
-  assert.deepEqual(twice.permissions.deny, merged.permissions.deny); // idempotent
-});
-
-test("mergeManagedPermissions creates the section from scratch", () => {
-  const merged = mergeManagedPermissions({}, { deny: DENY_RULES, allow: ["Bash(ls *)"] });
-  assert.deepEqual(merged.permissions.deny, DENY_RULES);
-  assert.deepEqual(merged.permissions.allow, ["Bash(ls *)"]);
-});
-
 test("removeManagedPermissions strips exactly our rules and keeps the user's", () => {
-  const merged = mergeManagedPermissions(
-    { permissions: { deny: ["Read(/secrets/**)"] } },
-    { deny: DENY_RULES }
-  );
-  const removed = removeManagedPermissions(merged, { deny: DENY_RULES });
+  const settings = { permissions: { deny: ["Read(/secrets/**)", ...DENY_RULES] } };
+  const removed = removeManagedPermissions(settings, { deny: DENY_RULES });
   assert.deepEqual(removed.permissions.deny, ["Read(/secrets/**)"]);
 });
 
 test("removeManagedPermissions deletes emptied arrays and an emptied section", () => {
-  const merged = mergeManagedPermissions({}, { deny: DENY_RULES });
-  const removed = removeManagedPermissions(merged, { deny: DENY_RULES });
+  const settings = { permissions: { deny: [...DENY_RULES] } };
+  const removed = removeManagedPermissions(settings, { deny: DENY_RULES });
   assert.equal("permissions" in removed, false);
 });
 

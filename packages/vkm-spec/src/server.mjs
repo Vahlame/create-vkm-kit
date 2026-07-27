@@ -106,7 +106,13 @@ function readBody(req) {
 function serveStatic(req, res) {
   const reqPath = req.url === "/" ? "/index.html" : req.url.split("?")[0];
   const fp = path.resolve(PUBLIC_DIR, `.${reqPath}`);
-  if (!fp.startsWith(PUBLIC_DIR)) {
+  // Containment needs the separator: a bare `startsWith(PUBLIC_DIR)` also accepts a
+  // SIBLING whose name merely begins with the same string — `/../public-x/secret.txt`
+  // resolves outside PUBLIC_DIR and passes. Latent today (the listener binds
+  // 127.0.0.1 and no such sibling exists), but vault-fs.mjs already gets this exact
+  // distinction right (`canonical.startsWith(vaultReal + sep)`) and the codebase
+  // should not disagree with itself about what "inside a directory" means.
+  if (fp !== PUBLIC_DIR && !fp.startsWith(PUBLIC_DIR + path.sep)) {
     res.writeHead(403);
     res.end();
     return;
