@@ -167,18 +167,22 @@ git por sí sola.
 ### Parpadea una consola grande al sincronizar o al arrancar el MCP
 
 **Causa.** El binario de `obsidian-memoryd` se compiló como app de **consola**
-(sin el flag `-H windowsgui`), o sus subprocesos `git` no llevan el flag
-`CREATE_NO_WINDOW` (esto es comportamiento pre-v3).
+(sin el flag `-H windowsgui`).
 
-**Solución (kit v3+).** Compílalo como app sin ventana:
+**Solución.** Compílalo como app sin ventana:
 
 ```bash
 go build -ldflags="-H windowsgui" -o bin/obsidian-memoryd.exe ./cmd/obsidian-memoryd
 ```
 
-El repo incluye `proc_windows.go`, que añade `CREATE_NO_WINDOW + HideWindow` a
-cada subproceso `git`, eliminando el parpadeo incluso al lanzarse desde un
-ejecutable windowsgui. Mira la guía de sincronización para más detalle.
+**Qué cambió en 5.0.** Hasta entonces el daemon además aplicaba `CREATE_NO_WINDOW`
+a cada subproceso `git`, y esta misma página lo recomendaba. Era la cura
+equivocada: un hijo **sin** consola cuyo nieto es de subsistema consola —
+`git-remote-https`, `ssh`, un credential helper — hace que Windows le asigne a ese
+nieto una consola **nueva y visible**. Ahora el daemon crea UNA consola al empezar
+`watch`, la oculta, y deja que todo hijo `git` la herede: la misma estrategia que
+`vkm-runhidden.exe` usa para los hooks. Ver
+[ADR-0078](../adr/0078-allocate-and-hide-a-console.md).
 
 ### El código de salida de `doctor` sale vacío en PowerShell, o su salida se ve desordenada
 

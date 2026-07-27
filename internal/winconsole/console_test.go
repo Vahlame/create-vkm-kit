@@ -1,4 +1,4 @@
-package main
+package winconsole
 
 import "testing"
 
@@ -12,7 +12,7 @@ import "testing"
 func TestHideOwnConsoleLeavesAnInheritedConsoleVisible(t *testing.T) {
 	allocs, hides := 0, 0
 
-	hideOwnConsoleWith(
+	HideOwnConsoleWith(
 		func() uintptr { return 0x1234 }, // a console already exists — the user's terminal
 		func() bool { allocs++; return true },
 		func(uintptr) { hides++ },
@@ -32,7 +32,7 @@ func TestHideOwnConsoleHidesTheOneItAllocated(t *testing.T) {
 	probes := 0
 	var hidden uintptr
 
-	hideOwnConsoleWith(
+	HideOwnConsoleWith(
 		func() uintptr {
 			probes++
 			if probes == 1 {
@@ -52,7 +52,7 @@ func TestHideOwnConsoleHidesTheOneItAllocated(t *testing.T) {
 func TestHideOwnConsoleDoesNothingWhenAllocationFails(t *testing.T) {
 	hides := 0
 
-	hideOwnConsoleWith(
+	HideOwnConsoleWith(
 		func() uintptr { return 0 },
 		func() bool { return false }, // AllocConsole failed
 		func(uintptr) { hides++ },

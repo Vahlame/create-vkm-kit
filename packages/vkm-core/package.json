@@ -6,6 +6,7 @@
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
   "exports": {
+    "./hidden-console": "./src/hidden-console.mjs",
     "./mcp-result": "./src/mcp-result.mjs",
     "./untrusted": "./src/untrusted.mjs"
   },

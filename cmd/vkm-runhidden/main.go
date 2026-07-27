@@ -54,6 +54,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/Vahlame/create-vkm-kit/internal/winconsole"
 )
 
 func main() {
@@ -69,7 +71,7 @@ func run() int {
 
 	// Must happen BEFORE the child starts: the hidden console has to exist by the time anything can
 	// inherit it. A failure here is not fatal — a visible console beats not running at all.
-	hideOwnConsole()
+	winconsole.HideOwnConsole()
 
 	name, argv := resolve(args)
 

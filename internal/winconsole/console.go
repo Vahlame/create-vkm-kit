@@ -1,12 +1,23 @@
-package main
+// Package winconsole owns the kit's one answer to "may this process hide a console".
+//
+// It exists as a package rather than a file in one command because BOTH binaries need it and
+// they need it to agree: `vkm-runhidden` allocates the hidden console that hook and sidecar
+// trees inherit, and `obsidian-memoryd` must do the same for the git children it spawns while
+// watching a vault. The daemon previously took the opposite approach (CREATE_NO_WINDOW on each
+// child), which ADR-0078 records as the CAUSE of the flashing rather than the cure.
+//
+// The syscalls exist only on Windows (console_windows.go wires them up; console_other.go makes
+// the whole thing a no-op elsewhere), but the DECISION — whose console may be hidden — is
+// ordinary logic, kept platform-neutral so it is tested on every GOOS. It is also the part that
+// was wrong once already.
+package winconsole
 
-// Console policy, kept platform-neutral so it is tested on every GOOS.
 //
 // The syscalls it drives exist only on Windows (console_windows.go wires them up; console_other.go
 // makes the whole thing a no-op elsewhere), but the DECISION — whose console may be hidden — is
 // ordinary logic, and it is the part that was wrong.
 
-// hideOwnConsoleWith hides a console only if this process allocated it.
+// HideOwnConsoleWith hides a console only if this process allocated it.
 //
 // The distinction is the whole rule. A GUI-subsystem process started by the agent host has NO
 // console: GetConsoleWindow returns 0, AllocConsole creates one nobody else can see, and hiding it
@@ -23,7 +34,7 @@ package main
 // alloc reports whether a console was actually created; when it fails there is nothing to hide and
 // nothing to do (AllocConsole fails precisely when a console already exists, which the check above
 // has already excluded, so this is belt-and-braces rather than an expected path).
-func hideOwnConsoleWith(getConsole func() uintptr, alloc func() bool, hide func(uintptr)) {
+func HideOwnConsoleWith(getConsole func() uintptr, alloc func() bool, hide func(uintptr)) {
 	if getConsole() != 0 {
 		return // inherited: someone else's window, not ours to touch
 	}

@@ -14,7 +14,7 @@
  * can process an arbitrarily long crawl one page at a time without ever growing a context.
  */
 import { spawn } from "node:child_process";
-import { throughHiddenConsole } from "./hidden-console.mjs";
+import { throughHiddenConsole } from "@vkmikc/vkm-core/hidden-console";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { z } from "zod";

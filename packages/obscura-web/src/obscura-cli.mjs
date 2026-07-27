@@ -14,6 +14,7 @@
  * "-" cannot be reinterpreted as an obscura flag.
  */
 import { execa } from "execa";
+import { throughHiddenConsole } from "@vkmikc/vkm-core/hidden-console";
 
 /** Absolute obscura binary path (installer sets OBSCURA_BIN), else `obscura` on PATH. */
 export function obscuraBin() {
@@ -89,10 +90,19 @@ export function isHttpUrl(u) {
  * @returns {Promise<string>} stdout
  */
 async function defaultRun(bin, args, { timeoutMs }) {
-  const res = await execa(bin, args, {
+  // THE highest-frequency spawn in the package: one obscura process per fetched page,
+  // up to OBSCURA_RESEARCH_CONCURRENCY at a time, for the whole length of a research
+  // run. It used to pass `windowsHide: true` — CREATE_NO_WINDOW — which ADR-0078 records
+  // as the CAUSE of the flashing, not the cure: obscura drives a headless browser and
+  // spawns its own console-subsystem children, and a console-subsystem process whose
+  // parent has no console gets a brand new VISIBLE one from Windows. On a machine where
+  // someone is playing a full-screen game while the agent researches, that is the screen
+  // being taken away from them, once per page.
+  const launch = throughHiddenConsole(bin, args);
+  const res = await execa(launch.command, launch.args, {
     timeout: timeoutMs,
     reject: false,
-    windowsHide: true,
+    windowsHide: launch.windowsHide,
     stripFinalNewline: false
   });
   if (res.failed || res.exitCode !== 0) {

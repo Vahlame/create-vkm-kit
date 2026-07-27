@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Vahlame/create-vkm-kit/internal/winconsole"
 	"github.com/adrg/xdg"
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-git/go-git/v5"
@@ -170,9 +171,12 @@ func newLogger() *slog.Logger {
 }
 
 // Runner abstracts running a child process so tests can inject fakes. The
-// production implementation wraps exec.CommandContext with hiddenCmd (no
-// console window on Windows) and sets GIT_TERMINAL_PROMPT=0 so git fails fast
-// instead of blocking on credential prompts in headless / hidden contexts.
+// production implementation sets GIT_TERMINAL_PROMPT=0 so git fails fast instead
+// of blocking on a credential prompt in a headless or hidden context.
+//
+// It deliberately does NOT ask for CREATE_NO_WINDOW. Console visibility is owned
+// once, by winconsole.HideOwnConsole in runWatch, and inherited by every child —
+// see the note there for why per-child hiding was the cause of the flashing.
 type Runner interface {
 	Run(ctx context.Context, name string, args ...string) error
 	Output(ctx context.Context, name string, args ...string) ([]byte, error)
@@ -183,7 +187,6 @@ type execRunner struct{}
 func (execRunner) Run(ctx context.Context, name string, args ...string) error {
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Env = append(cmd.Environ(), "GIT_TERMINAL_PROMPT=0")
-	hiddenCmd(cmd)
 	var stderr strings.Builder
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
@@ -201,7 +204,6 @@ func (execRunner) Run(ctx context.Context, name string, args ...string) error {
 func (execRunner) Output(ctx context.Context, name string, args ...string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Env = append(cmd.Environ(), "GIT_TERMINAL_PROMPT=0")
-	hiddenCmd(cmd)
 	return cmd.CombinedOutput()
 }
 
@@ -598,7 +600,6 @@ func unpushedCommitsLine(vault string, timeout time.Duration) string {
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "git", "-C", vault, "rev-list", "@{u}..HEAD", "--count")
 	cmd.Env = append(cmd.Environ(), "GIT_TERMINAL_PROMPT=0")
-	hiddenCmd(cmd)
 	outBytes, err := cmd.Output()
 	if err != nil {
 		return ""
@@ -607,6 +608,19 @@ func unpushedCommitsLine(vault string, timeout time.Duration) string {
 }
 
 func runWatch(ctx context.Context, l *slog.Logger, root string) error {
+	// Own a hidden console for the whole watch, once, and let every git child inherit it.
+	//
+	// This replaces CREATE_NO_WINDOW on each child, which ADR-0078 lists under "Alternatives
+	// considered -> Rejected — it is the cause, not the cure": a child with NO console that
+	// spawns its own console-subsystem grandchild (git-remote-https, ssh, the credential
+	// helper) makes Windows allocate that grandchild a brand new VISIBLE window. A daemon
+	// watching a vault syncs on its own schedule, so those windows appear while the user is
+	// in another application entirely.
+	//
+	// ONLY here. The CLI subcommands (sync, doctor, inspect, service) run in the terminal the
+	// user typed them into; winconsole.HideOwnConsole leaves an INHERITED console alone by
+	// design, but not calling it there at all makes the intent explicit.
+	winconsole.HideOwnConsole()
 	return runWatchWith(ctx, l, root, watchDebounce(), func(c context.Context) {
 		if err := gitSync(c, l, root); err != nil && !errors.Is(err, ErrSyncBusy) {
 			l.Error("debounced sync", "err", err)

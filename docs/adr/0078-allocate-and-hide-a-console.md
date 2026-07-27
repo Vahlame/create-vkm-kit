@@ -107,12 +107,42 @@ flashing.
   safe direction of the trade.
 - Neutral: off Windows everything is a no-op — there is no console to allocate in the first place.
 
+## Amendment (5.0.0) — the strategy is now applied everywhere, not just to hooks
+
+"One binary, one strategy" was true of the hook launcher and false of everything else. An
+audit for the 5.0 refactor found the rejected approach still live on four paths, including
+the two the user actually feels:
+
+| Path                                          | Was                 | Why it mattered                                                                                     |
+| --------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------- |
+| `obscura-cli.mjs` — one process per page      | `windowsHide: true` | THE highest-frequency spawn of a research run; obscura drives a browser and spawns its own children |
+| `rag-client.mjs` — every vault search         | nothing at all      | `python.exe` is console-subsystem; whether it flashed depended on how the host started the sidecar  |
+| `vkm-spec/ollama-client.mjs` — `ollama serve` | `windowsHide: true` | ollama's model runner is the process this ADR MEASURED                                              |
+| `cmd/obsidian-memoryd` — every `git` child    | `CREATE_NO_WINDOW`  | git spawns `git-remote-https` / credential helpers; the daemon syncs on its own schedule            |
+
+Decision, unchanged in substance and now uniform: a spawn that can have console-subsystem
+descendants goes through the launcher. `CREATE_NO_WINDOW` stays legal only for a **leaf**
+(the OTLP sink, `icacls`, `tar -xf`, `obscura --version`), where there is no grandchild for
+Windows to hand a new console to.
+
+Made structural rather than remembered:
+
+- `console.go` / `console_windows.go` / `console_other.go` moved from `cmd/vkm-runhidden/`
+  into `internal/winconsole/`, so the daemon and the launcher share one implementation
+  instead of two opposite ones. `runWatch` calls `winconsole.HideOwnConsole()` once — and
+  only there, because the CLI subcommands run in the user's own terminal.
+- `hidden-console.mjs` moved into `@vkmikc/vkm-core`, so every package can reach it.
+- `packages/vkm-core/test/no-console-flash.test.mjs` fails on any new literal
+  `windowsHide: true` outside a declared-leaf allowlist, and asserts the hot paths still
+  route through the launcher.
+
 ## References
 
-- `cmd/vkm-runhidden/` — `main.go` (transparency + `resolve`), `console.go` (the ownership rule),
-  `console_windows.go` (the syscalls), `console_other.go` (the no-op).
+- `internal/winconsole/` — `console.go` (the ownership rule), `console_windows.go` (the syscalls),
+  `console_other.go` (the no-op). Shared by both binaries.
+- `cmd/vkm-runhidden/main.go` (transparency + `resolve`), `cmd/obsidian-memoryd/main.go` (`runWatch`).
 - `packages/create-vkm-kit/src/hook-interpreter.mjs`, `src/runhidden-setup.mjs`
-- `packages/obscura-web/src/hidden-console.mjs`
+- `packages/vkm-core/src/hidden-console.mjs`, `packages/vkm-core/test/no-console-flash.test.mjs`
 - `scripts/build-runhidden.mjs`, `scripts/check-runhidden-asset.mjs`, `scripts/install-runhidden.mjs`
 - [ADR-0030](./0030-deterministic-enforcement-hooks.md), [ADR-0031](./0031-effort-gate-hook.md) — the
   guards whose exit codes this must not swallow.

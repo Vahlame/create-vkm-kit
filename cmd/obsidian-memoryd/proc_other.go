@@ -2,13 +2,7 @@
 
 package main
 
-import (
-	"os/exec"
-	"syscall"
-)
-
-// hiddenCmd is a no-op on non-Windows platforms.
-func hiddenCmd(cmd *exec.Cmd) *exec.Cmd { return cmd }
+import "syscall"
 
 // pidAliveImpl reports whether pid is a live process on this host, used to
 // detect a stale cross-process git-sync lock left behind by a crashed

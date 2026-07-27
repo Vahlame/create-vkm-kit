@@ -1,6 +1,6 @@
 //go:build !windows
 
-package main
+package winconsole
 
 // No consoles to hide off Windows.
-func hideOwnConsole() {}
+func HideOwnConsole() {}

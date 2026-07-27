@@ -164,18 +164,22 @@ Reload Window**. To open vault notes, use the MCP tools (`read_note`,
 ### A big console window flashes when syncing or starting the MCP
 
 **Cause.** The `obsidian-memoryd` binary was built as a **console** app (without
-the `-H windowsgui` flag), or its `git` subprocesses do not carry the
-`CREATE_NO_WINDOW` flag (this is pre-v3 behaviour).
+the `-H windowsgui` flag).
 
-**Fix (kit v3+).** Build it as a windowless app:
+**Fix.** Build it as a windowless app:
 
 ```bash
 go build -ldflags="-H windowsgui" -o bin/obsidian-memoryd.exe ./cmd/obsidian-memoryd
 ```
 
-The repo includes `proc_windows.go`, which adds `CREATE_NO_WINDOW + HideWindow`
-to every `git` subprocess, removing the flash even when launched from a
-windowsgui executable. See the sync guide for details.
+**What changed in 5.0.** Until then the daemon also applied `CREATE_NO_WINDOW` to
+every `git` subprocess, and this page recommended exactly that. It was the wrong
+cure: a child with **no** console whose own grandchild is console-subsystem —
+`git-remote-https`, `ssh`, a credential helper — makes Windows allocate that
+grandchild a **brand new, visible** console. The daemon now allocates ONE console
+at the start of `watch`, hides it, and lets every git child inherit it, which is
+the same strategy `vkm-runhidden.exe` uses for hooks. See
+[ADR-0078](../adr/0078-allocate-and-hide-a-console.md).
 
 ### `doctor`'s exit code reads empty in PowerShell, or its output looks out of order
 

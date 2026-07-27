@@ -19,7 +19,7 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { throughHiddenConsole } from "./hidden-console.mjs";
+import { throughHiddenConsole } from "@vkmikc/vkm-core/hidden-console";
 
 function cfg() {
   const home = homedir();
