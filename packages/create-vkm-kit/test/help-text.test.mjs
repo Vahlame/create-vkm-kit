@@ -9,7 +9,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { HELP } from "../src/cli/help.mjs";
 import {
   EFFORT_GATE_HOOK_STEM,
@@ -47,10 +47,24 @@ test("every flag --help documents is one the installer actually reads", async ()
   const documented = [...HELP.matchAll(/^ {2}(--[a-z][a-z0-9-]*)/gm)].map((m) => m[1]);
   assert.ok(documented.length > 20, `expected a real flag list, parsed ${documented.length}`);
 
-  // Every flag the entry point tests for, however it tests: argv.includes("--x"),
-  // flagValue(argv, "--x"), or a VALUE_FLAGS entry.
-  const src = await readFile(new URL("../src/index.js", import.meta.url), "utf8");
-  const read = new Set([...src.matchAll(/"(--[a-z][a-z0-9-]*)"/g)].map((m) => m[1]));
+  // Every flag the installer tests for, however it tests: argv.includes("--x"),
+  // flagValue(argv, "--x"), or a VALUE_FLAGS entry. Scans all of src/ rather than just
+  // the entry point: since 5.0 the decision lives in cli/options.mjs and the subcommands
+  // in index.js, so pinning one file would let a flag go dead in the other.
+  const srcDir = new URL("../src/", import.meta.url);
+  const read = new Set();
+  const walk = async (dir) => {
+    for (const e of await readdir(dir, { withFileTypes: true })) {
+      const child = new URL(`${e.name}${e.isDirectory() ? "/" : ""}`, dir);
+      if (e.isDirectory()) await walk(child);
+      else if (/\.(mjs|js)$/.test(e.name)) {
+        for (const m of (await readFile(child, "utf8")).matchAll(/"(--[a-z][a-z0-9-]*)"/g)) {
+          read.add(m[1]);
+        }
+      }
+    }
+  };
+  await walk(srcDir);
 
   const undocumented = documented.filter((f) => !read.has(f));
   assert.deepEqual(
