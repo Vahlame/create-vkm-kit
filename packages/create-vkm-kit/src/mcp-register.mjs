@@ -36,7 +36,8 @@ import {
   mergeDownloadsServer,
   mergeObscuraWebServer,
   mergeObsidianHybridServer,
-  obscuraWebServer
+  obscuraWebServer,
+  resolveLauncher
 } from "./mcp-merge.mjs";
 import { restrictFileToOwner } from "./file-perms.mjs";
 import { atomicWriteJson, stripLeadingUtf8Bom } from "./settings-io.mjs";
@@ -82,23 +83,26 @@ export function buildServerList(vaultAbs, opts = {}) {
     downloadDir = null
   } = opts;
   const kit = repoRoot ? path.resolve(repoRoot) : null;
+  // Probed ONCE per call and threaded into every builder, so the whole config file
+  // agrees about how servers start. See viaRunHidden in mcp-merge.mjs.
+  const launcher = resolveLauncher();
 
   /** @type {Array<[string, object]>} */
-  const servers = [["basic-memory", basicMemoryServer(vaultAbs)]];
+  const servers = [["basic-memory", basicMemoryServer(vaultAbs, { launcher })]];
   if (withHybrid && kit) {
     servers.push([
       "obsidian-memory-hybrid",
-      hybridServer(vaultAbs, kit, { semantic, vec, rerank, pinFailures, usage })
+      hybridServer(vaultAbs, kit, { semantic, vec, rerank, pinFailures, usage, launcher })
     ]);
   }
   if (obscura && kit) {
     servers.push([
       "obscura-web",
-      obscuraWebServer(kit, { binPath: obscuraBin, searxngUrl, researchDir })
+      obscuraWebServer(kit, { binPath: obscuraBin, searxngUrl, researchDir, launcher })
     ]);
   }
   if (downloads && kit) {
-    servers.push(["vkm-downloads", downloadsServer(kit, { downloadDir })]);
+    servers.push(["vkm-downloads", downloadsServer(kit, { downloadDir, launcher })]);
   }
   return servers;
 }
@@ -145,25 +149,32 @@ export async function writeCursorMcp(home, vaultAbs, dryRun, opts = {}) {
     downloadDir = null
   } = opts;
   const kit = repoRoot ? path.resolve(repoRoot) : null;
+  const launcher = resolveLauncher();
 
   // Cursor takes the MERGE functions rather than buildServerList's plain objects: each
   // one preserves the user's other `mcpServers` entries, which a wholesale write would
   // destroy. Same decision table as buildServerList, applied to a file instead of a CLI.
-  let merged = mergeBasicMemoryServer(parsed, vaultAbs);
+  let merged = mergeBasicMemoryServer(parsed, vaultAbs, { launcher });
   if (withHybrid && kit) {
     merged = mergeObsidianHybridServer(merged, vaultAbs, kit, {
       semantic,
       vec,
       rerank,
       pinFailures,
-      usage
+      usage,
+      launcher
     });
   }
   if (obscura && kit) {
-    merged = mergeObscuraWebServer(merged, kit, { binPath: obscuraBin, searxngUrl, researchDir });
+    merged = mergeObscuraWebServer(merged, kit, {
+      binPath: obscuraBin,
+      searxngUrl,
+      researchDir,
+      launcher
+    });
   }
   if (downloads && kit) {
-    merged = mergeDownloadsServer(merged, kit, { downloadDir });
+    merged = mergeDownloadsServer(merged, kit, { downloadDir, launcher });
   }
 
   if (dryRun) {

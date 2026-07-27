@@ -155,7 +155,19 @@ jobs:
       - name: build the hook launcher (so the end-to-end launcher test is not skipped)
         if: runner.os == 'Windows'
         run: npm run build:runhidden
-      - run: npm test --workspaces --if-present
+      # VKM_RUNHIDDEN points the launcher lookup at the binary just built, instead of
+      # `~/.claude/bin/` — which does not exist on a runner, so every launcher path would
+      # fall back to plain `node` and the tests would pass having exercised nothing. This
+      # is what makes the kill-propagation test real: without the job object, the RAG
+      # timeout test does not time out, it runs for 1,000 seconds.
+      - name: tests (Windows — through the real launcher)
+        if: runner.os == 'Windows'
+        run: npm test --workspaces --if-present
+        env:
+          VKM_RUNHIDDEN: ${{ github.workspace }}\packages\create-vkm-kit\bin\vkm-runhidden.exe
+      - name: tests
+        if: runner.os != 'Windows'
+        run: npm test --workspaces --if-present
 
   test-python:
     runs-on: ubuntu-latest

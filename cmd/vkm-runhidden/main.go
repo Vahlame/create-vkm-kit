@@ -84,7 +84,19 @@ func run() int {
 	// a console, which forces the child's OWN children to allocate visible ones. Inheriting the
 	// hidden console above is the entire point.
 
-	if err := cmd.Run(); err != nil {
+	if err := cmd.Start(); err != nil {
+		fmt.Fprintf(os.Stderr, "vkm-runhidden: could not run %s: %v\n", name, err)
+		return 2
+	}
+
+	// Tie the child's lifetime to ours BEFORE waiting on it. Forwarding the exit code made this
+	// binary look transparent while it silently was not: killing the launcher orphaned the child,
+	// so every caller that bounds a subprocess by killing it (execa's `timeout` on the Python RAG
+	// backend, on an obscura fetch, on git) was only killing a middleman. See job_windows.go.
+	closeJob, _ := superviseChild(cmd.Process.Pid)
+	defer closeJob()
+
+	if err := cmd.Wait(); err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
 			// A hook that deliberately blocks a tool call exits non-zero. Forward it unchanged.
