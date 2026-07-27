@@ -107,7 +107,7 @@ El servidor complementario opcional en Node.js (`packages/obsidian-memory-mcp`).
 
 ### `obsidian-memory-rag`
 
-El motor opcional en **Python** (`packages/obsidian-memory-rag`) que construye un índice **[SQLite](#fts5) FTS5 + vectores por fragmento** bajo `<vault>/.obsidian-memory-rag/`, lo que habilita búsqueda rápida por palabras clave (BM25) y [semántica](#semantic-search-búsqueda-semántica). Incluye una línea de comandos con `index` (acepta `--semantic` para construir los vectores neuronales), `search`, `hybrid-search`, `bench`, [`audit`](#vault_audit) y `rotate-log`. `search` indexa automáticamente antes de consultar (pasa `--no-auto-index` para desactivarlo). Sin dependencias por defecto; las incrustaciones neuronales están disponibles mediante el extra `[semantic]`.
+El motor opcional en **Python** (`packages/obsidian-memory-rag`) que construye un índice **[SQLite](#fts5) FTS5 + vectores por fragmento** bajo `<vault>/.obsidian-memory-rag/`, lo que habilita búsqueda rápida por palabras clave (BM25) y [semántica](#semantic-search-búsqueda-semántica). Incluye una línea de comandos con `index` (acepta `--semantic` para construir los vectores neuronales), `search`, `hybrid-search`, [`audit`](#vault_audit) y `rotate-log`. `search` indexa automáticamente antes de consultar (pasa `--no-auto-index` para desactivarlo). Sin dependencias por defecto; las incrustaciones neuronales están disponibles mediante el extra `[semantic]`.
 
 ### PROJECTS/
 

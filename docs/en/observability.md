@@ -49,10 +49,11 @@ Remove the whole surface with `--no-telemetry` on an installer re-run, or as par
 ## Performance / retrieval benchmark
 
 The hybrid-retrieval target (ADR-0014) is **P95 < 150 ms over ~10k chunks**. Measure your own
-vault with the bench CLI and record hardware, embedder, and vault size next to the number:
+vault with `bench-recall`, which reports p50/p95/mean per query alongside the quality
+metrics, and record hardware, embedder, and vault size next to the number:
 
 ```bash
-obsidian-memory-rag bench --vault "<VAULT>" --iterations 200 --query "memory"
+obsidian-memory-rag bench-recall --corpus "<VAULT>" --queries queries.jsonl --assert-p95-ms 500
 ```
 
 The vector/semantic half of hybrid retrieval **is shipped** (ADR-0017): the default

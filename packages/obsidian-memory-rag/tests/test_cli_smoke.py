@@ -85,9 +85,8 @@ def vault(tmp_path_factory: pytest.TempPathFactory) -> Path:
         target = root / rel
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(body, encoding="utf-8")
-    # Index up front rather than relying on the `index` case running first: most
-    # commands auto-index, but `bench` does not and exits 2 on an empty result, so
-    # without this the suite would pass or fail on pytest's parametrize ordering.
+    # Index up front rather than relying on the `index` case running first, so no case
+    # depends on pytest's parametrize ordering.
     index_vault(root)
     return root
 
@@ -113,7 +112,6 @@ INVOCATIONS: dict[str, list[str]] = {
     "json-search": ["--vault", "{vault}", "--query", "tauri supabase"],
     "hybrid-search": ["--vault", "{vault}", "tauri supabase"],
     "json-hybrid-search": ["--vault", "{vault}", "--query", "tauri supabase"],
-    "bench": ["--vault", "{vault}", "--query", "tauri", "--iterations", "2"],
     "audit": ["--vault", "{vault}"],
     "json-audit": ["--vault", "{vault}"],
     "complete": ["--vault", "{vault}", "tau"],

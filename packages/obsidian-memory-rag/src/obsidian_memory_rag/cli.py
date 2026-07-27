@@ -5,9 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import statistics
 import sys
-import time
 from pathlib import Path
 
 from .audit import audit_vault
@@ -230,12 +228,6 @@ def build_parser() -> argparse.ArgumentParser:
     hs.add_argument("--limit", type=int, default=20)
     hs.add_argument("--embedder", default=None)
     _add_hybrid_flags(hs)
-
-    b = sub.add_parser("bench", help="Micro-benchmark repeated search (local perf smoke)")
-    b.add_argument("--vault", type=Path, required=True)
-    b.add_argument("--query", default="memory")
-    b.add_argument("--iterations", type=int, default=200)
-    b.add_argument("--limit", type=int, default=10)
 
     for name, helptext in (
         ("bench-recall", "Measure retrieval quality (recall@k / MRR / hit@1) vs a labelled corpus"),
@@ -690,21 +682,6 @@ def main(argv: list[str] | None = None) -> None:
             )
             if h.snippet:
                 print(f"  {h.snippet}")
-    elif args.cmd == "bench":
-        hits = search_vault(args.vault, args.query, limit=args.limit)
-        if not hits:
-            print("no hits: index the vault and use a query that matches content")
-            raise SystemExit(2)
-        lat: list[float] = []
-        for _ in range(args.iterations):
-            t0 = time.perf_counter()
-            _ = search_vault(args.vault, args.query, limit=args.limit)
-            lat.append((time.perf_counter() - t0) * 1000.0)
-        lat.sort()
-        p50 = statistics.median(lat)
-        p95 = lat[int(0.95 * (len(lat) - 1))]
-        print(f"iterations={args.iterations} query={args.query!r} limit={args.limit}")
-        print(f"latency_ms p50={p50:.3f} p95={p95:.3f} min={lat[0]:.3f} max={lat[-1]:.3f}")
     elif args.cmd in ("bench-recall", "json-bench-recall"):
         report = run_benchmark(
             args.corpus,

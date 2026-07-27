@@ -30,8 +30,9 @@ obsidian-memory-rag complete --vault … sql
 # Vault health (oversized notes, broken [[wikilinks]], SESSION_LOG size)
 obsidian-memory-rag audit --vault …
 
-# Latency smoke test
-obsidian-memory-rag bench --vault … --iterations 200 --query "memory"
+# Latency: reported by bench-recall (p50/p95/mean per query) and gateable with
+# --assert-p95-ms. The old standalone `bench` subcommand was removed in 5.0 — it
+# measured the same thing with no ground truth and nothing invoked it.
 
 # Token-economy benchmark: passage-first vs whole-note reads, completeness-gated
 # (ADR-0032) — includes a wire arm counting the exact compact JSON the agent

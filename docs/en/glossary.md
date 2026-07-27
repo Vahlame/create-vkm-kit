@@ -106,7 +106,7 @@ The optional Node.js companion server (`packages/obsidian-memory-mcp`). It expos
 
 ### `obsidian-memory-rag`
 
-The optional **Python** engine (`packages/obsidian-memory-rag`) that builds a **[SQLite](#fts5) FTS5 + chunk-vector** index under `<vault>/.obsidian-memory-rag/`, enabling fast keyword (BM25) and [semantic](#semantic-search) search. It ships an `index` (accepts `--semantic` to build neural vectors), `search`, `hybrid-search`, `bench`, [`audit`](#vault_audit), and `rotate-log` command line. `search` auto-indexes before querying (pass `--no-auto-index` to disable). Dependency-free by default; neural embeddings are available through the `[semantic]` extra.
+The optional **Python** engine (`packages/obsidian-memory-rag`) that builds a **[SQLite](#fts5) FTS5 + chunk-vector** index under `<vault>/.obsidian-memory-rag/`, enabling fast keyword (BM25) and [semantic](#semantic-search) search. It ships an `index` (accepts `--semantic` to build neural vectors), `search`, `hybrid-search`, [`audit`](#vault_audit), and `rotate-log` command line. `search` auto-indexes before querying (pass `--no-auto-index` to disable). Dependency-free by default; neural embeddings are available through the `[semantic]` extra.
 
 ### PROJECTS/
 

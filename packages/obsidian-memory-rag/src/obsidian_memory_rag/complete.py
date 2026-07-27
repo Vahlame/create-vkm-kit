@@ -11,29 +11,19 @@ stems verbatim, tags rendered as ``#tag``.
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
-from .knowledge_graph import is_css_hex_color
 from .paths import index_db_path
 from .store import connect, init_schema
+from .tags import extract_tags as shared_extract_tags
 from .text_scrub import strip_code_regions
 from .trie import Trie
 
-# Inline hashtag: a '#' at a word boundary followed by a tag char. The leading
-# (?:^|\s) guard skips Markdown headings ('## Section' — the second '#' is not a
-# tag char) and mid-word '#'. Tags may nest with '/' (Obsidian) or '-'.
-_TAG_RE = re.compile(r"(?:^|\s)#([A-Za-z0-9][\w/-]*)")
-
-
-def extract_tags(text: str) -> list[str]:
-    """Distinct inline ``#tags`` in a note body, without the ``#`` (first-seen)."""
-    seen: dict[str, None] = {}
-    for match in _TAG_RE.finditer(text):
-        tag = match.group(1)
-        if tag and tag not in seen and not is_css_hex_color(tag):
-            seen[tag] = None
-    return list(seen)
+# Re-exported so `from .complete import extract_tags` keeps working; the definition
+# (and the ONE regex the whole engine agrees on) lives in tags.py. The copy this
+# replaced used a `(?:^|\s)` guard instead of a lookbehind, so it silently missed a
+# tag in parentheses — `(#paren)` — that knowledge_graph.py had already indexed.
+extract_tags = shared_extract_tags
 
 
 def build_completion_trie(vault: Path) -> Trie:

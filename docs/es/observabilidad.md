@@ -52,7 +52,7 @@ El objetivo de retrieval híbrido (ADR-0014) es **P95 < 150 ms sobre ~10k chunks
 vault con el CLI de bench y anota hardware, embedder y tamaño del vault junto al número:
 
 ```bash
-obsidian-memory-rag bench --vault "<VAULT>" --iterations 200 --query "memory"
+obsidian-memory-rag bench-recall --corpus "<VAULT>" --queries queries.jsonl --assert-p95-ms 500
 ```
 
 La mitad vectorial/semántica del retrieval híbrido **está incluida** (ADR-0017): el
