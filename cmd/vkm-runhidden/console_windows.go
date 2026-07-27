@@ -2,10 +2,7 @@
 
 package main
 
-import (
-	"syscall"
-	"unsafe"
-)
+import "syscall"
 
 const swHide = 0
 
@@ -17,21 +14,20 @@ var (
 	procShowWindow       = user32.NewProc("ShowWindow")
 )
 
-// hideOwnConsole gives this process a console and immediately hides its window.
+// hideOwnConsole gives this process a console and hides its window.
 //
-// A GUI-subsystem process starts with none, so AllocConsole creates one — and a console that
-// EXISTS is a console children inherit, which is exactly what stops them allocating visible ones of
-// their own. Hiding it makes the one we created invisible, so the net effect on screen is nothing
-// at all while every descendant still has somewhere to write.
+// A GUI-subsystem process starts with none, so AllocConsole creates one — and a console that EXISTS
+// is a console children inherit, which is precisely what stops them allocating visible ones of
+// their own. Hiding it means the one we created is never seen, so the net effect on screen is
+// nothing while every descendant still has somewhere to write.
 func hideOwnConsole() {
-	// Already have one (started from a terminal)? Then there is nothing to allocate; just hide it.
+	// Started from a terminal? Then a console already exists and allocating a second one fails;
+	// just hide whatever we have.
 	if hwnd, _, _ := procGetConsoleWindow.Call(); hwnd == 0 {
 		procAllocConsole.Call()
 	}
 
-	hwnd, _, _ := procGetConsoleWindow.Call()
-	if hwnd != 0 {
+	if hwnd, _, _ := procGetConsoleWindow.Call(); hwnd != 0 {
 		procShowWindow.Call(hwnd, uintptr(swHide))
 	}
-	_ = unsafe.Pointer(nil)
 }

@@ -19,7 +19,9 @@
     "version:check": "node scripts/version.mjs check",
     "version:set": "node scripts/version.mjs set",
     "test": "npm run test --workspaces --if-present",
-    "doctor": "node packages/vkm-doctor/src/doctor.mjs"
+    "doctor": "node packages/vkm-doctor/src/doctor.mjs",
+    "build:runhidden": "go build -ldflags=\"-H windowsgui -s -w\" -o bin/vkm-runhidden.exe ./cmd/vkm-runhidden",
+    "install:runhidden": "node scripts/install-runhidden.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

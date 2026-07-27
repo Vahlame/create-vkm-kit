@@ -6,7 +6,10 @@ import path from "node:path";
 import {
   persistResults,
   consolidateTopic,
+  heuristicConsolidate,
+  autoConsolidate,
   listCoveredHashes,
+  writeCompiled,
   resolveResearchRoot,
   ResearchPersistError
 } from "../src/research-persist.mjs";
@@ -118,7 +121,10 @@ test("persistResults: updates the global _index.md topic table", async () => {
   const root = await freshRoot();
   await persistResults({ topic: "cats", query: "q", results: [okResult()], researchDir: root });
   const idx = await readFile(path.join(root, "_index.md"), "utf8");
-  assert.match(idx, /\|\s*cats\s*\|\s*1\s*\|.*\|\s*no\s*\|/);
+  // Both Summary and Compiled are "yes" — persistResults refreshes compiled-sources.md AND
+  // attempts a draft summary.md (real Ollama isn't running in this test env, so this exercises
+  // the heuristic fallback; see the "auto-consolidation" section below for the mocked-Ollama path).
+  assert.match(idx, /\|\s*cats\s*\|\s*1\s*\|[^|]*\|\s*yes\s*\|\s*yes\s*\|/);
 
   // A second topic gets its OWN row; the first topic's row is left alone.
   await persistResults({
@@ -160,6 +166,97 @@ test("missing OBSCURA_RESEARCH_DIR + persist -> typed error, no default root ass
     if (prev === undefined) delete process.env.OBSCURA_RESEARCH_DIR;
     else process.env.OBSCURA_RESEARCH_DIR = prev;
   }
+});
+
+// ── writeCompiled ────────────────────────────────────────────────────────────────────────
+
+test("writeCompiled: merges every source verbatim into one file, attribution line included", async () => {
+  const root = await freshRoot();
+  await persistResults({
+    topic: "cats",
+    query: "cat diet",
+    results: [
+      okResult({ url: "https://a.example/1", title: "A Article", snippet: "First body." }),
+      okResult({ url: "https://b.example/2", title: "B Article", snippet: "Second body." })
+    ],
+    researchDir: root
+  });
+
+  const text = await readFile(path.join(root, "cats", "compiled-sources.md"), "utf8");
+  assert.match(text, /^---\n/);
+  assert.match(text, /topic: "cats"/);
+  assert.match(text, /sources: 2/);
+  assert.match(text, /## A Article/);
+  assert.match(text, /<https:\/\/a\.example\/1>/);
+  assert.match(text, /First body\./);
+  assert.match(text, /## B Article/);
+  assert.match(text, /<https:\/\/b\.example\/2>/);
+  assert.match(text, /Second body\./);
+});
+
+test("writeCompiled: no author/published -> falls back to retrieved; with them -> both shown", async () => {
+  const root = await freshRoot();
+  await persistResults({
+    topic: "cats",
+    query: "q",
+    results: [
+      okResult({ url: "https://a.example/1", author: "Jane Doe", published: "2026-01-01" })
+    ],
+    researchDir: root
+  });
+  const withAttrib = await readFile(path.join(root, "cats", "compiled-sources.md"), "utf8");
+  assert.match(withAttrib, /by Jane Doe/);
+  assert.match(withAttrib, /published 2026-01-01/);
+  assert.doesNotMatch(withAttrib, /retrieved/);
+
+  await persistResults({
+    topic: "dogs",
+    query: "q",
+    results: [okResult({ url: "https://b.example/2" })],
+    researchDir: root
+  });
+  const withoutAttrib = await readFile(path.join(root, "dogs", "compiled-sources.md"), "utf8");
+  assert.doesNotMatch(withoutAttrib, /\bby /);
+  assert.match(withoutAttrib, /retrieved 20\d\d-/);
+});
+
+test("writeCompiled: called directly on a topic with no sources yet -> null, nothing written", async () => {
+  const root = await freshRoot();
+  const res = await writeCompiled({ topic: "never-researched", researchDir: root });
+  assert.equal(res, null);
+  const exists = await readFile(
+    path.join(root, "never-researched", "compiled-sources.md"),
+    "utf8"
+  ).catch(() => null);
+  assert.equal(exists, null);
+});
+
+test("writeCompiled: refreshed in place on a second persist — no second file, new source appended", async () => {
+  const root = await freshRoot();
+  await persistResults({
+    topic: "cats",
+    query: "q1",
+    results: [okResult({ url: "https://a.example/1", title: "A" })],
+    researchDir: root
+  });
+  await persistResults({
+    topic: "cats",
+    query: "q2",
+    results: [okResult({ url: "https://c.example/3", title: "C" })],
+    researchDir: root
+  });
+  const text = await readFile(path.join(root, "cats", "compiled-sources.md"), "utf8");
+  assert.match(text, /sources: 2/);
+  assert.match(text, /## A/);
+  assert.match(text, /## C/);
+});
+
+test("writeCompiled: rejects an invalid topic before touching the filesystem", async () => {
+  const root = await freshRoot();
+  await assert.rejects(
+    () => writeCompiled({ topic: "../../escape", researchDir: root }),
+    (e) => e instanceof ResearchPersistError && e.code === "invalid_topic"
+  );
 });
 
 // ── listCoveredHashes — the durable "seen" set behind cross-session mass research ───────
@@ -415,4 +512,217 @@ test("consolidateTopic: a single oversized note is truncated (reported), never s
     }
   );
   assert.equal(res.truncated, true);
+});
+
+test("consolidateTopic: draft carries method:ollama and stays under the compression ceiling", async () => {
+  const root = await freshRoot();
+  await seedSource(root, "cats", "aaaaaaaa-cats.md", {
+    url: "https://a",
+    title: "A",
+    body: "x".repeat(1000)
+  });
+  const res = await consolidateTopic(
+    { topic: "cats", researchDir: root },
+    {
+      checkOllamaImpl: async () => ({ ok: true, hasModel: true }),
+      summarizeImpl: async () => ({ summary: "y".repeat(5000) }) // deliberately far over 60% of 1000
+    }
+  );
+  const text = await readFile(res.wrote, "utf8");
+  assert.match(text, /method: "ollama"/);
+  const body = text.replace(/^---\n[\s\S]*?\n---\n/, "");
+  assert.ok(
+    body.length <= 1200,
+    `body of ${body.length} chars should have been capped near 60% of sources`
+  );
+  assert.match(body, /compression ceiling/);
+});
+
+// ── heuristicConsolidate — no-LLM fallback ──────────────────────────────────────────────────
+
+test("heuristicConsolidate: empty sources/ -> typed error, nothing written", async () => {
+  const root = await freshRoot();
+  await assert.rejects(
+    () => heuristicConsolidate({ topic: "cats", researchDir: root }),
+    (e) => e instanceof ResearchPersistError && e.code === "no_sources"
+  );
+});
+
+test("heuristicConsolidate: writes a draft-local/heuristic summary with a per-source excerpt, well under the sources' combined size", async () => {
+  const root = await freshRoot();
+  await seedSource(root, "cats", "aaaaaaaa-a.md", {
+    url: "https://a",
+    title: "Cat Diet",
+    body: "Cats need taurine. ".repeat(200)
+  });
+  await seedSource(root, "cats", "bbbbbbbb-b.md", {
+    url: "https://b",
+    title: "Cat Sleep",
+    body: "Cats sleep a lot. ".repeat(200)
+  });
+
+  const res = await heuristicConsolidate({ topic: "cats", researchDir: root });
+  assert.equal(res.sources_read, 2);
+  assert.equal(res.method, "heuristic");
+
+  const text = await readFile(res.wrote, "utf8");
+  assert.match(text, /status: "draft-local"/);
+  assert.match(text, /method: "heuristic"/);
+  assert.match(text, /\*\*Cat Diet\*\*/);
+  assert.match(text, /\*\*Cat Sleep\*\*/);
+
+  const body = text.replace(/^---\n[\s\S]*?\n---\n/, "");
+  const combinedSourceChars =
+    "Cats need taurine. ".repeat(200).length + "Cats sleep a lot. ".repeat(200).length;
+  assert.ok(
+    body.length <= combinedSourceChars * 0.6 + 5, // +5 slack for the ellipsis/truncation marker
+    `heuristic draft (${body.length} chars) must not approach compiled-sources.md's size (${combinedSourceChars})`
+  );
+});
+
+// ── autoConsolidate — persistResults' best-effort hook ──────────────────────────────────────
+
+test("autoConsolidate: no sources yet -> null, nothing written", async () => {
+  const root = await freshRoot();
+  const res = await autoConsolidate({ topic: "never-researched", researchDir: root });
+  assert.equal(res, null);
+});
+
+test("autoConsolidate: status:consolidated is never touched, even with new sources present", async () => {
+  const root = await freshRoot();
+  await seedSource(root, "cats", "aaaaaaaa-a.md", {
+    url: "https://a",
+    title: "A",
+    body: "Cats are great."
+  });
+  await mkdir(path.join(root, "cats"), { recursive: true });
+  const consolidatedText = '---\nstatus: "consolidated"\n---\n\nHuman/Claude-authored summary.\n';
+  await writeFile(path.join(root, "cats", "summary.md"), consolidatedText, "utf8");
+
+  const res = await autoConsolidate({ topic: "cats", researchDir: root });
+  assert.equal(res, null);
+  const after = await readFile(path.join(root, "cats", "summary.md"), "utf8");
+  assert.equal(after, consolidatedText, "byte-identical — untouched");
+});
+
+test("autoConsolidate: Ollama reachable -> ollama draft; Ollama unavailable -> heuristic fallback, never throws", async () => {
+  const root = await freshRoot();
+  await seedSource(root, "cats", "aaaaaaaa-a.md", {
+    url: "https://a",
+    title: "A",
+    body: "Cats are obligate carnivores."
+  });
+
+  const ollamaRes = await autoConsolidate(
+    { topic: "cats", researchDir: root },
+    {
+      checkOllamaImpl: async () => ({ ok: true, hasModel: true }),
+      summarizeImpl: async () => ({ summary: "Cats need meat." })
+    }
+  );
+  assert.ok(typeof ollamaRes.model === "string" && ollamaRes.model.length > 0);
+  assert.match(await readFile(ollamaRes.wrote, "utf8"), /method: "ollama"/);
+
+  await writeFile(path.join(root, "cats", "summary.md"), "", "utf8"); // reset so the next call has to (re)draft
+  const heuristicRes = await autoConsolidate(
+    { topic: "cats", researchDir: root },
+    {
+      checkOllamaImpl: async () => ({ ok: false, hasModel: false }),
+      ensureOllamaImpl: async () => false
+    }
+  );
+  assert.equal(heuristicRes.method, "heuristic");
+  assert.match(await readFile(heuristicRes.wrote, "utf8"), /method: "heuristic"/);
+});
+
+// ── persistResults + auto-consolidation (spec: "every persisted research run always leaves a
+// compiled-sources.md and a summary.md") ────────────────────────────────────────────────────
+
+test("persistResults: default env (no deps injected) always leaves SOME draft summary.md — method depends on whether this machine's real Ollama answers, but the guarantee doesn't", async () => {
+  const root = await freshRoot();
+  await persistResults({ topic: "cats", query: "q", results: [okResult()], researchDir: root });
+  const text = await readFile(path.join(root, "cats", "summary.md"), "utf8");
+  assert.match(text, /status: "draft-local"/);
+  assert.match(text, /method: "(ollama|heuristic)"/);
+});
+
+test("persistResults: with Ollama mocked reachable, the draft is Ollama's, not the heuristic's", async () => {
+  const root = await freshRoot();
+  await persistResults(
+    { topic: "cats", query: "q", results: [okResult()], researchDir: root },
+    {
+      checkOllamaImpl: async () => ({ ok: true, hasModel: true }),
+      summarizeImpl: async () => ({ summary: "Curated: cats eat meat." })
+    }
+  );
+  const text = await readFile(path.join(root, "cats", "summary.md"), "utf8");
+  assert.match(text, /method: "ollama"/);
+  assert.match(text, /Curated: cats eat meat\./);
+});
+
+test("persistResults: a status:consolidated summary.md is left byte-identical after persisting new sources", async () => {
+  const root = await freshRoot();
+  await persistResults({ topic: "cats", query: "q", results: [okResult()], researchDir: root });
+  await mkdir(path.join(root, "cats"), { recursive: true });
+  const consolidatedText =
+    '---\nstatus: "consolidated"\n---\n\nHuman-reviewed summary. [[PROJECTS/example]]\n';
+  await writeFile(path.join(root, "cats", "summary.md"), consolidatedText, "utf8");
+
+  await persistResults({
+    topic: "cats",
+    query: "q2",
+    results: [okResult({ url: "https://another.example" })],
+    researchDir: root
+  });
+  const after = await readFile(path.join(root, "cats", "summary.md"), "utf8");
+  assert.equal(
+    after,
+    consolidatedText,
+    "byte-identical — auto-consolidation never touches consolidated"
+  );
+});
+
+test("persistResults: a draft-local summary is re-drafted when a genuinely new source is persisted", async () => {
+  const root = await freshRoot();
+  let calls = 0;
+  const deps = {
+    checkOllamaImpl: async () => ({ ok: true, hasModel: true }),
+    summarizeImpl: async () => ({ summary: `draft #${++calls}` })
+  };
+  await persistResults(
+    { topic: "cats", query: "q1", results: [okResult()], researchDir: root },
+    deps
+  );
+  const first = await readFile(path.join(root, "cats", "summary.md"), "utf8");
+  assert.match(first, /draft #1/);
+
+  await persistResults(
+    {
+      topic: "cats",
+      query: "q2",
+      results: [okResult({ url: "https://second.example" })],
+      researchDir: root
+    },
+    deps
+  );
+  const second = await readFile(path.join(root, "cats", "summary.md"), "utf8");
+  assert.match(second, /draft #2/, "new source -> re-drafted, not left stale");
+});
+
+test("persistResults: never throws even if auto-consolidation itself would error", async () => {
+  const root = await freshRoot();
+  // A non-OllamaUnavailableError from summarizeImpl (a real bug in the model call, not "Ollama is
+  // down") still must not fail the persist — persistResults' own try/catch is unconditional.
+  const res = await persistResults(
+    { topic: "cats", query: "q", results: [okResult()], researchDir: root },
+    {
+      checkOllamaImpl: async () => ({ ok: true, hasModel: true }),
+      summarizeImpl: async () => {
+        throw new Error("boom — unrelated bug");
+      }
+    }
+  );
+  assert.equal(res.written, 1);
+  const sources = await readdir(path.join(root, "cats", "sources"));
+  assert.equal(sources.length, 1, "the persist itself still succeeded");
 });
