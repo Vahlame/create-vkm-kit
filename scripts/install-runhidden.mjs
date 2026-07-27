@@ -10,7 +10,11 @@
  *
  * Idempotent, and a no-op off Windows (nothing to suppress there).
  *
- *   node scripts/install-hookw.mjs [--settings <path>]
+ * This is the REPAIR path, for a machine whose hooks were written before the launcher existed (or
+ * whose copy was deleted). A fresh `npx create-vkm-kit` needs none of it: the installer ships the
+ * binary and installs it before it writes a single hook entry — see src/runhidden-setup.mjs.
+ *
+ *   node scripts/install-runhidden.mjs [--settings <path>]
  */
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
@@ -18,7 +22,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const built = path.join(here, "..", "bin", "vkm-runhidden.exe");
+// The one canonical build output: the same file `files: ["bin"]` publishes to npm, so this script
+// and an `npx` install can never disagree about which binary a machine ends up running.
+const built = path.join(here, "..", "packages", "create-vkm-kit", "bin", "vkm-runhidden.exe");
 const claudeDir = path.join(os.homedir(), ".claude");
 const destDir = path.join(claudeDir, "bin");
 const dest = path.join(destDir, "vkm-runhidden.exe");
@@ -39,7 +45,8 @@ console.log(`installed ${dest}`);
 
 // Repoint hooks that are still invoking node directly.
 const settingsArg = process.argv.indexOf("--settings");
-const settingsPath = settingsArg > -1 ? process.argv[settingsArg + 1] : path.join(claudeDir, "settings.json");
+const settingsPath =
+  settingsArg > -1 ? process.argv[settingsArg + 1] : path.join(claudeDir, "settings.json");
 if (!existsSync(settingsPath)) {
   console.log(`no settings at ${settingsPath} — launcher installed, hooks unchanged`);
   process.exit(0);

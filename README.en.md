@@ -204,7 +204,7 @@ Sonnet unaffected. A CI **e2e smoke** also proves the whole stack over real stdi
 - **Comparison with alternatives:** [FAQ](docs/en/faq.md).
 - **Contributing:** [`CONTRIBUTING.md`](CONTRIBUTING.md) · **For agents touching this repo:** [`AGENTS.md`](AGENTS.md).
 - **Versioning:** SemVer over the installed contract; majors frozen except unavoidable breaks — [policy](CONTRIBUTING.md#versioning-policy-post-4x).
-- **Privacy / telemetry:** [`docs/observability.md`](docs/observability.md).
+- **Privacy / telemetry:** [`docs/en/observability.md`](docs/en/observability.md).
 
 ## License
 

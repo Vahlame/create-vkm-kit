@@ -40,8 +40,8 @@ export function runHiddenLauncher() {
  * re-create exactly the situation this module exists to remove.
  *
  * Falls back to the previous behaviour (direct spawn, `windowsHide: true`) when the launcher is
- * missing or off-Windows, so a source checkout that has not run `npm run build:hookw` still works —
- * it just flashes like it used to.
+ * missing or off-Windows, so a source checkout that has not run `npm run build:runhidden` still
+ * works — it just flashes like it used to.
  *
  * @param {string} command
  * @param {string[]} args

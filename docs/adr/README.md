@@ -81,6 +81,7 @@ Each file in this directory captures one design decision: what was chosen, what 
 | [ADR-0075](./0075-supersession-aware-ranking.md)                   | Turning on the graph ranked the superseded decision first                                 | Accepted                                       |
 | [ADR-0076](./0076-confidence-is-not-ranked.md)                     | Ranking ignores `status`, and the obvious fixes are both already refuted                  | Accepted                                       |
 | [ADR-0077](./0077-lockfile-is-a-version-marker.md)                 | The lockfile is a version marker, and an uncovered workspace is drift                     | Accepted                                       |
+| [ADR-0078](./0078-allocate-and-hide-a-console.md)                  | Allocate a console and hide it, rather than deny the child one                            | Accepted                                       |
 
 ## Template
 

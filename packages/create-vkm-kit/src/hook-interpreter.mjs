@@ -34,9 +34,21 @@ import os from "node:os";
  * a `PreToolUse` guard blocks a call, and a launcher that swallowed it would silently disarm every
  * guard.
  *
- * Falls back to plain `node` when the launcher is absent (a source checkout that has not been
- * built, or any non-Windows host where there is no console to suppress in the first place). The
- * hooks behave identically either way; only the flashing differs.
+ * # Why the probe is safe here and would not have been before
+ *
+ * The value returned is written into `settings.json` as an ABSOLUTE path, and a hook whose
+ * `command` does not exist is a hook that never runs — for a `PreToolUse` guard, indistinguishable
+ * from one that approved the call. Probing for a file somebody else may or may not have built is
+ * how such a path gets baked in optimistically.
+ *
+ * That is why `installRunHidden` (runhidden-setup.mjs) runs FIRST, from the copy shipped inside
+ * the npm package: by the time this function looks, the installer has just put the file there. The
+ * probe confirms its own work rather than guessing about someone else's, and every re-run re-heals
+ * a copy that was deleted since — which makes `npx create-vkm-kit` the documented repair.
+ *
+ * Falls back to plain `node` when the launcher is genuinely absent (a source checkout that has not
+ * run `npm run build:runhidden`, or any non-Windows host where there is no console to suppress in
+ * the first place). The hooks behave identically either way; only the flashing differs.
  *
  * @param {string} [claudeDir] the `.claude` directory the launcher was installed into
  * @returns {string} executable for a hook entry's `command`

@@ -20,7 +20,8 @@
     "version:set": "node scripts/version.mjs set",
     "test": "npm run test --workspaces --if-present",
     "doctor": "node packages/vkm-doctor/src/doctor.mjs",
-    "build:runhidden": "go build -ldflags=\"-H windowsgui -s -w\" -o bin/vkm-runhidden.exe ./cmd/vkm-runhidden",
+    "build:runhidden": "node scripts/build-runhidden.mjs",
+    "check:runhidden": "node scripts/check-runhidden-asset.mjs",
     "install:runhidden": "node scripts/install-runhidden.mjs"
   },
   "devDependencies": {

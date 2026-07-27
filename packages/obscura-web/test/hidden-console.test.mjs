@@ -6,7 +6,10 @@ import { throughHiddenConsole, runHiddenLauncher } from "../src/hidden-console.m
 // re-creates the flashing it is supposed to remove, and nothing fails loudly when it does.
 
 test("uses the launcher and does NOT ask for CREATE_NO_WINDOW when it exists", () => {
-  const r = throughHiddenConsole("ollama.exe", ["serve"], { exists: () => true, platform: "win32" });
+  const r = throughHiddenConsole("ollama.exe", ["serve"], {
+    exists: () => true,
+    platform: "win32"
+  });
 
   assert.equal(r.viaLauncher, true);
   assert.ok(r.command.endsWith("vkm-runhidden.exe"), `unexpected command ${r.command}`);
@@ -18,7 +21,10 @@ test("uses the launcher and does NOT ask for CREATE_NO_WINDOW when it exists", (
 });
 
 test("falls back to a direct hidden spawn when the launcher is not installed", () => {
-  const r = throughHiddenConsole("ollama.exe", ["serve"], { exists: () => false, platform: "win32" });
+  const r = throughHiddenConsole("ollama.exe", ["serve"], {
+    exists: () => false,
+    platform: "win32"
+  });
 
   assert.equal(r.viaLauncher, false);
   assert.equal(r.command, "ollama.exe");
@@ -33,11 +39,36 @@ test("does nothing on platforms that have no consoles to hide", () => {
   assert.equal(r.command, "ollama");
 });
 
-test("VKM_RUNHIDDEN overrides the install location", () => {
+test("VKM_RUNHIDDEN overrides the install location, backslashes intact", () => {
+  // String.raw, not "D:\custom\...": in a normal literal `\c` collapses to `c` and `\v` to a
+  // VERTICAL TAB, so the earlier version of this test compared a mangled string to the same
+  // mangled string and would have passed even if the function had rewritten the path.
+  const override = String.raw`D:\custom\vkm-runhidden.exe`;
   const previous = process.env.VKM_RUNHIDDEN;
-  process.env.VKM_RUNHIDDEN = "D:\custom\vkm-runhidden.exe";
+  process.env.VKM_RUNHIDDEN = override;
   try {
-    assert.equal(runHiddenLauncher(), "D:\custom\vkm-runhidden.exe");
+    const resolved = runHiddenLauncher();
+    assert.equal(resolved, override);
+    // Pins the shape the equality above depends on: a real Windows path with real separators.
+    assert.equal(resolved, "D:\\custom\\vkm-runhidden.exe");
+    assert.equal(resolved.split("\\").length, 3, `separators lost in ${JSON.stringify(resolved)}`);
+    assert.ok(!/[\v\n\r\t]/.test(resolved), `control char in ${JSON.stringify(resolved)}`);
+  } finally {
+    if (previous === undefined) delete process.env.VKM_RUNHIDDEN;
+    else process.env.VKM_RUNHIDDEN = previous;
+  }
+});
+
+test("the launcher path flows through to the rewritten command verbatim", () => {
+  const override = String.raw`D:\custom\vkm-runhidden.exe`;
+  const previous = process.env.VKM_RUNHIDDEN;
+  process.env.VKM_RUNHIDDEN = override;
+  try {
+    const r = throughHiddenConsole("ollama.exe", ["serve"], {
+      exists: () => true,
+      platform: "win32"
+    });
+    assert.equal(r.command, override);
   } finally {
     if (previous === undefined) delete process.env.VKM_RUNHIDDEN;
     else process.env.VKM_RUNHIDDEN = previous;
@@ -45,7 +76,10 @@ test("VKM_RUNHIDDEN overrides the install location", () => {
 });
 
 test("the original command is never lost, only wrapped", () => {
-  const r = throughHiddenConsole("python.exe", ["-m", "searx.webapp"], { exists: () => true, platform: "win32" });
+  const r = throughHiddenConsole("python.exe", ["-m", "searx.webapp"], {
+    exists: () => true,
+    platform: "win32"
+  });
 
   assert.deepEqual(r.args, ["python.exe", "-m", "searx.webapp"]);
 });

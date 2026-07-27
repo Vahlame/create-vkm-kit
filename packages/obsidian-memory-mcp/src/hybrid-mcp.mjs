@@ -1048,7 +1048,7 @@ export async function buildServer() {
 
 async function main() {
   // Opt-in tracing: no-ops unless OTEL_EXPORTER_OTLP_ENDPOINT is set and the
-  // optional @opentelemetry/* deps are installed (see docs/observability.md).
+  // optional @opentelemetry/* deps are installed (see docs/en/observability.md).
   await maybeStartOtel();
 
   const server = await buildServer();

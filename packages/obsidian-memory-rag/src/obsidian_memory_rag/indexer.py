@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from .chunking import split_into_chunks
 from .knowledge_graph import parse_observations, parse_relations
 from .markdown_io import read_note
-from .paths import index_db_path
+from .paths import index_db_path, is_generated_duplicate
 from .store import (
     SCHEMA_VERSION,
     connect,
@@ -74,6 +74,12 @@ def _iter_markdown_files(vault: Path) -> list[Path]:
         dirnames[:] = sorted(d for d in dirnames if not _should_skip_dir(root_path / d))
         for name in sorted(filenames):
             if not name.endswith(".md"):
+                continue
+            # Generated concatenations are skipped here rather than at chunk time: their
+            # content is already indexed under the notes they were merged from, and a
+            # second copy competes with its own original in the ranking. See
+            # paths.GENERATED_SKIP_FILENAMES.
+            if is_generated_duplicate(name):
                 continue
             fp = root_path / name
             if fp.is_file():

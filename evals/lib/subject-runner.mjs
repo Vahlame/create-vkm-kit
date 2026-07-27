@@ -17,6 +17,7 @@
  */
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { pathToFileURL } from "node:url";
 
 const pExecFile = promisify(execFile);
 
@@ -225,4 +226,5 @@ async function main() {
   console.log(JSON.stringify(res));
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) await main();
+const isEntryPoint = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isEntryPoint) await main();

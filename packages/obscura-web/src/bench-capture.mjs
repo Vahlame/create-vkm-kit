@@ -18,7 +18,7 @@
 
 import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { ensureSearxng, stopSearxng } from "./ensure-searxng.mjs";
 import { loadQueries } from "./bench-research.mjs";
@@ -166,7 +166,7 @@ async function main() {
 }
 
 if (
-  import.meta.url === `file://${process.argv[1]}` ||
+  (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) ||
   process.argv[1]?.endsWith("bench-capture.mjs")
 ) {
   main().catch((err) => {

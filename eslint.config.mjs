@@ -5,6 +5,36 @@ import tseslint from "typescript-eslint";
 // Files covered by tsconfig.checkjs.json — only these can run type-aware rules.
 const typeAwareJs = ["*.mjs", "packages/**/*.{js,mjs}", "scripts/**/*.mjs", "evals/**/*.{mjs,cjs}"];
 
+// The entry-point guard that silently never fires on Windows.
+//
+// `import.meta.url` is a percent-encoded URL with a `/C:/`-style drive prefix; `process.argv[1]`
+// is a native path with backslashes. Comparing the first to a template literal or a concatenation
+// built from the second therefore NEVER matches on Windows — `main()` is skipped, the script exits
+// 0 with no output, and a green CI step is indistinguishable from a real pass. The correct
+// comparison is `pathToFileURL(process.argv[1]).href`, which does the encoding.
+//
+// A comment saying so is debt, not documentation: this repo shipped the broken form 12 times
+// AFTER the failure was written down. An AST rule is the version that cannot be ignored — it
+// matches the shape regardless of formatting, and cannot false-positive on prose describing it.
+const ENTRY_POINT_GUARD_MESSAGE =
+  "Broken entry-point guard: import.meta.url never equals a raw `file://` + process.argv[1] on " +
+  "Windows (backslashes, no /C:/ prefix), so main() silently never runs. Use " +
+  "`process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href`.";
+
+/** `import.meta.url === <template literal | concatenation>` on either side, `===` or `!==`. */
+const noBrokenEntryPointGuard = ["TemplateLiteral", "BinaryExpression"].flatMap((rhs) =>
+  [
+    ["left", "right"],
+    ["right", "left"]
+  ].map(([meta, other]) => ({
+    selector:
+      `BinaryExpression[operator=/^(===|!==)$/]` +
+      `[${meta}.type="MemberExpression"][${meta}.object.type="MetaProperty"][${meta}.property.name="url"]` +
+      `[${other}.type="${rhs}"]`,
+    message: ENTRY_POINT_GUARD_MESSAGE
+  }))
+);
+
 const typeAwareRules = {
   "@typescript-eslint/no-floating-promises": [
     "error",
@@ -44,7 +74,8 @@ export default [
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" }
       ],
-      "no-shadow": "error"
+      "no-shadow": "error",
+      "no-restricted-syntax": ["error", ...noBrokenEntryPointGuard]
     }
   },
   {

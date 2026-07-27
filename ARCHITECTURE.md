@@ -300,7 +300,7 @@ build.
 
 ## Observability
 
-Two **local** surfaces (no hosted backend; see [`docs/observability.md`](./docs/observability.md)):
+Two **local** surfaces (no hosted backend; see [`docs/en/observability.md`](./docs/en/observability.md)):
 
 1. **Daemon health** — `obsidian-memoryd doctor` reads the state file and reports
    heartbeat age, last push, and failure counters.

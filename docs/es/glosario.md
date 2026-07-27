@@ -186,7 +186,7 @@ Una comprobación de salud del vault, disponible tanto como la herramienta [MCP]
 
 ### `vkm-doctor`
 
-El doctor de uso local de la suite (`packages/vkm-doctor`): un hook `SessionStart` levanta un **sink OTLP/HTTP JSON** en `127.0.0.1:4319` que guarda la telemetría de Claude Code como NDJSON bajo `~/.vkm/telemetry/` (poda a 90 días) — **nada sale de tu máquina**. La CLI `vkm-doctor` reporta tokens, coste y el **ratio de cache-hit**, con diagnóstico de caché rota; `--include-transcripts` añade una sección derivada de transcripts claramente etiquetada. Ver ADR-0044 y [`docs/observability.md`](../observability.md).
+El doctor de uso local de la suite (`packages/vkm-doctor`): un hook `SessionStart` levanta un **sink OTLP/HTTP JSON** en `127.0.0.1:4319` que guarda la telemetría de Claude Code como NDJSON bajo `~/.vkm/telemetry/` (poda a 90 días) — **nada sale de tu máquina**. La CLI `vkm-doctor` reporta tokens, coste y el **ratio de cache-hit**, con diagnóstico de caché rota; `--include-transcripts` añade una sección derivada de transcripts claramente etiquetada. Ver ADR-0044 y [`docs/en/observability.md`](../en/observability.md).
 
 ### vkm-kit
 

@@ -17,7 +17,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { runSubject } from "../lib/subject-runner.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -157,4 +157,5 @@ async function main() {
         }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) await main();
+const isEntryPoint = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isEntryPoint) await main();

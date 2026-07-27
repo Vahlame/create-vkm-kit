@@ -35,7 +35,7 @@ reported in its own section, never mixed with the OTEL numbers.
 Wired by default by `create-vkm-kit` when `--ide` includes `claude` and a kit clone is
 available. Toggle with `--telemetry` / `--no-telemetry`; full teardown with `--uninstall`.
 
-More: [`docs/observability.md`](../../docs/observability.md) ·
+More: [`docs/en/observability.md`](../../docs/en/observability.md) ·
 [ADR-0044](../../docs/adr/0044-doctor-telemetry-local-otlp-sink.md).
 
 ## License

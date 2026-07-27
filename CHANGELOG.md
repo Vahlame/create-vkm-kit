@@ -6,6 +6,54 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **`docs/observability.md` moved to `docs/en/observability.md`.** It was the only English page not
+  under `docs/en/`, so its Spanish mirror `docs/es/observabilidad.md` was the only one whose
+  language switcher pointed out of the language directories. Every live reference was repointed
+  (both root READMEs, `ARCHITECTURE.md`, both glossaries, `docs/README.md`,
+  `docs/security/README.md`, ADR-0015, `packages/vkm-doctor/README.md` and two source comments);
+  the mentions in this changelog's own history are left as they were, because they describe what
+  was true in the release they document.
+
+### Fixed
+
+- **No console window flashes while the agent works on Windows — and now that fix actually reaches
+  you.** Every vkm hook is a Node script and the agent host starts one process per matching event;
+  two of them fire on every `Bash` call and every MCP call, so a research run spawns hundreds of
+  `node.exe` — a CONSOLE-subsystem binary Windows gives a real window that appears, **takes the
+  foreground**, and vanishes. The counter-intuitive part is that the obvious protection causes it:
+  `CREATE_NO_WINDOW` leaves the child with no console, and a console-subsystem _grandchild_ whose
+  parent has none gets a brand new **visible** one (measured against ollama's model runner, one per
+  model load). `vkm-runhidden.exe` fixes it from the other end — GUI-subsystem, so the loader gives
+  it nothing; it allocates a console, hides it, and starts the target so the whole tree inherits
+  that one hidden console. stdin, stdout and the **exit code** are proxied verbatim, so a
+  `PreToolUse` guard can still block a tool call ([ADR-0078](docs/adr/0078-allocate-and-hide-a-console.md)).
+  The launcher now ships inside the npm package and the installer puts it in place **before** it
+  writes any hook entry, so an `npx create-vkm-kit` install on Windows gets it. Previously it
+  existed only on a machine that had built it from source with Go.
+- **The launcher no longer hides the terminal you started it from.** It hid whatever console was
+  present, including an inherited one — and `ShowWindow(SW_HIDE)` has no undo here, so running it
+  from PowerShell left that shell alive with no window, recoverable only via Task Manager. It now
+  hides only a console it allocated itself.
+- **The `PreToolUse` effort gate was still wired to bare `node`, so it kept flashing.** Its hook
+  entry was the one of four that was never handed the resolved interpreter. The telemetry sink and
+  both token-saver hooks had the mirror-image defect: they resolved the interpreter _inside_ the
+  factory, against the current user's `~/.claude`, which is not necessarily the home being
+  installed into. All five now take it as a parameter resolved once at their composition root.
+- **Twelve scripts silently did nothing when run on Windows.** Their entry-point guard compared
+  `import.meta.url` with `` `file://${process.argv[1]}` ``, which never matches a Windows path
+  (backslashes, no `/C:/` prefix): `main()` was skipped and the process exited 0 with no output —
+  indistinguishable from a real pass, including for the CI steps that run
+  `scripts/harness-matrix.mjs` and `evals/lib/arm-install.mjs`. All now use `pathToFileURL`, and an
+  ESLint rule fails the build if the broken shape reappears.
+- **A research topic's content is indexed once, not twice.** `compiled-sources.md` is the verbatim
+  concatenation of every `RESEARCH/<topic>/sources/*.md`, so indexing it stored each passage a
+  second time, competing with its own original in BM25 and in the vector index. It is now skipped
+  by both the indexer and the audit (which must see exactly what retrieval sees). No recall is
+  lost: every passage stays retrievable through the source note it came from, which also carries
+  the `url`/`author`/`retrieved` frontmatter the merged file flattens away.
+
 ## [4.7.1] - 2026-07-25
 
 **What changes for you when you update.** Nothing in the installed contract — no new tool, no new

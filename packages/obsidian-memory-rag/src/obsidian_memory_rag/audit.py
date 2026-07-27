@@ -17,7 +17,7 @@ import time
 from math import ceil
 from pathlib import Path
 
-from .paths import index_db_path
+from .paths import index_db_path, is_generated_duplicate
 from .text_scrub import strip_code_regions
 
 # Directories that never hold user notes: VCS metadata, the Obsidian app config,
@@ -193,6 +193,13 @@ def _iter_md_files(vault: Path) -> list[Path]:
     for path in vault.rglob("*.md"):
         parts = path.relative_to(vault).parts[:-1]
         if any(p in _EXCLUDE_DIRS or p.startswith(".") for p in parts):
+            continue
+        # Same reason the dot-directory rule is mirrored: a file retrieval never returns
+        # must not be audited as though it could. Auditing generated concatenations would
+        # double-count their bytes against the token budget, list them in ``oversized``,
+        # and report them as permanently ``missing`` from an index that is right to omit
+        # them. See paths.GENERATED_SKIP_FILENAMES.
+        if is_generated_duplicate(path.name):
             continue
         if path.is_file():
             out.append(path)

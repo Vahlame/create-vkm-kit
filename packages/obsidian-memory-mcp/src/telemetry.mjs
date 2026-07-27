@@ -18,7 +18,7 @@ export function logMcpTurn(meta, payload) {
 /**
  * Start the OpenTelemetry SDK when tracing is opt-in *and* available.
  *
- * Opt-in contract (see docs/observability.md): activate only when an OTLP
+ * Opt-in contract (see docs/en/observability.md): activate only when an OTLP
  * endpoint is configured via env. Without it we skip entirely, so installing
  * the optional deps alone never fires exports at a non-existent local collector.
  * Errors (e.g. optional deps absent) are swallowed — tracing is best-effort.

@@ -15,7 +15,7 @@
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { runSubject } from "../lib/subject-runner.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -141,4 +141,5 @@ async function main() {
   console.log(report(tasks, answers, conditions));
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) await main();
+const isEntryPoint = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isEntryPoint) await main();

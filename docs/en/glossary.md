@@ -184,7 +184,7 @@ A vault-health check, available both as the `vault_audit` [MCP](#mcp) tool (via 
 
 ### `vkm-doctor`
 
-The suite's local usage doctor (`packages/vkm-doctor`): a `SessionStart` hook spawns an **OTLP/HTTP JSON sink** on `127.0.0.1:4319` that stores Claude Code's telemetry as NDJSON under `~/.vkm/telemetry/` (90-day prune) — **nothing leaves your machine**. The `vkm-doctor` CLI reports tokens, cost, and the **cache-hit ratio**, with a broken-cache diagnosis; `--include-transcripts` adds a clearly-labelled transcript-derived section. See ADR-0044 and [`docs/observability.md`](../observability.md).
+The suite's local usage doctor (`packages/vkm-doctor`): a `SessionStart` hook spawns an **OTLP/HTTP JSON sink** on `127.0.0.1:4319` that stores Claude Code's telemetry as NDJSON under `~/.vkm/telemetry/` (90-day prune) — **nothing leaves your machine**. The `vkm-doctor` CLI reports tokens, cost, and the **cache-hit ratio**, with a broken-cache diagnosis; `--include-transcripts` adds a clearly-labelled transcript-derived section. See ADR-0044 and [`docs/en/observability.md`](observability.md).
 
 ### vkm-kit
 

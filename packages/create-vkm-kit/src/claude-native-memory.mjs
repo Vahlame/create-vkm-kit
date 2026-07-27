@@ -326,9 +326,13 @@ export async function configureClaudeNativeMemory(
   // wherever they run, and the one place that touches the filesystem is this one.
   const interpreter = hookInterpreter(claudeDir);
   const hookEntry = enable ? hookCommand(hookDest, vaultAbs, lang, interpreter) : null;
-  const guardCommand = wantEnforce ? guardHookCommand(guardDest, claudeDir, lang, interpreter) : null;
+  const guardCommand = wantEnforce
+    ? guardHookCommand(guardDest, claudeDir, lang, interpreter)
+    : null;
   const stopCommand = wantEnforce ? stopHookCommand(stopDest, lang, interpreter) : null;
-  const effortGateCommand = wantEffortGate ? effortGateHookCommand(effortGateDest, lang) : null;
+  const effortGateCommand = wantEffortGate
+    ? effortGateHookCommand(effortGateDest, lang, interpreter)
+    : null;
 
   try {
     // Read existing settings up front — needed to reconcile installs AND removals, and to

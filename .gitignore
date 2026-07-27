@@ -3,6 +3,12 @@
 /obsidian-memoryd
 /obsidian-memoryd.exe
 
+# The Windows hook launcher is a BUILD OUTPUT that SHIPS: `npm run build:runhidden` writes it
+# here, `files: ["bin"]` packs it into the npm tarball, and release.yml rebuilds it before every
+# publish (the `prepack` gate refuses to pack without it). Ignored because a binary in git is a
+# binary nobody can review in a diff — not because it is disposable.
+/packages/create-vkm-kit/bin/
+
 # Editors (local-only; the kit no longer commits workspace settings —
 # the initializer writes <vault>/.vscode/settings.json into the user's vault instead)
 .vscode/

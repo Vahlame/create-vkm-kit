@@ -1,4 +1,4 @@
-> [🇪🇸 Español](./es/observabilidad.md) · 🇬🇧 English
+> [🇪🇸 Español](../es/observabilidad.md) · 🇬🇧 English
 
 # Observability
 

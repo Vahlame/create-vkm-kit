@@ -1,10 +1,67 @@
 package main
 
 import (
+	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
+
+// TestHelperProcess is not a test: re-executed as the CHILD by TestRunForwardsChildExitCode, it
+// exits with whatever code the environment asks for. The standard library's own idiom for needing
+// a real process to spawn without shipping a fixture binary.
+func TestHelperProcess(t *testing.T) {
+	if os.Getenv("VKM_RUNHIDDEN_HELPER") != "1" {
+		t.Skip("not the helper invocation")
+	}
+	code, err := strconv.Atoi(os.Getenv("VKM_RUNHIDDEN_HELPER_EXIT"))
+	if err != nil {
+		code = 99
+	}
+	os.Exit(code)
+}
+
+// The exit code IS the hook protocol: a non-zero PreToolUse hook is how the memory-write and
+// effort guards block a tool call. A launcher that returned 0 for a child that exited non-zero
+// would silently disarm every guard on the machine, and nothing would look broken — which is
+// strictly worse than the flashing console this binary exists to remove.
+func TestRunForwardsChildExitCode(t *testing.T) {
+	self, err := os.Executable()
+	if err != nil {
+		t.Fatalf("cannot locate the test binary: %v", err)
+	}
+
+	original := os.Args
+	t.Cleanup(func() { os.Args = original })
+	os.Args = []string{"vkm-runhidden", self, "-test.run=^TestHelperProcess$"}
+	t.Setenv("VKM_RUNHIDDEN_HELPER", "1")
+	t.Setenv("VKM_RUNHIDDEN_HELPER_EXIT", "2")
+
+	if got := run(); got != 2 {
+		t.Fatalf("child exited 2, launcher returned %d", got)
+	}
+}
+
+func TestRunReportsUsageWithoutAProgram(t *testing.T) {
+	original := os.Args
+	t.Cleanup(func() { os.Args = original })
+	os.Args = []string{"vkm-runhidden"}
+
+	if got := run(); got != 2 {
+		t.Fatalf("expected exit 2 with no program given, got %d", got)
+	}
+}
+
+func TestRunReportsAMissingExecutable(t *testing.T) {
+	original := os.Args
+	t.Cleanup(func() { os.Args = original })
+	os.Args = []string{"vkm-runhidden", filepath.Join(t.TempDir(), "does-not-exist.exe")}
+
+	if got := run(); got != 2 {
+		t.Fatalf("expected exit 2 when the program cannot be started, got %d", got)
+	}
+}
 
 // resolve is the only branching logic in this command, and getting it wrong is silent: a hook whose
 // interpreter is not resolved simply never runs, and a guard hook that never runs is

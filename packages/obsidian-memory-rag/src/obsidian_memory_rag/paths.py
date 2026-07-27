@@ -14,6 +14,31 @@ DB_NAME = "fts.sqlite"
 # this one constant so the boundary can never drift between the two paths.
 RESEARCH_PREFIX = "RESEARCH/"
 
+# Generated files whose ENTIRE content already exists elsewhere in the vault, indexed
+# under its own path. Skipped by name at any depth.
+#
+# `compiled-sources.md` (obscura's research pipeline, `writeCompiled`) is the verbatim
+# concatenation of every `RESEARCH/<topic>/sources/*.md`. Indexing it stores each topic
+# TWICE: once per source note and once inside the merged file. The cost is not only disk
+# — the duplicate chunks compete with their own originals in BM25 and in the vector
+# index, so a topic with a big compiled file can return the same passage twice and push
+# a different source out of the top-k.
+#
+# Skipping it loses no recall: every passage remains retrievable through the source note
+# it came from, which additionally carries the url/author/retrieved frontmatter that the
+# merged rendering flattens into a text line. The merged file is a READING artifact — one
+# scroll through everything gathered — not a retrieval unit.
+#
+# Note for an existing vault: rows written before this list existed are removed by the
+# next indexing pass. Until then `index_drift` reports them as `orphaned`, which is what
+# they now are.
+GENERATED_SKIP_FILENAMES = frozenset({"compiled-sources.md"})
+
+
+def is_generated_duplicate(name: str) -> bool:
+    """True for a generated file whose content is already indexed under its own source."""
+    return name in GENERATED_SKIP_FILENAMES
+
 
 def sidecar_dir(vault: Path) -> Path:
     return vault / SIDECAR_DIR

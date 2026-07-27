@@ -243,6 +243,51 @@ Para **menos ventanas**, desactiva los MCP que no uses, o ejecuta
 columna de línea de comando) o **Monitor de recursos** mientras ocurre el
 problema, para ver exactamente qué programa abre las ventanas.
 
+### Parpadean consolas mientras el agente trabaja (hooks, ollama) — Windows
+
+**Causa.** Cada hook del kit es un script de Node y Claude Code arranca **un proceso por
+evento**; dos de ellos (`compact-tool-output`, `compact-mcp-output`) se disparan en **cada**
+llamada `Bash` y en **cada** llamada MCP, así que una sesión de investigación lanza cientos.
+`node.exe` es un binario de **subsistema consola**: Windows le asigna una ventana real que
+aparece, **roba el foco** y desaparece en milisegundos. Lo contraintuitivo es que la protección
+obvia (`CREATE_NO_WINDOW`) **provoca** el problema: deja al hijo sin consola, y un nieto de
+subsistema consola cuyo padre no tiene ninguna no hereda nada — Windows le crea una **nueva y
+visible**. Es exactamente lo que hacía el runner de modelos de ollama, una por cada carga.
+
+**Solución (automática).** El instalador copia `vkm-runhidden.exe` en `~/.claude/bin/` y apunta
+ahí las entradas de hooks. Ese binario se compila como **GUI-subsystem**, así que el cargador no
+le asigna consola; él crea una, la **oculta**, y arranca el programa real sin `CREATE_NO_WINDOW`
+para que todo el árbol herede esa única consola oculta. Reenvía stdin, stdout y el **código de
+salida** tal cual, de modo que un guard `PreToolUse` sigue pudiendo bloquear una llamada.
+Detalle completo en [ADR-0078](../adr/0078-allocate-and-hide-a-console.md).
+
+**Comprueba que está instalado:**
+
+```powershell
+Test-Path "$env:USERPROFILE\.claude\bin\vkm-runhidden.exe"
+```
+
+**Si devuelve `False`** (una instalación anterior a este arreglo, o el archivo se borró), corre de nuevo
+el instalador — es idempotente y repara la entrada:
+
+```bash
+npx --yes @vkmikc/create-vkm-kit@latest
+```
+
+**Desde un checkout del repo** (necesita Go), el equivalente es:
+
+```bash
+npm run build:runhidden && npm run install:runhidden
+```
+
+**Qué esperar si falta.** Nada se rompe: los hooks caen a `node` a secas y se comportan igual —
+solo vuelven a parpadear. Los hooks se leen al iniciar sesión, así que **reinicia Claude Code**
+después de instalarlo.
+
+**Lo que NO hace, a propósito.** Si lanzas `vkm-runhidden.exe` desde una terminal, **no** oculta
+esa terminal. Heredó esa consola y `ShowWindow(SW_HIDE)` no tiene vuelta atrás aquí: te dejaría
+la shell viva y sin ventana, recuperable solo desde el Administrador de tareas.
+
 ### Cada pocos segundos aparece `conhost` y su padre es `git` (Windows)
 
 **Prevención (kit).** Este repo y el vault de ejemplo incluyen un

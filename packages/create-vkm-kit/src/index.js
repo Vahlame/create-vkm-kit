@@ -40,6 +40,7 @@ import {
 } from "./claude-native-memory.mjs";
 import { configureTokenSaver, uninstallTokenSaver } from "./token-saver.mjs";
 import { configureTelemetry, uninstallTelemetry } from "./telemetry.mjs";
+import { installRunHidden } from "./runhidden-setup.mjs";
 import { configureSkillAssets, uninstallSkillAssets, skillAssetFiles } from "./skills-install.mjs";
 import { maybeInstallOllama } from "./ollama-setup.mjs";
 import { maybeInstallObscura } from "./obscura-setup.mjs";
@@ -1121,6 +1122,10 @@ async function runNonInteractive(argv) {
   // run: a symmetric call also STRIPS previously-installed pieces a `--no-X` flag now
   // turns off, instead of only ever adding entries (see ADR-0030/0031 install/remove fix).
   if (ides.includes("claude")) {
+    // BEFORE the configure* calls: each resolves `hookInterpreter(claudeDir)` once, and the answer
+    // is only the launcher if the launcher is already on disk. Installing it afterwards would
+    // write a settings.json full of `node` and take another full re-run to correct.
+    await installRunHidden(home, dryRun);
     await configureClaudeNativeMemory(home, vault, dryRun, {
       lang,
       enable: wantNativeOverride,
@@ -1689,6 +1694,9 @@ Claude Code native-memory override (when --ide includes claude):
     Boolean(ides?.includes("claude")) && !process.argv.includes("--no-token-saver");
   const wantTerseStyle = wantTokenSaver && !process.argv.includes("--no-terse-style");
   if (ides?.includes("claude")) {
+    // Same ordering rule as the headless path: the launcher must exist before any factory
+    // resolves the interpreter it bakes into settings.json.
+    await installRunHidden(home, dryRun);
     await configureClaudeNativeMemory(home, vault, dryRun, {
       lang,
       enable: wantNativeOverride,

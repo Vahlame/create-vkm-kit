@@ -111,6 +111,16 @@ jobs:
           registry-url: "https://registry.npmjs.org"
       - name: guard — LICENSE.md mirror matches root
         run: node scripts/license-sync.mjs --check
+      # The Windows hook launcher is a build output, not a committed file, so the tarball only
+      # carries it if THIS job produces it. Cross-compiled from ubuntu: the command is pure
+      # `syscall` with CGO off, so no Windows toolchain is involved. Without this step the publish
+      # still succeeds and every Windows user silently gets the flashing consoles back — which is
+      # why the `prepack` gate below refuses to pack when the file is absent.
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: build the Windows hook launcher (GOOS=windows, shipped in the tarball)
+        run: npm run build:runhidden
       - name: publish create-vkm-kit
         working-directory: packages/create-vkm-kit
         env:

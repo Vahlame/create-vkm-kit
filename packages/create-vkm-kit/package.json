@@ -32,7 +32,8 @@
   ],
   "files": [
     "src",
-    "templates"
+    "templates",
+    "bin"
   ],
   "type": "module",
   "bin": {
@@ -40,7 +41,8 @@
     "vkm": "src/index.js"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "prepack": "node ../../scripts/check-runhidden-asset.mjs"
   },
   "dependencies": {
     "execa": "^9.6.1",

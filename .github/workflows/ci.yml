@@ -144,6 +144,17 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - run: npm ci
+      # Windows only, and before the tests: the launcher end-to-end test (does a hook's exit code
+      # survive the trip through vkm-runhidden.exe?) can only run against a real binary, and
+      # without one it SKIPS — a green leg that proved nothing about the console-flash fix. Go is
+      # already a dependency of this repo; setting it up here is what makes that test real.
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: runner.os == 'Windows'
+        with:
+          go-version-file: go.mod
+      - name: build the hook launcher (so the end-to-end launcher test is not skipped)
+        if: runner.os == 'Windows'
+        run: npm run build:runhidden
       - run: npm test --workspaces --if-present
 
   test-python:

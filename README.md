@@ -208,7 +208,7 @@ tocar a Sonnet. Además un **e2e smoke** en CI prueba el stack entero por stdio 
 - **Comparación con alternativas:** [FAQ 🇪🇸](docs/es/faq.md) · [FAQ 🇬🇧](docs/en/faq.md).
 - **Contribuir:** [`CONTRIBUTING.md`](CONTRIBUTING.md) · **Para agentes que tocan este repo:** [`AGENTS.md`](AGENTS.md).
 - **Versionado · Versioning:** SemVer sobre el contrato instalado; majors congelados salvo ruptura inevitable — [política](CONTRIBUTING.md#versioning-policy-post-4x).
-- **Privacidad / telemetría:** [`docs/observability.md`](docs/observability.md).
+- **Privacidad / telemetría:** [`docs/en/observability.md`](docs/en/observability.md).
 
 ## Licencia · License
 
