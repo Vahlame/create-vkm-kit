@@ -14,6 +14,7 @@
  * can process an arbitrarily long crawl one page at a time without ever growing a context.
  */
 import { spawn } from "node:child_process";
+import os from "node:os";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
@@ -1098,6 +1099,38 @@ export async function summarizeNotes({
 
 /** The winget/user-local install location on Windows (not on PATH in already-open shells);
  * elsewhere we rely on PATH. */
+/**
+ * Wraps a spawn so neither the child nor ANYTHING IT SPAWNS can put a console window on screen.
+ *
+ * Measured live during a deep-research run: the only processes creating consoles were `conhost.exe`
+ * children of `ollama.exe`. The cause is that the obvious protection creates the problem —
+ * `windowsHide: true` is CREATE_NO_WINDOW, which gives the child NO console, and a console-subsystem
+ * grandchild whose parent has no console does not inherit one: Windows allocates it a brand new,
+ * VISIBLE console. Every model load during curation produced one, each a window that appears, takes
+ * the foreground and vanishes — which is what pulls a user out of a full-screen game while the agent
+ * works in the background.
+ *
+ * We do not control how ollama spawns its runner, so the flag cannot be pushed down. vkm-runhidden
+ * fixes it from the other side: it allocates a console, hides it, and lets the whole tree inherit
+ * that one. Absent (not built, or non-Windows), this degrades to the previous behaviour.
+ *
+ * @param {string} bin
+ * @param {string[]} args
+ * @returns {{ command: string, args: string[], windowsHide: boolean }}
+ */
+function throughHiddenConsole(bin, args) {
+  if (process.platform !== "win32") return { command: bin, args, windowsHide: true };
+
+  const launcher = process.env.VKM_RUNHIDDEN
+    || path.join(os.homedir(), ".claude", "bin", "vkm-runhidden.exe");
+
+  // windowsHide stays FALSE when the launcher is used: it owns the hidden console, and asking for
+  // CREATE_NO_WINDOW on top would re-create the very situation this exists to remove.
+  return existsSync(launcher)
+    ? { command: launcher, args: [bin, ...args], windowsHide: false }
+    : { command: bin, args, windowsHide: true };
+}
+
 export function localOllamaBinary() {
   if (process.platform === "win32" && process.env.LOCALAPPDATA) {
     const candidate = path.join(process.env.LOCALAPPDATA, "Programs", "Ollama", "ollama.exe");
@@ -1117,10 +1150,11 @@ export async function ensureOllamaServer({ host = DEFAULT_OLLAMA_HOST, waitMs = 
   if ((await checkOllama({ host })).version) return true;
   let spawnFailed = false;
   try {
-    const child = spawn(localOllamaBinary(), ["serve"], {
+    const launch = throughHiddenConsole(localOllamaBinary(), ["serve"]);
+    const child = spawn(launch.command, launch.args, {
       detached: true,
       stdio: "ignore",
-      windowsHide: true,
+      windowsHide: launch.windowsHide,
       env: {
         ...process.env,
         OLLAMA_MAX_LOADED_MODELS: process.env.OLLAMA_MAX_LOADED_MODELS || "1",

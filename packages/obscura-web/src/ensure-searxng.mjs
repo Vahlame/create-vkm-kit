@@ -132,12 +132,23 @@ export async function ensureSearxng(deps = {}) {
   if (starting) return starting; // a concurrent search is already booting it
   starting = (async () => {
     hookExit();
-    child = spawnImpl(c.py, ["-m", "searx.webapp"], {
-      cwd: c.src,
-      env: { ...process.env, SEARXNG_SETTINGS_PATH: c.settings },
-      stdio: "ignore",
-      windowsHide: true
-    });
+    // Same hidden-console treatment as ollama: Python here is console-subsystem and may spawn
+    // further console-subsystem children, each of which would allocate a visible console of its own
+    // if this one had none. See throughHiddenConsole in ollama-client.mjs for the full reasoning.
+    const launcher = process.platform === "win32"
+      ? (process.env.VKM_RUNHIDDEN || path.join(os.homedir(), ".claude", "bin", "vkm-runhidden.exe"))
+      : null;
+    const useLauncher = launcher !== null && existsSync(launcher);
+
+    child = spawnImpl(
+      useLauncher ? launcher : c.py,
+      useLauncher ? [c.py, "-m", "searx.webapp"] : ["-m", "searx.webapp"],
+      {
+        cwd: c.src,
+        env: { ...process.env, SEARXNG_SETTINGS_PATH: c.settings },
+        stdio: "ignore",
+        windowsHide: !useLauncher
+      });
     child.once("exit", () => {
       child = null;
     });
