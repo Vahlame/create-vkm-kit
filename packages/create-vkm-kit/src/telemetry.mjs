@@ -8,6 +8,7 @@
 // wire-by-absolute-path model as the hybrid MCP server — so telemetry needs a kit clone
 // (callers pass `kitRoot`; without one this module is skipped with a hint).
 import path from "node:path";
+import { hookInterpreter } from "./hook-interpreter.mjs";
 import { fileURLToPath } from "node:url";
 import fse from "fs-extra";
 import pc from "picocolors";
@@ -101,7 +102,7 @@ export async function configureTelemetry(home, dryRun, { enable = true, kitRoot 
           hookMap,
           "SessionStart",
           "*",
-          { command: "node", args: [hookDest, sinkScript] },
+          { command: hookInterpreter(), args: [hookDest, sinkScript] },
           ENSURE_SINK_HOOK_STEM
         )
       : removeManagedHook(hookMap, "SessionStart", ENSURE_SINK_HOOK_STEM);

@@ -13,6 +13,7 @@
 // `settings-io.mjs`, and template files tracked by content hash (`asset-install.mjs`) so
 // uninstall never deletes a user-modified file.
 import path from "node:path";
+import { hookInterpreter } from "./hook-interpreter.mjs";
 import { fileURLToPath } from "node:url";
 import fse from "fs-extra";
 import pc from "picocolors";
@@ -67,7 +68,7 @@ function packagedPath(...segments) {
 
 /** Exec-form hook entry (same rationale as `hookCommand` in claude-native-memory.mjs). */
 export function compactHookCommand(hookPath) {
-  return { command: "node", args: [hookPath] };
+  return { command: hookInterpreter(), args: [hookPath] };
 }
 
 /**

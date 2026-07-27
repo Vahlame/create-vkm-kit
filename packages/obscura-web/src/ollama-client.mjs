@@ -613,6 +613,33 @@ const EXPAND_SYSTEM_PROMPT = [
   "  - DO NOT INVENT specifics you were not given: no fabricated version numbers, product names,",
   "    error codes or standard IDs. Vague-but-true beats precise-but-invented, which returns",
   "    nothing at all.",
+  // ── Disambiguation: the failure the "don't be confidently wrong" rule above does NOT cover ──
+  //
+  // That rule guards against a term that is WRONG. This one guards against a term that is RIGHT
+  // and AMBIGUOUS, which is a different failure with the same symptom and no defence upstream.
+  //
+  // Observed live (RESEARCH/winoptengine-v19-candidates, 2026-07-27): a run about message-signalled
+  // interrupts expanded to queries containing the bare acronyms "MSI" and "MSIX". Both are correct
+  // terms. Both are also something else entirely — MSI the hardware brand, MSIX the Windows
+  // packaging format. SearXNG returned real, well-ranked pages for the OTHER meaning: a laptop
+  // catalogue, CPU-Z release notes, a Wikipedia article on CPUs, and five Brazilian federal
+  // statutes. The curator scored several 8-9, because relative to a query that literally says "MSI"
+  // they were not obviously wrong.
+  //
+  // The curator cannot fix this: by the time a page is judged, the only evidence of intent is the
+  // query, and the query is genuinely ambiguous. It has to be fixed here, where the intent is still
+  // known. Note this is NOT the curator revision measured and reverted in ADR-0057's seventh
+  // addendum — that one asked the judge to be stricter about domain match and cost more in false
+  // negatives than it won in false positives. This adds no strictness anywhere; it removes the
+  // ambiguity before the search happens.
+  "",
+  "  - DISAMBIGUATE. Before emitting a query, check every acronym and short name in it: could a",
+  "    search engine read it as a company, a product, a file format or a different field's term?",
+  "    Acronyms of three to five letters almost always can. If so, WRITE IT OUT — use the full",
+  "    phrase the term stands for, or add the word that fixes the domain. The engine matches",
+  "    characters, not your intent, and a page about the other meaning is not merely useless: it is",
+  "    a real, relevant-looking page for what you literally asked, so nothing downstream can tell it",
+  "    apart. Never leave a bare ambiguous acronym as the whole subject of a query.",
   "",
   "Respond ONLY with a JSON object matching the requested schema."
 ].join("\n");

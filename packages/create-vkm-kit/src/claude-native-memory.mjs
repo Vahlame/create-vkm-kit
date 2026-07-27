@@ -33,6 +33,7 @@
 // builds on the same removal path plus deletes the hook script files themselves, but only
 // when a marker check proves this kit wrote them (never a user's own same-named file).
 import path from "node:path";
+import { hookInterpreter } from "./hook-interpreter.mjs";
 import { fileURLToPath } from "node:url";
 import fse from "fs-extra";
 import pc from "picocolors";
@@ -95,24 +96,24 @@ function packagedHookPath(basename = HOOK_BASENAME) {
  * @returns {{ command: string, args: string[] }}
  */
 export function hookCommand(hookPath, vaultAbs, lang = "es") {
-  return { command: "node", args: [hookPath, vaultAbs, lang === "en" ? "en" : "es"] };
+  return { command: hookInterpreter(), args: [hookPath, vaultAbs, lang === "en" ? "en" : "es"] };
 }
 
 /** The `PreToolUse` guard hook entry: `node "<hook>" "<claudeDir>" <lang>` (exec form). */
 export function guardHookCommand(hookPath, claudeDir, lang = "es") {
-  return { command: "node", args: [hookPath, claudeDir, lang === "en" ? "en" : "es"] };
+  return { command: hookInterpreter(), args: [hookPath, claudeDir, lang === "en" ? "en" : "es"] };
 }
 
 /** The `Stop` nudge hook entry (exec form; no path arg — it reads the transcript path
  * Claude Code passes on stdin). */
 export function stopHookCommand(hookPath, lang = "es") {
-  return { command: "node", args: [hookPath, lang === "en" ? "en" : "es"] };
+  return { command: hookInterpreter(), args: [hookPath, lang === "en" ? "en" : "es"] };
 }
 
 /** The effort-gate hook entry (exec form; same shape as the Stop nudge — it also reads
  * `transcript_path` from stdin, not argv). */
 export function effortGateHookCommand(hookPath, lang = "es") {
-  return { command: "node", args: [hookPath, lang === "en" ? "en" : "es"] };
+  return { command: hookInterpreter(), args: [hookPath, lang === "en" ? "en" : "es"] };
 }
 
 // The shared merge/remove/read/write primitives (hookEntryMatchesStem, mergeManagedHook,

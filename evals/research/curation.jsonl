@@ -30,3 +30,20 @@
 
 {"query": "se me traba sqlite cuando dos procesos escriben a la vez", "url": "https://www.sqlite.org/wal.html", "label": "relevant", "note": "vocab-mismatch: same answer page, colloquial Spanish query sharing almost no vocabulary with it"}
 {"query": "se me traba sqlite cuando dos procesos escriben a la vez", "url": "https://developer.mozilla.org/en-US/docs/Web/API/WritableStreamDefaultWriter", "label": "irrelevant", "note": "same hard-negative, under the vocab-mismatch query"}
+
+# ── Acronym-collision hard negatives (live, RESEARCH/winoptengine-v19-candidates, 2026-07-27) ──
+# A deep-research run about message-signalled interrupts emitted queries carrying the bare acronyms
+# "MSI" and "MSIX". Both are correct terms; both are also something else entirely (MSI the hardware
+# brand, MSIX the Windows packaging format). SearXNG returned real, well-ranked pages for the OTHER
+# meaning and the curator scored several of them 8-9 — not unreasonably, since relative to a query
+# that literally says "MSI" they are not obviously wrong.
+#
+# These are recorded as curator cases so the bake-off can see them, but the honest expectation is
+# that the CURATOR cannot win them all: with an ambiguous query the judge has no evidence of intent.
+# The real fix is upstream, in EXPAND_SYSTEM_PROMPT's disambiguation rule. Keep them here anyway —
+# they are the regression that proves the upstream fix is still working.
+{"query": "msix vs pci interrupts gpu nvme performance bottleneck evidence", "url": "https://www.planalto.gov.br/ccivil_03/decreto-lei/del2848.htm", "label": "irrelevant", "note": "hard-negative: Brazilian penal code, scored relevance:9 live. Acronym collision, not a judgment failure"}
+{"query": "cpu core parking disable impact dpc latency vs boot time metric", "url": "https://es.wikipedia.org/wiki/Unidad_central_de_procesamiento", "label": "irrelevant", "note": "hard-negative: Wikipedia 'what is a CPU', scored relevance:9 live. Shares 'cpu' and nothing else"}
+{"query": "cpu core parking disable impact dpc latency vs boot time metric", "url": "https://www.cpuid.com/softwares/cpu-z.html", "label": "irrelevant", "note": "hard-negative: CPU-Z version history, scored relevance:9 live. A product page about CPUs, not about parking"}
+{"query": "windows ssd write cache controller settings registry", "url": "https://www.osforensics.com/whats-new.html", "label": "irrelevant", "note": "hard-negative: OSForensics changelog, scored relevance:9 live with the reason 'Directly addresses querying Windows SSD write cache controller settings registry' — a reason that is simply false"}
+{"query": "message-signalled interrupts MSISupported registry Windows driver", "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/enabling-message-signaled-interrupts-in-the-registry", "label": "relevant", "note": "positive control for the disambiguated form of the same question: spelling the acronym out must NOT cost the real answer"}
