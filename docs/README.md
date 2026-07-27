@@ -18,6 +18,7 @@ Elige tu idioma · Pick your language:
 [PC nuevo](es/instalar-pc-nueva.md)
 
 [Guía de uso](es/guia-de-uso.md) ·
+[Migración 5.0](es/migracion-5.0.md) ·
 [Migración 4.0](es/migracion-4.0.md) ·
 [Glosario](es/glosario.md)
 
@@ -36,6 +37,7 @@ Elige tu idioma · Pick your language:
 [Fresh PC](en/install-fresh-pc.md)
 
 [Usage guide](en/usage.md) ·
+[5.0 migration](en/migration-5.0.md) ·
 [4.0 migration](en/migration-4.0.md) ·
 [Glossary](en/glossary.md)
 

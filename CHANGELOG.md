@@ -6,6 +6,65 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [5.0.0] - 2026-07-27
+
+The refactor release. The product does the same things; almost every file that does them was
+rewritten to be smaller, shared, or honest about what it claims. Two headline outcomes: **no
+console window appears while the agent works on Windows**, and **every countable claim in the
+documentation now matches the code**.
+
+Upgrading takes one command and, on Windows, one ordering rule:
+[Migrating from 4.x to 5.0](docs/en/migration-5.0.md) ·
+[Migrar de 4.x a 5.0](docs/es/migracion-5.0.md).
+
+Nothing you configured changes. The npm package, the four MCP server ids, the
+`mcp__obsidian-memory-hybrid__*` tool names in your own `CLAUDE.md`, `BASIC_MEMORY_HOME`, every
+`OBSIDIAN_MEMORY_*` variable and the default vault path are frozen on purpose —
+[ADR-0079](docs/adr/0079-naming-and-compatibility-tiers.md) records which names may ever change
+and which may not, and why the dangerous ones never will.
+
+### Removed
+
+- **`obsidian-memory-rag bench` (breaking).** 21 lines timing repeated searches with no ground
+  truth, so it could report a fast engine returning the wrong notes. `bench-recall` already
+  reports p50/p95/mean per query **and** recall, and gates on either via `--assert-p95-ms` (which
+  is what CI uses). Nothing invoked `bench`: not CI, not the MCP bridge, not a test. README, both
+  glossaries and both observability pages repointed at the command that survives.
+- **`docs/assets/bench-results-dark.svg` (breaking if hotlinked).** It and the light chart were
+  7,978 bytes each and diffed to zero differences after normalising hex — the same chart twice,
+  differing in seven colours. `bench-results.svg` is now theme-aware via `:root` +
+  `prefers-color-scheme`, and the three `<picture>`/`<source>` wrappers collapsed to one `<img>`.
+  This also removes the class of bug where a regenerated chart updates one theme and forgets the
+  other.
+- **`logMcpTurn` and the pino dependency** from `packages/obsidian-memory-mcp`. pino defaulted to
+  **stdout** — the JSON-RPC channel — so the logger could corrupt the protocol it was meant to
+  observe. Status now goes to `console.error`.
+- **32 `(new in 3.x)` stamps** from both explainer pages. The changelog is where "when" belongs,
+  and it is one click away.
+
+### Added
+
+- **`@vkmikc/vkm-core`**, the private package the suite's duplicated primitives moved into:
+  `mcp-result` (`toolHandler`, `asTextResult`, `asErrorResult`, `pkgVersionFrom`, `isEntryPoint`),
+  `untrusted` (the prompt-injection scanner, now one UNION of the bilingual pattern sets that had
+  drifted apart), and `hidden-console`.
+- **`vkm-runhidden.exe` ships inside the npm package.** It previously existed only on a machine
+  that had built it from source with Go, so the console fix could not reach an `npx` install at
+  all. The installer now puts it in place **before** it writes any hook entry.
+- **`npm run adr:check`**, wired into the CI lint job. Fails on an ADR with no index row, an index
+  row whose file is gone, or a supersession declared on only one side. 79 ADRs, all indexed,
+  reciprocal.
+- **`evals/lib/bench-cli.mjs`** — the one CLI all six live-LLM benches run on, replacing six
+  private copies of the same three modes.
+- **`packages/create-vkm-kit/templates/vault/{es,en}/`** — the scaffolded vault as 22 real files
+  instead of 206 lines of bilingual Markdown embedded in the installer.
+- **`templates/skills/vkm-design/scripts/raster.mjs`** — the mask geometry `trace-svg.mjs` and
+  `treat-photo.mjs` each carried a private copy of, now pure, shared and tested.
+- **A migration guide, in both languages** ([EN](docs/en/migration-5.0.md) ·
+  [ES](docs/es/migracion-5.0.md)).
+
 ### Changed
 
 - **`docs/observability.md` moved to `docs/en/observability.md`.** It was the only English page not
@@ -15,6 +74,53 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `docs/security/README.md`, ADR-0015, `packages/vkm-doctor/README.md` and two source comments);
   the mentions in this changelog's own history are left as they were, because they describe what
   was true in the release they document.
+- **The installer is one path, not two.** `src/index.js` went from 1,839 lines to 446: the wizard
+  and the headless flow now both end in the same `runInstall` + `printSummary`, with option
+  resolution as a pure `resolveOptions(argv, ctx)` returning ~25 toggles. Before this, a flag could
+  reach `-y` and miss the wizard's work — the two flows had drifted into doing different things.
+- **The Go daemon is split by responsibility.** `cmd/obsidian-memoryd/main.go` went from 950 lines
+  to 91, alongside `cli.go`, `runner.go`, `gitsync.go`, `doctor.go`, `watch.go`, `service.go` and
+  `logs.go` — the split the existing tests already implied.
+- **The eval benches share a stream contract (breaking for scripts):** stdout is JSONL rows,
+  stderr is the human report, in all six. Five already did this; `token-quality-ab` did the
+  reverse. CI's `| tee` steps became `2>&1 | tee`, so an artifact now holds rows **and** summary —
+  previously three held rows with no summary and one a summary with no rows.
+- **`discipline-bench` lists its conditions treatment-first (breaking for scripts).** It was the
+  only bench whose delta carried the opposite sign to its siblings. Condition values are unchanged;
+  the order and the delta's sign flipped.
+- **Bench reports go through `evals/lib/stats.mjs`.** ADR-0064 described it as "shared by every
+  bench runner"; it had zero production importers. `MIN_N`, the seeded bootstrap CI and the
+  bold-only-when-earned rule now decide every printed delta, so a bench cannot emphasise a result
+  off n=2 however large it looks. Re-grading the committed design-bench answers, a +45.0 with a
+  perfect Cliff's delta prints as _directional_ because n=4.
+- **Bench cost reaches the report.** `runSubject` has returned per-run token counts since ADR-0065
+  and all six callers dropped them. Cells now print what they spent next to what they scored, and
+  the delta line carries the token delta and points-per-1k-tokens.
+- **Both FAQs stopped promising the index "keeps search fast at any size."** ADR-0069 says the
+  opposite in as many words, and `ARCHITECTURE.md` already answered honestly. They now say what is
+  measured, what is extrapolation, and what a real measurement would be worth.
+- **Hard-coded counts deleted rather than corrected** across the architecture docs and both
+  READMEs ("fifteen tools" when 22 register, "eight tools" when 11 do, "(0001–0056)" against 79
+  ADRs, three skills named when four ship). A hard-coded total is wrong again the next time
+  something lands; `skill-count-drift.test.mjs` and `tool-doc-drift.test.mjs` derive theirs from
+  the code.
+- **`SECURITY.md` has a "Past advisories" table.** It read "None yet" two sections below its own
+  citation of `docs/security/mcp-remote-rce.md` as a hard constraint.
+- **`CHANGELOG.md` split.** 3.15.0 and older moved verbatim, with their footer link definitions,
+  to [`docs/changelog/pre-4.0.md`](docs/changelog/pre-4.0.md); this file dropped from 2,767 lines
+  to under 2,000. Verified safe before the move: `version.mjs` matches only the FIRST `## [X.Y.Z]`
+  heading and `release.yml` extracts only the section for the tag being published, so both always
+  read the root file.
+- **`design-bench/RESULTS.md` is 48 lines, not 502.** Twenty-one chronological run notes from one
+  day moved to `diary-2026-07-12.md`; the findings and the limits are no longer buried between
+  them.
+- **`scripts/version.mjs` and `scripts/license-sync.mjs` derive the package list from
+  `packages/*`** instead of a literal table that only encoded which packages existed the day it was
+  written.
+- **The obscura, RAG and vault layers lost their duplicate implementations**: one job registry
+  across the crawl/research/fetch jobs, one Ollama transport (`embedPassages` 90 lines to 28, and
+  it recovered the `MIN_OLLAMA_VERSION` health gate it had silently lost), one `#tag` definition
+  where three regexes disagreed, one wikilink parser.
 
 ### Fixed
 
@@ -29,30 +135,73 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   it nothing; it allocates a console, hides it, and starts the target so the whole tree inherits
   that one hidden console. stdin, stdout and the **exit code** are proxied verbatim, so a
   `PreToolUse` guard can still block a tool call ([ADR-0078](docs/adr/0078-allocate-and-hide-a-console.md)).
-  The launcher now ships inside the npm package and the installer puts it in place **before** it
-  writes any hook entry, so an `npx create-vkm-kit` install on Windows gets it. Previously it
-  existed only on a machine that had built it from source with Go.
+- **The MCP servers were themselves the console windows.** Measuring with
+  `Get-CimInstance Win32_Process` found a `conhost.exe` as a **direct child** of every kit MCP
+  server — four servers times four open sessions, sixteen processes and sixteen consoles — because
+  they were registered as `command: "node"` / `command: "uvx"`. They now launch through
+  `vkm-runhidden`.
+- **The launcher no longer orphans its child.** Routing the sidecars through it made one client's
+  timeout test run **1,000,210 ms**; a Windows Job Object with
+  `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` brought that to **932 ms**.
 - **The launcher no longer hides the terminal you started it from.** It hid whatever console was
   present, including an inherited one — and `ShowWindow(SW_HIDE)` has no undo here, so running it
   from PowerShell left that shell alive with no window, recoverable only via Task Manager. It now
   hides only a console it allocated itself.
+- **The installer says so when a running session blocks the launcher upgrade,** instead of
+  reporting success over a half-applied install.
 - **The `PreToolUse` effort gate was still wired to bare `node`, so it kept flashing.** Its hook
   entry was the one of four that was never handed the resolved interpreter. The telemetry sink and
   both token-saver hooks had the mirror-image defect: they resolved the interpreter _inside_ the
   factory, against the current user's `~/.claude`, which is not necessarily the home being
   installed into. All five now take it as a parameter resolved once at their composition root.
 - **Twelve scripts silently did nothing when run on Windows.** Their entry-point guard compared
-  `import.meta.url` with `` `file://${process.argv[1]}` ``, which never matches a Windows path
-  (backslashes, no `/C:/` prefix): `main()` was skipped and the process exited 0 with no output —
-  indistinguishable from a real pass, including for the CI steps that run
+  `import.meta.url` with a `file://` string built from `process.argv[1]`, which never matches a
+  Windows path (backslashes, no `/C:/` prefix): `main()` was skipped and the process exited 0 with
+  no output — indistinguishable from a real pass, including for the CI steps that run
   `scripts/harness-matrix.mjs` and `evals/lib/arm-install.mjs`. All now use `pathToFileURL`, and an
   ESLint rule fails the build if the broken shape reappears.
+- **Two eval benches could not run on Windows at all.** `await import(path.join(...))` throws
+  `ERR_UNSUPPORTED_ESM_URL_SCHEME` because Node reads `c:` as a URL scheme, so
+  `token-quality-ab --mechanism <anything>` crashed on every invocation and `design-bench --grade`
+  crashed in its grader. Both go through `pathToFileURL().href`.
+- **`largestComponent` returned the WHOLE FRAME for an empty mask** in the vkm-design image
+  scripts: with nothing labelled, the final `label[i] === best` test read `0 === 0` for every
+  background pixel. A threshold that found no subject reported the entire image as one, and
+  `--cutout` kept everything. Present in both private copies of the function, and untestable where
+  they lived.
+- **`treat-photo --shadow "#zz"` painted with `[NaN, NaN, NaN]`.** Its private hex parser accepted
+  anything; it now uses `contrast.mjs`'s `parseHex`, which throws with the offending string.
 - **A research topic's content is indexed once, not twice.** `compiled-sources.md` is the verbatim
   concatenation of every `RESEARCH/<topic>/sources/*.md`, so indexing it stored each passage a
   second time, competing with its own original in BM25 and in the vector index. It is now skipped
   by both the indexer and the audit (which must see exactly what retrieval sees). No recall is
   lost: every passage stays retrievable through the source note it came from, which also carries
   the `url`/`author`/`retrieved` frontmatter the merged file flattens away.
+- **`obscura-web`'s URL identity is real** — the same page keeps one identity, rather than getting
+  two entries for a trailing slash.
+- **`packages/obscura-web/src/robots.mjs` had been reduced to a stub** with 11 tests skipped
+  around it. The real implementation is restored and all 17 pass.
+- **ADR-0055 said "Accepted"** while ADR-0057, four days newer, declared it had superseded two of
+  its sections. A reader landing on 0055 acted on a reversed decision. Both rows carry it now, and
+  `adr:check` fails on a one-sided supersession.
+- **`README.en.md` carried Spanish alt text** on the benchmark chart: an English screen-reader user
+  was read Spanish.
+- **`hero.svg` said "Suite de eficiencia 4.x"**, so the hero image of a 5.0 release would have said
+  4.x on day one. The version is gone and a test keeps it out.
+
+### Verified
+
+The ranking path is the one thing a refactor of this size must not move. All four bench gates were
+re-run and **diffed against their pre-refactor output**, not merely re-checked against a threshold:
+retrieval recall@5 1.000 / MRR 0.986 / hit@1 0.971 / nDCG 0.989 / MAP 0.986; tokens 100% answered
+with wire median 37%; assemble 100% answered — identical. All 72 committed bench scores across four
+result sets re-grade identically through the new driver.
+
+Suites at this commit: **248 pytest** and **1,269 Node tests, 0 failures** — create-vkm-kit 414,
+obscura-web 474, obsidian-memory-mcp 164, vkm-core 52, vkm-downloads 59, vkm-spec 49, vkm-doctor 12,
+eval libraries 45. Plus `go vet`, `go test`, and builds for linux/amd64, darwin/arm64 and
+windows/amd64; ruff, eslint, tsc, prettier (at the pinned 3.8.4), markdownlint, linkcheck over 1,060
+files, `adr:check` over 79 ADRs, `version:check`, `sync-agents:check` and `license:sync:check`.
 
 ## [4.7.1] - 2026-07-25
 
@@ -1973,7 +2122,9 @@ scoring, embedder-identity reuse).
 **3.15.0 and earlier** live in [`docs/changelog/pre-4.0.md`](docs/changelog/pre-4.0.md) —
 same text, same format, moved out in 5.0.0 to keep this file readable.
 
-[Unreleased]: https://github.com/Vahlame/create-vkm-kit/compare/v4.7.0...HEAD
+[Unreleased]: https://github.com/Vahlame/create-vkm-kit/compare/v5.0.0...HEAD
+[5.0.0]: https://github.com/Vahlame/create-vkm-kit/compare/v4.7.1...v5.0.0
+[4.7.1]: https://github.com/Vahlame/create-vkm-kit/compare/v4.7.0...v4.7.1
 [4.7.0]: https://github.com/Vahlame/create-vkm-kit/compare/v4.6.0...v4.7.0
 [4.6.0]: https://github.com/Vahlame/create-vkm-kit/compare/v4.5.1...v4.6.0
 [4.5.1]: https://github.com/Vahlame/create-vkm-kit/compare/v4.5.0...v4.5.1

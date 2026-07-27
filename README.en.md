@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="./LICENSE.md"><img src="https://img.shields.io/badge/license-MIT--derived_%2B_attribution_(non--OSI)-blue.svg" alt="License"></a>
-  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v4.7.1-orange.svg" alt="Release"></a>
+  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v5.0.0-orange.svg" alt="Release"></a>
   <a href="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.npmjs.com/package/@vkmikc/create-vkm-kit"><img src="https://img.shields.io/npm/v/%40vkmikc%2Fcreate-vkm-kit?label=npm&color=cb3837" alt="npm"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A5%2020-43853d.svg" alt="Node ≥ 20">
@@ -195,6 +195,7 @@ Sonnet unaffected. A CI **e2e smoke** also proves the whole stack over real stdi
 ## More
 
 - **After installing:** [usage + situational guide](docs/en/usage.md) ([🇪🇸 guía de uso](docs/es/guia-de-uso.md)).
+- **Coming from 4.x?** [5.0 migration](docs/en/migration-5.0.md) ([🇪🇸 migración a 5.0](docs/es/migracion-5.0.md)) — on Windows, close every editor session **before** you run the installer.
 - **Coming from 3.x?** [4.0 migration](docs/en/migration-4.0.md) ([🇪🇸 migración a 4.0](docs/es/migracion-4.0.md)).
 - **Security / trust:** [`SECURITY.md`](SECURITY.md) — the vault is **data**, not instructions.
 - **Fresh PC (Claude Code):** [fresh-PC install](docs/en/install-fresh-pc.md).

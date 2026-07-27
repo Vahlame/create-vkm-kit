@@ -20,6 +20,7 @@ The whole user guide, in the recommended reading order.
 
 | Document                                                     | What for                                                                             |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| [5.0 migration](migration-5.0.md)                            | Coming from 4.x? One command, one Windows ordering rule, four breaking changes.      |
 | [4.0 migration](migration-4.0.md)                            | Coming from 3.x? What the vkm-kit rename changed, what's frozen, and how to upgrade. |
 | [Sync with git](sync.md)                                     | Backup and multi-machine: daemon, manual git, or same repo.                          |
 | [FAQ](faq.md)                                                | Common questions + an honest comparison with alternatives.                           |
