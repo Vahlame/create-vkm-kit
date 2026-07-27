@@ -22,6 +22,21 @@ import { pathToFileURL } from "node:url";
 const pExecFile = promisify(execFile);
 
 /**
+ * Longest command line the platform will accept, in characters.
+ *
+ * Windows `CreateProcess` caps `lpCommandLine` at 32,767 **including** the executable
+ * path and every other argument. This is not theoretical: `design-bench` already emits
+ * a 26,852-character prompt (it injects SKILL.md + direction.md + foundations.md), which
+ * is 82% of the ceiling, and those files grow every release. The failure mode without a
+ * guard is a bare `spawn ... ENAMETOOLONG` — or on Windows something less legible —
+ * hundreds of live model calls into a run.
+ *
+ * POSIX `ARG_MAX` is far larger (~2 MB on Linux, 256 KB on macOS); 128 KB is a
+ * conservative floor that no bench approaches.
+ */
+const ARGV_LIMIT = process.platform === "win32" ? 32_767 : 128 * 1024;
+
+/**
  * Normalized per-run cost (ADR-0065). Every bench measured Δquality and none measured
  * what that quality cost, so "the kit wins" and "the kit wins while tripling tool
  * calls" were the same reported result. `usage` was already returned here and every
@@ -78,19 +93,50 @@ function costOf(obj, wallClockMs) {
  * @param {string} [opts.cwd]         fixture dir the subject works in
  * @param {string} [opts.home]        HOME override (prepared kit variant)
  * @param {number} [opts.timeoutMs]
+ * @param {"argv"|"stdin"} [opts.promptVia]
+ *        How the prompt reaches the subject. Defaults to `"argv"` — the path every
+ *        committed `RESULTS.md` was produced with, so it stays the default. `"stdin"`
+ *        writes the prompt to the child's stdin and passes no positional argument,
+ *        which sidesteps `ARGV_LIMIT` entirely; it is opt-in because whether a given
+ *        agent CLI treats piped stdin as *the prompt* or as *extra context* is that
+ *        CLI's business, and guessing wrong would silently change what was measured.
  * @returns {Promise<{answer: string, usage: object|null, cost: SubjectCost, raw: string}>}
  */
-export async function runSubject({ prompt, agentCmd, cwd, home, timeoutMs = 300_000 }) {
+export async function runSubject({
+  prompt,
+  agentCmd,
+  cwd,
+  home,
+  timeoutMs = 300_000,
+  promptVia = "argv"
+}) {
   const cmd = (agentCmd ?? "claude -p --output-format json").split(/\s+/);
   const env = { ...process.env };
   if (home) env.HOME = home;
+  const viaStdin = promptVia === "stdin";
+  const args = viaStdin ? cmd.slice(1) : [...cmd.slice(1), prompt];
+  if (!viaStdin) {
+    // Fail here, with the numbers, rather than let the OS reject the spawn opaquely.
+    const commandLineChars = [cmd[0], ...args].reduce((a, s) => a + s.length + 1, 0);
+    if (commandLineChars > ARGV_LIMIT) {
+      throw new Error(
+        `subject prompt does not fit on the command line: ${commandLineChars} chars > ` +
+          `${ARGV_LIMIT} (${process.platform}). Pass promptVia: "stdin" (CLI flag ` +
+          `--prompt-via stdin) if your agent CLI reads its prompt from stdin.`
+      );
+    }
+  }
   const startedAt = process.hrtime.bigint();
-  const { stdout } = await pExecFile(cmd[0], [...cmd.slice(1), prompt], {
+  const child = pExecFile(cmd[0], args, {
     cwd,
     env,
     timeout: timeoutMs,
     maxBuffer: 32 * 1024 * 1024
   });
+  if (viaStdin) {
+    child.child.stdin?.end(prompt);
+  }
+  const { stdout } = await child;
   const wallClockMs = Number((process.hrtime.bigint() - startedAt) / 1_000_000n);
   // claude -p --output-format json prints one JSON object with .result and .usage;
   // any other CLI: treat the whole stdout as the answer.

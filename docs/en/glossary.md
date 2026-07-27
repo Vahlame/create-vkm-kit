@@ -182,6 +182,16 @@ The folder your MCP server reads from and writes to — plain Markdown files tra
 
 A vault-health check, available both as the `vault_audit` [MCP](#mcp) tool (via [`obsidian-memory-hybrid`](#obsidian-memory-hybrid)) and as the `audit` / `json-audit` subcommands of the [`obsidian-memory-rag`](#obsidian-memory-rag) CLI. It reports notes that exceed the per-note token budget (~8k), broken `[[wikilinks]]` (a stale-memory signal), and the size of `SESSION_LOG.md`. Pair it with the `rotate-log` command, which archives old `##` sections to `SESSION_LOG/archive.md`. See ADR-0018.
 
+### vkm
+
+The brand prefix, not an acronym — it does not expand to anything. It marks what belongs to
+this suite across the places a name is visible: the npm scope `@vkmikc`, the `vkm` command,
+the `/vkm-*` [skills](#skills), and the `~/.vkm/` state directory. Names that do **not** carry
+it (`obsidian-memory-hybrid`, `obsidian-memoryd`, `BASIC_MEMORY_HOME`, the `OBSIDIAN_MEMORY_*`
+variables) are frozen compatibility names, deliberately, because they live in files this kit
+does not own. [ADR-0079](../adr/0079-naming-and-compatibility-tiers.md) says which names may
+change and which may not.
+
 ### `vkm-doctor`
 
 The suite's local usage doctor (`packages/vkm-doctor`): a `SessionStart` hook spawns an **OTLP/HTTP JSON sink** on `127.0.0.1:4319` that stores Claude Code's telemetry as NDJSON under `~/.vkm/telemetry/` (90-day prune) — **nothing leaves your machine**. The `vkm-doctor` CLI reports tokens, cost, and the **cache-hit ratio**, with a broken-cache diagnosis; `--include-transcripts` adds a clearly-labelled transcript-derived section. See ADR-0044 and [`docs/en/observability.md`](observability.md).

@@ -1,24 +1,24 @@
 #!/usr/bin/env node
 /**
  * design-bench AUTO harness — the round-based complement to the manual before/after
- * protocol in README.md. Subjects produce a SINGLE-FILE HTML page from a brief;
- * grading runs the validators the skill itself ships (slop-check fingerprint +
- * audit-css contrast/scale/rhythm) — mechanical axes only. The judgment axes
- * (nameable direction, lineup test) stay in the manual protocol and are NEVER folded
- * into this score.
+ * protocol in README.md. Subjects produce a SINGLE-FILE HTML page from a brief; grading
+ * runs the validators the skill itself ships (slop-check fingerprint + audit-css
+ * contrast/scale/rhythm) — mechanical axes only. The judgment axes (nameable direction,
+ * lineup test) stay in the manual protocol and are NEVER folded into this score.
  *
  * Conditions: "skill" (SKILL.md + direction.md + foundations.md injected — the core a
  * session progressively loads) vs "stock" (brief alone).
  * Briefs: "facturio" (the README's fixed slop-attractor) and "kelpwatch" — HELD OUT:
  * written for this harness, never used to tune the skill.
- * Modes: --emit-prompts [--n N] | --grade <answers.jsonl> | --models a,b --n N.
+ *
+ * Modes and reporting come from evals/lib/bench-cli.mjs.
  */
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { runSubject } from "../lib/subject-runner.mjs";
+import { runBenchCli } from "../lib/bench-cli.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SKILL_DIR = path.join(
@@ -80,7 +80,10 @@ export async function grade(b, answer) {
   const file = path.join(dir, "page.html");
   writeFileSync(file, html);
 
-  const { scan } = await import(path.join(SCRIPTS, "slop-check.mjs"));
+  // pathToFileURL, not the bare path: `import("C:\\...")` throws
+  // ERR_UNSUPPORTED_ESM_URL_SCHEME on Windows ('c:' is read as a URL scheme), which
+  // made this grader unusable on the platform the kit is primarily developed on.
+  const { scan } = await import(pathToFileURL(path.join(SCRIPTS, "slop-check.mjs")).href);
   const hits = scan(html).length;
   const slop = Math.max(0, 40 - hits * 10);
 
@@ -97,65 +100,14 @@ export async function grade(b, answer) {
   return slop + contrast + type + space;
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-  const get = (f) => (args.includes(f) ? args[args.indexOf(f) + 1] : undefined);
-  const n = Number(get("--n") ?? 1);
-  const conditions = ["skill", "stock"];
-
-  if (args.includes("--emit-prompts")) {
-    for (const b of BRIEFS)
-      for (const c of conditions)
-        for (let r = 1; r <= n; r++)
-          console.log(
-            JSON.stringify({ id: b.id, condition: c, replica: r, prompt: subjectPrompt(b, c) })
-          );
-    return;
-  }
-  const gi = args.indexOf("--grade");
-  if (gi !== -1) {
-    for (const line of readFileSync(args[gi + 1], "utf8")
-      .split("\n")
-      .filter(Boolean)) {
-      const a = JSON.parse(line);
-      const b = BRIEFS.find((x) => x.id === a.id);
-      const score = await grade(b, a.answer);
-      console.log(
-        JSON.stringify({
-          id: a.id,
-          condition: a.condition,
-          replica: a.replica,
-          model: a.model,
-          score
-        })
-      );
-    }
-    return;
-  }
-
-  const models = (get("--models") ?? "claude-haiku-4-5-20251001").split(",");
-  for (const model of models)
-    for (const b of BRIEFS)
-      for (const c of conditions)
-        for (let r = 1; r <= n; r++) {
-          const { answer, cost } = await runSubject({
-            prompt: subjectPrompt(b, c),
-            agentCmd: `${get("--agent-cmd") ?? "claude -p --output-format json --model"} ${model}`
-          });
-          // `cost` rides on the row (ADR-0065) so Δquality can be read against
-          // Δtokens later without re-running anything.
-          console.log(
-            JSON.stringify({
-              id: b.id,
-              condition: c,
-              replica: r,
-              model,
-              score: await grade(b, answer),
-              cost
-            })
-          );
-        }
-}
+export const spec = {
+  name: "design-bench",
+  cases: BRIEFS,
+  conditions: /** @type {[string, string]} */ (["skill", "stock"]),
+  subjectPrompt,
+  grade,
+  defaultN: 1
+};
 
 const isEntryPoint = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
-if (isEntryPoint) await main();
+if (isEntryPoint) process.exit(await runBenchCli(spec));

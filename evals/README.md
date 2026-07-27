@@ -210,7 +210,36 @@ const { answer, cost } = await runSubject({ prompt, home: arm.home, cwd: arm.cwd
 arm.cleanup();
 ```
 
-## 4. Adherence harness (smoke only)
+## 4. The behavioural benches share one CLI
+
+Six benches — `spec-bench`, `discipline-bench`, `implementer-bench`, `research-bench`,
+`design-bench`, `token-quality-ab` — run on `evals/lib/bench-cli.mjs`. Each `run.mjs`
+supplies only what is genuinely its own (the cases, the two conditions, how to build a
+subject prompt, how to grade an answer) and exports it as a `BenchSpec`; the modes,
+argument parsing and reporting are shared.
+
+```bash
+node evals/<bench>/run.mjs --emit-prompts [--n N]        # JSONL prompts for external subjects
+node evals/<bench>/run.mjs --grade answers.jsonl         # score answers you already have
+node evals/<bench>/run.mjs --models a,b [--n N]          # end-to-end via subject-runner
+```
+
+Three rules the shared driver enforces so no bench can drift off them:
+
+- **stdout is JSONL rows, stderr is the human report.** So `--grade a.jsonl > rows.jsonl`
+  works everywhere and you still see the summary; CI captures both with `2>&1 | tee`.
+- **Treatment condition first.** A positive Δ means "the thing under test helped" in every
+  bench. `discipline-bench` used to list its baseline first, so its delta carried the
+  opposite sign to its siblings'.
+- **`stats.mjs` decides emphasis, not the author.** Every report goes through `classify()`,
+  so a delta below `MIN_N = 5` prints as _directional_ and cannot be bolded however large
+  it looks. Cost rides along (ADR-0065): a cell prints what it spent next to what it
+  scored, and the delta line carries quality-per-1k-tokens.
+
+`--prompt-via stdin` exists for prompts too large for the command line; `runSubject`
+refuses an over-long argv with a legible error rather than letting the OS reject the spawn.
+
+## 5. Adherence harness (smoke only)
 
 > The CI job **`eval-harness-smoke`** is **not** a model-adherence evaluation — it verifies the eval harness itself runs end-to-end with a deterministic stub provider that echoes the expected token. The gate is always **1.0** unless the harness pipeline breaks (missing yaml, broken require, etc.). Do **not** treat a green badge here as evidence that any agent follows the vault User Rules.
 

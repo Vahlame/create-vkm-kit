@@ -48,8 +48,8 @@ jobs:
       # a shell glob would not expand on the Windows matrix leg. Pure computation with
       # no OS surface, so this deterministic ubuntu job is the right home — a new
       # eval library gets its test added to this line.
-      - name: eval libraries (stats, subject-runner, arm-install)
-        run: node --test evals/lib/stats.test.mjs evals/lib/subject-runner.test.mjs evals/lib/arm-install.test.mjs
+      - name: eval libraries (stats, subject-runner, bench-cli, arm-install)
+        run: node --test evals/lib/stats.test.mjs evals/lib/subject-runner.test.mjs evals/lib/bench-cli.test.mjs evals/lib/arm-install.test.mjs
       - name: version consistency (badge == packages == CHANGELOG)
         run: node scripts/version.mjs check
       # `**/*.md` does NOT match inside dot-directories, so the second pattern is

@@ -2,11 +2,13 @@
 /**
  * spec-bench: vague idea → spec, graded by the shipped validator (deterministic).
  * Conditions: "skill" (subject sees /vkm-spec's SKILL.md + template) vs "stock".
- * Modes mirror the other eval runners: --emit-prompts | --grade <answers.jsonl>.
+ *
+ * Modes and reporting come from evals/lib/bench-cli.mjs; run with no arguments for usage.
  */
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { runBenchCli } from "../lib/bench-cli.mjs";
 import { validateSpec } from "../../packages/create-vkm-kit/templates/skills/vkm-spec/scripts/validate_spec.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -66,41 +68,14 @@ export function grade(t, answer) {
   return base + grounded + complete;
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-  const n = Number(args.includes("--n") ? args[args.indexOf("--n") + 1] : 1);
-  if (args.includes("--emit-prompts")) {
-    for (const t of IDEAS)
-      for (const c of ["skill", "stock"])
-        for (let r = 1; r <= n; r++)
-          console.log(
-            JSON.stringify({ id: t.id, condition: c, replica: r, prompt: subjectPrompt(t, c) })
-          );
-    return;
-  }
-  const gi = args.indexOf("--grade");
-  if (gi !== -1) {
-    const answers = readFileSync(args[gi + 1], "utf8")
-      .split("\n")
-      .filter(Boolean)
-      .map((l) => JSON.parse(l));
-    for (const a of answers) {
-      const t = IDEAS.find((i) => i.id === a.id);
-      console.log(
-        JSON.stringify({
-          id: a.id,
-          condition: a.condition,
-          replica: a.replica,
-          model: a.model,
-          score: grade(t, a.answer)
-        })
-      );
-    }
-    return;
-  }
-  console.error("usage: run.mjs --emit-prompts [--n N] | --grade <answers.jsonl>");
-  process.exit(2);
-}
+export const spec = {
+  name: "spec-bench",
+  cases: IDEAS,
+  conditions: /** @type {[string, string]} */ (["skill", "stock"]),
+  subjectPrompt,
+  grade,
+  defaultN: 1
+};
 
 const isEntryPoint = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
-if (isEntryPoint) await main();
+if (isEntryPoint) process.exit(await runBenchCli(spec));

@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 /**
- * implementer-bench: does the vkm-implementer AGENT framing (its real system
- * prompt, installed by the kit) beat a bare "implement this" on well-specified
- * tasks? Reuses discipline-bench's hidden-test graders verbatim — no new
- * instruments — with the task stated as a spec (the input vkm-implementer is
- * designed for, per its description: "ideally from /vkm-spec").
+ * implementer-bench: does the vkm-implementer AGENT framing (its real system prompt,
+ * installed by the kit) beat a bare "implement this" on well-specified tasks? Reuses
+ * discipline-bench's hidden-test graders verbatim — no new instruments — with the task
+ * stated as a spec (the input vkm-implementer is designed for, per its description:
+ * "ideally from /vkm-spec").
  *
  * Conditions: "implementer" (agent .md body as system framing) vs "bare".
- * Modes: --emit-prompts [--n N] | --grade <answers.jsonl> | --models a,b --n N.
+ * Modes and reporting come from evals/lib/bench-cli.mjs.
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { runSubject } from "../lib/subject-runner.mjs";
+import { runBenchCli } from "../lib/bench-cli.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DISC = path.join(HERE, "..", "discipline-bench");
@@ -28,7 +28,9 @@ const AGENT_MD = path.join(
   "vkm-implementer.md"
 );
 
-export const TASKS = ["parse-range", "dedupe-emails", "parse-duration", "merge-intervals"];
+export const TASKS = ["parse-range", "dedupe-emails", "parse-duration", "merge-intervals"].map(
+  (id) => ({ id })
+);
 
 function specFor(task) {
   // The task's explicit PROMPT (or underspec fallback) reframed as the spec the
@@ -54,9 +56,9 @@ function specFor(task) {
   ].join("\n");
 }
 
-/** @param {string} task @param {string} condition — "implementer" | "bare" */
-export function subjectPrompt(task, condition) {
-  const spec = specFor(task);
+/** @param {{id:string}} t @param {string} condition — "implementer" | "bare" */
+export function subjectPrompt(t, condition) {
+  const spec = specFor(t.id);
   if (condition === "bare") {
     return `Return your solution as a SINGLE fenced js code block (ESM) and nothing else.\n\n${spec}`;
   }
@@ -72,75 +74,34 @@ export function subjectPrompt(task, condition) {
   ].join("\n");
 }
 
-export function gradeSolution(task, answer, outName) {
+/**
+ * @param {{id:string}} t
+ * @param {string} answer
+ * @param {{model?:string, condition:string, replica:number}} meta
+ */
+export function grade(t, answer, meta) {
   const code = String(answer).match(/```(?:js|javascript)?\n([\s\S]*?)```/)?.[1] ?? String(answer);
   const solDir = path.join(HERE, "solutions");
   mkdirSync(solDir, { recursive: true });
-  const sol = path.join(solDir, outName);
+  const sol = path.join(solDir, `${meta.model ?? "x"}-${meta.condition}-${meta.replica}.mjs`);
   writeFileSync(sol, code);
   try {
     return JSON.parse(
-      execFileSync("node", [path.join(DISC, "tasks", task, "grade.mjs"), sol], { encoding: "utf8" })
+      execFileSync("node", [path.join(DISC, "tasks", t.id, "grade.mjs"), sol], { encoding: "utf8" })
     ).score;
   } catch {
     return 0;
   }
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-  const get = (f) => (args.includes(f) ? args[args.indexOf(f) + 1] : undefined);
-  const n = Number(get("--n") ?? 3);
-  const conditions = ["implementer", "bare"];
-
-  if (args.includes("--emit-prompts")) {
-    for (const t of TASKS)
-      for (const c of conditions)
-        for (let r = 1; r <= n; r++)
-          console.log(
-            JSON.stringify({ id: t, condition: c, replica: r, prompt: subjectPrompt(t, c) })
-          );
-    return;
-  }
-  const gi = args.indexOf("--grade");
-  if (gi !== -1) {
-    for (const line of readFileSync(args[gi + 1], "utf8")
-      .split("\n")
-      .filter(Boolean)) {
-      const a = JSON.parse(line);
-      const score = gradeSolution(
-        a.id,
-        a.answer,
-        `${a.model ?? "x"}-${a.condition}-${a.replica}.mjs`
-      );
-      console.log(
-        JSON.stringify({
-          id: a.id,
-          condition: a.condition,
-          replica: a.replica,
-          model: a.model,
-          score
-        })
-      );
-    }
-    return;
-  }
-
-  const models = (get("--models") ?? "claude-haiku-4-5-20251001").split(",");
-  for (const model of models)
-    for (const t of TASKS)
-      for (const c of conditions)
-        for (let r = 1; r <= n; r++) {
-          const { answer, cost } = await runSubject({
-            prompt: subjectPrompt(t, c),
-            agentCmd: `${get("--agent-cmd") ?? "claude -p --output-format json --model"} ${model}`
-          });
-          const score = gradeSolution(t, answer, `${model}-${c}-${r}.mjs`);
-          // `cost` rides on the row (ADR-0065): this bench's honest null result is
-          // exactly the case where "no quality gain, and what did it cost?" matters.
-          console.log(JSON.stringify({ id: t, condition: c, replica: r, model, score, cost }));
-        }
-}
+export const spec = {
+  name: "implementer-bench",
+  cases: TASKS,
+  conditions: /** @type {[string, string]} */ (["implementer", "bare"]),
+  subjectPrompt,
+  grade,
+  defaultN: 3
+};
 
 const isEntryPoint = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
-if (isEntryPoint) await main();
+if (isEntryPoint) process.exit(await runBenchCli(spec));
