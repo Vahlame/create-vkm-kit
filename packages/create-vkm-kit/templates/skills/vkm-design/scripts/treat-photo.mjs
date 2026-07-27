@@ -15,27 +15,13 @@
 //   cluster-free stipple that reads like a fine engraving — the polished alternative to the
 //   regular-grid --mode halftone. --cutout removes the background so a busy scene becomes clean.
 import { readFileSync, writeFileSync } from "node:fs";
+import { parseHex } from "./contrast.mjs";
+import { arg, isolateSubject, loadJimp, otsu } from "./raster.mjs";
 
-// This script uses jimp's v0 API (default export, positional constructor, Jimp.MIME_PNG,
-// Jimp.AUTO, getBufferAsync) — jimp v1 (current npm default) removed the default export
-// entirely, which makes a STATIC `import Jimp from "jimp"` throw a raw SyntaxError before this
-// file's body even runs (verified live against real jimp@1.6.1). A dynamic import lets us check
-// the version and fail with a clear, actionable message instead of that cryptic crash (or a
-// missing-package one).
-const { default: Jimp } = await import("jimp").catch(() => ({}));
-if (typeof Jimp?.MIME_PNG !== "string") {
-  console.error(
-    "error: this script needs jimp@0.22.x (the v0 API) — detected an incompatible or missing " +
-      "Jimp (no default export / no Jimp.MIME_PNG; jimp v1+ removed both). Run `npm install` " +
-      "in this scripts/ folder — package.json pins the working version."
-  );
+const Jimp = await loadJimp().catch((e) => {
+  console.error(`error: ${e.message}`);
   process.exit(2);
-}
-
-function arg(flag, def) {
-  const i = process.argv.indexOf(flag);
-  return i === -1 ? def : process.argv[i + 1];
-}
+});
 const [, , input, output] = process.argv;
 if (!input || !output) {
   console.error("usage: node treat-photo.mjs <in> <out.png> --mode duotone|halftone|cutout [...]");
@@ -133,25 +119,14 @@ function blueNoise(size, sigma = 1.5, fillFrac = 0.1, seed = 12345) {
 }
 
 const mode = arg("--mode", "duotone");
-const shadow = hexRgb(arg("--shadow", "#14210f"));
-const highlight = hexRgb(arg("--highlight", "#eef0e0"));
+const shadow = parseHex(arg("--shadow", "#14210f"));
+const highlight = parseHex(arg("--highlight", "#eef0e0"));
 const field = arg("--field", "none");
 const cutout = process.argv.includes("--cutout") || mode === "cutout";
 const outW = Number(arg("--w", "900"));
 const dot = Number(arg("--dot", "6"));
 const gamma = Number(arg("--gamma", "1"));
 
-function hexRgb(h) {
-  const m = h.replace("#", "");
-  const n =
-    m.length === 3
-      ? m
-          .split("")
-          .map((c) => c + c)
-          .join("")
-      : m;
-  return [parseInt(n.slice(0, 2), 16), parseInt(n.slice(2, 4), 16), parseInt(n.slice(4, 6), 16)];
-}
 const lerp = (a, b, t) => Math.round(a + (b - a) * t);
 
 const img = await Jimp.read(readFileSync(input));
@@ -170,129 +145,17 @@ for (let i = 0; i < W * H; i++) {
   lumArr[i] = g;
   hist[Math.round(g)]++;
 }
-function otsu() {
-  let sum = 0;
-  for (let t = 0; t < 256; t++) sum += t * hist[t];
-  let sumB = 0,
-    wB = 0,
-    max = 0,
-    thr = 127;
-  for (let t = 0; t < 256; t++) {
-    wB += hist[t];
-    if (!wB) continue;
-    const wF = W * H - wB;
-    if (!wF) break;
-    sumB += t * hist[t];
-    const between = wB * wF * (sumB / wB - (sum - sumB) / wF) ** 2;
-    if (between > max) ((max = between), (thr = t));
-  }
-  return thr;
-}
-
-function largest(m) {
-  const lab = new Int32Array(W * H);
-  let cur = 0,
-    best = 0,
-    bestN = 0;
-  const st = [];
-  for (let i = 0; i < W * H; i++) {
-    if (!m[i] || lab[i]) continue;
-    cur++;
-    let n = 0;
-    st.push(i);
-    lab[i] = cur;
-    while (st.length) {
-      const p = st.pop();
-      n++;
-      const x = p % W;
-      if (x + 1 < W && m[p + 1] && !lab[p + 1]) ((lab[p + 1] = cur), st.push(p + 1));
-      if (x - 1 >= 0 && m[p - 1] && !lab[p - 1]) ((lab[p - 1] = cur), st.push(p - 1));
-      if (p + W < W * H && m[p + W] && !lab[p + W]) ((lab[p + W] = cur), st.push(p + W));
-      if (p - W >= 0 && m[p - W] && !lab[p - W]) ((lab[p - W] = cur), st.push(p - W));
-    }
-    if (n > bestN) ((bestN = n), (best = cur));
-  }
-  const out = new Uint8Array(W * H);
-  for (let i = 0; i < W * H; i++) out[i] = lab[i] === best ? 1 : 0;
-  return out;
-}
-function fill(m) {
-  const bg = new Uint8Array(W * H);
-  const s = [];
-  for (let x = 0; x < W; x++) (s.push(x), s.push((H - 1) * W + x));
-  for (let y = 0; y < H; y++) (s.push(y * W), s.push(y * W + W - 1));
-  while (s.length) {
-    const p = s.pop();
-    if (p < 0 || p >= W * H || bg[p] || m[p]) continue;
-    bg[p] = 1;
-    const x = p % W;
-    if (x + 1 < W) s.push(p + 1);
-    if (x - 1 >= 0) s.push(p - 1);
-    if (p + W < W * H) s.push(p + W);
-    if (p - W >= 0) s.push(p - W);
-  }
-  const out = new Uint8Array(W * H);
-  for (let i = 0; i < W * H; i++) out[i] = m[i] || !bg[i] ? 1 : 0;
-  return out;
-}
-// erode/dilate by `it` iterations (4-neighbour). Erosion breaks thin bridges (a leaf's petiole,
-// a twig) that connect satellite fragments to the main subject; a matching dilation restores size.
-function erode(m, it) {
-  for (let k = 0; k < it; k++) {
-    const o = new Uint8Array(W * H);
-    for (let i = 0; i < W * H; i++) {
-      if (!m[i]) continue;
-      const x = i % W;
-      o[i] =
-        m[i] &&
-        (x + 1 >= W || m[i + 1]) &&
-        (x - 1 < 0 || m[i - 1]) &&
-        (i + W >= W * H || m[i + W]) &&
-        (i - W < 0 || m[i - W])
-          ? 1
-          : 0;
-    }
-    m = o;
-  }
-  return m;
-}
-function dilate(m, it) {
-  for (let k = 0; k < it; k++) {
-    const o = new Uint8Array(W * H);
-    for (let i = 0; i < W * H; i++) {
-      const x = i % W;
-      o[i] =
-        m[i] ||
-        (x + 1 < W && m[i + 1]) ||
-        (x - 1 >= 0 && m[i - 1]) ||
-        (i + W < W * H && m[i + W]) ||
-        (i - W >= 0 && m[i - W])
-          ? 1
-          : 0;
-    }
-    m = o;
-  }
-  return m;
-}
 
 // Meticulous subject isolation: threshold → OPENING (erode `iso` → keep largest → dilate `iso`)
 // so thin-bridged satellites (other leaves on the branch, stray specks) fall away and only the
 // main compact subject survives → fill holes → clean single silhouette.
 function subjectMask() {
-  const thr = otsu();
+  const thr = otsu(hist, W * H);
   const corners = [lumArr[0], lumArr[W - 1], lumArr[(H - 1) * W], lumArr[W * H - 1]];
   const bgLight = corners.reduce((a, b) => a + b, 0) / 4 > thr;
-  let m = new Uint8Array(W * H);
+  const m = new Uint8Array(W * H);
   for (let i = 0; i < W * H; i++) m[i] = (bgLight ? lumArr[i] < thr : lumArr[i] > thr) ? 1 : 0;
-  const iso = Number(arg("--isolate", "3"));
-  m = largest(m);
-  if (iso > 0) {
-    m = erode(m, iso);
-    m = largest(m);
-    m = dilate(m, iso);
-    m = largest(m);
-  }
-  return fill(m);
+  return isolateSubject(m, W, H, Number(arg("--isolate", "3")));
 }
 
 const mask = cutout ? subjectMask() : null;
@@ -392,7 +255,7 @@ function isEdge(i) {
   );
 }
 
-const fieldRgb = field === "none" ? null : hexRgb(field);
+const fieldRgb = field === "none" ? null : parseHex(field);
 const out = new Jimp(W, H, 0x00000000);
 
 function setPx(i, r, g, b, a = 255) {

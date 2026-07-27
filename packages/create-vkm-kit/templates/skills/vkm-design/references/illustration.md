@@ -219,15 +219,13 @@ shape is fair to learn from; a particular photo's framing and retouch is not you
 
 ## Where this plugs in
 
-- `modes/generate.md`: a bespoke figurative asset is planned in "system before screens" — pick the
-  technique and fetch/trace the reference BEFORE building, never as a late detail pass.
-- `modes/critique.md` / `modes/visual-loop.md`: **a figurative drawing that wasn't derived from a
-  reference (or is visibly wrong for its subject) is a Major finding** — name the wrong feature and
-  the technique that fixes it ("hand-plotted guapote has a forked tuna tail; trace a cichlid
-  reference — the real tail is rounded").
-- `examples/illustration-gallery.md`: the technique-matching table applied to eight different
-  subjects end to end.
-- `modes/critique.md`: a grid/row/wall of bespoke art rendering at inconsistent sizes or off-centre
-  (the "desfase" of Step 4) is a finding — the fix is shared-square normalization, not redrawing.
-- `references/marks.md`: for a logo OF a real thing, run this first, then apply mark craft to the
-  faithful base.
+Plan the asset in `modes/generate.md`'s "system before screens" — pick the technique and
+fetch/trace the reference BEFORE building, never as a late detail pass. For a logo OF a real
+thing, run this first and then apply `references/marks.md` craft to the faithful base;
+`examples/illustration-gallery.md` runs the technique-matching table over eight subjects.
+
+Two **Major** findings in `modes/critique.md` / `modes/visual-loop.md`: a figurative drawing not
+derived from a reference, or visibly wrong for its subject (name the wrong feature and the fix —
+"hand-plotted guapote has a forked tuna tail; trace a cichlid reference, the real tail is
+rounded"), and a grid of bespoke art at inconsistent sizes or off-centre (the "desfase" of
+Step 4 — fixed by shared-square normalization, not by redrawing).
