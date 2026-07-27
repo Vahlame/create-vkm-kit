@@ -155,7 +155,7 @@ pides — por eso la instalación es un comando aunque la lista sea larga.
 
 > ℹ️ **obscura** es software de terceros bajo licencia **Apache-2.0** ([h4ckf0r0day/obscura](https://github.com/h4ckf0r0day/obscura)). El kit **lo descarga** del release oficial y lo verifica por SHA-256 — **no lo empaqueta ni redistribuye**. Búsqueda estructurada vía **SearXNG on-demand** (se levanta solo al buscar, se apaga al terminar; monitor de escritorio opcional) — [ADR-0052](docs/adr/0052-searxng-on-demand-lifecycle.md).
 >
-> 🧭 **Skills que instala el kit** (además de los paquetes): **`/vkm-discipline`** — disciplina de ejecución cross-dominio (infiere la intención real, entrega más que lo literal, con evidencia ejecutada) que sube el rendimiento de **cualquier modelo**, Haiku a Opus — **`/vkm-spec`** (idea → spec anclada al vault) — y **`/vkm-design`** (diseño profesional anti-genérico para cualquier UI/medio: dirección antes de píxeles, checks computados, librerías reales verificadas online, loop visual). Detalle: [ADR-0049](docs/adr/0049-discipline-doctrine-three-channels.md) y [ADR-0053](docs/adr/0053-vkm-design-skill.md).
+> 🧭 **Skills que instala el kit** (además de los paquetes): **`/vkm-discipline`** — disciplina de ejecución cross-dominio (infiere la intención real, entrega más que lo literal, con evidencia ejecutada) que sube el rendimiento de **cualquier modelo**, Haiku a Opus — **`/vkm-spec`** (idea → spec anclada al vault) — **`/vkm-design`** (diseño profesional anti-genérico para cualquier UI/medio: dirección antes de píxeles, checks computados, librerías reales verificadas online, loop visual) — y **`/vkm-research`** (consolida un banco `RESEARCH/<tema>` en un `summary.md` con wikilinks y supersesión). Detalle: [ADR-0049](docs/adr/0049-discipline-doctrine-three-channels.md), [ADR-0053](docs/adr/0053-vkm-design-skill.md) y [ADR-0056](docs/adr/0056-research-knowledge-bank.md).
 
 Mapa técnico completo y diagramas de flujo: [`ARCHITECTURE.md`](ARCHITECTURE.md). El _porqué_ de
 cada decisión: [`docs/adr/`](docs/adr/). Cada pieza y cada conexión, con diagramas de secuencia por
@@ -179,10 +179,7 @@ no un leaderboard). Detalle · detail: [🇪🇸 cómo funciona](docs/es/como-fu
 [🇬🇧 how it works](docs/en/how-it-works.md) · [`evals/`](evals/).
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/bench-results-dark.svg">
-    <img src="docs/assets/bench-results.svg" alt="Dumbbell chart: puntuación con skill vs stock por bench y modelo — research-bench, design-bench y discipline-bench suben con la skill en Sonnet y Opus; Haiku plano en design" width="880">
-  </picture>
+  <img src="docs/assets/bench-results.svg" alt="Dumbbell chart: puntuación con skill vs stock por bench y modelo — research-bench, design-bench y discipline-bench suben con la skill en Sonnet y Opus; Haiku plano en design" width="880">
 </p>
 
 **Y con modelos vivos (ronda 2026-07-21, Haiku 4.5 + Sonnet 5, datos crudos commiteados):**

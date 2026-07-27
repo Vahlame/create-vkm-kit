@@ -75,6 +75,12 @@ jobs:
         run: npm run linkcheck
       - name: license mirrors (packages/* == root LICENSE.md)
         run: npm run license:sync:check
+      # A hand-maintained table over 78 records drifts silently in two directions: a new
+      # ADR with no row, or a row outliving its file. It also checks supersession is
+      # RECIPROCAL — ADR-0055 read "Accepted" for releases while ADR-0057, four days
+      # newer, declared in its own header that it superseded two of its sections.
+      - name: ADR index (every record rowed, supersession reciprocal)
+        run: npm run adr:check
       - name: validate agent.toml (tomllib)
         run: python -c "import pathlib,tomllib;tomllib.loads(pathlib.Path('agent.toml').read_text(encoding='utf-8'));print('agent.toml ok')"
 

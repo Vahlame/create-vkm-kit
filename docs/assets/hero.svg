@@ -117,7 +117,7 @@
 
   <rect x="40" y="516" width="880" height="124" rx="12" class="card"/>
   <rect x="40" y="516" width="880" height="6" rx="3" fill="var(--suite)"/>
-  <text x="60" y="550" class="ttl">Suite de eficiencia 4.x — alrededor del mismo flujo</text>
+  <text x="60" y="550" class="ttl">Suite de eficiencia — alrededor del mismo flujo</text>
   <text x="900" y="550" class="mono" text-anchor="end">npx @vkmikc/create-vkm-kit --full</text>
 
   <rect x="60" y="568" width="160" height="52" rx="9" class="pill"/>
@@ -137,7 +137,7 @@
 
   <rect x="570" y="568" width="160" height="52" rx="9" class="pill"/>
   <rect x="570" y="568" width="5" height="52" rx="2.5" fill="var(--suite)"/>
-  <text x="584" y="589" class="mono">3 skills</text>
+  <text x="584" y="589" class="mono">4 skills</text>
   <text x="584" y="607" class="mut">discipline·spec·design</text>
 
   <rect x="740" y="568" width="160" height="52" rx="9" class="pill"/>

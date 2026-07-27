@@ -2,6 +2,8 @@
 
 Each file in this directory captures one design decision: what was chosen, what alternatives existed, and why the chosen path won. Early ADRs reflect the original Windows-first kit; **ADR-0010 onward** document the current cross-platform stack.
 
+ADRs are **append-only**: a decision that was later reversed is not rewritten, it is superseded, and the Status column says so. Read the status before acting on a record — a few of these were revised within days.
+
 | ID                                                                 | Title                                                                                     | Status                                         |
 | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- | ---------------------------------------------- |
 | [ADR-0001](./0001-use-mcp-remote-instead-of-direct-sse.md)         | Use `mcp-remote` instead of pointing Cursor at the SSE server directly                    | Accepted                                       |
@@ -58,9 +60,9 @@ Each file in this directory captures one design decision: what was chosen, what 
 | [ADR-0052](./0052-searxng-on-demand-lifecycle.md)                  | SearXNG search backend: on-demand lifecycle (MCP-owned) + desktop monitor                 | Accepted                                       |
 | [ADR-0053](./0053-vkm-design-skill.md)                             | `vkm-design`: model-agnostic professional design skill (direction, validators, modes)     | Accepted                                       |
 | [ADR-0054](./0054-obscura-research-local-deep-crawl.md)            | `obscura_research`: deep web research as local CPU/RAM work, not tokens                   | Accepted                                       |
-| [ADR-0055](./0055-obscura-research-local-llm-curation.md)          | `obscura_research` curates pages with a local Ollama model, not keyword overlap           | Accepted                                       |
+| [ADR-0055](./0055-obscura-research-local-llm-curation.md)          | `obscura_research` curates pages with a local Ollama model, not keyword overlap           | Accepted (§5-6 superseded by 0057)             |
 | [ADR-0056](./0056-research-knowledge-bank.md)                      | `RESEARCH/`: persistent web-research knowledge bank in the same vault, section-filtered   | Accepted                                       |
-| [ADR-0057](./0057-obscura-research-gather-over-rank.md)            | `obscura_research`: the answer is lost at gather, not at rank                             | Accepted                                       |
+| [ADR-0057](./0057-obscura-research-gather-over-rank.md)            | `obscura_research`: the answer is lost at gather, not at rank                             | Accepted (supersedes 0055 §5-6)                |
 | [ADR-0058](./0058-vkm-downloads-file-download-tool.md)             | vkm-downloads: a guarded file-download manager MCP                                        | Accepted                                       |
 | [ADR-0059](./0059-vkm-downloads-background-jobs-and-mirrors.md)    | vkm-downloads: background jobs, sets, resume, and fastest-mirror selection                | Accepted                                       |
 | [ADR-0060](./0060-obscura-deep-research-background-job.md)         | Background deep-research jobs: depth that outlives an agent-loop turn                     | Accepted                                       |

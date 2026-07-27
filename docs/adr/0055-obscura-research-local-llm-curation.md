@@ -1,6 +1,8 @@
 # ADR-0055: `obscura_research` curates pages with a local Ollama model, not keyword overlap
 
-- **Status:** Accepted
+- **Status:** Accepted (§5 and §6 superseded by [ADR-0057](./0057-obscura-research-gather-over-rank.md))
+- **Superseded in part by:** ADR-0057 — BM25 as the filter deciding what gets fetched (§5) and
+  the rank-first pipeline shape (§6). The curation decision itself stands.
 - **Date:** 2026-07-12
 - **Deciders:** maintainer
 

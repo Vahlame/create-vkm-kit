@@ -136,7 +136,7 @@ no el núcleo. Detalle técnico: [ADR-0017](../adr/0017-hybrid-query-embeddings.
 
 ### El stack de recuperación de un vistazo (viejo + nuevo)
 
-La misma pregunta la responden **tres rankers a la vez** y luego se **fusionan** — ninguno gana por sí solo, y eso mantiene los resultados equilibrados. Léxico y semántico son las capas originales; el ranker de **grafo** es opt-in (nuevo en 3.5). Etapas más nuevas **opt-in, off por defecto** (3.9) pueden afinar el orden después: un reordenamiento ligero (recencia · importancia · diversificación MMR) y un **reranker cross-encoder** opcional que vuelve a leer cada candidato _junto con_ la consulta. Desde 3.13 se suman dos **palancas de aprendizaje** (ADR-0038): `pin_failures` fusiona un cuarto ranking de bajo peso con las notas coincidentes que llevan lecciones `[failure]`/`[gotcha]`, y `usage` empuja la memoria que ya demostró ayudar. Todo lo posterior a RRF está apagado salvo que lo pidas, así el camino por defecto no cambia:
+La misma pregunta la responden **tres rankers a la vez** y luego se **fusionan** — ninguno gana por sí solo, y eso mantiene los resultados equilibrados. Léxico y semántico son las capas originales; el ranker de **grafo** es opt-in. Etapas más nuevas **opt-in, off por defecto** (3.9) pueden afinar el orden después: un reordenamiento ligero (recencia · importancia · diversificación MMR) y un **reranker cross-encoder** opcional que vuelve a leer cada candidato _junto con_ la consulta. Desde 3.13 se suman dos **palancas de aprendizaje** (ADR-0038): `pin_failures` fusiona un cuarto ranking de bajo peso con las notas coincidentes que llevan lecciones `[failure]`/`[gotcha]`, y `usage` empuja la memoria que ya demostró ayudar. Todo lo posterior a RRF está apagado salvo que lo pidas, así el camino por defecto no cambia:
 
 ```mermaid
 flowchart LR
@@ -166,7 +166,7 @@ flowchart LR
 
 (`vault_complete` es el hermano pequeño: escribes un prefijo y obtienes los títulos / nombres / `#tags` que existen de verdad — una búsqueda en Trie, sin search.)
 
-### Medido, no solo afirmado (nuevo en 3.7)
+### Medido, no solo afirmado
 
 "Aflora la nota correcta" ya no es solo una afirmación — es un número. Un corpus etiquetado fijo
 más un set de consultas se puntúa en cada cambio (**recall@k / MRR / hit@1**), y una regresión
@@ -176,7 +176,7 @@ AND a OR** cuando una coincidencia estricta no encuentra nada, así una palabra 
 escrita ya no tira una nota relevante. Detalle: [`evals/retrieval`](https://github.com/Vahlame/create-vkm-kit/tree/main/evals/retrieval) ·
 [ADR-0020](../adr/0020-measured-retrieval-quality.md).
 
-### Preguntarle al grafo — relaciones tipadas + observaciones (nuevo en 3.8)
+### Preguntarle al grafo — relaciones tipadas + observaciones
 
 **La analogía.** Una búsqueda normal encuentra un libro por su título. El **grafo de conocimiento** es
 el **fichero/catálogo** de la biblioteca encima de los libros: fichas de referencia cruzada que dicen
@@ -227,7 +227,7 @@ con `#ranking`" (`vault_observations`). Y `vault_kg_suggest` lee una nota y **pr
 relaciones/observaciones de su prosa — pero **nunca escribe**; tú confirmas y editas. Detalle:
 [ADR-0023](../adr/0023-structured-knowledge-graph.md).
 
-### Mantener la memoria sana — el memory report (nuevo en 3.8)
+### Mantener la memoria sana — el memory report
 
 **La analogía.** Un **chequeo médico** anual, o las luces del tablero de un auto. A medida que un vault
 crece puede enfermarse en silencio — un log inflado, notas demasiado grandes, enlaces que no apuntan a
@@ -255,7 +255,7 @@ contradicciones es razonamiento semántico que el motor determinista no afirma);
 viejas"** = el report _marca_ candidatos y el agente condensa con tu confirmación. Detalle:
 [ADR-0024](../adr/0024-memory-reports-and-compaction.md).
 
-### Escalar la búsqueda semántica — sqlite-vec opcional (nuevo en 3.8)
+### Escalar la búsqueda semántica — sqlite-vec opcional
 
 **La analogía.** _Misma receta, horno más rápido._ La matemática — la **similitud coseno** entre tu
 consulta y cada fragmento de nota — no cambia en absoluto. Solo la movemos de calcularse
@@ -311,7 +311,7 @@ flowchart LR
   S1 & S2 & S3 -. solo un hybrid_search,<br/>sin leer notas enteras .-> V[("vault")]
 ```
 
-### El ahorro, medido en el wire — y el wire, más barato (nuevo en 3.12)
+### El ahorro, medido en el wire — y el wire, más barato
 
 **La analogía.** Antes medíamos el ahorro pesando solo la mercancía; ahora pesamos **el paquete
 completo con su embalaje** (el JSON que el modelo lee de verdad) — y de paso quitamos el embalaje
@@ -363,7 +363,7 @@ La escalera del `limit` es tuya: **3–5** cuando sabes qué buscas (lo que reco
 instaladas), 10 por defecto, más solo para barridos amplios. Números y metodología reproducibles en
 [`evals/README`](https://github.com/Vahlame/create-vkm-kit/tree/main/evals).
 
-### La renta fija, también a dieta — y con candado (nuevo en 3.12)
+### La renta fija, también a dieta — y con candado
 
 **La analogía.** Lo anterior abarata cada _llamada_; pero un agente también paga **alquiler**: texto
 que entra en su contexto en cada sesión aunque no llame a nada. El kit ataca las tres capas, cada
@@ -393,7 +393,7 @@ bloque de reglas — ese drift ahora también es un test. Detalle:
 
 ---
 
-## Seguro con varios escritores + memoria que aprende (nuevo en 3.13)
+## Seguro con varios escritores + memoria que aprende
 
 Dos respuestas a una misma crítica ("markdown plano = carreras y notas estáticas"), ambas aditivas y
 opt-in (detalle: [ADR-0037](../adr/0037-vault-vs-database-system-of-record.md) ·

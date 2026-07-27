@@ -83,11 +83,11 @@ Keeps the vault's git history moving without the user thinking about it.
 ### 2. `obsidian-memory-mcp` — hybrid MCP sidecar (Node)
 
 The agent's authoritative window into the vault. Stdio MCP server exposing
-fifteen tools, split into small modules so the pure logic is unit-testable
+a vault-locked tool surface, split into small modules so the pure logic is unit-testable
 without spawning the transport.
 
 - **Entry point / wiring:** [`src/hybrid-mcp.mjs`](./packages/obsidian-memory-mcp/src/hybrid-mcp.mjs) — registers tools and connects `StdioServerTransport`. A `main()` entry-point guard prevents the server from spawning on `import` (so tests can import siblings safely).
-- **Tools (fifteen):**
+- **Tools:**
   - `assemble_context` — one-call, char-budgeted context bundle for a task
     (typed decisions + patterns + stack facts + relevant passages via
     [`src/context-assemble.mjs`](./packages/obsidian-memory-mcp/src/context-assemble.mjs));
@@ -191,7 +191,7 @@ each IDE's format.
 ### 7. `obscura-web` — stealth web MCP sidecar (Node, opt-in)
 
 The agent's window onto the **open web**, opt-in via `--obscura`/`--full` (ADR-0051/0052). Stdio MCP
-server exposing eight tools, backed by the local
+server exposing stealth fetch, layered search, local deep research and a seed-URL crawler, backed by the local
 [obscura](https://github.com/h4ckf0r0day/obscura) headless browser.
 
 - **Entry point:** [`src/obscura-mcp.mjs`](./packages/obscura-web/src/obscura-mcp.mjs) — registers `obscura_fetch` / `obscura_fetch_many` (stealth URL fetch/render, single/batch), `obscura_search`, `obscura_research` + `obscura_research_start`/`_status`/`_stop` (local deep-crawl, foreground or background job — ADR-0054/0060) and `obscura_consolidate` (distill persisted research — ADR-0056), with the same `main()` guard so importing for tests never spawns the transport.
@@ -482,7 +482,7 @@ this architecture:
 - **ADR-0054/0055** — `obscura_research`: local deep crawl (CPU/RAM, not tokens) + local-LLM (Ollama) curation of the results.
 - **ADR-0056** — `RESEARCH/`: persistent web-research knowledge bank in the vault, consolidated by the `/vkm-research` skill.
 
-The full list (0001–0056) is the [ADR index](./docs/adr/README.md).
+The full list is the [ADR index](./docs/adr/README.md).
 
 Do not undo an accepted ADR without superseding it with a new one
 (see [`CONTRIBUTING.md`](./CONTRIBUTING.md)).

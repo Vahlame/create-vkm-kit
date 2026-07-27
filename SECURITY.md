@@ -89,4 +89,10 @@ If you are about to follow agent instructions from this repo:
 
 ## Past advisories
 
-None yet.
+| Advisory                                              | Affected              | Fixed in        | Status                                        |
+| ----------------------------------------------------- | --------------------- | --------------- | --------------------------------------------- |
+| [`mcp-remote` RCE](./docs/security/mcp-remote-rce.md) | `mcp-remote` < 0.1.16 | upstream 0.1.16 | Pinned `>= 0.1.16` throughout the kit; see §4 |
+
+This section read "None yet" while that advisory was already published in this
+repository and cited as a hard constraint two sections above — the one page a reader
+checks to see whether anything has ever gone wrong was the page saying nothing had.
