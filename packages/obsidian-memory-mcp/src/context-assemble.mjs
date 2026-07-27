@@ -17,7 +17,7 @@
  */
 import { readFile } from "node:fs/promises";
 import { defaultRagSrc, requireVault, runRagJson } from "./rag-client.mjs";
-import { safeVaultPath } from "./vault-fs.mjs";
+import { escapeRegExp, safeVaultPath } from "./vault-fs.mjs";
 import { wrapUntrusted } from "./untrusted.mjs";
 
 const HYBRID_LIMIT = 6;
@@ -45,10 +45,6 @@ function fold(text) {
 /** Light plural stem so "códigos" anchors "código" and vice versa (es/en -s plurals). */
 function stem(term) {
   return term.length > 4 && term.endsWith("s") ? term.slice(0, -1) : term;
-}
-
-function escapeRegExp(s) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /** Word-boundary match so a stemmed term (e.g. "statu" from "status") can't substring-match

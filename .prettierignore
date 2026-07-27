@@ -15,3 +15,9 @@ evals/*/results/**
 # Grader-written subject solutions (regenerable from results/*.jsonl via --grade) —
 # verbatim model output, never reformatted.
 evals/*/solutions/**
+# The starter vault written into a user's own directory. This is PAYLOAD, not repo
+# prose: what ships is what the user gets, byte for byte, and some of those bytes are
+# load-bearing (SESSION_LOG.md ends with a blank line because `vault_append_file`
+# appends after it). Same reason the bench evidence above is exempt — reformatting
+# would change the artifact, not just its style.
+packages/create-vkm-kit/templates/vault/**

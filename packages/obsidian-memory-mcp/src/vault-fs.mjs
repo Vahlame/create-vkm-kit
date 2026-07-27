@@ -155,38 +155,77 @@ export async function vaultReadFileWithMeta(vaultAbs, relPath, opts = {}) {
 }
 
 /**
+ * Write `text` to `fp` atomically: a temp file in the SAME directory, then rename.
+ *
+ * Same-directory matters — `rename` is only atomic within a filesystem, so a temp file
+ * in the OS temp dir would silently degrade to copy+delete across a mount boundary and
+ * reintroduce the torn-write this exists to prevent. The pid+timestamp suffix keeps two
+ * concurrent writers from colliding on the temp name (the advisory write lock already
+ * serialises writers from this process; this covers the other process).
+ *
+ * The sequence was written out four times in this module — the one guarantee a memory
+ * store must never get subtly wrong, duplicated four ways.
+ *
+ * CONTRACT: `text` must ALREADY be validated. The schema check and the hygiene lint run
+ * before the temp write at every call site so a violation never lands on disk, and this
+ * helper deliberately does not absorb that step — folding validation in here would make
+ * the ordering invisible and easy to reorder.
+ *
+ * @param {string} fp absolute destination path
+ * @param {string} text validated content
+ * @returns {Promise<void>}
+ */
+async function atomicWrite(fp, text) {
+  const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
+  await writeFile(tmp, text, "utf8");
+  await rename(tmp, fp);
+}
+
+/**
  * Enforce an optimistic-concurrency precondition: the file's current content
  * must hash to `ifMatch` (an etag from a prior read). Throws a retryable
  * "precondition failed" error on mismatch or when the file is missing.
+ *
  * NOTE: check-then-rename is not one atomic step — without the advisory write
  * lock the race window shrinks from "since the agent's read" to milliseconds;
  * with the lock (vault-lock.mjs) it is closed on a single host.
+ *
+ * `opts.current` lets a caller that has ALREADY read the file hand that text in
+ * (`null` meaning "it does not exist") instead of paying a second read.
+ * `vaultAppendFile` needs the text anyway — to detect the file's EOL and whether
+ * it is creating it — and used to restate both user-facing messages verbatim
+ * rather than call this. Two copies of a precondition contract that must never
+ * diverge is exactly the kind of duplication worth removing in this module.
+ *
  * @param {string} fp canonical absolute path
  * @param {string} ifMatch expected etag
+ * @param {{ current?: string | null }} [opts]
  * @returns {Promise<string>} the current content (so edit flows can reuse it)
  */
-async function assertEtagMatches(fp, ifMatch) {
-  let current;
-  try {
-    current = await readFile(fp, "utf8");
-  } catch (err) {
-    if (err.code === "ENOENT") {
-      throw new Error(
-        `precondition failed: file does not exist but ifMatch "${ifMatch}" was given — ` +
-          `re-read (or omit ifMatch to create it)`,
-        { cause: err }
-      );
+async function assertEtagMatches(fp, ifMatch, { current } = {}) {
+  const missing = () =>
+    new Error(
+      `precondition failed: file does not exist but ifMatch "${ifMatch}" was given — ` +
+        `re-read (or omit ifMatch to create it)`
+    );
+  let text = current;
+  if (text === undefined) {
+    try {
+      text = await readFile(fp, "utf8");
+    } catch (err) {
+      if (err.code !== "ENOENT") throw err;
+      throw missing();
     }
-    throw err;
   }
-  const now = fileEtag(current);
+  if (text == null) throw missing();
+  const now = fileEtag(text);
   if (now !== ifMatch) {
     throw new Error(
       `precondition failed: file changed since read (etag ${now} ≠ expected ${ifMatch}) — ` +
         `re-read the file and retry`
     );
   }
-  return current;
+  return text;
 }
 
 /**
@@ -220,9 +259,7 @@ export async function vaultWriteFile(vaultAbs, relPath, content, opts = {}) {
       ...(await lintForWrite(vaultAbs, relPath, [content], { newNote }))
     ];
     await mkdir(dirname(fp), { recursive: true });
-    const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
-    await writeFile(tmp, content, "utf8");
-    await rename(tmp, fp);
+    await atomicWrite(fp, content);
     const result = { path: fp, bytes: Buffer.byteLength(content, "utf8"), etag: fileEtag(content) };
     if (warnings.length) result.warnings = warnings;
     return result;
@@ -346,10 +383,7 @@ export async function vaultEditFile(vaultAbs, relPath, edits, opts = {}) {
         edits.map((e) => e.newText)
       ))
     ];
-    // Atomic write
-    const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
-    await writeFile(tmp, text, "utf8");
-    await rename(tmp, fp);
+    await atomicWrite(fp, text);
     const result = { path: fp, editsApplied: applied.length, etag: fileEtag(text) };
     if (warnings.length) result.warnings = warnings;
     return result;
@@ -402,7 +436,14 @@ async function walkMarkdown(vaultReal, relDir = "") {
   return out;
 }
 
-function escapeRegExp(s) {
+/**
+ * Escape every regex metacharacter in `s` so it matches literally.
+ * Exported because context-assemble.mjs carried a byte-identical private copy —
+ * a one-line function is exactly the kind that gets re-typed slightly wrong.
+ * @param {string} s
+ * @returns {string}
+ */
+export function escapeRegExp(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
@@ -488,21 +529,11 @@ export async function vaultAppendFile(vaultAbs, relPath, text, opts = {}) {
     } catch (err) {
       if (err.code !== "ENOENT") throw err;
     }
-    if (opts.ifMatch) {
-      if (original == null) {
-        throw new Error(
-          `precondition failed: file does not exist but ifMatch "${opts.ifMatch}" was given — ` +
-            `re-read (or omit ifMatch to create it)`
-        );
-      }
-      const now = fileEtag(original);
-      if (now !== opts.ifMatch) {
-        throw new Error(
-          `precondition failed: file changed since read (etag ${now} ≠ expected ${opts.ifMatch}) — ` +
-            `re-read the file and retry`
-        );
-      }
-    }
+    // `current: original` reuses the read this function already did (it needs the
+    // text to detect the file's EOL and whether it is creating it), so the
+    // precondition costs no second read — and both user-facing messages now have
+    // exactly one definition instead of two that must never drift apart.
+    if (opts.ifMatch) await assertEtagMatches(fp, opts.ifMatch, { current: original });
     const eol = original != null && original.includes("\r\n") ? "\r\n" : "\n";
     let chunk = toFileEol(text, eol);
     if (!chunk.endsWith(eol)) chunk += eol;
@@ -521,9 +552,7 @@ export async function vaultAppendFile(vaultAbs, relPath, text, opts = {}) {
       ...(await lintForWrite(vaultAbs, relPath, [chunk], { newNote: created }))
     ];
     await mkdir(dirname(fp), { recursive: true });
-    const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
-    await writeFile(tmp, finalText, "utf8");
-    await rename(tmp, fp);
+    await atomicWrite(fp, finalText);
     const result = {
       path: fp,
       created,
@@ -645,9 +674,7 @@ export async function vaultFrontmatterSet(vaultAbs, relPath, opts = {}) {
       return { path: fp, ...applied, etag: fileEtag(original), unchanged: true };
     }
     const warnings = await checkSchemaForWrite(vaultAbs, relPath, finalText);
-    const tmp = `${fp}.tmp-${process.pid}-${Date.now()}`;
-    await writeFile(tmp, finalText, "utf8");
-    await rename(tmp, fp);
+    await atomicWrite(fp, finalText);
     return {
       path: fp,
       ...applied,
