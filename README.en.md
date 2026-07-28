@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="./LICENSE.md"><img src="https://img.shields.io/badge/license-MIT--derived_%2B_attribution_(non--OSI)-blue.svg" alt="License"></a>
-  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v5.0.0-orange.svg" alt="Release"></a>
+  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v5.1.0-orange.svg" alt="Release"></a>
   <a href="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.npmjs.com/package/@vkmikc/create-vkm-kit"><img src="https://img.shields.io/npm/v/%40vkmikc%2Fcreate-vkm-kit?label=npm&color=cb3837" alt="npm"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A5%2020-43853d.svg" alt="Node ≥ 20">
@@ -153,7 +153,7 @@ ask for it — which is why the install is one command even though the list is l
 
 > ℹ️ **obscura** is third-party software under the **Apache-2.0** license ([h4ckf0r0day/obscura](https://github.com/h4ckf0r0day/obscura)). The kit **downloads** the official release and verifies it by SHA-256 — it does **not** bundle or redistribute it. Structured search runs via **on-demand SearXNG** (started only while searching, stopped when idle; optional desktop monitor) — [ADR-0052](docs/adr/0052-searxng-on-demand-lifecycle.md).
 >
-> 🧭 **Skills the kit installs** (besides the packages): **`/vkm-discipline`** — cross-domain execution discipline (infer the real intent, deliver more than the literal ask, with run evidence) that lifts **any model**, Haiku to Opus — **`/vkm-spec`** (idea → a spec anchored to the vault) — **`/vkm-design`** (professional, anti-generic design for any UI/medium: direction before pixels, computed checks, real libraries verified online, a visual loop) — and **`/vkm-research`** (consolidates a `RESEARCH/<topic>` bank into one `summary.md` with wikilinks and supersession). Detail: [ADR-0049](docs/adr/0049-discipline-doctrine-three-channels.md), [ADR-0053](docs/adr/0053-vkm-design-skill.md) and [ADR-0056](docs/adr/0056-research-knowledge-bank.md).
+> 🧭 **Skills the kit installs** (besides the packages): **`/vkm-discipline`** — cross-domain execution discipline (infer the real intent, deliver more than the literal ask, with run evidence) that lifts **any model**, Haiku to Opus — **`/vkm-spec`** (idea → a spec anchored to the vault) — **`/vkm-design`** (professional, anti-generic design for any UI/medium: direction before pixels, computed checks, real libraries verified online, a visual loop) — **`/vkm-research`** (consolidates a `RESEARCH/<topic>` bank into one `summary.md` with wikilinks and supersession) — and **`/vkm-verify`** (proves a green check actually ran, covered your change and can fail: negative control via `prove-it.mjs`). Which one fits a situation: [skills guide](docs/en/skills-guide.md). Detail: [ADR-0049](docs/adr/0049-discipline-doctrine-three-channels.md), [ADR-0053](docs/adr/0053-vkm-design-skill.md) and [ADR-0056](docs/adr/0056-research-knowledge-bank.md).
 
 Full technical map and flow diagrams: [`ARCHITECTURE.md`](ARCHITECTURE.md). The _why_ behind each
 decision: [`docs/adr/`](docs/adr/). Every piece and every connection, with per-operation sequence

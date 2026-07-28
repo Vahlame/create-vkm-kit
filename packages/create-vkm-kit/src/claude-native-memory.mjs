@@ -62,11 +62,18 @@ export const GUARD_HOOK_BASENAME = `${GUARD_HOOK_STEM}.mjs`;
 export const STOP_HOOK_STEM = "stop-vault-close-reminder";
 export const STOP_HOOK_BASENAME = `${STOP_HOOK_STEM}.mjs`;
 
-/** Effort gate (ADR-0031): denies a session's 2nd+ substantive edit until the model
- * proposed an effort level and got a real reply from the user. Independently toggleable
- * from the `enforce` pair above — a user may want one without the other. */
+/** Effort gate (ADR-0031, redesigned in ADR-0080): scores the session's work, persists the
+ * effort level (and model) it calls for, and interrupts at most ONCE when the live session
+ * is running at something else. Independently toggleable from the `enforce` pair above — a
+ * user may want one without the other. */
 export const EFFORT_GATE_HOOK_STEM = "guard-effort-gate";
 export const EFFORT_GATE_HOOK_BASENAME = `${EFFORT_GATE_HOOK_STEM}.mjs`;
+
+/** Sibling of the effort gate (ADR-0080), not a hook Claude Code invokes: the opt-in
+ * `VKM_EFFORT_APPLY=keys` applier that types `/model` + `/effort` into the session. Shipped
+ * with the gate so the feature is never half-installed — the gate checks for the file and
+ * degrades to notice-only when it is absent. */
+export const APPLY_HELPER_BASENAME = "apply-model-effort.mjs";
 
 /** Shared sidecar-cache engine (item 3 / perf fix) the Stop nudge and effort-gate hooks both
  * import as a sibling module — not a hook Claude Code invokes itself, but installed and
@@ -410,6 +417,13 @@ export async function configureClaudeNativeMemory(
       await fse.copy(packagedHookPath(EFFORT_GATE_HOOK_BASENAME), effortGateDest, {
         overwrite: true
       });
+      // The gate spawns this by path; installing one without the other is how a feature
+      // reports itself installed and then silently does half of what it says.
+      await fse.copy(
+        packagedHookPath(APPLY_HELPER_BASENAME),
+        path.join(hooksDir, APPLY_HELPER_BASENAME),
+        { overwrite: true }
+      );
     }
     if (wantEnforce || wantEffortGate) {
       // The Stop nudge and the effort-gate hook both import this sidecar-cache module as a
@@ -495,6 +509,7 @@ export async function uninstallClaudeNativeMemory(home, dryRun) {
     GUARD_HOOK_BASENAME,
     STOP_HOOK_BASENAME,
     EFFORT_GATE_HOOK_BASENAME,
+    APPLY_HELPER_BASENAME,
     TRANSCRIPT_CACHE_BASENAME
   ];
   for (const basename of basenames) {

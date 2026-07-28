@@ -19,6 +19,7 @@
  */
 import { pathToFileURL } from "node:url";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 /** Vault path: 1st CLI arg wins, else the MCP env vars the kit sets. */
@@ -176,9 +177,68 @@ export function buildContext(vault, lang) {
   return parts.join("\n");
 }
 
+/**
+ * Record what only a `SessionStart` hook can see: the model this session started on.
+ *
+ * Claude Code exposes the model on this event alone ("not guaranteed to be present"), and
+ * there is no `$CLAUDE_MODEL` — so the effort gate, a `PreToolUse` hook, has no other way
+ * to know whether it is looking at opus, sonnet or a deliberate `fable` session. It reads
+ * the sidecar this writes (`~/.vkm/effort-gate/<session_id>.json`).
+ *
+ * Best-effort in every direction: no payload, no model field, or an unwritable directory
+ * all end with the gate simply not naming a model. It must never delay a session start.
+ *
+ * @param {object} input the hook's stdin payload
+ * @param {string} [home]
+ */
+export function recordSessionModel(input, home = os.homedir()) {
+  try {
+    const sessionId = String(input?.session_id ?? "").trim();
+    const model = input?.model;
+    if (!sessionId || !model) return null;
+    const dir = path.join(home, ".vkm", "effort-gate");
+    fs.mkdirSync(dir, { recursive: true });
+    const fp = path.join(dir, `${sessionId.replace(/[^a-zA-Z0-9._-]/g, "_")}.json`);
+    let prior = {};
+    try {
+      prior = JSON.parse(fs.readFileSync(fp, "utf8")) || {};
+    } catch {
+      /* first write of this session */
+    }
+    fs.writeFileSync(fp, JSON.stringify({ ...prior, model }), "utf8");
+    pruneSessionSidecars(dir);
+    return fp;
+  } catch {
+    return null; // a session must start whether or not this works
+  }
+}
+
+/** Drop sidecars older than a week: one small file per session adds up over months. */
+function pruneSessionSidecars(dir, maxAgeMs = 7 * 24 * 60 * 60 * 1000) {
+  try {
+    const cutoff = Date.now() - maxAgeMs;
+    for (const name of fs.readdirSync(dir)) {
+      const fp = path.join(dir, name);
+      try {
+        if (fs.statSync(fp).mtimeMs < cutoff) fs.rmSync(fp, { force: true });
+      } catch {
+        /* skip */
+      }
+    }
+  } catch {
+    /* pruning is housekeeping, never a failure */
+  }
+}
+
 export function main() {
   const vault = resolveVault();
   const lang = (process.argv[3] || "es").toLowerCase() === "en" ? "en" : "es";
+  try {
+    const raw = fs.readFileSync(0, "utf8");
+    if (raw.trim()) recordSessionModel(JSON.parse(raw));
+  } catch {
+    /* no payload on stdin (or unparseable) — the gate falls back to effort-only */
+  }
   let additionalContext;
   try {
     additionalContext = buildContext(vault, lang);

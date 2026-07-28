@@ -8,6 +8,59 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 Nothing yet.
 
+## [5.1.0] - 2026-07-27
+
+The effort gate stops asking and starts deciding, a fifth skill lands, and a first install on
+Windows finally applies the fix 5.0.0 shipped for it.
+
+### Fixed
+
+- **A first install registered every MCP server the wrong way.** 5.0.0's headline Windows fix
+  routes each server through `vkm-runhidden.exe` so no console window appears — but the installer
+  probed for that launcher BEFORE putting it on disk, so on a machine with no `~/.claude/bin` the
+  probe failed and all four servers were registered as bare `node`/`uvx`. Only a second run of the
+  installer corrected it, which is why the flashing came back for anyone installing fresh.
+  `installRunHidden` now runs before anything writes a `command` string, and its return value is
+  threaded into the registrations instead of being re-probed. 415 unit tests passed throughout:
+  none of them ran the installer. `test/install-launcher-order.test.mjs` now does, into a
+  throwaway HOME, and fails on the old ordering.
+- **`resolveLauncher()` read the running user's home**, not the home being installed into, which
+  is why no test with a temp HOME could observe the decision. It takes the install's `.claude`
+  directory now.
+
+### Changed
+
+- **The effort gate decides, persists, and interrupts once**
+  ([ADR-0080](docs/adr/0080-the-effort-gate-decides.md)). The old protocol asked the model to
+  print an `[!] EFFORT RECOMMENDATION` block and denied every substantive edit until a user reply
+  followed it — which wedged four autonomous sessions when the block drifted or `CLAUDE_EFFORT`
+  was unset. It now scores the work itself (which files, which paths, how many, how big, and
+  which way your own words push the stakes), writes the level it concludes into
+  `~/.claude/settings.json` for the next session, and interrupts **at most once**, tracked in a
+  sidecar file rather than inferred from a transcript. A session already at the right level costs
+  nothing: no write, no output, no pause. It never selects `fable` and never overrides a session
+  already on it. Switches: `VKM_EFFORT_GATE=0`, `VKM_EFFORT_ALLOW_HAIKU=1`, `VKM_EFFORT_APPLY=keys`.
+- **What a hook can actually do here was measured, not assumed**, and ADR-0080 records it:
+  writing `effortLevel` does not move a running session (35 consecutive tool calls kept reporting
+  the old level), no hook output field sets model or effort, and on the desktop app Chromium
+  accepts keystrokes only while its window is active — so applying it in the background without
+  taking the user's foreground is not available. `VKM_EFFORT_APPLY=keys` uses the DevTools
+  protocol when the app was started by `scripts/claude-desktop-debug.ps1` (works from any window,
+  at the cost of an open local port), and otherwise types only while the Claude window is already
+  in front, retrying on later edits when it is not.
+
+### Added
+
+- **`/vkm-verify` — the fifth skill.** Turns "it passed" into "it passed, and it would have
+  failed": four questions (did it run, did it cover my change, can it fail, is what I verified
+  what ships) plus `scripts/prove-it.mjs`, a negative control that breaks the file on purpose,
+  confirms the check goes red, restores it byte-for-byte and re-runs to prove the restore was
+  clean — PROVEN / VACUOUS / DIRTY. Built from the failure class most repeated in real logs: a
+  green that examined nothing.
+- **A skills guide** — [ES](docs/es/guia-de-skills.md) · [EN](docs/en/skills-guide.md): which of
+  the five skills fits a situation, which does NOT, the three pairs that get confused, and what
+  each costs in context.
+
 ## [5.0.0] - 2026-07-27
 
 The refactor release. The product does the same things; almost every file that does them was

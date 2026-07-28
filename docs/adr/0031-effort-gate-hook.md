@@ -1,6 +1,6 @@
 # ADR-0031: Effort-gate hook (PreToolUse pause-and-confirm before costly work)
 
-- **Status:** Accepted (amended 2026-07-21 — effort auto-match, see Amendment)
+- **Status:** Accepted — mechanism kept, protocol superseded by [ADR-0080](./0080-the-effort-gate-decides.md) (amended 2026-07-21 — effort auto-match, see Amendment)
 - **Date:** 2026-06-30
 - **Deciders:** maintainer
 

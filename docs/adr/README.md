@@ -85,6 +85,7 @@ ADRs are **append-only**: a decision that was later reversed is not rewritten, i
 | [ADR-0077](./0077-lockfile-is-a-version-marker.md)                 | The lockfile is a version marker, and an uncovered workspace is drift                     | Accepted                                       |
 | [ADR-0078](./0078-allocate-and-hide-a-console.md)                  | Allocate a console and hide it, rather than deny the child one                            | Accepted                                       |
 | [ADR-0079](./0079-naming-and-compatibility-tiers.md)               | One brand, and three tiers of how frozen a name is                                        | Accepted                                       |
+| [ADR-0080](./0080-the-effort-gate-decides.md)                      | The effort gate decides, persists, and interrupts once                                    | Accepted                                       |
 
 ## Template
 
