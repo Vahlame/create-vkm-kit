@@ -34,6 +34,7 @@ import { configureTokenSaver } from "./token-saver.mjs";
 import { configureTelemetry } from "./telemetry.mjs";
 import { installRunHidden } from "./runhidden-setup.mjs";
 import { configureSkillAssets, SKILL_NAMES } from "./skills-install.mjs";
+import { configureCodexNative } from "./codex-native.mjs";
 import { maybeInstallOllama } from "./ollama-setup.mjs";
 import { maybeInstallObscura } from "./obscura-setup.mjs";
 import { writeVaultGitWorkspaceSettings } from "./vault-scaffold.mjs";
@@ -319,11 +320,28 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
       terseStyle: opts.terseStyle
     });
     await configureTelemetry(home, dryRun, { enable: opts.telemetry, kitRoot });
-    await configureSkillAssets(home, dryRun, { skills: opts.skills, agents: opts.agents });
+    await configureSkillAssets(home, dryRun, {
+      ide: "claude",
+      skills: opts.skills,
+      agents: opts.agents
+    });
     if (opts.ollama) await maybeInstallOllama(dryRun, { enable: true });
   }
   if (ides.includes("codex")) {
     await registerCodexMcp(vault, dryRun, serverOpts);
+    await configureCodexNative(home, vault, dryRun, {
+      lang,
+      hooks: opts.codexHooks,
+      context: opts.codexContext,
+      memoryGuard: opts.codexMemoryGuard,
+      effortGate: opts.codexEffortGate,
+      tokenSaver: opts.codexTokenSaver
+    });
+    await configureSkillAssets(home, dryRun, {
+      ide: "codex",
+      skills: opts.skills,
+      agents: opts.agents
+    });
   }
 
   // Backend before index, so a fresh machine can build in the same run.
@@ -466,6 +484,9 @@ export function printSummary({ vault, ides, opts, result, meta = {} }) {
     line(
       "- Codex CLI: MCP registered via `codex mcp add` → ~/.codex/config.toml (verify: `codex mcp list`)"
     );
+  }
+  if (ides.includes("codex") && opts.codexHooks) {
+    line("- Codex hooks: SessionStart, PreToolUse and PostToolUse → ~/.codex/hooks.json");
   }
   if (opts.gitleaks) line("- gitleaks pre-commit hook: installed (vault/.git/hooks/pre-commit)");
   if (opts.ruleTargets.length) {

@@ -51,23 +51,38 @@ async function writeSidecar(sidecarFp, manifest) {
  * @param {{ src: string, dest: string }[]} opts.files - absolute paths
  * @param {string} opts.sidecarFp - absolute path of the sidecar manifest
  * @param {boolean} [opts.dryRun]
- * @returns {Promise<{ installed: string[] }>} dest paths written (or that would be)
+ * @param {boolean} [opts.preserveExisting] - never overwrite an untracked or user-modified file
+ * @returns {Promise<{ installed: string[], skipped: string[] }>} action report
  */
-export async function installManagedAssets({ files, sidecarFp, dryRun = false }) {
+export async function installManagedAssets({
+  files,
+  sidecarFp,
+  dryRun = false,
+  preserveExisting = false
+}) {
   const installed = [];
+  const skipped = [];
   if (dryRun) {
-    return { installed: files.map((f) => f.dest) };
+    return { installed: files.map((f) => f.dest), skipped };
   }
   const manifest = await readSidecar(sidecarFp);
   for (const { src, dest } of files) {
     const bytes = await fse.readFile(src);
+    if (preserveExisting && (await fse.pathExists(dest))) {
+      const recorded = manifest.assets[dest];
+      const current = sha256(await fse.readFile(dest));
+      if (!recorded || recorded.hash !== current) {
+        skipped.push(dest);
+        continue;
+      }
+    }
     await fse.ensureDir(path.dirname(dest));
     await fse.copy(src, dest, { overwrite: true });
     manifest.assets[dest] = { hash: sha256(bytes), installedAt: new Date().toISOString() };
     installed.push(dest);
   }
   await writeSidecar(sidecarFp, manifest);
-  return { installed };
+  return { installed, skipped };
 }
 
 /**

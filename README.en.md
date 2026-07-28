@@ -179,7 +179,7 @@ corpus + deterministic embedder: reproducible regression floors, not leaderboard
 </p>
 
 **And with live models (2026-07-21 round, Haiku 4.5 + Sonnet 5, raw data committed):** all
-4 skills route with **100% hit-rate and 0% false-positives** (104 ES+EN cases); the
+the 4 skills in that bench route with **100% hit-rate and 0% false-positives** (104 ES+EN cases; `/vkm-verify` postdates it and is not measured yet); the
 token-saver's pre-registered A/B showed **0.0 quality delta** with the log **~81% smaller**
 (verdict: keep — and the rule says a mechanism that degrades **gets removed**);
 `/vkm-discipline` lifts Haiku **from 47.0 to 91.7 (+44.7)** on the under-specified task with

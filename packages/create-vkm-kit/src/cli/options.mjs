@@ -47,6 +47,11 @@ import { flagValue } from "../mcp-merge.mjs";
  * @property {boolean} telemetry
  * @property {boolean} skills
  * @property {boolean} agents
+ * @property {boolean} codexHooks
+ * @property {boolean} codexContext
+ * @property {boolean} codexMemoryGuard
+ * @property {boolean} codexEffortGate
+ * @property {boolean} codexTokenSaver
  * @property {boolean} ollama
  * @property {boolean} obscura
  * @property {boolean} downloads
@@ -85,6 +90,12 @@ export function resolveOptions(argv, ctx) {
   const on = (optIn, optOut) => (argv.includes(optIn) || !minimal) && !argv.includes(optOut);
 
   const claude = ides.includes("claude");
+  const codex = ides.includes("codex");
+  const codexHooks = codex && on("--codex-hooks", "--no-codex-hooks");
+  const codexContext = codexHooks && on("--vault-context-hook", "--no-vault-context-hook");
+  const codexMemoryGuard = codexHooks && on("--memory-enforcement", "--no-memory-enforcement");
+  const codexEffortGate = codexHooks && on("--effort-gate", "--no-effort-gate");
+  const codexTokenSaver = codexHooks && on("--token-saver", "--no-token-saver");
   const withHybrid = on("--with-hybrid", "--no-hybrid");
 
   // Claude Code only: disable the native per-project auto-memory + install the SessionStart
@@ -129,8 +140,15 @@ export function resolveOptions(argv, ctx) {
     // usage. Independent of the token-saver: coupling them meant `--no-token-saver` on a
     // re-run silently stripped a sink the user never asked to touch.
     telemetry: claude && on("--telemetry", "--no-telemetry"),
-    skills: claude && on("--skills", "--no-skills"),
-    agents: claude && on("--agents", "--no-agents"),
+    skills: (claude || codex) && on("--skills", "--no-skills"),
+    agents: (claude || codex) && on("--agents", "--no-agents"),
+    // Codex hooks are an independent `hooks.json` surface. Reuse the established
+    // component flags without coupling skills, agent, or hooks to one another.
+    codexHooks,
+    codexContext,
+    codexMemoryGuard,
+    codexEffortGate,
+    codexTokenSaver,
     // Ollama + phi4-mini (~2.3GB) and obscura (a ~40MB third-party binary) are gated to an
     // EXPLICIT opt-in: a bare install must not surprise anyone with a multi-GB download.
     ollama: (full || argv.includes("--ollama")) && !argv.includes("--no-ollama"),

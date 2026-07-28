@@ -60,7 +60,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getIncrementalState } from "./_transcript-cache.mjs";
 
-const SUBSTANTIVE_TOOLS = /^(Write|Edit|MultiEdit|NotebookEdit)$/;
+const SUBSTANTIVE_TOOLS = /^(Write|Edit|MultiEdit|NotebookEdit|apply_patch)$/;
 
 /** Ordered weakest → strongest; index is the comparison. */
 export const LEVELS = ["low", "medium", "high", "xhigh", "max"];
