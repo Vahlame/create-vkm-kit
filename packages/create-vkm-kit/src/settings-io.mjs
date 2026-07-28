@@ -61,7 +61,8 @@ export function hookEntryMatchesStem(h, stem) {
  * @param {Record<string, unknown>} hooks - the settings' `hooks` object (not mutated)
  * @param {string} eventName - e.g. "SessionStart", "PreToolUse", "Stop"
  * @param {string} matcher - hook matcher (e.g. "*" or a tool-name regex)
- * @param {{ command: string, args: string[] }} hookEntry - exec-form hook command
+ * @param {{ command: string, args?: string[], statusMessage?: string,
+ *   additionalContextLimit?: number }} hookEntry - hook command configuration
  * @param {string} stem - filename stem identifying our managed entry, for dedup
  * @returns {Record<string, unknown>} a NEW hooks object
  */
