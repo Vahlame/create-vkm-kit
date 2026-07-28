@@ -41,6 +41,13 @@ import {
 import { configureTokenSaver, uninstallTokenSaver } from "./token-saver.mjs";
 import { configureTelemetry, uninstallTelemetry } from "./telemetry.mjs";
 import { configureSkillAssets, uninstallSkillAssets, skillAssetFiles } from "./skills-install.mjs";
+import {
+  codexAssetRoots,
+  codexAssetsSidecar,
+  codexHookAssetFiles,
+  configureCodexNative,
+  uninstallCodexNative
+} from "./codex-native.mjs";
 import { maybeInstallOllama } from "./ollama-setup.mjs";
 import { maybeInstallObscura } from "./obscura-setup.mjs";
 import { restrictFileToOwner } from "./file-perms.mjs";
@@ -140,16 +147,32 @@ function dryRunFromArgs() {
 
 /**
  * The directories `--check-update`/`--update` manage — exactly the documented scope
- * (`~/.claude/skills/` + `~/.claude/agents/`, the set `skillAssetFiles` enumerates). Passed
+ * (the Claude and Codex skill/agent/hook locations the asset enumerators return). Passed
  * to `buildUpdatePlan` as `managedRoots` so the orphan sweep never reaches assets other
  * modules record in the same shared sidecar (the token-saver's output style, ADR-0043) —
  * without this bound, `--update` deleted `~/.claude/output-styles/vkm-terse.md` as an
  * "orphan" it never managed.
  * @param {string} home
- * @returns {string[]}
+ * @returns {{label: string, files: {src: string, dest: string}[], sidecarFp: string, managedRoots: string[]}[]}
  */
-function updateRoots(home) {
-  return [path.join(home, ".claude", "skills"), path.join(home, ".claude", "agents")];
+function updateScopes(home) {
+  return [
+    {
+      label: "Claude Code assets",
+      files: skillAssetFiles(home, { ide: "claude", skills: true, agents: true }),
+      sidecarFp: path.join(home, ".claude", ASSETS_SIDECAR_BASENAME),
+      managedRoots: [path.join(home, ".claude", "skills"), path.join(home, ".claude", "agents")]
+    },
+    {
+      label: "Codex assets",
+      files: [
+        ...skillAssetFiles(home, { ide: "codex", skills: true, agents: true }),
+        ...codexHookAssetFiles(home, { all: true })
+      ],
+      sidecarFp: codexAssetsSidecar(home),
+      managedRoots: codexAssetRoots(home)
+    }
+  ];
 }
 
 /**
@@ -979,8 +1002,18 @@ async function runNonInteractive(argv) {
   const wantTelemetry = ides.includes("claude") && on("--telemetry", "--no-telemetry");
   // vkm-kit skills + subagent template (ADR-0049): /vkm-discipline + /vkm-spec skills and
   // the vkm-implementer agent. Pure files under ~/.claude/, hash-tracked.
-  const wantSkills = ides.includes("claude") && on("--skills", "--no-skills");
-  const wantAgents = ides.includes("claude") && on("--agents", "--no-agents");
+  const wantSkills =
+    (ides.includes("claude") || ides.includes("codex")) && on("--skills", "--no-skills");
+  const wantAgents =
+    (ides.includes("claude") || ides.includes("codex")) && on("--agents", "--no-agents");
+  // Codex's hooks are a separate hooks.json surface. The master toggle is independent from
+  // skills/agents, while the established component flags keep their per-hook granularity.
+  const wantCodexHooks = ides.includes("codex") && on("--codex-hooks", "--no-codex-hooks");
+  const wantCodexContext = wantCodexHooks && on("--vault-context-hook", "--no-vault-context-hook");
+  const wantCodexMemoryGuard =
+    wantCodexHooks && on("--memory-enforcement", "--no-memory-enforcement");
+  const wantCodexEffortGate = wantCodexHooks && on("--effort-gate", "--no-effort-gate");
+  const wantCodexTokenSaver = wantCodexHooks && on("--token-saver", "--no-token-saver");
   // Ollama + phi4-mini (ADR-0047, ~2.3GB): gated to explicit --full or --ollama — a bare
   // headless install must not surprise anyone with a multi-GB download. --no-ollama wins.
   const wantOllama = (full || argv.includes("--ollama")) && !argv.includes("--no-ollama");
@@ -1134,13 +1167,30 @@ async function runNonInteractive(argv) {
       terseStyle: wantTerseStyle
     });
     await configureTelemetry(home, dryRun, { enable: wantTelemetry, kitRoot });
-    await configureSkillAssets(home, dryRun, { skills: wantSkills, agents: wantAgents });
+    await configureSkillAssets(home, dryRun, {
+      ide: "claude",
+      skills: wantSkills,
+      agents: wantAgents
+    });
     if (wantOllama) {
       await maybeInstallOllama(dryRun, { enable: true });
     }
   }
   if (ides.includes("codex")) {
     await registerCodexMcp(vault, dryRun, hybridOpts);
+    await configureCodexNative(home, vault, dryRun, {
+      lang,
+      hooks: wantCodexHooks,
+      context: wantCodexContext,
+      memoryGuard: wantCodexMemoryGuard,
+      effortGate: wantCodexEffortGate,
+      tokenSaver: wantCodexTokenSaver
+    });
+    await configureSkillAssets(home, dryRun, {
+      ide: "codex",
+      skills: wantSkills,
+      agents: wantAgents
+    });
   }
   // Install the Python backend before building the index so the build can succeed
   // on a fresh machine in the same run.
@@ -1240,6 +1290,11 @@ async function runNonInteractive(argv) {
     console.log(
       "- Codex CLI: MCP registered via `codex mcp add` → ~/.codex/config.toml (verify: `codex mcp list`)"
     );
+    if (wantCodexHooks) {
+      console.log(
+        "- Codex hooks: SessionStart vault context + PreToolUse guards + PostToolUse token-saver → ~/.codex/hooks.json"
+      );
+    }
   }
   if (wantGitleaks) {
     console.log("- gitleaks pre-commit hook: installed (vault/.git/hooks/pre-commit)");
@@ -1387,6 +1442,17 @@ Claude Code native-memory override (when --ide includes claude):
   --terse-style                Force just the output style on.
   --no-terse-style             Keep the hooks but not the output style.
 
+  Codex hooks (on by default when --ide includes codex) live in ~/.codex/hooks.json:
+  SessionStart injects vault context; PreToolUse guards generated local memories and applies
+  the effort gate; PostToolUse returns compacted feedback for noisy shell/MCP output. Codex
+  does not yet support updatedToolOutput, so its token-saver replaces the visible result with
+  compacted hook feedback instead of mutating tool_response in place.
+  --codex-hooks / --no-codex-hooks       Force on / remove all four Codex-native pieces.
+  --vault-context-hook / --no-vault-context-hook  Force on / remove only SessionStart context.
+  --memory-enforcement / --no-memory-enforcement  Also controls Codex's PreToolUse memory guard.
+  --effort-gate / --no-effort-gate       Also controls Codex's PreToolUse effort gate.
+  --token-saver / --no-token-saver       Also controls Codex's PostToolUse token-saver.
+
   Local telemetry + doctor (ADR-0044, on by default when --ide includes claude and a kit
   clone is available) — wires Claude Code's OTEL metrics export to a LOCAL sink
   (127.0.0.1:4319 → ~/.vkm/telemetry/, nothing leaves the machine) via a managed env
@@ -1394,12 +1460,14 @@ Claude Code native-memory override (when --ide includes claude):
   cache-hit ratio and a broken-cache diagnosis.
   --telemetry / --no-telemetry Force on / remove.
 
-  Skills + subagent (ADR-0049/0053/0056, on by default when --ide includes claude):
+  Skills + subagent (ADR-0049/0053/0056, on by default when --ide includes claude or codex):
   /vkm-discipline (dense minimal-line code at full quality + verification contract),
   /vkm-spec (idea → precise spec via one assemble_context call), /vkm-design
   (professional anti-generic design: direction before pixels, computed checks, visual
   loop), /vkm-research (consolidate a RESEARCH/<topic> bank into a quality summary.md,
-  wikilinks + supersedes), and the vkm-implementer agent template. Hash-tracked files;
+  wikilinks + supersedes), and the vkm-implementer agent template. Claude uses
+  ~/.claude/skills + ~/.claude/agents/vkm-implementer.md; Codex uses
+  ~/.agents/skills + ~/.codex/agents/vkm-implementer.toml. Hash-tracked files;
   uninstall never deletes one you edited.
   --skills / --no-skills       Force on / remove the four skills.
   --agents / --no-agents       Force on / remove the subagent template.
@@ -1432,8 +1500,8 @@ Claude Code native-memory override (when --ide includes claude):
   --download-dir <dir>         Override VKM_DOWNLOAD_DIR (default ~/Downloads/vkm-kit).
 
   Self-update (ADR-0061) — checks/refreshes the skill + subagent template assets this kit
-  manages under ~/.claude/skills/ and ~/.claude/agents/ (the same set --skills/--agents
-  install), plus reports whether a newer create-vkm-kit is on npm. Safety contract in one
+  manages under both Claude and Codex skill/agent/hook locations (the same set --skills/
+  --agents/--codex-hooks install), plus reports whether a newer create-vkm-kit is on npm. Safety contract in one
   sentence: files you edited are never overwritten without --force.
   --check-update  Read-only: prints the installed and npm-latest versions (offline/registry
                   failure prints an honest "skipped" line, never an error) and a summary of
@@ -1449,13 +1517,14 @@ Claude Code native-memory override (when --ide includes claude):
   Uninstall: --no-native-memory-override / --no-memory-enforcement / --no-effort-gate on a
   re-run now ACTIVELY REMOVE the matching pieces this kit previously installed (not just
   skip adding them) — a symmetric install/remove path, so toggling a flag off actually
-  reverses a prior toggle-on. For a full teardown of everything this kit's Claude Code
-  integration installed in one shot, use:
-  --uninstall     Remove all 4 managed hook entries + the autoMemoryEnabled override from
+  reverses a prior toggle-on. For a full teardown of everything this kit's Claude Code and
+  Codex integrations installed in one shot, use:
+  --uninstall     Remove all 4 managed Claude hook entries + the autoMemoryEnabled override from
                   ~/.claude/settings.json, and delete the hook script files this kit
                   installed under ~/.claude/hooks/ (the 4 hooks + a small shared helper
-                  module; each one only if a marker check confirms this kit wrote it —
-                  never a user's own same-named file). Does NOT touch MCP server
+                  module); remove only vkm-kit entries from ~/.codex/hooks.json and only
+                  hash-tracked Codex skill, agent and hook files. Never removes a user's own
+                  hook entry or a locally edited managed file. Does NOT touch MCP server
                   registrations, the vault, or rules blocks — see docs/en/faq.md for those.
                   Combine with --dry-run to preview. Exits immediately after (no other
                   install steps run).
@@ -1469,7 +1538,6 @@ Claude Code native-memory override (when --ide includes claude):
   if (argv.includes("--check-update")) {
     const cwd = process.cwd();
     const home = process.env.HOME || process.env.USERPROFILE || cwd;
-    const sidecarFp = path.join(home, ".claude", ASSETS_SIDECAR_BASENAME);
     const current = readKitVersion();
     const latest = await fetchLatestVersion();
     console.log(pc.cyan("Installed version:"), current);
@@ -1480,23 +1548,30 @@ Claude Code native-memory override (when --ide includes claude):
       const banner = updateBanner({ current, latest });
       if (banner) console.log(banner);
     }
-    const files = skillAssetFiles(home, { skills: true, agents: true });
-    const plan = await buildUpdatePlan({ home, files, sidecarFp, managedRoots: updateRoots(home) });
-    console.log(summarizePlan(plan));
+    for (const scope of updateScopes(home)) {
+      const plan = await buildUpdatePlan({ home, ...scope });
+      console.log(pc.cyan(`${scope.label}:`));
+      console.log(summarizePlan(plan));
+    }
     return;
   }
 
   if (argv.includes("--update")) {
     const cwd = process.cwd();
     const home = process.env.HOME || process.env.USERPROFILE || cwd;
-    const sidecarFp = path.join(home, ".claude", ASSETS_SIDECAR_BASENAME);
     const dryRun = dryRunFromArgs();
     const force = argv.includes("--force");
     if (dryRun) console.log(pc.dim("[dry-run] no files will be written"));
-    const files = skillAssetFiles(home, { skills: true, agents: true });
-    const plan = await buildUpdatePlan({ home, files, sidecarFp, managedRoots: updateRoots(home) });
-    console.log(summarizePlan(plan));
-    const { applied, skipped, removed } = await applyUpdatePlan({ plan, sidecarFp, force, dryRun });
+    const results = [];
+    for (const scope of updateScopes(home)) {
+      const plan = await buildUpdatePlan({ home, ...scope });
+      console.log(pc.cyan(`${scope.label}:`));
+      console.log(summarizePlan(plan));
+      results.push(await applyUpdatePlan({ plan, sidecarFp: scope.sidecarFp, force, dryRun }));
+    }
+    const applied = results.flatMap((result) => result.applied);
+    const skipped = results.flatMap((result) => result.skipped);
+    const removed = results.flatMap((result) => result.removed);
     console.log(
       pc.green(`Applied: ${applied.length}`),
       pc.dim(`Skipped: ${skipped.length}`),
@@ -1525,7 +1600,9 @@ Claude Code native-memory override (when --ide includes claude):
     await uninstallClaudeNativeMemory(home, dryRun);
     await uninstallTokenSaver(home, dryRun);
     await uninstallTelemetry(home, dryRun);
-    await uninstallSkillAssets(home, dryRun);
+    await uninstallSkillAssets(home, dryRun, { ide: "claude" });
+    await uninstallCodexNative(home, dryRun);
+    await uninstallSkillAssets(home, dryRun, { ide: "codex" });
     return;
   }
 
@@ -1688,6 +1765,18 @@ Claude Code native-memory override (when --ide includes claude):
   const wantTokenSaver =
     Boolean(ides?.includes("claude")) && !process.argv.includes("--no-token-saver");
   const wantTerseStyle = wantTokenSaver && !process.argv.includes("--no-terse-style");
+  const wantSkills =
+    Boolean(ides?.includes("claude") || ides?.includes("codex")) &&
+    !process.argv.includes("--no-skills");
+  const wantAgents =
+    Boolean(ides?.includes("claude") || ides?.includes("codex")) &&
+    !process.argv.includes("--no-agents");
+  const wantCodexHooks =
+    Boolean(ides?.includes("codex")) && !process.argv.includes("--no-codex-hooks");
+  const wantCodexContext = wantCodexHooks && !process.argv.includes("--no-vault-context-hook");
+  const wantCodexMemoryGuard = wantCodexHooks && !process.argv.includes("--no-memory-enforcement");
+  const wantCodexEffortGate = wantCodexHooks && !process.argv.includes("--no-effort-gate");
+  const wantCodexTokenSaver = wantCodexHooks && !process.argv.includes("--no-token-saver");
   if (ides?.includes("claude")) {
     await configureClaudeNativeMemory(home, vault, dryRun, {
       lang,
@@ -1708,12 +1797,26 @@ Claude Code native-memory override (when --ide includes claude):
       kitRoot: hybridOpts.repoRoot || null
     });
     await configureSkillAssets(home, dryRun, {
-      skills: !process.argv.includes("--no-skills"),
-      agents: !process.argv.includes("--no-agents")
+      ide: "claude",
+      skills: wantSkills,
+      agents: wantAgents
     });
   }
   if (ides?.includes("codex")) {
     await registerCodexMcp(vault, dryRun, hybridOpts);
+    await configureCodexNative(home, vault, dryRun, {
+      lang,
+      hooks: wantCodexHooks,
+      context: wantCodexContext,
+      memoryGuard: wantCodexMemoryGuard,
+      effortGate: wantCodexEffortGate,
+      tokenSaver: wantCodexTokenSaver
+    });
+    await configureSkillAssets(home, dryRun, {
+      ide: "codex",
+      skills: wantSkills,
+      agents: wantAgents
+    });
   }
 
   let ruleTargets = rulesTargetsFromArgs(process.argv, ides || [], { defaultFromIde: true });
@@ -1797,6 +1900,11 @@ Claude Code native-memory override (when --ide includes claude):
     console.log(
       "- Codex CLI: MCP registered via `codex mcp add` → ~/.codex/config.toml (verify: `codex mcp list`)"
     );
+    if (wantCodexHooks) {
+      console.log(
+        "- Codex hooks: SessionStart vault context + PreToolUse guards + PostToolUse token-saver → ~/.codex/hooks.json"
+      );
+    }
   }
   console.log("-", t.ftsHint);
   if (gitleaks)

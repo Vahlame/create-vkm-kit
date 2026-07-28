@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Codex CLI now receives first-class parity assets.** `--ide codex` and `--full` install the
+  four vkm skills under `~/.agents/skills/`, the required-key TOML `vkm-implementer` agent under
+  `~/.codex/agents/`, and idempotently merged `SessionStart`, `PreToolUse`, and `PostToolUse`
+  handlers in `~/.codex/hooks.json`. New `--codex-hooks` and per-piece opt-outs keep the surface
+  independently reversible; update and uninstall are hash-safe and leave user hook entries alone.
+- Added [`docs/codex-parity.md`](docs/codex-parity.md) and its Spanish mirror with official-source
+  verification, current hook drift, and a Claude Code continuation checklist.
+
 ## [4.7.1] - 2026-07-25
 
 **What changes for you when you update.** Nothing in the installed contract — no new tool, no new
