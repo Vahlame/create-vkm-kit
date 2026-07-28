@@ -19,6 +19,12 @@ import { uninstallTokenSaver } from "./token-saver.mjs";
 import { uninstallTelemetry } from "./telemetry.mjs";
 import { uninstallRunHidden } from "./runhidden-setup.mjs";
 import { uninstallSkillAssets, skillAssetFiles } from "./skills-install.mjs";
+import {
+  codexAssetRoots,
+  codexAssetsSidecar,
+  codexHookAssetFiles,
+  uninstallCodexNative
+} from "./codex-native.mjs";
 import { defaultVaultPath, findVault, scaffoldNewVault } from "./vault-scaffold.mjs";
 import { ASSETS_SIDECAR_BASENAME } from "./asset-install.mjs";
 import { buildUpdatePlan, applyUpdatePlan, summarizePlan, readKitVersion } from "./update-plan.mjs";
@@ -40,16 +46,32 @@ function dryRunFromArgs() {
 
 /**
  * The directories `--check-update`/`--update` manage — exactly the documented scope
- * (`~/.claude/skills/` + `~/.claude/agents/`, the set `skillAssetFiles` enumerates). Passed
+ * (the Claude and Codex skill/agent/hook locations the asset enumerators return). Passed
  * to `buildUpdatePlan` as `managedRoots` so the orphan sweep never reaches assets other
  * modules record in the same shared sidecar (the token-saver's output style, ADR-0043) —
  * without this bound, `--update` deleted `~/.claude/output-styles/vkm-terse.md` as an
  * "orphan" it never managed.
  * @param {string} home
- * @returns {string[]}
+ * @returns {{label: string, files: {src: string, dest: string}[], sidecarFp: string, managedRoots: string[]}[]}
  */
-function updateRoots(home) {
-  return [path.join(home, ".claude", "skills"), path.join(home, ".claude", "agents")];
+function updateScopes(home) {
+  return [
+    {
+      label: "Claude Code assets",
+      files: skillAssetFiles(home, { ide: "claude", skills: true, agents: true }),
+      sidecarFp: path.join(home, ".claude", ASSETS_SIDECAR_BASENAME),
+      managedRoots: [path.join(home, ".claude", "skills"), path.join(home, ".claude", "agents")]
+    },
+    {
+      label: "Codex assets",
+      files: [
+        ...skillAssetFiles(home, { ide: "codex", skills: true, agents: true }),
+        ...codexHookAssetFiles(home, { all: true })
+      ],
+      sidecarFp: codexAssetsSidecar(home),
+      managedRoots: codexAssetRoots(home)
+    }
+  ];
 }
 
 /**
@@ -372,7 +394,6 @@ async function main() {
   if (argv.includes("--check-update")) {
     const cwd = process.cwd();
     const home = process.env.HOME || process.env.USERPROFILE || cwd;
-    const sidecarFp = path.join(home, ".claude", ASSETS_SIDECAR_BASENAME);
     const current = readKitVersion();
     const latest = await fetchLatestVersion();
     console.log(pc.cyan("Installed version:"), current);
@@ -383,23 +404,30 @@ async function main() {
       const banner = updateBanner({ current, latest });
       if (banner) console.log(banner);
     }
-    const files = skillAssetFiles(home, { skills: true, agents: true });
-    const plan = await buildUpdatePlan({ home, files, sidecarFp, managedRoots: updateRoots(home) });
-    console.log(summarizePlan(plan));
+    for (const scope of updateScopes(home)) {
+      const plan = await buildUpdatePlan({ home, ...scope });
+      console.log(pc.cyan(`${scope.label}:`));
+      console.log(summarizePlan(plan));
+    }
     return;
   }
 
   if (argv.includes("--update")) {
     const cwd = process.cwd();
     const home = process.env.HOME || process.env.USERPROFILE || cwd;
-    const sidecarFp = path.join(home, ".claude", ASSETS_SIDECAR_BASENAME);
     const dryRun = dryRunFromArgs();
     const force = argv.includes("--force");
     if (dryRun) console.log(pc.dim("[dry-run] no files will be written"));
-    const files = skillAssetFiles(home, { skills: true, agents: true });
-    const plan = await buildUpdatePlan({ home, files, sidecarFp, managedRoots: updateRoots(home) });
-    console.log(summarizePlan(plan));
-    const { applied, skipped, removed } = await applyUpdatePlan({ plan, sidecarFp, force, dryRun });
+    const results = [];
+    for (const scope of updateScopes(home)) {
+      const plan = await buildUpdatePlan({ home, ...scope });
+      console.log(pc.cyan(`${scope.label}:`));
+      console.log(summarizePlan(plan));
+      results.push(await applyUpdatePlan({ plan, sidecarFp: scope.sidecarFp, force, dryRun }));
+    }
+    const applied = results.flatMap((result) => result.applied);
+    const skipped = results.flatMap((result) => result.skipped);
+    const removed = results.flatMap((result) => result.removed);
     console.log(
       pc.green(`Applied: ${applied.length}`),
       pc.dim(`Skipped: ${skipped.length}`),
@@ -428,7 +456,9 @@ async function main() {
     await uninstallClaudeNativeMemory(home, dryRun);
     await uninstallTokenSaver(home, dryRun);
     await uninstallTelemetry(home, dryRun);
-    await uninstallSkillAssets(home, dryRun);
+    await uninstallSkillAssets(home, dryRun, { ide: "claude" });
+    await uninstallCodexNative(home, dryRun);
+    await uninstallSkillAssets(home, dryRun, { ide: "codex" });
     await uninstallRunHidden(home, dryRun);
     return;
   }

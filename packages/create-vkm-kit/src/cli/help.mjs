@@ -133,6 +133,17 @@ Claude Code native-memory override (when --ide includes claude):
   --terse-style                Force just the output style on.
   --no-terse-style             Keep the hooks but not the output style.
 
+  Codex hooks (on by default when --ide includes codex) live in ~/.codex/hooks.json:
+  SessionStart injects vault context; PreToolUse protects generated local memories and
+  applies the effort gate; PostToolUse returns compacted feedback for noisy shell/MCP output.
+  Codex does not currently support updatedMCPToolOutput, so the token-saver cannot mutate
+  tool_response in place.
+  --codex-hooks / --no-codex-hooks       Force on / remove all Codex-native pieces.
+  --vault-context-hook / --no-vault-context-hook  Force on / remove SessionStart context.
+  --memory-enforcement / --no-memory-enforcement  Also controls Codex's memory guard.
+  --effort-gate / --no-effort-gate       Also controls Codex's PreToolUse effort gate.
+  --token-saver / --no-token-saver       Also controls Codex's PostToolUse token-saver.
+
   Local telemetry + doctor (ADR-0044, on by default when --ide includes claude and a kit
   clone is available) — wires Claude Code's OTEL metrics export to a LOCAL sink
   (127.0.0.1:4319 → ~/.vkm/telemetry/, nothing leaves the machine) via a managed env
@@ -140,12 +151,14 @@ Claude Code native-memory override (when --ide includes claude):
   cache-hit ratio and a broken-cache diagnosis.
   --telemetry / --no-telemetry Force on / remove.
 
-  Skills + subagent (ADR-0049/0053/0056, on by default when --ide includes claude):
+  Skills + subagent (ADR-0049/0053/0056, on by default when --ide includes claude or codex):
   /vkm-discipline (dense minimal-line code at full quality + verification contract),
   /vkm-spec (idea → precise spec via one assemble_context call), /vkm-design
   (professional anti-generic design: direction before pixels, computed checks, visual
   loop), /vkm-research (consolidate a RESEARCH/<topic> bank into a quality summary.md,
-  wikilinks + supersedes), and the vkm-implementer agent template. Hash-tracked files;
+  wikilinks + supersedes), and the vkm-implementer agent template. Claude uses
+  ~/.claude/skills + ~/.claude/agents/vkm-implementer.md; Codex uses
+  ~/.agents/skills + ~/.codex/agents/vkm-implementer.toml. Hash-tracked files;
   uninstall never deletes one you edited.
   --skills / --no-skills       Force on / remove the four skills.
   --agents / --no-agents       Force on / remove the subagent template.
@@ -178,8 +191,8 @@ Claude Code native-memory override (when --ide includes claude):
   --download-dir <dir>         Override VKM_DOWNLOAD_DIR (default ~/Downloads/vkm-kit).
 
   Self-update (ADR-0061) — checks/refreshes the skill + subagent template assets this kit
-  manages under ~/.claude/skills/ and ~/.claude/agents/ (the same set --skills/--agents
-  install), plus reports whether a newer create-vkm-kit is on npm. Safety contract in one
+  manages under Claude and Codex skill/agent/hook locations (the same set --skills/
+  --agents/--codex-hooks install), plus reports whether a newer create-vkm-kit is on npm. Safety contract in one
   sentence: files you edited are never overwritten without --force.
   --check-update  Read-only: prints the installed and npm-latest versions (offline/registry
                   failure prints an honest "skipped" line, never an error) and a summary of
@@ -195,8 +208,8 @@ Claude Code native-memory override (when --ide includes claude):
   Uninstall: --no-native-memory-override / --no-memory-enforcement / --no-effort-gate on a
   re-run now ACTIVELY REMOVE the matching pieces this kit previously installed (not just
   skip adding them) — a symmetric install/remove path, so toggling a flag off actually
-  reverses a prior toggle-on. For a full teardown of everything this kit's Claude Code
-  integration installed in one shot, use:
+  reverses a prior toggle-on. For a full teardown of everything this kit's Claude Code and
+  Codex integrations installed in one shot, use:
   --uninstall     Remove all 7 managed hook entries + the autoMemoryEnabled override and
                   the OTLP env block from ~/.claude/settings.json; clear the managed
                   outputStyle; delete the hook script files this kit installed under
@@ -204,7 +217,10 @@ Claude Code native-memory override (when --ide includes claude):
                   installed skills and subagents, and the Windows hook launcher at
                   ~/.claude/bin/. Every file is deleted only if a marker or hash check
                   confirms this kit wrote it — never a user's own same-named file. Does
-                  NOT touch MCP server registrations, the vault, or rules blocks — see
+                  The equivalent Codex teardown removes only vkm-kit hook entries from
+                  ~/.codex/hooks.json plus hash-tracked Codex skills, agent and hooks;
+                  user entries and locally edited assets remain untouched. Does NOT touch MCP server
+                  registrations, the vault, or rules blocks — see
                   docs/en/faq.md for those. Combine with --dry-run to preview. Exits
                   immediately after (no other install steps run).
 

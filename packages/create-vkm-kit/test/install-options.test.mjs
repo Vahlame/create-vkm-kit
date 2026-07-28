@@ -123,6 +123,40 @@ test("telemetry is independent of the token-saver", () => {
   assert.equal(t.telemetry, true, "but telemetry does not");
 });
 
+test("Codex installs skills, agent and hooks independently", () => {
+  const defaults = opts([], { ides: ["codex"] });
+  for (const key of [
+    "skills",
+    "agents",
+    "codexHooks",
+    "codexContext",
+    "codexMemoryGuard",
+    "codexEffortGate",
+    "codexTokenSaver"
+  ]) {
+    assert.equal(defaults[key], true, `${key} should default on for Codex`);
+  }
+
+  const optOut = opts(["--no-skills", "--no-agents", "--no-codex-hooks"], { ides: ["codex"] });
+  assert.equal(optOut.skills, false);
+  assert.equal(optOut.agents, false);
+  assert.equal(optOut.codexHooks, false);
+  assert.equal(optOut.codexContext, false);
+  assert.equal(optOut.codexMemoryGuard, false);
+  assert.equal(optOut.codexEffortGate, false);
+  assert.equal(optOut.codexTokenSaver, false);
+
+  const components = opts(
+    ["--no-vault-context-hook", "--no-memory-enforcement", "--no-effort-gate", "--no-token-saver"],
+    { ides: ["codex"] }
+  );
+  assert.equal(components.codexHooks, true, "master Codex hook switch stays on");
+  assert.equal(components.codexContext, false);
+  assert.equal(components.codexMemoryGuard, false);
+  assert.equal(components.codexEffortGate, false);
+  assert.equal(components.codexTokenSaver, false);
+});
+
 test("value flags are read, and RESEARCH/ defaults under the vault", () => {
   assert.equal(
     opts(["--searxng-url", "http://127.0.0.1:8888"]).searxngUrl,

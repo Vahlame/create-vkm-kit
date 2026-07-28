@@ -54,7 +54,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getIncrementalState } from "./_transcript-cache.mjs";
 
-const SUBSTANTIVE_TOOLS = /^(Write|Edit|MultiEdit|NotebookEdit)$/;
+const SUBSTANTIVE_TOOLS = /^(Write|Edit|MultiEdit|NotebookEdit|apply_patch)$/;
 /** Matches ONLY the literal marker the model is told to print — see reason() below. */
 const MARKER_RE = /\[!\]\s*(recomendaci[oó]n de esfuerzo|effort recommendation)/i;
 /** A FILLED-IN suggested level ("/effort high") — the template's "<low|medium|…>" placeholder
