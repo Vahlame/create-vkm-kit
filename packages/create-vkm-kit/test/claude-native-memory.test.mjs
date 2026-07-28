@@ -1201,7 +1201,11 @@ test("effort-gate hook allows the first substantive edit of a session", () => {
   assert.equal(r.stdout, "", "first substantive edit is always free");
 });
 
-test("effort-gate hook denies the 2nd substantive edit when no level was ever proposed", () => {
+test("effort-gate hook writes nothing when the payload carries no session_id", () => {
+  // Not a hypothetical: the first run of the ADR-0080 rewrite against this suite wrote
+  // `effortLevel` into the DEVELOPER's own ~/.claude/settings.json, because every fixture
+  // here omits `session_id` and the hook defaulted to the real home. "Once per session" is
+  // also undefined without one. No id, no writes, no pause.
   const transcript = path.join(os.tmpdir(), `fake-eg-transcript-${Date.now()}-2.jsonl`);
   writeFakeEffortGateTranscript(transcript, [{ tool: "Edit" }]);
   const r = spawnSync(process.execPath, [effortGateHookSrc, "en"], {
@@ -1209,9 +1213,7 @@ test("effort-gate hook denies the 2nd substantive edit when no level was ever pr
     encoding: "utf8"
   });
   assert.equal(r.status, 0, r.stderr);
-  const parsed = JSON.parse(r.stdout);
-  assert.equal(parsed.hookSpecificOutput.permissionDecision, "deny");
-  assert.match(parsed.hookSpecificOutput.permissionDecisionReason, /EFFORT RECOMMENDATION/);
+  assert.equal(r.stdout, "", "a session-less payload must be a no-op");
 });
 
 test("effort-gate hook defers immediately when agent_id is present (sub-agent call) — same state that would otherwise deny", () => {
@@ -1229,65 +1231,10 @@ test("effort-gate hook defers immediately when agent_id is present (sub-agent ca
   assert.equal(r.stdout, "", "a sub-agent call is never gated, even mid-session");
 });
 
-test("effort-gate hook denies when a level was proposed but not yet confirmed", () => {
-  const transcript = path.join(os.tmpdir(), `fake-eg-transcript-${Date.now()}-3.jsonl`);
-  writeFakeEffortGateTranscript(transcript, [{ tool: "Edit" }, { marker: true }]);
-  const r = spawnSync(process.execPath, [effortGateHookSrc, "en"], {
-    input: JSON.stringify({ tool_name: "Edit", transcript_path: transcript }),
-    encoding: "utf8"
-  });
-  assert.equal(r.status, 0, r.stderr);
-  const parsed = JSON.parse(r.stdout);
-  assert.equal(parsed.hookSpecificOutput.permissionDecision, "deny");
-  assert.match(parsed.hookSpecificOutput.permissionDecisionReason, /proposed an effort level/);
-});
-
-test("effort-gate hook allows once a level was proposed AND the user replied", () => {
-  const transcript = path.join(os.tmpdir(), `fake-eg-transcript-${Date.now()}-4.jsonl`);
-  writeFakeEffortGateTranscript(transcript, [
-    { tool: "Edit" },
-    { marker: true },
-    { userReply: "listo" }
-  ]);
-  const r = spawnSync(process.execPath, [effortGateHookSrc, "en"], {
-    input: JSON.stringify({ tool_name: "Edit", transcript_path: transcript }),
-    encoding: "utf8"
-  });
-  assert.equal(r.status, 0, r.stderr);
-  assert.equal(r.stdout, "", "confirmed proposal allows the call");
-});
-
-test("effort-gate hook does NOT treat a tool_result-only user entry as confirmation", () => {
-  const transcript = path.join(os.tmpdir(), `fake-eg-transcript-${Date.now()}-5.jsonl`);
-  writeFakeEffortGateTranscript(transcript, [
-    { tool: "Edit" },
-    { marker: true },
-    { userToolResult: true }
-  ]);
-  const r = spawnSync(process.execPath, [effortGateHookSrc, "en"], {
-    input: JSON.stringify({ tool_name: "Edit", transcript_path: transcript }),
-    encoding: "utf8"
-  });
-  assert.equal(r.status, 0, r.stderr);
-  const parsed = JSON.parse(r.stdout);
-  assert.equal(parsed.hookSpecificOutput.permissionDecision, "deny", "tool result isn't a reply");
-});
-
-test("effort-gate hook stays satisfied for later calls once gated once (sticky)", () => {
-  const transcript = path.join(os.tmpdir(), `fake-eg-transcript-${Date.now()}-6.jsonl`);
-  writeFakeEffortGateTranscript(transcript, [
-    { tool: "Edit" },
-    { marker: true },
-    { userReply: "listo" },
-    { tool: "Edit" } // a 3rd substantive call already happened, gate stays open
-  ]);
-  const r = spawnSync(process.execPath, [effortGateHookSrc, "en"], {
-    input: JSON.stringify({ tool_name: "Write", transcript_path: transcript }),
-    encoding: "utf8"
-  });
-  assert.equal(r.status, 0, r.stderr);
-  assert.equal(r.stdout, "", "gate satisfied earlier in the session -> stays allowed");
-});
+// The proposal/confirmation protocol these tests pinned is gone (ADR-0080): the gate no
+// longer asks the model to author a block and no longer waits for a reply to parse. Its
+// behaviour — scoring, one pause per session, persistence, fable exclusion — is covered
+// end to end, against a TEMP home, in test/effort-gate.test.mjs.
 
 test("effort-gate hook stays quiet for a non-mutating tool regardless of state", () => {
   const transcript = path.join(os.tmpdir(), `fake-eg-transcript-${Date.now()}-7.jsonl`);

@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="./LICENSE.md"><img src="https://img.shields.io/badge/licencia-MIT--derivada_%2B_atribuci%C3%B3n_(no_OSI)-blue.svg" alt="Licencia"></a>
-  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v5.0.0-orange.svg" alt="Release"></a>
+  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v5.1.0-orange.svg" alt="Release"></a>
   <a href="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.npmjs.com/package/@vkmikc/create-vkm-kit"><img src="https://img.shields.io/npm/v/%40vkmikc%2Fcreate-vkm-kit?label=npm&color=cb3837" alt="npm"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A5%2020-43853d.svg" alt="Node ≥ 20">
@@ -155,7 +155,7 @@ pides — por eso la instalación es un comando aunque la lista sea larga.
 
 > ℹ️ **obscura** es software de terceros bajo licencia **Apache-2.0** ([h4ckf0r0day/obscura](https://github.com/h4ckf0r0day/obscura)). El kit **lo descarga** del release oficial y lo verifica por SHA-256 — **no lo empaqueta ni redistribuye**. Búsqueda estructurada vía **SearXNG on-demand** (se levanta solo al buscar, se apaga al terminar; monitor de escritorio opcional) — [ADR-0052](docs/adr/0052-searxng-on-demand-lifecycle.md).
 >
-> 🧭 **Skills que instala el kit** (además de los paquetes): **`/vkm-discipline`** — disciplina de ejecución cross-dominio (infiere la intención real, entrega más que lo literal, con evidencia ejecutada) que sube el rendimiento de **cualquier modelo**, Haiku a Opus — **`/vkm-spec`** (idea → spec anclada al vault) — **`/vkm-design`** (diseño profesional anti-genérico para cualquier UI/medio: dirección antes de píxeles, checks computados, librerías reales verificadas online, loop visual) — y **`/vkm-research`** (consolida un banco `RESEARCH/<tema>` en un `summary.md` con wikilinks y supersesión). Detalle: [ADR-0049](docs/adr/0049-discipline-doctrine-three-channels.md), [ADR-0053](docs/adr/0053-vkm-design-skill.md) y [ADR-0056](docs/adr/0056-research-knowledge-bank.md).
+> 🧭 **Skills que instala el kit** (además de los paquetes): **`/vkm-discipline`** — disciplina de ejecución cross-dominio (infiere la intención real, entrega más que lo literal, con evidencia ejecutada) que sube el rendimiento de **cualquier modelo**, Haiku a Opus — **`/vkm-spec`** (idea → spec anclada al vault) — **`/vkm-design`** (diseño profesional anti-genérico para cualquier UI/medio: dirección antes de píxeles, checks computados, librerías reales verificadas online, loop visual) — **`/vkm-research`** (consolida un banco `RESEARCH/<tema>` en un `summary.md` con wikilinks y supersesión) — y **`/vkm-verify`** (demuestra que un check verde realmente corrió, cubrió tu cambio y sabe fallar: control negativo con `prove-it.mjs`). Cuál usar en cada situación: [guía de skills](docs/es/guia-de-skills.md). Detalle: [ADR-0049](docs/adr/0049-discipline-doctrine-three-channels.md), [ADR-0053](docs/adr/0053-vkm-design-skill.md) y [ADR-0056](docs/adr/0056-research-knowledge-bank.md).
 
 Mapa técnico completo y diagramas de flujo: [`ARCHITECTURE.md`](ARCHITECTURE.md). El _porqué_ de
 cada decisión: [`docs/adr/`](docs/adr/). Cada pieza y cada conexión, con diagramas de secuencia por
@@ -183,7 +183,7 @@ no un leaderboard). Detalle · detail: [🇪🇸 cómo funciona](docs/es/como-fu
 </p>
 
 **Y con modelos vivos (ronda 2026-07-21, Haiku 4.5 + Sonnet 5, datos crudos commiteados):**
-las 4 skills rutean con **100% de acierto y 0% de falsos positivos** (104 casos ES+EN);
+las 4 skills evaluadas rutean con **100% de acierto y 0% de falsos positivos** (104 casos ES+EN; `/vkm-verify` es posterior al bench y todavía no está medida);
 el A/B pre-registrado del token-saver dio **delta 0.0 de calidad** con el log **~81% más
 pequeño** (veredicto: mantener — y la regla dice que un mecanismo que degrade **se elimina**);
 `/vkm-discipline` sube a Haiku **de 47.0 a 91.7 (+44.7)** en la tarea subespecificada sin

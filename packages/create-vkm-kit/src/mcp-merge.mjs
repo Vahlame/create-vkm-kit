@@ -81,10 +81,17 @@ function viaRunHidden(server, launcher) {
  * The launcher to register servers through on this machine, or null when there is none
  * to use (off Windows, or a checkout that never built it). Call it ONCE per install and
  * thread the result — see {@link viaRunHidden} for why the builders do not probe.
+ *
+ * `claudeDir` exists so the answer follows the home being INSTALLED INTO rather than the
+ * home of whoever is running the installer. Omitting it kept the probe pinned to
+ * `os.homedir()`, which is why no test with a temp home could ever observe this decision —
+ * and an install that resolved the launcher before putting it on disk shipped silently.
+ *
+ * @param {string} [claudeDir] the `.claude` directory of the install (default: this user's)
  * @returns {string|null}
  */
-export function resolveLauncher() {
-  const interpreter = hookInterpreter();
+export function resolveLauncher(claudeDir) {
+  const interpreter = claudeDir ? hookInterpreter(claudeDir) : hookInterpreter();
   return interpreter === "node" ? null : interpreter;
 }
 

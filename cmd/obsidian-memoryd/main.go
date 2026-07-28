@@ -11,10 +11,10 @@ import (
 
 // version is the daemon version. Override at build time with:
 //
-//	go build -ldflags="-X main.version=5.0.0" ./cmd/obsidian-memoryd
+//	go build -ldflags="-X main.version=5.1.0" ./cmd/obsidian-memoryd
 //
 // Keep in sync with agent.toml.
-var version = "5.0.0"
+var version = "5.1.0"
 
 const usage = `obsidian-memoryd — vault git sync helper
 

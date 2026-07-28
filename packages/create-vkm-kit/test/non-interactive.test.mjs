@@ -414,6 +414,17 @@ test("non-interactive --with-hybrid merges obsidian-memory-hybrid", () => {
   assert.equal(r.status, 0, r.stderr + r.stdout);
   const merged = JSON.parse(fs.readFileSync(path.join(cursorDir, "mcp.json"), "utf8"));
   assert.ok(merged.mcpServers["basic-memory"]);
-  assert.ok(merged.mcpServers["obsidian-memory-hybrid"]);
-  assert.equal(merged.mcpServers["obsidian-memory-hybrid"].command, "node");
+  const hybrid = merged.mcpServers["obsidian-memory-hybrid"];
+  assert.ok(hybrid);
+  // Started by node — DIRECTLY, or through the windowless launcher when this install put
+  // one in the temp home (ADR-0078). This used to assert bare "node" unconditionally, which
+  // passed only because the installer registered servers before installing the launcher.
+  const launcher = path.join(home, ".claude", "bin", "vkm-runhidden.exe");
+  if (fs.existsSync(launcher)) {
+    assert.equal(hybrid.command, launcher);
+    assert.equal(hybrid.args[0], "node");
+  } else {
+    assert.equal(hybrid.command, "node");
+  }
+  assert.match(hybrid.args.at(-1), /hybrid-mcp\.mjs$/, "the bridge path must stay the last arg");
 });

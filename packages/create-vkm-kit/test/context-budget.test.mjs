@@ -28,6 +28,7 @@ import {
   approxTokens
 } from "../../../scripts/context-budget.mjs";
 import { memoryRulesBlock } from "../src/memory-rules.mjs";
+import { SKILL_NAMES } from "../src/skills-install.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
@@ -60,12 +61,14 @@ test("fixed-layer composition: every always-paid piece is present and attributab
   }
 });
 
-test("the four skills are each counted twice: description always, body on trigger", () => {
+test("every skill is counted twice: description always, body on trigger", () => {
+  // Derived from what actually ships, not a hand-written 4 — the number changed the day a
+  // fifth skill landed, and a literal here would have failed for the wrong reason.
   const { pieces } = measureRepo({ lang: "es" });
   const descs = pieces.filter((p) => p.id.startsWith("skill-desc:"));
   const bodies = pieces.filter((p) => p.id.startsWith("skill-body:"));
-  assert.equal(descs.length, 4);
-  assert.equal(bodies.length, 4);
+  assert.equal(descs.length, SKILL_NAMES.length);
+  assert.equal(bodies.length, SKILL_NAMES.length);
   assert.ok(descs.every((p) => p.when === "always"));
   assert.ok(bodies.every((p) => p.when === "on-trigger"));
 });

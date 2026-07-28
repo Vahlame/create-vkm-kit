@@ -46,7 +46,13 @@ import { atomicWriteJson, stripLeadingUtf8Bom } from "./settings-io.mjs";
  * @typedef {{ withHybrid?: boolean, repoRoot?: string|null, semantic?: boolean, vec?: boolean,
  *   rerank?: boolean, pinFailures?: boolean, usage?: boolean, obscura?: boolean,
  *   obscuraBin?: string|null, searxngUrl?: string|null, researchDir?: string|null,
- *   downloads?: boolean, downloadDir?: string|null }} HybridOpts
+ *   downloads?: boolean, downloadDir?: string|null, launcher?: string|null }} HybridOpts
+ *
+ * `launcher` is the windowless starter every server command is wrapped in (ADR-0078).
+ * PASSED IN, not probed, whenever the caller knows it: the installer puts the binary on
+ * disk itself, so threading its own answer removes the ordering hazard that a probe here
+ * creates. `undefined` (the default) falls back to probing this machine — which is right
+ * for any caller that did not just install it. `null` means "start servers directly".
  */
 
 /**
@@ -83,9 +89,10 @@ export function buildServerList(vaultAbs, opts = {}) {
     downloadDir = null
   } = opts;
   const kit = repoRoot ? path.resolve(repoRoot) : null;
-  // Probed ONCE per call and threaded into every builder, so the whole config file
-  // agrees about how servers start. See viaRunHidden in mcp-merge.mjs.
-  const launcher = resolveLauncher();
+  // Taken from the caller when it knows (the installer just wrote the file), probed ONCE
+  // otherwise, and threaded into every builder either way, so the whole config file agrees
+  // about how servers start. See viaRunHidden in mcp-merge.mjs.
+  const launcher = opts.launcher !== undefined ? opts.launcher : resolveLauncher();
 
   /** @type {Array<[string, object]>} */
   const servers = [["basic-memory", basicMemoryServer(vaultAbs, { launcher })]];
@@ -149,7 +156,11 @@ export async function writeCursorMcp(home, vaultAbs, dryRun, opts = {}) {
     downloadDir = null
   } = opts;
   const kit = repoRoot ? path.resolve(repoRoot) : null;
-  const launcher = resolveLauncher();
+  // Same contract as buildServerList: the caller's answer wins, the probe is the fallback.
+  // Here the probe would be doubly wrong — it reads the RUNNING user's home while this
+  // function writes into `home`, which is the parameter right above it.
+  const launcher =
+    opts.launcher !== undefined ? opts.launcher : resolveLauncher(path.join(home, ".claude"));
 
   // Cursor takes the MERGE functions rather than buildServerList's plain objects: each
   // one preserves the user's other `mcpServers` entries, which a wholesale write would

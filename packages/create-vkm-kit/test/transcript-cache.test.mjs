@@ -212,7 +212,10 @@ test("effort-gate scanTranscript: incremental result matches a single-shot full 
 
   assert.deepEqual(incremental, full, "resumed scan must equal a from-scratch full scan");
   assert.equal(full.substantiveBefore, 3);
-  assert.equal(full.satisfied, true);
+  // ADR-0080 replaced the proposal/confirmation state with what the gate now scores on:
+  // which files were touched and which way the user's own words push the stakes.
+  assert.ok(Array.isArray(full.files), "the scan must carry the touched files");
+  assert.equal(typeof full.stakes, "number");
 });
 
 test("stop-reminder scanTranscript: incremental result matches a single-shot full scan", () => {

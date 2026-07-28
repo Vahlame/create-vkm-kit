@@ -33,7 +33,7 @@ import { configureClaudeNativeMemory } from "./claude-native-memory.mjs";
 import { configureTokenSaver } from "./token-saver.mjs";
 import { configureTelemetry } from "./telemetry.mjs";
 import { installRunHidden } from "./runhidden-setup.mjs";
-import { configureSkillAssets } from "./skills-install.mjs";
+import { configureSkillAssets, SKILL_NAMES } from "./skills-install.mjs";
 import { configureCodexNative } from "./codex-native.mjs";
 import { maybeInstallOllama } from "./ollama-setup.mjs";
 import { maybeInstallObscura } from "./obscura-setup.mjs";
@@ -248,7 +248,9 @@ exec gitleaks protect --staged --no-banner --redact
  * @param {string} ctx.vault absolute vault path (already scaffolded if it was new)
  * @param {string[]} ctx.ides
  * @param {import("./cli/options.mjs").InstallOptions} ctx.opts
- * @returns {Promise<{ kitRoot: string|null, obscuraBin: string|null }>} what actually landed
+ * @returns {Promise<{ kitRoot: string|null, obscuraBin: string|null, launcher: string|null }>}
+ *   what actually landed — `launcher` is threaded to `printSummary` so the block it prints
+ *   is the one that was registered, rather than a second guess at it
  */
 export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
   const { dryRun, lang } = opts;
@@ -268,6 +270,20 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
     }
   }
 
+  // BEFORE anything that writes a `command` string: the MCP registrations below and the
+  // configure* calls further down both start servers/hooks through this launcher, and both
+  // used to find it by PROBING the disk — so whatever ran before it was put there got wired
+  // to bare `node`/`uvx` and took another full re-run to correct. It used to sit BETWEEN the
+  // two, which meant a FIRST install on a machine with no `~/.claude/bin` wrote exactly the
+  // flashing-console config ADR-0078 exists to prevent: the hooks were fixed and the four MCP
+  // servers, registered moments earlier, were not. Unconditional (not inside the `claude`
+  // branch) because a Cursor-only install writes MCP commands too; no-op off Windows,
+  // idempotent on it. Its return value is THREADED below rather than re-probed, so the
+  // registrations state the answer this install just produced instead of asking the
+  // filesystem again and hoping the order held.
+  const launcher =
+    (await installRunHidden(home, dryRun)) ?? resolveLauncher(path.join(home, ".claude"));
+
   const serverOpts = {
     withHybrid: opts.withHybrid,
     repoRoot: kitRoot,
@@ -281,7 +297,8 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
     searxngUrl: opts.searxngUrl,
     researchDir: opts.researchDir,
     downloads: opts.downloads,
-    downloadDir: opts.downloadDir
+    downloadDir: opts.downloadDir,
+    launcher
   };
 
   if (ides.includes("cursor")) {
@@ -290,11 +307,6 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
   }
   if (ides.includes("claude")) {
     await registerClaudeCodeMcp(vault, dryRun, serverOpts);
-    // BEFORE the configure* calls: each resolves `hookInterpreter(claudeDir)` once, and the
-    // answer is only the launcher if the launcher is already on disk. Installing it
-    // afterwards would write a settings.json full of `node` and take another full re-run
-    // to correct.
-    await installRunHidden(home, dryRun);
     // Every configure* call RECONCILES rather than merely installs: a `--no-X` on a re-run
     // strips what a previous run added, instead of only ever adding entries.
     await configureClaudeNativeMemory(home, vault, dryRun, {
@@ -360,7 +372,7 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
   await writeVaultGitWorkspaceSettings(vault, dryRun);
   await maybeInstallGitleaksHook(vault, opts.gitleaks, dryRun);
 
-  return { kitRoot, obscuraBin };
+  return { kitRoot, obscuraBin, launcher };
 }
 
 /**
@@ -374,7 +386,7 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
  * @param {string} ctx.vault
  * @param {string[]} ctx.ides
  * @param {import("./cli/options.mjs").InstallOptions} ctx.opts
- * @param {{ kitRoot: string|null }} ctx.result
+ * @param {{ kitRoot: string|null, launcher?: string|null }} ctx.result
  * @param {{ usedDefault?: boolean, createdVault?: boolean }} [ctx.meta]
  */
 export function printSummary({ vault, ides, opts, result, meta = {} }) {
@@ -388,8 +400,12 @@ export function printSummary({ vault, ides, opts, result, meta = {} }) {
   );
   // The SAME object that was registered, launcher and all. Printing the un-launched form
   // would hand Cline/Windsurf/Zed users a config that differs from every other client's —
-  // and specifically the one that flashes a console window (ADR-0078).
-  const server = basicMemoryServer(vault, { launcher: resolveLauncher() });
+  // and specifically the one that flashes a console window (ADR-0078). It takes the answer
+  // the install RETURNED; re-probing here would agree only as long as the two stayed in
+  // sync, which is the assumption that broke in the first place.
+  const server = basicMemoryServer(vault, {
+    launcher: result.launcher !== undefined ? result.launcher : resolveLauncher()
+  });
   line(`- MCP: ${JSON.stringify(server)}`);
 
   // Clients the kit cannot write config for get the block to paste. This used to exist
@@ -460,8 +476,10 @@ export function printSummary({ vault, ides, opts, result, meta = {} }) {
     );
   }
   if (opts.telemetry) line("- Local telemetry (ADR-0044): OTLP sink on 127.0.0.1:4319 → ~/.vkm/");
-  if (opts.skills)
-    line("- Skills installed: /vkm-discipline, /vkm-spec, /vkm-design, /vkm-research");
+  // Derived from what the installer actually copies. The hand-written list here still said
+  // four skills the run after a fifth shipped — a summary that under-reports is how a user
+  // concludes a feature did not install.
+  if (opts.skills) line(`- Skills installed: ${SKILL_NAMES.map((n) => `/${n}`).join(", ")}`);
   if (ides.includes("codex")) {
     line(
       "- Codex CLI: MCP registered via `codex mcp add` → ~/.codex/config.toml (verify: `codex mcp list`)"

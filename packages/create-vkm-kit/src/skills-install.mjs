@@ -14,7 +14,13 @@ import {
   removeManagedAssets
 } from "./asset-install.mjs";
 
-export const SKILL_NAMES = ["vkm-discipline", "vkm-spec", "vkm-design", "vkm-research"];
+export const SKILL_NAMES = [
+  "vkm-discipline",
+  "vkm-spec",
+  "vkm-design",
+  "vkm-research",
+  "vkm-verify"
+];
 export const AGENT_BASENAMES = ["vkm-implementer.md"];
 export const CODEX_AGENT_BASENAMES = ["vkm-implementer.toml"];
 

@@ -26,7 +26,11 @@ export const CODEX_HOOK_STEMS = {
 const HOOK_ASSET_BASENAMES = {
   context: ["session-start-vault-context.mjs"],
   memoryGuard: ["codex-guard-native-memory-write.mjs"],
-  effortGate: ["guard-effort-gate.mjs", "_transcript-cache.mjs"],
+  // The gate spawns `apply-model-effort.mjs` by path (ADR-0080). It degrades to
+  // notice-only when the file is absent, so omitting it here would not crash anything —
+  // it would just make the Codex install quietly do less than the Claude one, which is
+  // the drift this parity work exists to remove.
+  effortGate: ["guard-effort-gate.mjs", "apply-model-effort.mjs", "_transcript-cache.mjs"],
   tokenSaver: ["codex-compact-tool-output.mjs", "compact-tool-output.mjs", "compact-mcp-output.mjs"]
 };
 

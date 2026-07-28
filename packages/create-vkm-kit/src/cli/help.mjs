@@ -111,14 +111,24 @@ Claude Code native-memory override (when --ide includes claude):
   --no-memory-enforcement      Keep autoMemoryEnabled:false + SessionStart, skip the
                                 PreToolUse guard and Stop nudge.
 
-  Effort gate (ADR-0031, on by default with the override above, independent of the
-  enforcement pair) — makes a pause real instead of just announced: a PreToolUse hook
-  DENIES a session's 2nd+ substantive edit (Write/Edit/MultiEdit/NotebookEdit) until the
-  model has proposed an effort level (/effort low|medium|high|xhigh|max) and gotten an
-  actual reply from the user. The first substantive edit of a session is always free.
+  Effort gate (ADR-0031, redesigned in ADR-0080; on by default with the override above,
+  independent of the enforcement pair) — right-sizes the session instead of asking you to.
+  A PreToolUse hook scores the work it can see (which files, which paths, how many, how
+  big, and which way your own words push the stakes), writes the effort level it calls for
+  into ~/.claude/settings.json so the NEXT session starts there, and interrupts AT MOST
+  ONCE — never when the session is already at the right level. The first substantive edit
+  is always free, sub-agents are exempt, and one interruption per session is a hard
+  guarantee (a sidecar file, not a transcript inference), so it cannot wedge an unattended
+  run. It never selects fable and never overrides a session already on it.
   --effort-gate                Force the effort-gate hook on (even under --minimal).
   --no-effort-gate             Keep the override (+ enforcement, if on) without the
                                 effort-gate hook.
+  Runtime switches (no reinstall): VKM_EFFORT_GATE=0 disables it; VKM_EFFORT_ALLOW_HAIKU=1
+  lets it propose a cheaper model, not just a stronger one; VKM_EFFORT_APPLY=keys lets it
+  APPLY /model + /effort by typing them into the session — over the DevTools protocol when
+  the app was started by scripts/claude-desktop-debug.ps1 (works while you are in another
+  window), otherwise only while the Claude window is already in front. It never takes your
+  foreground; a decision it could not apply is retried on later edits.
 
   Token-saver (ADR-0043, on by default when --ide includes claude) — cuts token spend
   with zero quality loss: two PostToolUse hooks compact noisy tool output before it
@@ -156,11 +166,13 @@ Claude Code native-memory override (when --ide includes claude):
   /vkm-spec (idea → precise spec via one assemble_context call), /vkm-design
   (professional anti-generic design: direction before pixels, computed checks, visual
   loop), /vkm-research (consolidate a RESEARCH/<topic> bank into a quality summary.md,
-  wikilinks + supersedes), and the vkm-implementer agent template. Claude uses
-  ~/.claude/skills + ~/.claude/agents/vkm-implementer.md; Codex uses
-  ~/.agents/skills + ~/.codex/agents/vkm-implementer.toml. Hash-tracked files;
-  uninstall never deletes one you edited.
-  --skills / --no-skills       Force on / remove the four skills.
+  wikilinks + supersedes), /vkm-verify (prove a green check ran, covered the change and
+  can fail — negative control via prove-it.mjs), and the vkm-implementer agent template.
+  Claude uses ~/.claude/skills + ~/.claude/agents/vkm-implementer.md; Codex uses
+  ~/.agents/skills + ~/.codex/agents/vkm-implementer.toml. Hash-tracked files; uninstall
+  never deletes one you edited. Which one fits which situation: docs/en/skills-guide.md
+  (ES: docs/es/guia-de-skills.md).
+  --skills / --no-skills       Force on / remove the five skills.
   --agents / --no-agents       Force on / remove the subagent template.
 
   Obscura web (ADR-0051, opt-in via --obscura or --full) — routes web access through the
