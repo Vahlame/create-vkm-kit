@@ -12,7 +12,11 @@ import {
   maybeInstallObscura
 } from "../src/obscura-setup.mjs";
 
-const neverInstalled = { isRunnable: async () => false };
+// "Nothing installed anywhere": no managed copy in ~/.vkm/obscura (probeVersion) AND nothing
+// on PATH (isRunnable). BOTH stubs are required — the gate reads the managed copy's VERSION,
+// not merely its presence (a presence-only gate could never deliver an OBSCURA_VERSION bump),
+// so a test that stubs only one of them silently reads the developer's real machine.
+const neverInstalled = { isRunnable: async () => false, probeVersion: async () => null };
 
 test("resolveSpec/obscuraBinPath map platform+arch to the right asset", () => {
   assert.equal(resolveSpec("win32", "x64").asset, "obscura-x86_64-windows.zip");
@@ -59,7 +63,7 @@ test("maybeInstallObscura: with a pinned checksum and no existing install, invok
     false,
     { platform: "linux", arch: "x64" },
     {
-      isRunnable: async () => false,
+      ...neverInstalled,
       installImpl: async (spec) => {
         calledSpec = spec;
         return { status: "ready", binPath: "/fake/obscura" };

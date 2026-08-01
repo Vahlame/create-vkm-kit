@@ -25,9 +25,23 @@ const out = path.join(repoRoot, "packages", "create-vkm-kit", "bin", "vkm-runhid
 
 mkdirSync(path.dirname(out), { recursive: true });
 
+// `-trimpath` + `-buildvcs=false` are what make two builds of the same source byte-identical.
+// That is not cosmetic here: `uninstallRunHidden` only deletes a launcher that matches the
+// packaged copy byte for byte (so it never removes one the user built or replaced), and since
+// the installer now BUILDS this file on clone installs, a non-reproducible build would leave
+// every clone user's launcher behind on `--uninstall`. Measured before the flags: two
+// consecutive builds of identical source produced different SHA-256s.
 const res = spawnSync(
   "go",
-  ["build", "-ldflags=-H windowsgui -s -w", "-o", out, "./cmd/vkm-runhidden"],
+  [
+    "build",
+    "-trimpath",
+    "-buildvcs=false",
+    "-ldflags=-H windowsgui -s -w -buildid=",
+    "-o",
+    out,
+    "./cmd/vkm-runhidden"
+  ],
   {
     cwd: repoRoot,
     stdio: "inherit",

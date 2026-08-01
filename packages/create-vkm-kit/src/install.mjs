@@ -149,13 +149,29 @@ async function maybeInstallBackend(repoRoot, semantic, dryRun, vec = false, rera
         pc.green("Python backend installed"),
         extras.length ? `(with [${extras.join(",")}])` : ""
       );
-    } else {
-      console.warn(pc.yellow("Backend install skipped/failed — run it manually:"));
-      console.log('  pip install -e "' + spec + '"');
+      return;
     }
+    // PEP 668: Debian/Ubuntu/Fedora and Homebrew mark the system interpreter
+    // "externally managed" and REFUSE every `pip install` into it — including `--user`.
+    // Reprinting the command that just failed is the one answer that cannot work, and it
+    // was the answer for every Linux and macOS user whose python came from their distro.
+    const out = `${r.stdout || ""}${r.stderr || ""}`;
+    if (/externally[- ]managed/i.test(out)) {
+      console.warn(
+        pc.yellow("This Python is externally managed (PEP 668), so it refuses `pip install`.")
+      );
+      console.log(pc.dim("  Use a venv and point the MCP at it (both commands, in order):"));
+      console.log(`  ${py} -m venv ~/.vkm/py && ~/.vkm/py/bin/pip install -e "${spec}"`);
+      console.log(pc.dim("  then set OBSIDIAN_MEMORY_PYTHON=~/.vkm/py/bin/python for the MCP."));
+      return;
+    }
+    console.warn(pc.yellow("Backend install skipped/failed — run it manually:"));
+    console.log(`  ${py} -m pip install -e "${spec}"`);
+    const lastLine = out.trim().split(/\r?\n/).at(-1);
+    if (lastLine) console.log(pc.dim("  " + lastLine));
   } catch {
-    console.warn(pc.yellow("python not found; install the backend later:"));
-    console.log('  pip install -e "' + spec + '"');
+    console.warn(pc.yellow(`${py} not found; install the backend later:`));
+    console.log(`  ${py} -m pip install -e "${spec}"`);
   }
 }
 
@@ -282,7 +298,8 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
   // registrations state the answer this install just produced instead of asking the
   // filesystem again and hoping the order held.
   const launcher =
-    (await installRunHidden(home, dryRun)) ?? resolveLauncher(path.join(home, ".claude"));
+    (await installRunHidden(home, dryRun, { repoRoot: kitRoot })) ??
+    resolveLauncher(path.join(home, ".claude"));
 
   const serverOpts = {
     withHybrid: opts.withHybrid,
@@ -325,7 +342,7 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
       skills: opts.skills,
       agents: opts.agents
     });
-    if (opts.ollama) await maybeInstallOllama(dryRun, { enable: true });
+    if (opts.ollama) await maybeInstallOllama(dryRun, { enable: true, launcher });
   }
   if (ides.includes("codex")) {
     await registerCodexMcp(vault, dryRun, serverOpts);
@@ -335,7 +352,10 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
       context: opts.codexContext,
       memoryGuard: opts.codexMemoryGuard,
       effortGate: opts.codexEffortGate,
-      tokenSaver: opts.codexTokenSaver
+      tokenSaver: opts.codexTokenSaver,
+      // Same launcher the Claude hooks and the MCP servers were just wired to — threaded, not
+      // re-probed, so Codex stops being the one surface that still flashes a console.
+      launcher
     });
     await configureSkillAssets(home, dryRun, {
       ide: "codex",

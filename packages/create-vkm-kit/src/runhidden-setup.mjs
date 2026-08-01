@@ -21,10 +21,67 @@
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execa } from "execa";
 import fse from "fs-extra";
 import pc from "picocolors";
 
 export const RUNHIDDEN_BASENAME = "vkm-runhidden.exe";
+
+/**
+ * Build the launcher from the checkout that is running this installer.
+ *
+ * `bin/` is gitignored and `files:["bin"]` only fills it in the published tarball, so an
+ * install from a CLONE — the documented path for `--full`, since the hybrid MCP needs one —
+ * reached `installRunHidden` with nothing to copy and wired every hook AND all four MCP
+ * servers to bare `node`. That is the exact flashing-console config ADR-0078/v5 exists to
+ * prevent, reintroduced for the users most likely to hit it: the ones running from source.
+ *
+ * Best-effort by the same contract as its caller: no Go, no toolchain, a compile error — all
+ * degrade to the pre-existing `node` fallback with one actionable line, never an abort.
+ *
+ * @param {string} repoRoot
+ * @returns {Promise<boolean>} whether a launcher now exists at {@link packagedRunHidden}
+ */
+async function buildFromCheckout(repoRoot) {
+  const script = path.join(repoRoot, "scripts", "build-runhidden.mjs");
+  if (!(await fse.pathExists(script))) return false;
+
+  // No `windowsHide` on either spawn below, deliberately (ADR-0078): the build shells out to
+  // `go`, so CREATE_NO_WINDOW on its parent would hand that console-subsystem grandchild a
+  // brand new VISIBLE console — the exact inversion this whole subsystem exists to avoid. Both
+  // run in the terminal the user is already watching an install in, and inherit its console.
+  const go = await execa("go", ["version"], { reject: false }).catch(() => null);
+  if (!go || go.failed || go.exitCode !== 0) {
+    console.log(
+      pc.dim("Hook launcher not packaged in this build and Go is not installed —"),
+      pc.dim(
+        "hooks and MCP servers will run through plain `node` (they flash a console on Windows)."
+      )
+    );
+    console.log(pc.dim("  Fix: install Go (https://go.dev/dl/), then re-run this installer."));
+    return false;
+  }
+
+  console.log(pc.cyan("Building the windowless hook launcher from this checkout (Go) …"));
+  const built = await execa(process.execPath, [script], {
+    cwd: repoRoot,
+    reject: false
+  }).catch((e) => ({ failed: true, exitCode: 1, stderr: e?.message || String(e) }));
+
+  if (built.failed || built.exitCode !== 0) {
+    console.warn(
+      pc.yellow("Could not build the hook launcher (falling back to plain `node`):"),
+      pc.dim(
+        String(built.stderr || "")
+          .trim()
+          .split(/\r?\n/)
+          .at(-1) || `exit ${built.exitCode}`
+      )
+    );
+    return false;
+  }
+  return fse.pathExists(packagedRunHidden());
+}
 
 /** The copy inside this package (`files: ["bin"]` ships it; a checkout builds it). */
 export function packagedRunHidden() {
@@ -50,9 +107,12 @@ async function sha256(fp) {
  *
  * @param {string} home
  * @param {boolean} dryRun
+ * @param {{ repoRoot?: string|null }} [opts] - when the install is running from a kit CLONE,
+ *   the launcher is absent from `bin/` (gitignored) and is BUILT here instead of silently
+ *   degrading the whole install to `node`. See {@link buildFromCheckout}.
  * @returns {Promise<string | null>} the installed path, or null when there is nothing to install
  */
-export async function installRunHidden(home, dryRun) {
+export async function installRunHidden(home, dryRun, { repoRoot = null } = {}) {
   // Nothing to suppress off Windows: no console is allocated for a child there in the first place.
   if (process.platform !== "win32") return null;
 
@@ -60,11 +120,19 @@ export async function installRunHidden(home, dryRun) {
   const dest = installedRunHidden(home);
 
   if (!(await fse.pathExists(src))) {
-    console.log(
-      pc.dim("Hook launcher not packaged in this build — hooks will run through plain `node`."),
-      pc.dim("(source checkout: `npm run build:runhidden` needs Go)")
-    );
-    return null;
+    if (dryRun) {
+      console.log(
+        pc.cyan("[dry-run] would build the windowless hook launcher from this checkout (Go)")
+      );
+      return null;
+    }
+    if (!repoRoot || !(await buildFromCheckout(repoRoot))) {
+      console.log(
+        pc.dim("Hook launcher not packaged in this build — hooks will run through plain `node`."),
+        pc.dim("(source checkout: `npm run build:runhidden` needs Go)")
+      );
+      return null;
+    }
   }
 
   if (dryRun) {

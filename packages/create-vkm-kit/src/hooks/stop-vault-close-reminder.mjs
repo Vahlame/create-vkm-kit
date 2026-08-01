@@ -44,8 +44,13 @@ import { fileURLToPath } from "node:url";
 import { getIncrementalState } from "./_transcript-cache.mjs";
 
 const SUBSTANTIVE_TOOLS = /^(Write|Edit|MultiEdit|NotebookEdit)$/;
+// `vault_append_file` is the tool the kit's own rules PRESCRIBE for the close ritual
+// ("Cierre = vault_append_file → SESSION_LOG.md"), and it was missing here: a session that
+// closed exactly as documented was told three times that it never touched the vault. A guard
+// that fires after the work is done trains the model to ignore it, which costs more than the
+// guard is worth. `vault_frontmatter_set` is included for the same reason — it writes.
 const VAULT_CLOSE_TOOLS =
-  /vault_write_file|vault_edit_file|memory_extract_candidates|write_note|edit_note/;
+  /vault_write_file|vault_edit_file|vault_append_file|vault_frontmatter_set|memory_extract_candidates|write_note|edit_note/;
 /** Below this many substantive edits, the nudge is more noise than signal — stay quiet. */
 const MIN_SUBSTANTIVE_CALLS = 2;
 
@@ -97,7 +102,7 @@ function reason(lang) {
   if (lang === "en") {
     return (
       "Before stopping: this session edited/wrote files but never touched the Obsidian " +
-      "vault (vault_write_file / vault_edit_file / memory_extract_candidates). If there's " +
+      "vault (vault_append_file / vault_write_file / vault_edit_file). If there's " +
       "anything reusable beyond this session — a closed decision, an architecture choice, " +
       "a lesson, a gotcha — close it now: SESSION_LOG.md (one line) + " +
       "PROJECTS/<project>.md (incremental). If nothing here is worth saving, ignore this " +
@@ -106,7 +111,7 @@ function reason(lang) {
   }
   return (
     "Antes de terminar: esta sesión editó/escribió archivos pero no tocó el vault " +
-    "Obsidian (vault_write_file / vault_edit_file / memory_extract_candidates). Si hay " +
+    "Obsidian (vault_append_file / vault_write_file / vault_edit_file). Si hay " +
     "algo reutilizable más allá de esta sesión — una decisión cerrada, una elección de " +
     "arquitectura, una lección, un gotcha — ciérralo ahora: SESSION_LOG.md (una línea) + " +
     "PROJECTS/<proyecto>.md (incremental). Si nada de esto vale la pena guardar, ignora " +

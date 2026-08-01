@@ -208,6 +208,26 @@ export async function writeCursorMcp(home, vaultAbs, dryRun, opts = {}) {
 }
 
 /**
+ * Is `bin` a CLI this machine can actually run?
+ *
+ * `--version` rather than a `which`/`where` lookup: on Windows these CLIs are `.cmd`
+ * shims, and asking the same spawn mechanism the registration itself uses is the only
+ * probe whose answer is guaranteed to match. Never throws — an unrunnable CLI is a
+ * "no", not an install failure.
+ *
+ * @param {string} bin
+ * @returns {Promise<boolean>}
+ */
+async function cliAvailable(bin) {
+  try {
+    const r = await execa(bin, ["--version"], { reject: false, timeout: 15000 });
+    return r.exitCode === 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Register every server through a client's own CLI. Idempotent: each entry is removed
  * before it is added, so a re-run updates rather than duplicating.
  *
@@ -227,6 +247,24 @@ export async function writeCursorMcp(home, vaultAbs, dryRun, opts = {}) {
  */
 export async function registerViaCli(client, servers, dryRun) {
   const { bin, label, addArgv: makeAdd, removeArgv: makeRemove, manualBlock } = client;
+
+  // Probe the CLI ONCE, before the loop. "Not installed" and "installed but this one
+  // command failed" need different answers, and the per-server catch could not tell them
+  // apart: a machine without the Codex CLI got the full "run this by hand, or paste this
+  // TOML" treatment FOUR times — one per server — for a tool the user does not have. That
+  // reads like four failures in an install that is actually fine, and it buries the lines
+  // that do matter. `--full` implies `--ide codex,claude`, so this is the DEFAULT path for
+  // everyone who only uses Claude Code.
+  if (!dryRun && !(await cliAvailable(bin))) {
+    console.log(
+      pc.dim(`${label} CLI (\`${bin}\`) is not installed — skipping its MCP registration.`)
+    );
+    console.log(
+      pc.dim(`  Install it and re-run this installer to wire ${servers.length} servers there.`)
+    );
+    return;
+  }
+
   for (const [name, server] of servers) {
     const addArgv = makeAdd(name, server);
     const manual = () => {
