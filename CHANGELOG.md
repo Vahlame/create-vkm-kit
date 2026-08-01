@@ -29,6 +29,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Model-epoch awareness (ADR-0083).** Model-specific memory ages the moment the model
+  changes ("tuned for opus 4.8" quietly mis-steers opus 5). The `SessionStart` hook now
+  compares the session's model against the last one seen and, only on a change, injects
+  ONE context line downgrading `_meta/agent-profiles.md` rows and `STACKS/` verdicts to
+  hypotheses to re-verify; the profile templates document the same generation-maintenance
+  rule. Steady state costs zero. The same ADR records the criteria-based rejection of
+  Postgres/pgvector for the memory path (vault = Markdown+git, index = disposable SQLite;
+  pgvector pays off orders of magnitude past a personal vault's scale).
+
 - **`/vkm-intake` skill** — task intake before non-trivial execution: restate
   objective/deliverable/non-goals in 3 lines, at most one closed question on ambiguity, an
   inventory of what attached images actually show before interpreting them, and minimal

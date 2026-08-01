@@ -216,6 +216,58 @@ export function recordSessionModel(input, home = os.homedir()) {
   }
 }
 
+/**
+ * Model-epoch awareness (ADR-0083): model-specific memory ages the moment the model
+ * changes. `_meta/agent-profiles.md` rows and `STACKS/` verdicts are written under ONE
+ * model; when the next session starts on a different one, those tunings are hypotheses
+ * again — but nothing used to say so, so a vault tuned for one generation silently
+ * mis-steered the next (the "what worked on opus 4.8 doesn't on opus 5" failure).
+ *
+ * This compares the session's model to the last one seen (`~/.vkm/last-model.json`) and
+ * returns ONE context line on a change — the only time it costs anything. First-ever
+ * session, same model, unknown model, or any I/O failure all return "".
+ *
+ * @param {unknown} model the `model` field of the SessionStart payload
+ * @param {"es"|"en"} lang
+ * @param {string} [home]
+ * @returns {string} "" or a single trailing context line
+ */
+export function modelChangeNotice(model, lang, home = os.homedir()) {
+  try {
+    const raw =
+      typeof model === "string"
+        ? model
+        : typeof model === "object" && model
+          ? String(
+              /** @type {any} */ (model).id ??
+                /** @type {any} */ (model).display_name ??
+                /** @type {any} */ (model).name ??
+                ""
+            )
+          : "";
+    const id = raw.trim();
+    if (!id) return "";
+    const fp = path.join(home, ".vkm", "last-model.json");
+    let prev = null;
+    try {
+      const parsed = JSON.parse(fs.readFileSync(fp, "utf8"));
+      prev = typeof parsed?.id === "string" ? parsed.id : null;
+    } catch {
+      /* first run — nothing recorded yet */
+    }
+    if (prev !== id) {
+      fs.mkdirSync(path.dirname(fp), { recursive: true });
+      fs.writeFileSync(fp, JSON.stringify({ id }), "utf8");
+    }
+    if (!prev || prev === id) return "";
+    return lang === "en"
+      ? `\n[model change: ${prev} -> ${id}] Model-specific vault tunings (your _meta/agent-profiles.md row, STACKS verdicts) were written under the previous model — treat them as hypotheses and re-verify your row before leaning on it.`
+      : `\n[cambio de modelo: ${prev} -> ${id}] Los ajustes por modelo del vault (tu fila de _meta/agent-profiles.md, verdicts de STACKS) se escribieron con el modelo anterior — trátalos como hipótesis y re-verifica tu fila antes de apoyarte en ella.`;
+  } catch {
+    return ""; // a session must start whether or not this works
+  }
+}
+
 /** Drop sidecars older than a week: one small file per session adds up over months. */
 function pruneSessionSidecars(dir, maxAgeMs = 7 * 24 * 60 * 60 * 1000) {
   try {
@@ -236,15 +288,20 @@ function pruneSessionSidecars(dir, maxAgeMs = 7 * 24 * 60 * 60 * 1000) {
 export function main() {
   const vault = resolveVault();
   const lang = (process.argv[3] || "es").toLowerCase() === "en" ? "en" : "es";
+  let sessionModel = null;
   try {
     const raw = fs.readFileSync(0, "utf8");
-    if (raw.trim()) recordSessionModel(JSON.parse(raw));
+    if (raw.trim()) {
+      const input = JSON.parse(raw);
+      sessionModel = input?.model ?? null;
+      recordSessionModel(input);
+    }
   } catch {
     /* no payload on stdin (or unparseable) — the gate falls back to effort-only */
   }
   let additionalContext;
   try {
-    additionalContext = buildContext(vault, lang);
+    additionalContext = buildContext(vault, lang) + modelChangeNotice(sessionModel, lang);
   } catch {
     additionalContext = reminders(lang); // last-resort: never block the session
   }

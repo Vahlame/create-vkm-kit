@@ -88,6 +88,7 @@ ADRs are **append-only**: a decision that was later reversed is not rewritten, i
 | [ADR-0080](./0080-the-effort-gate-decides.md)                      | The effort gate decides, persists, and interrupts once                                    | Accepted (interruption superseded by 0081)     |
 | [ADR-0081](./0081-effort-advisor-never-interrupts.md)              | The effort advisor never interrupts                                                       | Accepted                                       |
 | [ADR-0082](./0082-context-diet.md)                                 | Context diet — the fixed layer pays rent per token                                        | Accepted                                       |
+| [ADR-0083](./0083-memory-remaster-no-postgres.md)                  | Memory remaster — no Postgres; model-epoch awareness instead                              | Accepted                                       |
 
 ## Template
 

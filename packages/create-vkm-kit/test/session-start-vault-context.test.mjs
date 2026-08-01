@@ -9,6 +9,7 @@ import {
   truncateIndex,
   MAX_INDEX_CHARS,
   MAX_ENTRY_CHARS,
+  modelChangeNotice,
   reminders
 } from "../src/hooks/session-start-vault-context.mjs";
 
@@ -137,4 +138,40 @@ test("buildContext degrades gracefully with no vault at all", () => {
 test("reminders mention the vault precedence rule in both languages", () => {
   assert.match(reminders("es"), /UNICA fuente de verdad/);
   assert.match(reminders("en"), /ONLY source of truth/);
+});
+
+test("modelChangeNotice: silent on first sight and on a stable model, one line on a change", () => {
+  const home = mkdtempSync(join(tmpdir(), "session-start-model-"));
+  try {
+    // First-ever session: nothing to compare against — record silently.
+    assert.equal(modelChangeNotice("claude-opus-4-8", "es", home), "");
+    // Same model next session: still nothing. This is the every-day case and must cost 0.
+    assert.equal(modelChangeNotice("claude-opus-4-8", "es", home), "");
+    // The model changed: exactly one context line, naming both sides.
+    const notice = modelChangeNotice("claude-opus-5", "es", home);
+    assert.match(notice, /cambio de modelo: claude-opus-4-8 -> claude-opus-5/);
+    assert.match(notice, /agent-profiles\.md/, "points at the model-specific memory to re-verify");
+    assert.match(notice, /hip[óo]tesis/, "downgrades stale tunings to hypotheses");
+    // And the change is only announced ONCE: the new model is now the recorded one.
+    assert.equal(modelChangeNotice("claude-opus-5", "es", home), "");
+    // English variant, object-shaped payload model included.
+    assert.match(modelChangeNotice({ id: "claude-sonnet-5" }, "en", home), /model change/);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("modelChangeNotice never throws and never notices without a usable model", () => {
+  const home = mkdtempSync(join(tmpdir(), "session-start-model-"));
+  try {
+    assert.equal(modelChangeNotice(null, "es", home), "");
+    assert.equal(modelChangeNotice({}, "es", home), "");
+    assert.equal(modelChangeNotice("   ", "es", home), "");
+    // A missing model must not clobber the recorded one: a later real change still fires.
+    assert.equal(modelChangeNotice("claude-opus-5", "es", home), "");
+    assert.equal(modelChangeNotice(undefined, "es", home), "");
+    assert.match(modelChangeNotice("claude-haiku-4-5", "es", home), /cambio de modelo/);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
 });
