@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **`/vkm-design` remastered against its field failures** (it over-triggered, never stated
+  an objective, and hallucinated): the trigger description now excludes one-line style
+  tweaks; every invocation starts with a mandatory 3-line brief (For / Must do /
+  Constraints) plus a tier pick (Micro/Edit/Surface) that ROUTES how much of the skill is
+  read — micro-tasks read nothing; and a new "Rigor — what you may NOT invent" section
+  makes numbers-from-runs, verified-names-only, no-invented-authorities and NOT-RUN
+  honesty hard rules. Rendered-defect audits are routed to `/vkm-ui-judge`, keeping design
+  judgment and defect measurement on separate instruments.
+
 - **The effort gate is gone; the effort advisor never interrupts (ADR-0081).** The one-time
   `PreToolUse` deny that ADR-0080 still carried derailed autonomous iteration loops and charged
   a full model turn to deliver advice. `guard-effort-gate.mjs` (same filename and wiring, so

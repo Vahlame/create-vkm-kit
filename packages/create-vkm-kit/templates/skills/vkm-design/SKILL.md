@@ -1,6 +1,6 @@
 ---
 name: vkm-design
-description: Professional, anti-generic UI/UX and visual design method for any medium — web, desktop, dataviz, brand. Forces a named design direction before code, computed checks (contrast, scale), real current libraries, and a visual self-critique loop. Invoke for any design, styling, or UI task.
+description: Professional, anti-generic design for REAL design work — a new surface, a redesign, an identity, dataviz, or a design critique. Forces a 3-line brief, a named direction, computed checks and verified-current libraries. NOT for one-line style tweaks, or logic with no visible surface.
 user-invocable: true
 ---
 
@@ -19,11 +19,35 @@ If your output is starting to have a recognizable signature across unrelated bri
 (`references/direction.md` § your own house style); rotate lineage, type pairing, colour world and
 layout topology every time.
 
-## The contract — every mode, every medium
+## Step 0 — the brief and the tier (ALWAYS, before reading anything else)
+
+The historic failure of this skill is scope without an objective: it read everything,
+designed for nobody in particular, and hallucinated the rest. So every invocation starts by
+writing THE BRIEF, three lines, shown to the user:
+
+```text
+For:         <who looks at this, in what situation>
+Must do:     <the one thing the design has to achieve — not "look nice">
+Constraints: <incumbent system? platform? brand? deadline-cheap or flagship?>
+```
+
+Then pick the TIER — the tier decides how much of this skill you load, and reading MORE
+than your tier is the token-waste failure, not diligence:
+
+| Tier                                                   | What you read                                                   | What you do                                                              |
+| ------------------------------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **Micro** — one control, one color, one label          | nothing (formulas inline below via `references/foundations.md`) | foundations numbers + ONE computed check on what changed. Done.          |
+| **Edit** — change inside an existing design            | `modes/critique.md` § inferring the incumbent direction         | reconstruct the incumbent direction in one line, derive the edit from it |
+| **Surface** — new screen/product/identity, or redesign | the full contract below                                         | direction (options) + tokens + build + visual loop                       |
+
+If the brief cannot be filled from the request plus the codebase, ask ONE closed question.
+A design without a "Must do" line is decoration — do not start.
+
+## The contract — Surface tier (and the spirit of every tier)
 
 1. **Think like a designer first.** Read [`references/designer-mind.md`](references/designer-mind.md)
-   before any design work — it is the operating system for this skill: the process, the crit
-   vocabulary, and the questions a trained designer runs in order. Everything else hangs off it.
+   before surface-tier design work — it is the operating system for this skill: the process, the
+   crit vocabulary, and the questions a trained designer runs in order. Everything hangs off it.
 2. **Direction before pixels.** No code, no CSS, no tokens until a design direction is named and
    committed via [`references/direction.md`](references/direction.md). This is the anti-generic
    engine: it forces you to notice your default and diverge from it deliberately.
@@ -63,23 +87,30 @@ layout topology every time.
 | Specs another dev/agent will implement (tokens, redlines)   | [`modes/handoff.md`](modes/handoff.md)         |
 
 Generate mode ends with a visual-loop pass when a renderer is available — the modes compose.
+When the ask is "this existing GUI looks broken" (defects, not direction), the `vkm-ui-judge`
+skill is the sharper instrument: it measures the rendered page/app deterministically. Use it
+for the defect pass and this skill for the design judgment on top.
 
-## Scale the ceremony to the task
+## Rigor — what you may NOT invent
 
-The full protocol is for surfaces, not for every pixel:
+The hallucination surface of design work is names and numbers. Hard rules, every tier:
 
-- **New surface/product/identity** → everything: direction (3 options) + token system + build +
-  visual loop.
-- **Edit inside an existing design** → NO new direction. Reconstruct the incumbent one
-  ([`modes/critique.md`](modes/critique.md) § "Inferring the incumbent direction" —
-  `audit-css.mjs` + `scale.mjs` do the measuring), state it in one line, and derive the edit
-  from it; foundations + the a11y gate still apply. Inventing a second direction inside
-  someone's system is its own kind of slop.
-- **Micro-task** (one control, one color, one label) → foundations numbers + computed check on
-  what changed. Done.
+- **Numbers come from runs, not from prose.** A contrast ratio, scale step or spacing value
+  is only claimable next to the script invocation (or the shown hand-math) that produced
+  it. "AA-compliant" without a `contrast.mjs` line (or the arithmetic) is an unverified
+  claim — label it as one or compute it.
+- **Never name what you haven't verified.** A font, library, version, API or icon set may be
+  cited only if it (a) already exists in the project, or (b) was verified live this session.
+  No web access → say "unverified, from memory" next to the name, every time.
+- **No invented authorities.** No made-up award examples, designer quotes, or "studies show".
+  The lineup test and the computed gates are the whole authority this skill needs.
+- **Checks that did not run say NOT RUN.** The degradation ladder (below) exists so honesty
+  is always available; faking a green check is the one unforgivable output.
+- **Edit tier never invents a second direction.** Inventing a new aesthetic inside someone
+  else's system is slop with extra steps — reconstruct the incumbent and serve it.
 
-Misjudging up wastes tokens; misjudging down ships an incoherent system — when unsure, ask which
-surface this belongs to.
+Misjudging the tier up wastes tokens; misjudging down ships an incoherent system — when
+unsure, ask which surface this belongs to.
 
 ## Route by medium
 
