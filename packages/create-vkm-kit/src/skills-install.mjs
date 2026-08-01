@@ -21,7 +21,8 @@ export const SKILL_NAMES = [
   "vkm-research",
   "vkm-verify",
   "vkm-intake",
-  "vkm-ui-judge"
+  "vkm-ui-judge",
+  "vkm-seo"
 ];
 export const AGENT_BASENAMES = ["vkm-implementer.md"];
 export const CODEX_AGENT_BASENAMES = ["vkm-implementer.toml"];

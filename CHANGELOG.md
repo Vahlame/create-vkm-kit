@@ -38,6 +38,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **`/vkm-seo` skill + `scripts/seo-audit.mjs`** — brutal, measurable SEO for websites,
+  remastered from a user-provided modern-SEO guide (semantic synonym/variant/location
+  coverage, technical foundations, structured data, GEO/AEO visibility in AI search).
+  Brief-first with tiered reading like its siblings; the bundled zero-dependency audit
+  checks the delivered HTML (metadata windows, noindex traps, canonical, heading
+  hierarchy, alt coverage, JSON-LD validity, social cards, hreflang, robots/sitemap for
+  live URLs) and the loop is audit → fix by severity → re-audit, with NOT-RUN honesty for
+  checks that could not run and a hard rule against invented metrics or promised rankings.
+
 - **`--skills-dir <path>`** — compatibility escape hatch for agents the kit has no `--ide`
   for yet (Kimi Code, opencode, ...): additionally copies the seven skills (markdown +
   portable Node scripts) into any client's skills folder, hash-tracked and idempotent,

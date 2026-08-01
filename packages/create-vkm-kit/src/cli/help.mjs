@@ -171,12 +171,14 @@ Claude Code native-memory override (when --ide includes claude):
   can fail — negative control via prove-it.mjs), /vkm-intake (restate objective/
   deliverable/non-goals + image inventory + minimal context BEFORE executing), /vkm-ui-judge
   (measured GUI judgment: live-page Playwright audit for web, flutter_test a11y gates for
-  Flutter, screenshot-evidence loop for other native UIs), and the vkm-implementer agent
+  Flutter, screenshot-evidence loop for other native UIs), /vkm-seo (measurable SEO:
+  semantic query-family coverage + static before/after audit via seo-audit.mjs), and the
+  vkm-implementer agent
   template. Claude uses ~/.claude/skills + ~/.claude/agents/vkm-implementer.md; Codex uses
   ~/.agents/skills + ~/.codex/agents/vkm-implementer.toml. Hash-tracked files; uninstall
   never deletes one you edited. Which one fits which situation: docs/en/skills-guide.md
   (ES: docs/es/guia-de-skills.md).
-  --skills / --no-skills       Force on / remove the seven skills.
+  --skills / --no-skills       Force on / remove the eight skills.
   --agents / --no-agents       Force on / remove the subagent template.
   --skills-dir <path>          ALSO copy the skills into any other client's skills folder
                                 (Kimi Code, opencode, ...) — additive, independent of

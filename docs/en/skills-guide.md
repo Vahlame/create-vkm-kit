@@ -1,6 +1,6 @@
 # Skills guide: which one, when, and when not
 
-The kit installs **seven skills** into `~/.claude/skills/`. Each fires on its own when its
+The kit installs **eight skills** into `~/.claude/skills/`. Each fires on its own when its
 `description` matches what you asked for, and each can be invoked by hand (`/vkm-spec`,
 `/vkm-design`, …). This guide exists because the expensive question is not "what does each
 one do" but **which one applies right now** — and above all which one does **not**, since a
@@ -20,6 +20,7 @@ that scope wins (the arbitration rule).
 | `/vkm-research`   | a `RESEARCH/<topic>` bank has sources that were never consolidated                          | a `summary.md` with wikilinks, supersession, marked sources               |
 | `/vkm-intake`     | the task is **non-trivial** and a bad start would be expensive: prompt/images/context       | objective/deliverable/non-goals in 3 lines + minimal context loaded       |
 | `/vkm-ui-judge`   | a GUI **looks wrong** (web, Flutter or native): contrast, dark mode, responsive             | measured defects (audit/tests/real screenshots) + a fix with before/after |
+| `/vkm-seo`        | a website must **rank**: synonyms/variants/locations, technical, AI search                  | semantic coverage + static before/after audit (`seo-audit.mjs`)           |
 
 ## The natural order of real work
 
@@ -62,6 +63,10 @@ expensive.
 **`/vkm-ui-judge`** — not for designing from scratch (that is `/vkm-design`) and not for
 logic with no visible surface. It is for GUIs that **already exist** and look wrong.
 
+**`/vkm-seo`** — not for non-web deliverables and not for ad (SEM) campaigns. And note: it
+never promises positions — it promises the measurable inputs (clean audit, coverage done);
+promising rankings is exactly the smoke this skill exists to avoid.
+
 ## The three that get confused
 
 - **`/vkm-discipline` vs `/vkm-verify`.** `discipline` ends in executed evidence: it runs the
@@ -90,8 +95,8 @@ logic with no visible surface. It is for GUIs that **already exist** and look wr
 ## Cost
 
 Every skill's `description` is **always** in context (which is why the kit keeps them short,
-with a hard cap enforced in CI); the body loads **only** when the skill fires. Seven installed
-skills are not seven bodies per session — they are seven descriptions and, at most, one body
+with a hard cap enforced in CI); the body loads **only** when the skill fires. Eight installed
+skills are not eight bodies per session — they are eight descriptions and, at most, one body
 when it is needed.
 
 If a skill's style is in the way for a particular job, just say so: your instruction in the
