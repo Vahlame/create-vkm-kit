@@ -465,7 +465,7 @@ export function printSummary({ vault, ides, opts, result, meta = {} }) {
   }
   if (opts.effortGate) {
     line(
-      "- Effort gate (ADR-0031): PreToolUse hook (denies the 2nd+ substantive edit until the model proposes an effort level and the user replies) → ~/.claude/settings.json"
+      "- Effort advisor (ADR-0081): PreToolUse hook (persists the effort level the work calls for; one user-only notice, never blocks a tool call) → ~/.claude/settings.json"
     );
   }
   if (opts.tokenSaver) {

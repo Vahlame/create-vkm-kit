@@ -67,7 +67,7 @@ Con Python ≥ 3.11 presente, `npm run setup` instala la suite 4.0 completa en u
 | **Skills `/vkm-discipline`, `/vkm-spec`, `/vkm-design` y `/vkm-research` + agente `vkm-implementer`** _(Claude Code)_ | disciplina de código denso + pipeline idea→spec anclada al vault + método de diseño anti-genérico + consolidación de `RESEARCH/` (ADR-0049, ADR-0053, ADR-0056) |
 | **vkm-spec GUI**                                                                                                      | de idea a spec XML en `127.0.0.1:4923`, corre desde el clon                                                                                                     |
 | **Ollama + `phi4-mini`** _(≈2,3 GB; best-effort)_                                                                     | redacción local de specs; si falla o lo evitas con `--no-ollama`, vkm-spec usa su fallback determinista (ADR-0047)                                              |
-| **Hooks de memoria** _(Claude Code)_                                                                                  | auto-memoria nativa OFF + enforcement determinista + effort-gate (ADR-0029/0030/0031)                                                                           |
+| **Hooks de memoria** _(Claude Code)_                                                                                  | auto-memoria nativa OFF + enforcement determinista + effort advisor (ADR-0029/0030/0081)                                                                        |
 
 Las piezas marcadas _(Claude Code)_ se instalan solo si el CLI `claude` está en PATH (o pasas
 `--ide claude`). Sin clon del kit, la parte híbrida degrada a `basic-memory` con aviso — nunca

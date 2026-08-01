@@ -207,7 +207,7 @@ test("configureTokenSaver installs hooks + output style (NO deny rules); idempot
   const settings = readSettings(home);
   const postToolUse = settings.hooks.PostToolUse;
   assert.equal(postToolUse.length, 2);
-  assert.deepEqual(postToolUse.map((e) => e.matcher).sort(), ["Bash", "mcp__.*"]);
+  assert.deepEqual(postToolUse.map((e) => e.matcher).sort(), ["Bash|BashOutput", "mcp__.*"]);
   // Retired (ADR-0043 amendment): a fresh install must never add deny rules.
   assert.equal("permissions" in settings, false);
   assert.equal(settings.outputStyle, TERSE_STYLE_NAME);

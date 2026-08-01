@@ -26,7 +26,7 @@ una sesión futura de Claude Code mantenga alineadas las superficies de Claude y
 - Configuración: `$HOME/.codex/hooks.json`.
 - Scripts: `$HOME/.codex/hooks/`, con hashes en `$HOME/.codex/vkm-kit.assets.json`.
 - Mapeo: `SessionStart` inyecta contexto del vault; `PreToolUse` protege
-  `~/.codex/memories/` y aplica effort-gate; `PostToolUse` compacta salida de herramientas.
+  `~/.codex/memories/` y corre el effort advisor; `PostToolUse` compacta salida de herramientas.
 - Fuentes oficiales: [Hooks](https://learn.chatgpt.com/docs/hooks) y
   [Memories](https://learn.chatgpt.com/docs/customization/memories), consultadas el 2026-07-27.
   El merge reemplaza solo handlers con el stem de vkm-kit y conserva cualquier hook del usuario.

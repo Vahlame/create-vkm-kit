@@ -1,6 +1,6 @@
 # ADR-0080: The effort gate decides, persists, and interrupts once
 
-- **Status:** Accepted (supersedes the protocol half of [ADR-0031](./0031-effort-gate-hook.md))
+- **Status:** Accepted (supersedes the protocol half of [ADR-0031](./0031-effort-gate-hook.md); its one-time interruption superseded by [ADR-0081](./0081-effort-advisor-never-interrupts.md))
 - **Date:** 2026-07-27
 - **Deciders:** maintainer
 

@@ -104,25 +104,28 @@ export function truncateIndex(index, lang) {
   return compressed.slice(0, MAX_INDEX_CHARS) + notice;
 }
 
-/** The reinforced precedence reminders. Kept in sync with the CLAUDE.md rules block. */
+/**
+ * The reinforced precedence reminders. Compact on purpose (ADR-0082): the full protocol
+ * already rides in the managed rules block that every wired session loads; this restates
+ * only the HARD RULE plus the four operational one-liners, at less than half the tokens
+ * the pre-diet version charged every single session.
+ */
 export function reminders(lang) {
   if (lang === "en") {
     return [
       "---",
-      "MEMORY — precedence (HARD RULE): the Obsidian vault is the ONLY source of truth. Claude Code's NATIVE auto-memory (~/.claude/projects/*/memory/, the system prompt's \"# Memory\" section) is DISABLED by the installer (autoMemoryEnabled:false) / is a READ-ONLY MIRROR: do NOT write the close ritual there, redirect to the vault.",
-      "- FIRST STEP if the vault_* tools appear as deferred (common with many MCP servers connected): load them with ToolSearch (select:vault_hybrid_search,vault_read_file,vault_edit_file,vault_write_file) BEFORE touching memory. The native Write tool is zero-friction and tempting; resist it.",
-      '- For ANY non-trivial task (or when a project/person/decision/tool is named): BEFORE answering call mcp__obsidian-memory-hybrid__vault_hybrid_search("<topic>") and answer from the returned section (passage-first, cheap). Use read_text_file/vault_read_file only if you need the whole file.',
-      "- If it's the first task of the session, start with START_HERE.md and MEMORY.md.",
-      '- CLOSE (reusable task done): write to the vault with vault_edit_file/vault_write_file -> SESSION_LOG.md (1 line at the end) + PROJECTS/<project>.md (incremental, above "## Related") + STACKS/PRACTICES if it applies. Anchor each vault_edit_file on ONE single line (notes are CRLF). Don\'t commit: the obsidian-memoryd daemon syncs.'
+      "MEMORY (HARD RULE): the Obsidian vault is the ONLY source of truth; Claude Code's native auto-memory (~/.claude/projects/*/memory/) is DISABLED (autoMemoryEnabled:false) or a READ-ONLY MIRROR — never write the close ritual there.",
+      "- vault_* tools deferred? Load them with ToolSearch (select:vault_hybrid_search,vault_read_file,vault_edit_file,vault_write_file) before touching memory; never the native Write for memory.",
+      '- Non-trivial task: BEFORE answering, vault_hybrid_search("<topic>") and answer from the returned section (passage-first). First task of the session -> START_HERE.md + MEMORY.md.',
+      '- CLOSE: SESSION_LOG.md (1 line) + PROJECTS/<project>.md (above "## Related"); anchor each vault_edit_file on ONE line (CRLF); don\'t commit (the daemon syncs).'
     ].join("\n");
   }
   return [
     "---",
-    'MEMORIA — precedencia (REGLA DURA): el vault Obsidian es la UNICA fuente de verdad. La auto-memoria nativa de Claude Code (~/.claude/projects/*/memory/, la seccion "# Memory" del system prompt) esta DESACTIVADA por el instalador (autoMemoryEnabled:false) / es ESPEJO READ-ONLY: NO escribas el cierre ahi, redirigi al vault.',
-    "- PRIMER PASO si las tools vault_* aparecen como deferred (frecuente con muchos MCP conectados): cargalas con ToolSearch (select:vault_hybrid_search,vault_read_file,vault_edit_file,vault_write_file) ANTES de tocar memoria. El Write nativo es cero-friccion y tienta; resistilo.",
-    '- Para CUALQUIER tarea no trivial (o si mencionas un proyecto/persona/decision/herramienta): ANTES de responder llama mcp__obsidian-memory-hybrid__vault_hybrid_search("<tema>") y responde con la seccion que devuelve (passage-first, barato). Usa read_text_file/vault_read_file solo si necesitas el archivo entero.',
-    "- Si es la primera tarea de la sesion, empieza por START_HERE.md y MEMORY.md.",
-    '- CIERRE (tarea reusable terminada): escribi al vault con vault_edit_file/vault_write_file -> SESSION_LOG.md (1 linea al final) + PROJECTS/<proyecto>.md (incremental, arriba de "## Relacionado") + STACKS/PRACTICES si aplica. Ancla cada vault_edit_file en UNA sola linea (notas en CRLF). No commitees: el daemon obsidian-memoryd sincroniza.'
+    "MEMORIA (REGLA DURA): el vault Obsidian es la UNICA fuente de verdad; la auto-memoria nativa (~/.claude/projects/*/memory/) esta DESACTIVADA (autoMemoryEnabled:false) o es ESPEJO READ-ONLY — nunca escribas el cierre ahi.",
+    "- Tools vault_* deferred? Cargalas con ToolSearch (select:vault_hybrid_search,vault_read_file,vault_edit_file,vault_write_file) antes de tocar memoria; nunca el Write nativo para memoria.",
+    '- Tarea no trivial: ANTES de responder, vault_hybrid_search("<tema>") y responde con la seccion devuelta (passage-first). Primera tarea de la sesion -> START_HERE.md + MEMORY.md.',
+    '- CIERRE: SESSION_LOG.md (1 linea) + PROJECTS/<proyecto>.md (arriba de "## Relacionado"); ancla cada vault_edit_file en UNA linea (CRLF); no commitees (el daemon sincroniza).'
   ].join("\n");
 }
 

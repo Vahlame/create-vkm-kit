@@ -1,4 +1,4 @@
-// vkm-kit skills + subagent installer (ADR-0049): copies the four skill directories and
+// vkm-kit skills + subagent installer (ADR-0049): copies the SKILL_NAMES directories and
 // a surface-native vkm-implementer agent into Claude Code or Codex's user scope.
 // Pure file assets — no settings.json changes — tracked by content hash through
 // `asset-install.mjs`, so uninstall never deletes a file the user customized. Skills load
@@ -19,7 +19,9 @@ export const SKILL_NAMES = [
   "vkm-spec",
   "vkm-design",
   "vkm-research",
-  "vkm-verify"
+  "vkm-verify",
+  "vkm-intake",
+  "vkm-ui-judge"
 ];
 export const AGENT_BASENAMES = ["vkm-implementer.md"];
 export const CODEX_AGENT_BASENAMES = ["vkm-implementer.toml"];

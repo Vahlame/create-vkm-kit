@@ -67,7 +67,7 @@ With Python ≥ 3.11 present, `npm run setup` installs the complete 4.0 suite in
 | **`/vkm-discipline`, `/vkm-spec`, `/vkm-design` & `/vkm-research` skills + `vkm-implementer` agent** _(Claude Code)_ | dense-code discipline + the idea→spec pipeline anchored to the vault + the anti-generic design method + consolidating `RESEARCH/` (ADR-0049, ADR-0053, ADR-0056) |
 | **vkm-spec GUI**                                                                                                     | idea to XML spec at `127.0.0.1:4923`, runs from the clone                                                                                                        |
 | **Ollama + `phi4-mini`** _(≈2.3 GB; best-effort)_                                                                    | local spec drafting; if it fails or you skip it with `--no-ollama`, vkm-spec uses its deterministic fallback (ADR-0047)                                          |
-| **Memory hooks** _(Claude Code)_                                                                                     | native auto-memory OFF + deterministic enforcement + effort-gate (ADR-0029/0030/0031)                                                                            |
+| **Memory hooks** _(Claude Code)_                                                                                     | native auto-memory OFF + deterministic enforcement + effort advisor (ADR-0029/0030/0081)                                                                         |
 
 Pieces marked _(Claude Code)_ install only if the `claude` CLI is on PATH (or you pass
 `--ide claude`). Without a kit clone, the hybrid part degrades to `basic-memory` with a warning —

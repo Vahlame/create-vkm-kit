@@ -6,7 +6,51 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **The effort gate is gone; the effort advisor never interrupts (ADR-0081).** The one-time
+  `PreToolUse` deny that ADR-0080 still carried derailed autonomous iteration loops and charged
+  a full model turn to deliver advice. `guard-effort-gate.mjs` (same filename and wiring, so
+  upgrades reconcile in place on Claude Code and Codex) now has NO code path that emits a
+  permission decision: it scores the session's work, persists the `effortLevel` it calls for
+  into `~/.claude/settings.json` — in both directions, so simple work makes the next session
+  cheap — and tells the user once per session via a `systemMessage` the model never sees (zero
+  tokens, zero pauses). Sub-agent exemption, `VKM_EFFORT_GATE=0`, `VKM_EFFORT_ALLOW_HAIKU=1`
+  and the opt-in `VKM_EFFORT_APPLY=keys` applier are unchanged.
+- **Context diet (ADR-0082): ~800 fewer input tokens on every session-turn prefix.** The
+  `memory` and `doctrine` levels of the managed rules block were compressed ~30-40% (es full
+  block 9,258 → 6,675 chars) with every load-bearing rule kept verbatim — the phrase gate in
+  `memory-rules-budget.test.mjs` proves it — and the `SessionStart` reminders dropped from
+  1,335 → 740 chars (es). Budgets and the context-budget baseline were re-cut to the new
+  sizes so the diet cannot silently revert.
+- The Bash token-saver hook now also matches `BashOutput` (background-command output — same
+  log-shaped text, same hard diagnostic-preservation guarantees). `Read`/`Grep`/`WebFetch`
+  stay deliberately uncovered: their output is content, not logs.
+
 ### Added
+
+- **`/vkm-intake` skill** — task intake before non-trivial execution: restate
+  objective/deliverable/non-goals in 3 lines, at most one closed question on ambiguity, an
+  inventory of what attached images actually show before interpreting them, and minimal
+  context assembly. Kills the "goes off on a tangent / misreads the prompt" failure mode at
+  the cheapest possible point.
+- **`/vkm-ui-judge` skill + `scripts/ui-audit.mjs`** — measured visual judgment for web UIs.
+  The bundled Playwright audit renders the live page at 3 viewports × light AND dark and
+  reports deterministic defects (computed WCAG contrast, invisible-after-theme-flip text,
+  horizontal overflow, sub-44px tap targets, missing viewport meta) as `report.json` +
+  screenshots; the loop is measure → fix by severity → re-measure, replacing slow
+  "visual thinking" that produced mediocre fixes. Static fallback documented for
+  environments without a browser.
+
+### Removed
+
+- The empty `tools/` directory (a README pointing at scripts removed in v3).
+
+### Fixed
+
+- `install.mjs`'s summary line, `--help`, READMEs, install docs and `ARCHITECTURE.md` no
+  longer describe the ADR-0031 deny-until-reply protocol that stopped existing in 5.1.0;
+  ADR-0031's references to the pre-rename package path and a deleted test file were corrected.
 
 - **Codex CLI now receives first-class parity assets.** `--ide codex` and `--full` install the
   four vkm skills under `~/.agents/skills/`, the required-key TOML `vkm-implementer` agent under

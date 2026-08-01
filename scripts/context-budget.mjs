@@ -303,7 +303,7 @@ export function measureRepo({ lang = "es" } = {}) {
     chars: reminders(lang).length,
     source: `packages/create-vkm-kit/src/hooks/session-start-vault-context.mjs:${lineOf(hookSrc, "export function reminders")}`,
     when: "always",
-    note: "Claude Code only (T2) — deliberately duplicates the rules block (ADR-0035)"
+    note: "Claude Code only (T2) — compact restatement of the hard rule (ADR-0082 diet)"
   });
   push({
     id: "session-start:index",

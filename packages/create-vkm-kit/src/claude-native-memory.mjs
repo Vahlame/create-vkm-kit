@@ -19,11 +19,11 @@
 // and a `Stop` nudge that reminds the close ritual once per turn when the session did
 // substantive file work but never touched the vault.
 //
-// ADR-0031 adds a third, independently-toggleable managed hook (on by default, `effortGate`
-// opt-out): a `PreToolUse` gate that DENIES a session's 2nd+ substantive edit until the model
-// proposed an effort level and got a real reply from the user — same "deterministic beats a
-// prose rule" reasoning, aimed at a different failure mode (the model announcing a pause and
-// not actually taking one).
+// ADR-0031→0080→0081 adds a third, independently-toggleable managed hook (on by default,
+// `effortGate` opt-out): the effort ADVISOR — a `PreToolUse` hook that scores the session's
+// work, persists the effort level it calls for into settings.json (the next session starts
+// there) and notifies the user once per session outside the model's context. It never denies
+// a tool call (ADR-0081) — the deny-based designs interrupted autonomous runs.
 //
 // Install/remove is SYMMETRIC (audit finding, 2026-07): every call to
 // `configureClaudeNativeMemory` fully reconciles the desired state — pieces that are wanted
@@ -62,10 +62,10 @@ export const GUARD_HOOK_BASENAME = `${GUARD_HOOK_STEM}.mjs`;
 export const STOP_HOOK_STEM = "stop-vault-close-reminder";
 export const STOP_HOOK_BASENAME = `${STOP_HOOK_STEM}.mjs`;
 
-/** Effort gate (ADR-0031, redesigned in ADR-0080): scores the session's work, persists the
- * effort level (and model) it calls for, and interrupts at most ONCE when the live session
- * is running at something else. Independently toggleable from the `enforce` pair above — a
- * user may want one without the other. */
+/** Effort advisor (ADR-0081; stem kept from the gate era so upgrades reconcile in place):
+ * scores the session's work, persists the effort level (and model) it calls for, and tells
+ * the USER at most once per session — never the model, never a deny. Independently
+ * toggleable from the `enforce` pair above — a user may want one without the other. */
 export const EFFORT_GATE_HOOK_STEM = "guard-effort-gate";
 export const EFFORT_GATE_HOOK_BASENAME = `${EFFORT_GATE_HOOK_STEM}.mjs`;
 

@@ -111,18 +111,19 @@ Claude Code native-memory override (when --ide includes claude):
   --no-memory-enforcement      Keep autoMemoryEnabled:false + SessionStart, skip the
                                 PreToolUse guard and Stop nudge.
 
-  Effort gate (ADR-0031, redesigned in ADR-0080; on by default with the override above,
-  independent of the enforcement pair) — right-sizes the session instead of asking you to.
-  A PreToolUse hook scores the work it can see (which files, which paths, how many, how
-  big, and which way your own words push the stakes), writes the effort level it calls for
-  into ~/.claude/settings.json so the NEXT session starts there, and interrupts AT MOST
-  ONCE — never when the session is already at the right level. The first substantive edit
-  is always free, sub-agents are exempt, and one interruption per session is a hard
-  guarantee (a sidecar file, not a transcript inference), so it cannot wedge an unattended
-  run. It never selects fable and never overrides a session already on it.
-  --effort-gate                Force the effort-gate hook on (even under --minimal).
+  Effort advisor (ADR-0081, previously the "effort gate"; on by default with the override
+  above, independent of the enforcement pair) — right-sizes your sessions WITHOUT ever
+  interrupting one. A PreToolUse hook scores the work it can see (which files, which
+  paths, how many, how big, and which way your own words push the stakes), writes the
+  effort level it calls for into ~/.claude/settings.json so the NEXT session starts there
+  — cheap when the work is simple, strong when it is not — and tells YOU once per session
+  via a status line that never reaches the model: zero tokens, zero pauses, structurally
+  incapable of blocking an autonomous run (no code path emits a permission decision).
+  The first substantive edit is always free, sub-agents are exempt, and it never selects
+  fable or overrides a session already on it.
+  --effort-gate                Force the effort-advisor hook on (even under --minimal).
   --no-effort-gate             Keep the override (+ enforcement, if on) without the
-                                effort-gate hook.
+                                effort-advisor hook.
   Runtime switches (no reinstall): VKM_EFFORT_GATE=0 disables it; VKM_EFFORT_ALLOW_HAIKU=1
   lets it propose a cheaper model, not just a stronger one; VKM_EFFORT_APPLY=keys lets it
   APPLY /model + /effort by typing them into the session — over the DevTools protocol when
@@ -132,8 +133,8 @@ Claude Code native-memory override (when --ide includes claude):
 
   Token-saver (ADR-0043, on by default when --ide includes claude) — cuts token spend
   with zero quality loss: two PostToolUse hooks compact noisy tool output before it
-  enters context (Bash: ANSI/progress/dup-line cleanup + head/tail windowing that HARD
-  preserves error/warn/fail lines; mcp__.*: whitespace-only JSON compaction) and the
+  enters context (Bash/BashOutput: ANSI/progress/dup-line cleanup + head/tail windowing
+  that HARD preserves error/warn/fail lines; mcp__.*: whitespace-only JSON compaction) and the
   vkm-terse output style (~/.claude/output-styles/vkm-terse.md, activated via the
   outputStyle setting). Runtime kill switch without uninstalling: VKM_TOKEN_SAVER=0.
   The permissions.deny rules older versions installed were retired (ADR-0043 amendment);
@@ -145,13 +146,13 @@ Claude Code native-memory override (when --ide includes claude):
 
   Codex hooks (on by default when --ide includes codex) live in ~/.codex/hooks.json:
   SessionStart injects vault context; PreToolUse protects generated local memories and
-  applies the effort gate; PostToolUse returns compacted feedback for noisy shell/MCP output.
+  runs the effort advisor; PostToolUse returns compacted feedback for noisy shell/MCP output.
   Codex does not currently support updatedMCPToolOutput, so the token-saver cannot mutate
   tool_response in place.
   --codex-hooks / --no-codex-hooks       Force on / remove all Codex-native pieces.
   --vault-context-hook / --no-vault-context-hook  Force on / remove SessionStart context.
   --memory-enforcement / --no-memory-enforcement  Also controls Codex's memory guard.
-  --effort-gate / --no-effort-gate       Also controls Codex's PreToolUse effort gate.
+  --effort-gate / --no-effort-gate       Also controls Codex's PreToolUse effort advisor.
   --token-saver / --no-token-saver       Also controls Codex's PostToolUse token-saver.
 
   Local telemetry + doctor (ADR-0044, on by default when --ide includes claude and a kit
