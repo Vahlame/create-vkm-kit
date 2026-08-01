@@ -37,6 +37,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   (through the windowless launcher, since ollama's model runners are the case ADR-0078 was
   measured against) and waits for it before pulling.
 
+- **`vkm-runhidden.exe` is now a reproducible build** (`-trimpath`, `-buildvcs=false`,
+  `-buildid=`): two builds of identical source were producing different SHA-256s, and
+  `uninstallRunHidden` deliberately removes only a byte-identical copy so it never deletes a
+  launcher the user built themselves. Harmless while clone installs produced no launcher at
+  all — and a teardown that silently leaves the file behind the moment they do.
+
 - **The close-ritual reminder never counted `vault_append_file`** — the tool the kit's own
   memory rules prescribe for the close ("Cierre = `vault_append_file` → `SESSION_LOG.md`").
   A session that closed exactly as documented was told three times that it never touched the
