@@ -26,6 +26,24 @@ export async function ollamaServing(host = OLLAMA_HOST) {
 }
 
 /**
+ * `ollama serve`, started through the windowless launcher when the install produced one.
+ *
+ * NOT `windowsHide: true` (ADR-0078): the daemon's entire job is to spawn model runners, and
+ * ollama is the case that mechanism was MEASURED against — a parent with no console gets its
+ * console-subsystem children a brand new visible one. The launcher owns a single hidden
+ * console the whole tree inherits instead. Without one (no Windows, or a checkout that could
+ * not build it) the plain spawn is the honest fallback: no flag can help there.
+ *
+ * @param {string|null} launcher absolute path to `vkm-runhidden.exe`, or null
+ */
+function spawnOllamaServer(launcher) {
+  const [bin, args] = launcher ? [launcher, ["ollama", "serve"]] : ["ollama", ["serve"]];
+  // Detached + unref'd: the daemon must outlive this installer, and `serve` never exits.
+  const child = execa(bin, args, { detached: true, stdio: "ignore", reject: false });
+  child.unref?.();
+}
+
+/**
  * Start `ollama serve` detached and wait for it to answer.
  *
  * `ollama --version` exits 0 with the daemon DOWN — it prints a warning and the version — so
@@ -36,17 +54,14 @@ export async function ollamaServing(host = OLLAMA_HOST) {
  *
  * @returns {Promise<boolean>} whether the daemon is up afterwards
  */
-export async function ensureOllamaServing({ host = OLLAMA_HOST, timeoutMs = 15000 } = {}) {
+export async function ensureOllamaServing({
+  host = OLLAMA_HOST,
+  timeoutMs = 15000,
+  launcher = null
+} = {}) {
   if (await ollamaServing(host)) return true;
   try {
-    // Detached + unref'd: the daemon must outlive this installer, and `serve` never exits.
-    const child = execa("ollama", ["serve"], {
-      detached: true,
-      stdio: "ignore",
-      windowsHide: true,
-      reject: false
-    });
-    child.unref?.();
+    spawnOllamaServer(launcher);
   } catch {
     return false;
   }
@@ -80,12 +95,14 @@ export function versionAtLeast(version, min) {
  * Ensure Ollama + the drafting model are available. Never throws; returns a status the
  * caller prints in the summary.
  * @param {boolean} dryRun
- * @param {{ enable?: boolean, platform?: string }} [opts]
+ * @param {{ enable?: boolean, platform?: string, launcher?: string|null }} [opts] - `launcher`
+ *   starts the ollama daemon through `vkm-runhidden.exe` so its model runners inherit one
+ *   hidden console instead of each allocating a visible one (ADR-0078).
  * @returns {Promise<"ready"|"pull-pending"|"restart-needed"|"manual"|"skipped"|"failed">}
  */
 export async function maybeInstallOllama(
   dryRun,
-  { enable = true, platform = process.platform } = {}
+  { enable = true, platform = process.platform, launcher = null } = {}
 ) {
   if (!enable) return "skipped";
   try {
@@ -153,9 +170,11 @@ export async function maybeInstallOllama(
     }
     // `ollama pull` talks HTTP to the daemon; a stopped daemon is the most common failure on
     // a machine that just installed ollama, and it is fixable here instead of reported.
-    if (!(await ensureOllamaServing())) {
+    if (!(await ensureOllamaServing({ launcher }))) {
       console.warn(
-        pc.yellow(`Ollama ${version} is installed but its server is not running on ${OLLAMA_HOST}.`),
+        pc.yellow(
+          `Ollama ${version} is installed but its server is not running on ${OLLAMA_HOST}.`
+        ),
         pc.dim(`Start it (\`ollama serve\`) and run: ollama pull ${OLLAMA_MODEL}`)
       );
       return "pull-pending";

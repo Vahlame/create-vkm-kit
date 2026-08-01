@@ -6,6 +6,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **A pinned `OBSCURA_VERSION` bump could never reach an existing user.** The install gate
+  was presence-only (`isRunnable(binPath)`), and the baked-in SHA-256 only ever guards a
+  DOWNLOAD — which on an upgrade is exactly what stopped happening, so every machine kept
+  its old binary through any number of reinstalls. The gate now compares the version the
+  installed binary reports, upgrades a stale copy, and — because Windows refuses to replace
+  a mapped executable while an agent session holds it — keeps the working old binary when
+  the upgrade fails instead of reporting `failed` and unwiring obscura over a transient lock.
+  A user-provided `obscura` on PATH is still respected, but only when the kit manages no copy
+  of its own; it can no longer mask a stale one.
+
+- **Installing from a CLONE wired every hook and all four MCP servers to bare `node`.**
+  `bin/` is gitignored and `files: ["bin"]` only fills it in the published tarball, so the
+  documented `--full` path (which needs a checkout for the hybrid MCP) reintroduced the
+  flashing consoles ADR-0078/v5 exists to prevent — for the users running from source, who
+  are the most likely to hit it. `installRunHidden` now builds the launcher from the checkout
+  when Go is available, and says exactly what to install when it is not.
+
+- **Codex hooks always ran through bare `node`**, so Codex kept the console flash Claude Code
+  no longer has. The launcher is now threaded into `configureCodexNative` as an INPUT (never
+  probed inside the builder — that is the impurity `mcp-merge.mjs` already paid for).
+
+- **`ollama pull` failed on any machine whose ollama daemon was not already running.**
+  `ollama --version` exits 0 with the server DOWN, so the version probe was not evidence the
+  pull could run: a fresh `winget install`, a server, or any box where the desktop app never
+  started left the pull failing with `dial tcp 127.0.0.1:11434` — which the kit reported as
+  "network/disk?", pointing the user at the wrong problem. Setup now starts the daemon
+  (through the windowless launcher, since ollama's model runners are the case ADR-0078 was
+  measured against) and waits for it before pulling.
+
+- **The close-ritual reminder never counted `vault_append_file`** — the tool the kit's own
+  memory rules prescribe for the close ("Cierre = `vault_append_file` → `SESSION_LOG.md`").
+  A session that closed exactly as documented was told three times that it never touched the
+  vault, and a guard that fires after the work is done trains the model to ignore it.
+
 ## [5.2.0] - 2026-08-01
 
 ### Changed

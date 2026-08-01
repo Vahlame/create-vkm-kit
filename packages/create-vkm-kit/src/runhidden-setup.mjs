@@ -46,11 +46,17 @@ async function buildFromCheckout(repoRoot) {
   const script = path.join(repoRoot, "scripts", "build-runhidden.mjs");
   if (!(await fse.pathExists(script))) return false;
 
-  const go = await execa("go", ["version"], { reject: false, windowsHide: true }).catch(() => null);
+  // No `windowsHide` on either spawn below, deliberately (ADR-0078): the build shells out to
+  // `go`, so CREATE_NO_WINDOW on its parent would hand that console-subsystem grandchild a
+  // brand new VISIBLE console — the exact inversion this whole subsystem exists to avoid. Both
+  // run in the terminal the user is already watching an install in, and inherit its console.
+  const go = await execa("go", ["version"], { reject: false }).catch(() => null);
   if (!go || go.failed || go.exitCode !== 0) {
     console.log(
       pc.dim("Hook launcher not packaged in this build and Go is not installed —"),
-      pc.dim("hooks and MCP servers will run through plain `node` (they flash a console on Windows).")
+      pc.dim(
+        "hooks and MCP servers will run through plain `node` (they flash a console on Windows)."
+      )
     );
     console.log(pc.dim("  Fix: install Go (https://go.dev/dl/), then re-run this installer."));
     return false;
@@ -59,14 +65,18 @@ async function buildFromCheckout(repoRoot) {
   console.log(pc.cyan("Building the windowless hook launcher from this checkout (Go) …"));
   const built = await execa(process.execPath, [script], {
     cwd: repoRoot,
-    reject: false,
-    windowsHide: true
+    reject: false
   }).catch((e) => ({ failed: true, exitCode: 1, stderr: e?.message || String(e) }));
 
   if (built.failed || built.exitCode !== 0) {
     console.warn(
       pc.yellow("Could not build the hook launcher (falling back to plain `node`):"),
-      pc.dim(String(built.stderr || "").trim().split(/\r?\n/).at(-1) || `exit ${built.exitCode}`)
+      pc.dim(
+        String(built.stderr || "")
+          .trim()
+          .split(/\r?\n/)
+          .at(-1) || `exit ${built.exitCode}`
+      )
     );
     return false;
   }

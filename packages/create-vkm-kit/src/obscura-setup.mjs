@@ -260,7 +260,10 @@ export async function maybeInstallObscura(
   // and a reinstall — the documented repair — could not move them.
   const installedVersion = await probeVer(binPath);
   if (installedVersion === OBSCURA_VERSION) {
-    console.log(pc.green("obscura already installed:"), pc.dim(`v${installedVersion} @ ${binPath}`));
+    console.log(
+      pc.green("obscura already installed:"),
+      pc.dim(`v${installedVersion} @ ${binPath}`)
+    );
     return { status: "ready", binPath };
   }
   if (installedVersion) {
@@ -319,7 +322,9 @@ export async function maybeInstallObscura(
   function keepExisting(failure) {
     if (!installedVersion) return /** @type {any} */ (failure);
     console.warn(
-      pc.yellow(`Kept the existing obscura v${installedVersion} — upgrade to v${OBSCURA_VERSION} failed.`)
+      pc.yellow(
+        `Kept the existing obscura v${installedVersion} — upgrade to v${OBSCURA_VERSION} failed.`
+      )
     );
     console.warn(
       pc.dim("  Close every agent/editor session using obscura and re-run this installer to retry.")

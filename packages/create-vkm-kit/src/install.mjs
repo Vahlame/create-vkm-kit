@@ -326,7 +326,7 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
       skills: opts.skills,
       agents: opts.agents
     });
-    if (opts.ollama) await maybeInstallOllama(dryRun, { enable: true });
+    if (opts.ollama) await maybeInstallOllama(dryRun, { enable: true, launcher });
   }
   if (ides.includes("codex")) {
     await registerCodexMcp(vault, dryRun, serverOpts);
