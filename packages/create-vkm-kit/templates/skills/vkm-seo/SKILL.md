@@ -71,7 +71,7 @@ and 6) and `references/technical-schema-ai.md` (phases 4-5 and 7-8). Load per yo
 ## Executable evidence
 
 ```bash
-node ~/.claude/skills/vkm-seo/scripts/seo-audit.mjs <url-or-file.html> [--out DIR]
+node scripts/seo-audit.mjs <url-or-file.html> [--out DIR]   # from this skill's directory
 ```
 
 Run it BEFORE the first change and AFTER the last one — same target, same flags EXCEPT

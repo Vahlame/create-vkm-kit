@@ -171,7 +171,9 @@ faithful path for exactly the subjects that made hand-plotting and forced tracin
 ## Step 3 — verify by overlay (the objective fidelity gate)
 
 Faithfulness is measured, not eyeballed: rasterize the trace and the reference's subject mask to
-the same size and compute **IoU** (intersection ÷ union). On this kit's bench, traced specimens
+the same size and compute **IoU** (intersection ÷ union). This is a MANUAL step — the bundled
+tracer prints only coverage/path-count proxies; if you cannot rasterize the overlay here, say the
+IoU gate was NOT RUN instead of quoting the proxies as if they were it. On this kit's bench, traced specimens
 scored **0.66–0.92** (tuna 0.92, trout 0.90, teapot 0.92, bee 0.85, tarpon 0.80, machaca 0.68,
 bicycle 0.66) — versus hand-plotted beziers, which share no geometry with the real subject at all.
 

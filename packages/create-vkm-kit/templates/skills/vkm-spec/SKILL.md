@@ -60,7 +60,7 @@ The two rules most drafts break:
 Run the validator on your draft (write the spec to a temp file first):
 
 ```bash
-node ~/.claude/skills/vkm-spec/scripts/validate_spec.mjs <spec-file.md>
+node scripts/validate_spec.mjs <spec-file.md>   # from this skill's directory
 ```
 
 Fix **every** error it reports before showing the spec — the errors say exactly what to

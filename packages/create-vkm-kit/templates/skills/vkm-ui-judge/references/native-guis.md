@@ -108,8 +108,11 @@ per class per context, no essays:
 Real computed-contrast checks where the OS provides them — run them when present, name
 them in the report, and skip silently to pixel judgment where they don't exist:
 
-- **Windows**: Accessibility Insights for Windows (axe-windows CLI) — automated checks
-  incl. contrast on any UIA app (WinForms, WPF, MAUI, Win32/Qt).
+- **Windows**: Accessibility Insights for Windows (axe-windows CLI) — automated UIA/
+  programmatic checks (names, patterns, bounding rectangles) on any UIA app (WinForms,
+  WPF, MAUI, Win32/Qt). It does NOT check contrast automatically: use Accessibility
+  Insights' Color Contrast Analyzer manually, or a color-picker spot check on the
+  captured screenshots — and say which one you used.
 - **macOS**: Xcode Accessibility Inspector audit on the running app.
 - **Android**: Accessibility Scanner app, or `flutter_test` guidelines for Flutter.
 - **Linux**: no mature scanner — pixel checklist + toolkit color values from the source.

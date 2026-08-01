@@ -44,8 +44,9 @@ Plain prose, no headings.>
 4. `constraints`: at least one bullet; **every** bullet carries `(source: …)` — or the
    explicit marker `(assumption)` when it's yours, so review can challenge it.
 5. `current_state`: non-empty, ≤600 characters.
-6. `acceptance_criteria`: at least two `- [ ]` boxes; none containing the vague words
-   the validator flags (`should work`, `properly`, `correctly`, `good`, `etc`).
+6. `acceptance_criteria`: at least two `- [ ]` boxes; none containing the vague terms
+   the validator flags (`should work`, `works correctly/properly/well`, standalone
+   `properly`, `etc`).
 
 ## Hand-off wrapper (Step 5, "run it elsewhere")
 

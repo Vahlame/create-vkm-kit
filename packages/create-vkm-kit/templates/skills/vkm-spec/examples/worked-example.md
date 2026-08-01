@@ -69,7 +69,7 @@ compact (ADR-0034) and must stay so.
 ## Step 3 — validator run (real output shape)
 
 ```text
-$ node ~/.claude/skills/vkm-spec/scripts/validate_spec.mjs /tmp/spec-synonyms.md
+$ node scripts/validate_spec.mjs /tmp/spec-synonyms.md   # from the skill's directory
 vkm-spec validate: 4 requirements, 4 constraints (1 assumption), 3 criteria
 OK — all checks passed
 ```

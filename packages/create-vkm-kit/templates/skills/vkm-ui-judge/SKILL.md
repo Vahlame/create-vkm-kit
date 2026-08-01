@@ -39,7 +39,7 @@ Web), prefer running THAT through Route A for the automated pass, then spot-chec
 **2. Run the audit — this replaces the "visual thinking" phase entirely:**
 
 ```bash
-node ~/.claude/skills/vkm-ui-judge/scripts/ui-audit.mjs <url-or-file.html> --out ./ui-audit
+node scripts/ui-audit.mjs <url-or-file.html> --out ./ui-audit   # from this skill's directory
 ```
 
 It renders the page at 360×740, 768×1024 and 1440×900, in **both** `prefers-color-scheme`

@@ -131,8 +131,9 @@ first pick the right technique for the subject (trace a reference, treat a photo
 library, or hand-draw only if it's abstract/authored), because **hand-plotting bézier coordinates
 cannot depict a complex real subject faithfully** — a model emits the category average, so "a
 fish" comes out a generic fish. Two real tools do the faithful work:
-[`scripts/trace-svg.mjs`](scripts/trace-svg.mjs) turns a clean reference into a vector (fidelity
-verified by IoU overlay, not by eye), and [`scripts/treat-photo.mjs`](scripts/treat-photo.mjs)
+[`scripts/trace-svg.mjs`](scripts/trace-svg.mjs) turns a clean reference into a vector (it prints
+coverage/path-count proxies; the IoU overlay of illustration.md Step 3 is a separate, manual
+gate — run it or say NOT RUN), and [`scripts/treat-photo.mjs`](scripts/treat-photo.mjs)
 duotone/halftone/cutout-treats a real photo when there's no clean line to trace — faithful because
 it IS the photo, stylized so it reads as one system.
 [`examples/illustration-gallery.md`](examples/illustration-gallery.md) runs the technique choice

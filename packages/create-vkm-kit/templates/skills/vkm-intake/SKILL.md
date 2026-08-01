@@ -10,9 +10,9 @@ Installed by create-vkm-kit (vkm-kit). One job: **kill the three cheapest ways a
 tokens and quality — misreading the prompt, misreading the attachments, and over-assembling
 context** — by spending ~10 lines before the first tool call instead of thousands after it.
 
-The failure this prevents, in the user's own words: on simple tasks the model "goes off on
-tangents, misinterprets the prompt or the images, or assembles the wrong context" — and the
-result is slow AND mediocre. Interpretation errors compound; everything downstream of a wrong
+The failure this prevents (observed in field use of this kit): on simple tasks the model
+goes off on tangents, misinterprets the prompt or the images, or assembles the wrong
+context — and the result is slow AND mediocre. Interpretation errors compound; everything downstream of a wrong
 restatement is waste.
 
 ## The move — before the first tool call
@@ -35,9 +35,11 @@ stop until answered. If the readings differ only in detail, pick the most reason
 codebase or the vault can answer — look them up.
 
 **3. Images and screenshots: inventory before interpreting.** When the prompt includes an
-image, list what is _actually visible_ before drawing any conclusion: the elements, the exact
-text (mark illegible text as illegible — never guess it), the state shown (error? empty?
-hover?), and what the user is pointing at. Interpretation comes only from that inventory. A
+image, list what is _actually visible_ before drawing any conclusion: the elements, verbatim
+only the text the task turns on (error messages, labels the user points at — mark illegible
+text as illegible, never guess it; summarize the rest by element), the state shown (error?
+empty? hover?), and what the user is pointing at. The inventory stays inside the ~10-line
+intake budget. Interpretation comes only from that inventory. A
 screenshot of a UI bug names the _symptom_; the inventory keeps you from fixing a different
 one.
 
