@@ -1,52 +1,44 @@
 #!/usr/bin/env node
 /**
- * Claude Code `PreToolUse` hook — picks the effort level (and model) this session's work
- * actually calls for, PERSISTS it, and interrupts ONCE when the live session is running
- * at something else.
+ * Claude Code `PreToolUse` hook — the EFFORT ADVISOR. Scores the effort level (and model)
+ * this session's work actually calls for, PERSISTS it for the next session, and tells the
+ * USER once — without ever blocking a tool call or spending a single model token.
  *
- * # What changed, and why (ADR-0080, superseding the ADR-0031 protocol)
+ * # What changed, and why (ADR-0081, superseding the ADR-0080 interruption)
  *
- * The first version asked the MODEL to print a `[!] EFFORT RECOMMENDATION` block and
- * denied every substantive edit until a real user turn followed it. Two things were wrong
- * with that:
+ * Two designs came before this one, and both interrupted:
  *
- *   1. It made the user do the thinking twice — read a proposal, then type `/effort x`.
- *   2. It could WEDGE an autonomous session. The gate opened only when the block parsed
- *      and matched, so any drift in how the model phrased it left the session denied
- *      forever with no user around to reply. Recorded three times in KNOWN_FAILURES
- *      (2026-07-11, 07-19, 07-25) before this rewrite, and once more while writing it.
+ *   1. ADR-0031 denied every substantive edit until the model printed a recommendation
+ *      block and a real user turn followed. It wedged four autonomous sessions.
+ *   2. ADR-0080 made the hook decide for itself, but still spent its decision as ONE
+ *      `permissionDecision: "deny"` — a full extra model turn, reprocessed as input on
+ *      every later turn, and a hard stop in the middle of autonomous iteration loops.
  *
- * Now the hook decides for itself from what it can actually observe, writes the decision
- * where Claude Code will pick it up, and interrupts AT MOST ONCE per session — so a
- * missed signal costs one paragraph of text, never a stuck session.
+ * Field verdict on #2: the one interruption still breaks autonomous flows (a denied edit
+ * mid-loop derails the iteration even when the retry proceeds), and its token cost is the
+ * opposite of what a cost-calibration hook should charge. So the deny is gone entirely.
  *
- * # What the API allows (measured 2026-07-27, not assumed)
+ * What remains is every channel that saves money WITHOUT a pause:
  *
- *   - `effort.level` arrives on this hook's stdin payload — the level the model ACTUALLY
- *     ran at (downgraded if the model does not support the requested one). `$CLAUDE_EFFORT`
- *     carries the same value and is the fallback for older builds.
- *   - Writing `effortLevel` into `~/.claude/settings.json` does NOT change the running
- *     session. Probed with a temporary PostToolUse hook: after setting `max`, four
- *     consecutive tool calls still reported `xhigh`. It is documented as persistence
- *     ("Persist the effort level across sessions"), and that is exactly how it is used
- *     here — the NEXT session starts where this one concluded it should have been.
- *   - The model cannot be switched from a hook at all: `model` is read once at session
- *     start, `/model` is the mid-session switch, and there is no `$CLAUDE_MODEL`. Only a
- *     `SessionStart` hook even RECEIVES the model, which is why the sibling
- *     `session-start-vault-context.mjs` records it in the sidecar this file reads.
- *
- * So "apply it automatically" means: persist both for the next session, and surface the
- * one-line command that applies them now. Anything else would be a hook claiming an
- * effect it does not have — the failure mode this kit exists to prevent.
+ *   - `effortLevel` persisted into `~/.claude/settings.json` — the documented purpose of
+ *     that key. A session doing prose and small edits concludes `low`, and the NEXT
+ *     session simply starts there. This is the savings channel, and it needs no one.
+ *   - A one-per-session `systemMessage` — rendered to the USER, never sent to the model.
+ *     Zero tokens, zero interruption; the user applies `/effort` / `/model` if they agree.
+ *   - The opt-in typing applier (`VKM_EFFORT_APPLY=keys`), unchanged: it types the
+ *     commands into the session when the Claude window is frontmost, retrying on later
+ *     edits until it lands.
  *
  * # Guarantees
  *
- *   - The first substantive edit of a session is always free.
- *   - AT MOST ONE interruption per session (a sidecar file under `~/.vkm/effort-gate/`
- *     records it), whatever happens afterwards. No transcript parsing decides this.
- *   - Never fires inside a sub-agent (`agent_id` present) — a sub-agent cannot answer.
- *   - Never recommends `fable`, and never touches the model of a session already on it:
- *     that is a deliberate choice by the user, not a default to correct.
+ *   - NEVER denies, defers or delays a tool call. There is no code path that emits a
+ *     `permissionDecision` — autonomous sessions cannot be interrupted by this hook.
+ *   - AT MOST ONE user notice per session (sidecar under `~/.vkm/effort-gate/`).
+ *   - Never fires inside a sub-agent (`agent_id` present).
+ *   - Never recommends `fable`, and never touches the model of a session already on it.
+ *   - Model downgrades (to `haiku`) are opt-in via `VKM_EFFORT_ALLOW_HAIKU=1`; effort
+ *     moves in BOTH directions by default — that is where the savings live, and a wrong
+ *     `effortLevel` is a one-command fix, not a wrong answer.
  *   - Kill switch without uninstalling: `VKM_EFFORT_GATE=0`.
  *   - Never throws. Any error path falls through to the normal permission flow.
  *
@@ -104,8 +96,7 @@ const LEVEL_SET = new Set(LEVELS);
  *
  * The payload's `effort.level` is authoritative — it reports the level after any downgrade
  * the current model forced, which is the number a recommendation must be compared against.
- * `CLAUDE_EFFORT` is the fallback for builds that predate the payload field, and the env
- * var alone is what the old version read (its absence is what made the gate nag).
+ * `CLAUDE_EFFORT` is the fallback for builds that predate the payload field.
  *
  * @param {object} [input] the hook's stdin payload
  * @param {NodeJS.ProcessEnv} [env]
@@ -240,8 +231,8 @@ export function scanTranscript(transcriptPath) {
 
 /**
  * Score the session's work, 0 (trivial) upward. Deterministic and explainable: every
- * component returns a reason string, so the interruption can say WHY instead of asserting
- * a level. Bounded, cheap, and no model call — this runs on every edit.
+ * component returns a reason string, so the notice can say WHY instead of asserting a
+ * level. Bounded, cheap, and no model call — this runs on every edit.
  *
  * @param {{files?: string[], currentFile?: string, editChars?: number, stakes?: number,
  *   substantiveBefore?: number}} facts
@@ -309,9 +300,9 @@ export function levelForScore(score) {
  * it is actually running.
  *
  * The model recommendation is deliberately conservative: it only ever names a model when
- * the current one is KNOWN (a guess is not worth an interruption), never names `fable`,
- * never overrides a session already on `fable`, and never proposes a downgrade unless the
- * user opted into that with `VKM_EFFORT_ALLOW_HAIKU=1`.
+ * the current one is KNOWN (a guess is not worth a notice), never names `fable`, never
+ * overrides a session already on `fable`, and never proposes a downgrade unless the user
+ * opted into that with `VKM_EFFORT_ALLOW_HAIKU=1`.
  *
  * @returns {{effort: string, why: string[], model: string|null, currentModel: string|null}}
  */
@@ -336,9 +327,9 @@ export function recommend(facts, { currentModel = null, env = process.env } = {}
  * session start. Read-modify-write through a temp file so a half-written settings.json
  * can never exist, and never touching a key we did not decide.
  *
- * `model` is written only when the caller says so (i.e. only alongside an interruption the
- * user can see) — a hook silently changing which model the next session runs is exactly
- * the kind of invisible action this kit refuses to take.
+ * `model` is written only when the caller says so (i.e. only alongside a notice the user
+ * can see) — a hook silently changing which model the next session runs is exactly the
+ * kind of invisible action this kit refuses to take.
  *
  * @returns {string[]} the keys actually changed
  */
@@ -367,90 +358,36 @@ export function persistDecision({ effort, model }, home = os.homedir()) {
 }
 
 /**
- * The one-time interruption text, marked `[vkm-effort]` so it is recognizable in a
- * transcript.
- *
- * It is written as a LADDER, most-automatic first, because no hook can change a running
- * session's model or effort — verified against the hooks reference and measured here
- * (see the header). What a hook CAN do is put the work on the right model:
- *
- *   1. delegate this edit to a sub-agent pinned to that model — real, live, and needs
- *      nobody: a sub-agent runs on the model the Task/Agent call names;
- *   2. the user types `/model` + `/effort` once and the whole session moves;
- *   3. the decision is already persisted, so the NEXT session simply starts there.
- *
- * Rung 1 is what makes this useful in an unattended session; rung 3 is what makes it
- * useful when nobody reads the message at all.
+ * The one-per-session notice shown to the USER (`systemMessage`), which never reaches the
+ * model: zero tokens, zero interruption. It names the level, the reason and the one
+ * command that applies it — everything the old deny said, minus the stop.
  */
-export function reason(lang, { effort, current, model, currentModel, why, persisted }) {
-  const apply = [
-    model ? `/model ${model}` : null,
-    effort !== current ? `/effort ${effort}` : null
-  ].filter(Boolean);
+export function userNotice(lang, { effort, current, model, why, persisted }) {
+  const apply = [model ? `/model ${model}` : null, `/effort ${effort}`]
+    .filter(Boolean)
+    .join("  ·  ");
   const because = why.length
     ? why.join(", ")
     : lang === "en"
       ? "routine change"
       : "cambio rutinario";
-
   if (lang === "en") {
     return (
-      "[vkm-effort] One-time calibration for this session.\n" +
-      `The work so far (${because}) calls for /effort ${effort}` +
+      `vkm: this session's work (${because}) reads as /effort ${effort}` +
       (model ? ` on ${model}` : "") +
-      `; the session is running /effort ${current ?? "unknown"}` +
-      (currentModel ? ` on ${currentModel}` : "") +
-      ".\n" +
-      (model
-        ? `APPLY IT NOW, without waiting for anyone: redo this edit through a sub-agent ` +
-          `pinned to that model (Task/Agent with model: "${model}") — a hook cannot switch ` +
-          `the session's own model, but the sub-agent genuinely runs on the one it is given.\n`
-        : "") +
-      (apply.length ? `For the WHOLE session, the user types: ${apply.join("  ·  ")}\n` : "") +
+      `; running ${current ?? "unknown"}. Apply now: ${apply}` +
       (persisted.length
-        ? `Already persisted, so the next session starts there (${persisted.join(", ")} in ` +
-          "~/.claude/settings.json).\n"
-        : "") +
-      "Then stop calling tools this turn and let the user answer. This is the ONLY effort " +
-      "pause of the session — retrying always proceeds."
+        ? ` (saved as your default for next sessions: ${persisted.join(", ")})`
+        : "")
     );
   }
   return (
-    "[vkm-effort] Calibración única de esta sesión.\n" +
-    `El trabajo hecho hasta acá (${because}) pide /effort ${effort}` +
+    `vkm: el trabajo de esta sesión (${because}) da /effort ${effort}` +
     (model ? ` con ${model}` : "") +
-    `; la sesión corre /effort ${current ?? "desconocido"}` +
-    (currentModel ? ` con ${currentModel}` : "") +
-    ".\n" +
-    (model
-      ? `APLICALO YA, sin esperar a nadie: rehacé este edit con un sub-agente fijado a ese ` +
-        `modelo (Task/Agent con model: "${model}") — un hook no puede cambiar el modelo de la ` +
-        `sesión, pero el sub-agente sí corre en el que se le pasa.\n`
-      : "") +
-    (apply.length ? `Para TODA la sesión, el usuario escribe: ${apply.join("  ·  ")}\n` : "") +
+    `; corre en ${current ?? "desconocido"}. Aplicalo ya: ${apply}` +
     (persisted.length
-      ? `Ya quedó persistido, así que la próxima sesión arranca ahí (${persisted.join(", ")} en ` +
-        "~/.claude/settings.json).\n"
-      : "") +
-    "Después parate: no llames más herramientas este turno y dejá responder al usuario. Es la " +
-    "ÚNICA pausa por esfuerzo de la sesión — al reintentar, sigue."
-  );
-}
-
-/** Short line shown to the USER (systemMessage), which never reaches the model. */
-export function userNotice(lang, { effort, model, persisted }) {
-  const bits = [`/effort ${effort}`, model ? `/model ${model}` : null]
-    .filter(Boolean)
-    .join("  ·  ");
-  if (lang === "en") {
-    return (
-      `vkm: this session's work reads as ${effort}${model ? ` / ${model}` : ""}. Apply now: ${bits}` +
-      (persisted.length ? ` (saved as your default: ${persisted.join(", ")})` : "")
-    );
-  }
-  return (
-    `vkm: el trabajo de esta sesión da ${effort}${model ? ` / ${model}` : ""}. Aplicalo ya: ${bits}` +
-    (persisted.length ? ` (guardado como tu default: ${persisted.join(", ")})` : "")
+      ? ` (guardado como default de próximas sesiones: ${persisted.join(", ")})`
+      : "")
   );
 }
 
@@ -531,23 +468,23 @@ export function main(home = os.homedir()) {
 
   const toolName = typeof input?.tool_name === "string" ? input.tool_name : "";
   if (!SUBSTANTIVE_TOOLS.test(toolName)) return;
-  if (typeof input?.agent_id === "string" && input.agent_id) return; // sub-agent: cannot answer
+  if (typeof input?.agent_id === "string" && input.agent_id) return; // sub-agent: advise the parent, not the child
 
   const transcriptPath = typeof input?.transcript_path === "string" ? input.transcript_path : "";
-  if (!transcriptPath) return; // nothing to judge from — fail open
+  if (!transcriptPath) return; // nothing to judge from
 
-  // No session id, no persistence and no pause. Claude Code always sends one; a payload
+  // No session id, no persistence and no notice. Claude Code always sends one; a payload
   // without it is a harness or a malformed call, and "once per session" is meaningless
   // when every caller shares the same bucket. Caught for real: the first run of the test
-  // suite against this rewrite wrote `effortLevel` into the developer's own settings.json
-  // through a fixture that never set `session_id`.
+  // suite against an earlier rewrite wrote `effortLevel` into the developer's own
+  // settings.json through a fixture that never set `session_id`.
   const sessionId = typeof input?.session_id === "string" ? input.session_id.trim() : "";
   if (!sessionId) return;
   const state = readSessionState(sessionId, home);
 
   // A decision made while the user was in another window is not lost: retry it here, on
   // an edit they are not typing through, until it lands or the attempts run out. This is
-  // the whole "without you having to do anything" half of the feature — the pause below
+  // the "without you having to do anything" half of the feature — the notice below
   // happens once, this keeps working afterwards.
   if (state.pendingApply && (state.applyAttempts ?? 0) < MAX_APPLY_ATTEMPTS) {
     const attempts = (state.applyAttempts ?? 0) + 1;
@@ -561,7 +498,7 @@ export function main(home = os.homedir()) {
     );
   }
 
-  if (state.paused) return; // one interruption per session, and it already happened
+  if (state.noticed || state.paused) return; // one notice per session, and it already happened
 
   const { substantiveBefore, files, stakes } = scanTranscript(transcriptPath);
   if (substantiveBefore === 0) return; // first substantive edit is always free
@@ -579,18 +516,18 @@ export function main(home = os.homedir()) {
   const { effort, model, why } = recommend(facts, { currentModel });
 
   // Effort matches and there is no model to propose: nothing to say. The common case, and
-  // it must cost nothing — no write, no output, no pause.
+  // it must cost nothing — no write, no output.
   if (effort === current && !model) return;
 
-  // The model is only ever persisted together with a visible interruption (see
-  // persistDecision); the effort level rides along because the user is being told anyway.
+  // The model is only ever persisted together with a visible notice (see persistDecision);
+  // the effort level rides along because the user is being told anyway.
   const persisted = persistDecision({ effort, model }, home);
   const wantTyping = process.env.VKM_EFFORT_APPLY === "keys";
   const applied = wantTyping ? applyByTyping({ effort, model, home }) : "off";
   writeSessionState(
     sessionId,
     {
-      paused: true,
+      noticed: true,
       effort,
       model: state.model ?? null,
       // Anything but a landed keystroke stays queued for the next edit to retry.
@@ -600,21 +537,12 @@ export function main(home = os.homedir()) {
     home
   );
 
+  // `systemMessage` renders to the user and is NEVER sent to the model: the advice costs
+  // zero tokens and can never interrupt an autonomous loop. There is deliberately no
+  // `hookSpecificOutput` here — this hook has no permission opinion.
   process.stdout.write(
     JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: "PreToolUse",
-        permissionDecision: "deny",
-        permissionDecisionReason: reason(lang, {
-          effort,
-          current,
-          model,
-          currentModel,
-          why,
-          persisted
-        })
-      },
-      systemMessage: userNotice(lang, { effort, model, persisted })
+      systemMessage: userNotice(lang, { effort, current, model, why, persisted })
     })
   );
 }

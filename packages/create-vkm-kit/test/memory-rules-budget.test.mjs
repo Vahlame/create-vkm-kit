@@ -31,18 +31,20 @@ import {
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
 /**
- * Per-level budgets, measured 2026-07-25 (ADR-0067):
- *   core 1,181 (es) / 1,165 (en) · memory 4,593 / 4,482 · doctrine 3,141 / 2,967
+ * Per-level budgets, re-cut after the 2026-08-01 token diet (ADR-0082):
+ *   core 1,181 (es) / 1,165 (en) · memory 3,248 / 3,247 · doctrine 1,936 / 1,823
  *
  * `core` is the strict one — 1,200 — because it is the only level nobody can opt out
  * of. Anything that wants in has to displace something already there, which is the
  * whole point: the test of membership is "does its absence make the kit unsafe or
- * dishonest?", not "is it good advice?".
+ * dishonest?", not "is it good advice?". `memory` and `doctrine` were compressed ~30-40%
+ * with every load-bearing rule kept; the tightened ceilings are what keeps the diet from
+ * silently reverting.
  */
 const BUDGET = {
   core: { es: 1200, en: 1200 },
-  memory: { es: 4800, en: 4700 },
-  doctrine: { es: 3300, en: 3150 }
+  memory: { es: 3400, en: 3400 },
+  doctrine: { es: 2050, en: 1950 }
 };
 
 /**

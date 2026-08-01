@@ -7,6 +7,7 @@ Todo lo de este capítulo vive en **`main`**: no hay rama separada para “v3”
 **v3** nombra el **modelo de envío del kit** a partir de esta línea base:
 
 - El repositorio **ya no incluye** plantillas **PowerShell** ni **`.vbs`** bajo `scripts/windows/` ni scripts de conveniencia bajo `tools/*.ps1` para la integración del usuario final en Windows.
+- El directorio `tools/` (que quedó solo con un README histórico) se eliminó por completo en v5.
 - La integración **avanzada** que la guía ya perseguía (MCP estable, git al vault, FTS opcional, HTTP opcional) se hace con **`uvx`**, el **daemon Go** `obsidian-memoryd`, **plantillas JSON** (`config/mcp/*.json`), el **inicializador** npm y **procedimiento documentado** — sin acoplar la historia a ficheros `.ps1` copiables desde este repo.
 
 **v3 no cambia el protocolo de memoria** (Markdown + MCP + git en tu vault). Cambia **qué artefactos** promete y copia el kit público.

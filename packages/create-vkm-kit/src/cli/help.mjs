@@ -111,18 +111,19 @@ Claude Code native-memory override (when --ide includes claude):
   --no-memory-enforcement      Keep autoMemoryEnabled:false + SessionStart, skip the
                                 PreToolUse guard and Stop nudge.
 
-  Effort gate (ADR-0031, redesigned in ADR-0080; on by default with the override above,
-  independent of the enforcement pair) — right-sizes the session instead of asking you to.
-  A PreToolUse hook scores the work it can see (which files, which paths, how many, how
-  big, and which way your own words push the stakes), writes the effort level it calls for
-  into ~/.claude/settings.json so the NEXT session starts there, and interrupts AT MOST
-  ONCE — never when the session is already at the right level. The first substantive edit
-  is always free, sub-agents are exempt, and one interruption per session is a hard
-  guarantee (a sidecar file, not a transcript inference), so it cannot wedge an unattended
-  run. It never selects fable and never overrides a session already on it.
-  --effort-gate                Force the effort-gate hook on (even under --minimal).
+  Effort advisor (ADR-0081, previously the "effort gate"; on by default with the override
+  above, independent of the enforcement pair) — right-sizes your sessions WITHOUT ever
+  interrupting one. A PreToolUse hook scores the work it can see (which files, which
+  paths, how many, how big, and which way your own words push the stakes), writes the
+  effort level it calls for into ~/.claude/settings.json so the NEXT session starts there
+  — cheap when the work is simple, strong when it is not — and tells YOU once per session
+  via a status line that never reaches the model: zero tokens, zero pauses, structurally
+  incapable of blocking an autonomous run (no code path emits a permission decision).
+  The first substantive edit is always free, sub-agents are exempt, and it never selects
+  fable or overrides a session already on it.
+  --effort-gate                Force the effort-advisor hook on (even under --minimal).
   --no-effort-gate             Keep the override (+ enforcement, if on) without the
-                                effort-gate hook.
+                                effort-advisor hook.
   Runtime switches (no reinstall): VKM_EFFORT_GATE=0 disables it; VKM_EFFORT_ALLOW_HAIKU=1
   lets it propose a cheaper model, not just a stronger one; VKM_EFFORT_APPLY=keys lets it
   APPLY /model + /effort by typing them into the session — over the DevTools protocol when
@@ -132,8 +133,8 @@ Claude Code native-memory override (when --ide includes claude):
 
   Token-saver (ADR-0043, on by default when --ide includes claude) — cuts token spend
   with zero quality loss: two PostToolUse hooks compact noisy tool output before it
-  enters context (Bash: ANSI/progress/dup-line cleanup + head/tail windowing that HARD
-  preserves error/warn/fail lines; mcp__.*: whitespace-only JSON compaction) and the
+  enters context (Bash/BashOutput: ANSI/progress/dup-line cleanup + head/tail windowing
+  that HARD preserves error/warn/fail lines; mcp__.*: whitespace-only JSON compaction) and the
   vkm-terse output style (~/.claude/output-styles/vkm-terse.md, activated via the
   outputStyle setting). Runtime kill switch without uninstalling: VKM_TOKEN_SAVER=0.
   The permissions.deny rules older versions installed were retired (ADR-0043 amendment);
@@ -145,13 +146,13 @@ Claude Code native-memory override (when --ide includes claude):
 
   Codex hooks (on by default when --ide includes codex) live in ~/.codex/hooks.json:
   SessionStart injects vault context; PreToolUse protects generated local memories and
-  applies the effort gate; PostToolUse returns compacted feedback for noisy shell/MCP output.
+  runs the effort advisor; PostToolUse returns compacted feedback for noisy shell/MCP output.
   Codex does not currently support updatedMCPToolOutput, so the token-saver cannot mutate
   tool_response in place.
   --codex-hooks / --no-codex-hooks       Force on / remove all Codex-native pieces.
   --vault-context-hook / --no-vault-context-hook  Force on / remove SessionStart context.
   --memory-enforcement / --no-memory-enforcement  Also controls Codex's memory guard.
-  --effort-gate / --no-effort-gate       Also controls Codex's PreToolUse effort gate.
+  --effort-gate / --no-effort-gate       Also controls Codex's PreToolUse effort advisor.
   --token-saver / --no-token-saver       Also controls Codex's PostToolUse token-saver.
 
   Local telemetry + doctor (ADR-0044, on by default when --ide includes claude and a kit
@@ -167,13 +168,22 @@ Claude Code native-memory override (when --ide includes claude):
   (professional anti-generic design: direction before pixels, computed checks, visual
   loop), /vkm-research (consolidate a RESEARCH/<topic> bank into a quality summary.md,
   wikilinks + supersedes), /vkm-verify (prove a green check ran, covered the change and
-  can fail — negative control via prove-it.mjs), and the vkm-implementer agent template.
-  Claude uses ~/.claude/skills + ~/.claude/agents/vkm-implementer.md; Codex uses
+  can fail — negative control via prove-it.mjs), /vkm-intake (restate objective/
+  deliverable/non-goals + image inventory + minimal context BEFORE executing), /vkm-ui-judge
+  (measured GUI judgment: live-page Playwright audit for web, flutter_test a11y gates for
+  Flutter, screenshot-evidence loop for other native UIs), /vkm-seo (measurable SEO:
+  semantic query-family coverage + static before/after audit via seo-audit.mjs), and the
+  vkm-implementer agent
+  template. Claude uses ~/.claude/skills + ~/.claude/agents/vkm-implementer.md; Codex uses
   ~/.agents/skills + ~/.codex/agents/vkm-implementer.toml. Hash-tracked files; uninstall
   never deletes one you edited. Which one fits which situation: docs/en/skills-guide.md
   (ES: docs/es/guia-de-skills.md).
-  --skills / --no-skills       Force on / remove the five skills.
+  --skills / --no-skills       Force on / remove the eight skills.
   --agents / --no-agents       Force on / remove the subagent template.
+  --skills-dir <path>          ALSO copy the skills into any other client's skills folder
+                                (Kimi Code, opencode, ...) — additive, independent of
+                                --ide; plain markdown + portable Node scripts. Re-run with
+                                the same path to update; user-edited files are kept.
 
   Obscura web (ADR-0051, opt-in via --obscura or --full) — routes web access through the
   local obscura headless browser (anti-detection) instead of the native tools: an MCP

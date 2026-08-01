@@ -170,10 +170,14 @@ export async function configureTokenSaver(home, dryRun, { hooks = true, terseSty
       merged.hooks && typeof merged.hooks === "object" && !Array.isArray(merged.hooks);
     let hookMap = hadHooks ? /** @type {Record<string, unknown>} */ (merged.hooks) : {};
     if (hooks) {
+      // `BashOutput` (background-command output) carries the same log-shaped text as
+      // `Bash`, so the same compactor with the same diagnostic guarantees applies.
+      // Read/Grep/WebFetch are deliberately NOT matched: their output is content, not
+      // logs — head/tail windowing could cut exactly what the model needs (quality > savings).
       hookMap = mergeManagedHook(
         hookMap,
         "PostToolUse",
-        "Bash",
+        "Bash|BashOutput",
         compactHookCommand(bashHookDest, interpreter),
         COMPACT_BASH_HOOK_STEM
       );

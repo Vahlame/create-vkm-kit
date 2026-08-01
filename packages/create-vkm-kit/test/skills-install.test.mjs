@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import {
   configureSkillAssets,
+  installSkillsInto,
   uninstallSkillAssets,
   skillAssetFiles,
   SKILL_NAMES
@@ -84,4 +85,24 @@ test("dry-run writes nothing", async () => {
   const home = tempHome();
   await configureSkillAssets(home, true);
   assert.equal(fs.existsSync(path.join(home, ".claude")), false);
+});
+
+test("installSkillsInto lands every skill in an arbitrary client dir; idempotent", async () => {
+  // The Kimi Code / opencode compatibility path: no --ide, just a folder.
+  const dir = path.join(tempHome(), "kimi", "skills");
+  await installSkillsInto(dir, false);
+  await installSkillsInto(dir, false);
+  for (const name of SKILL_NAMES) {
+    assert.ok(fs.existsSync(path.join(dir, name, "SKILL.md")), `${name} missing in ${dir}`);
+  }
+  assert.ok(
+    fs.existsSync(path.join(dir, "vkm-ui-judge", "scripts", "ui-audit.mjs")),
+    "bundled scripts must travel with the skill"
+  );
+});
+
+test("installSkillsInto dry-run writes nothing", async () => {
+  const dir = path.join(tempHome(), "other-agent-skills");
+  await installSkillsInto(dir, true);
+  assert.equal(fs.existsSync(dir), false);
 });

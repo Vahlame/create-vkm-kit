@@ -187,7 +187,7 @@ mindmap
     Enforcement — determinista
       guard de escritura a memoria nativa
       recordatorio Stop del cierre
-      effort gate
+      effort advisor
       hooks token-saver
     Web — opt-in
       obscura-web: 8 tools sigilosas

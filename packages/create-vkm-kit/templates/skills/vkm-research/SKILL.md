@@ -64,7 +64,7 @@ claim — never silently drop the old one. What makes each axis good vs decorati
 ### Step 4 — Validate, mechanically
 
 ```bash
-node ~/.claude/skills/vkm-research/scripts/validate_summary.mjs <summary.md> --sources <sources-dir>
+node scripts/validate_summary.mjs <summary.md> --sources <sources-dir>   # from this skill's directory
 ```
 
 It rejects promoted drafts by their seams (`---` separators, `## <file>.md` headings,
@@ -83,7 +83,7 @@ from the per-topic hub. This skill writes `summary.md` directly and never calls 
 silently keeps reporting this topic as un-summarized:
 
 ```bash
-node ~/.claude/skills/vkm-research/scripts/refresh_index.mjs "$OBSCURA_RESEARCH_DIR"
+node scripts/refresh_index.mjs "$OBSCURA_RESEARCH_DIR"   # from this skill's directory
 ```
 
 ## Import mode (external reports)

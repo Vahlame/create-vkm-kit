@@ -14,7 +14,7 @@ Load this when the task is to find, fetch, or research something on the web. The
   queries **concise (keywords, not sentences)**. **Best backend: a local SearXNG** (structured JSON,
   aggregates many engines, no rate-limit); if it's installed, `obscura_search` starts it **on demand**,
   uses it (`source: "searxng"`), and stops it when idle — nothing to turn on. Setup:
-  `packages/obscura-web/searxng/README.md`. Without it, DuckDuckGo is the default and rate-limits rapid
+  `packages/obscura-web/searxng/README.md` (a path inside the vkm-kit repo clone, not this skill). Without it, DuckDuckGo is the default and rate-limits rapid
   bursts → space them or expect the native fallback.
 - If obscura isn't installed, both tools say so and you fall back to native WebFetch/WebSearch — search
   still happens, just without the stealth layer.

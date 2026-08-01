@@ -58,6 +58,7 @@ import { flagValue } from "../mcp-merge.mjs";
  * @property {string|null} searxngUrl
  * @property {string} researchDir
  * @property {string|null} downloadDir
+ * @property {string|null} skillsDir
  * @property {string[]} ruleTargets
  * @property {import("../memory-rules.mjs").RulesProfile} rulesProfile
  */
@@ -162,6 +163,9 @@ export function resolveOptions(argv, ctx) {
     // RESEARCH/ persistence root defaults to <vault>/RESEARCH (ADR-0056).
     researchDir: flagValue(argv, "--obscura-research-dir") || `${vault}/RESEARCH`,
     downloadDir: flagValue(argv, "--download-dir"),
+    // Compatibility escape hatch: install the skills into ANY client's skills folder
+    // (Kimi Code, opencode, ...) — additive, independent of the --ide list.
+    skillsDir: flagValue(argv, "--skills-dir"),
     // Rules ship by default too (part of "everything"); --no-rules / --minimal opt out.
     ruleTargets: rulesTargets(argv, ides, { full: !minimal }),
     rulesProfile: rulesProfile(argv, { minimal })

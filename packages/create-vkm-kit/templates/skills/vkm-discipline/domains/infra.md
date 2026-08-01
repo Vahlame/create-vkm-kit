@@ -11,7 +11,7 @@ rotation, a cron job, an environment migration. (Something already broken? Load 
 2. **Restorable backup before any stateful change** — dated immediately prior, proven restorable (a test
    restore or integrity check). "The nightly backup ran" is not verification.
 3. **Health checks before, during, after:** define the OK baseline with concrete commands BEFORE,
-   re-run the SAME commands AFTER, both outputs in the deliverable. Without a baseline you can't tell
+   re-run the SAME commands AFTER, both outputs (the decisive lines, not whole logs) in the deliverable. Without a baseline you can't tell
    what your change broke from what was already broken.
 4. **Change only through the canonical mechanism** (IaC, panel, versioned script) — never by hand "just
    this once"; that's how config drifts from what's documented.

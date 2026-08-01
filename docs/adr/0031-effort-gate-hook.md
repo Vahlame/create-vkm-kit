@@ -121,11 +121,11 @@ deny a call.
 
 ## References
 
-- `packages/create-obsidian-memory/src/hooks/guard-effort-gate.mjs`
-- `packages/create-obsidian-memory/src/claude-native-memory.mjs`
+- `packages/create-vkm-kit/src/hooks/guard-effort-gate.mjs`
+- `packages/create-vkm-kit/src/claude-native-memory.mjs`
   (`mergeEffortGateHook`, `effortGateHookCommand`, `configureClaudeNativeMemory`'s
   `effortGate` option)
-- `packages/create-obsidian-memory/test/claude-native-memory.test.mjs`
+- `packages/create-vkm-kit/test/claude-native-memory.test.mjs`
 - ADR-0030 (the enforcement-hook precedent this extends); Claude Code `PreToolUse` hook
   contract (`hookSpecificOutput.permissionDecision`)
 
@@ -145,4 +145,5 @@ block; the template placeholder cannot match):
 - The pre-proposal deny message now advertises the detected current level so the model
   can account for it when recommending.
 
-Covered by `test/effort-gate-automatch.test.mjs` (subprocess-level, real stdin contract).
+Was covered by `test/effort-gate-automatch.test.mjs`, removed with the rest of the
+propose-and-confirm protocol when ADR-0080 (and then ADR-0081) replaced it.

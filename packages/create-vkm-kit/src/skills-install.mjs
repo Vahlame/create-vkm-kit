@@ -1,4 +1,4 @@
-// vkm-kit skills + subagent installer (ADR-0049): copies the four skill directories and
+// vkm-kit skills + subagent installer (ADR-0049): copies the SKILL_NAMES directories and
 // a surface-native vkm-implementer agent into Claude Code or Codex's user scope.
 // Pure file assets — no settings.json changes — tracked by content hash through
 // `asset-install.mjs`, so uninstall never deletes a file the user customized. Skills load
@@ -19,7 +19,10 @@ export const SKILL_NAMES = [
   "vkm-spec",
   "vkm-design",
   "vkm-research",
-  "vkm-verify"
+  "vkm-verify",
+  "vkm-intake",
+  "vkm-ui-judge",
+  "vkm-seo"
 ];
 export const AGENT_BASENAMES = ["vkm-implementer.md"];
 export const CODEX_AGENT_BASENAMES = ["vkm-implementer.toml"];
@@ -41,15 +44,18 @@ function skillDirFiles(name, skillsDir) {
   return out;
 }
 
-export function skillAssetFiles(home, { ide = "claude", skills = true, agents = true } = {}) {
+export function skillAssetFiles(
+  home,
+  { ide = "claude", skills = true, agents = true, skillsDir = null } = {}
+) {
   const isCodex = ide === "codex";
   const scopeDir = path.join(home, isCodex ? ".agents" : ".claude");
   const agentDir = path.join(home, isCodex ? ".codex" : ".claude", "agents");
   const agentBasenames = isCodex ? CODEX_AGENT_BASENAMES : AGENT_BASENAMES;
   const files = [];
   if (skills) {
-    for (const name of SKILL_NAMES)
-      files.push(...skillDirFiles(name, path.join(scopeDir, "skills")));
+    const dir = skillsDir || path.join(scopeDir, "skills");
+    for (const name of SKILL_NAMES) files.push(...skillDirFiles(name, dir));
   }
   if (agents) {
     for (const basename of agentBasenames) {
@@ -60,6 +66,36 @@ export function skillAssetFiles(home, { ide = "claude", skills = true, agents = 
     }
   }
   return files;
+}
+
+/**
+ * Install the skills (only — no client-specific subagent) into an ARBITRARY directory:
+ * the compatibility escape hatch for agents the kit has no `--ide` for yet (Kimi Code,
+ * opencode, ...). Skills are plain markdown + portable Node scripts, so any client with a
+ * skills folder can consume them as-is. Idempotent and hash-tracked like the managed
+ * install (sidecar lives inside the target dir); re-run to update, user-modified files
+ * are never clobbered.
+ *
+ * @param {string} skillsDir absolute or cwd-relative target directory
+ * @param {boolean} dryRun
+ */
+export async function installSkillsInto(skillsDir, dryRun) {
+  const dir = path.resolve(skillsDir);
+  const sidecarFp = path.join(dir, ASSETS_SIDECAR_BASENAME);
+  try {
+    const files = skillAssetFiles("", { skills: true, agents: false, skillsDir: dir });
+    if (dryRun) {
+      for (const { dest } of files) console.log(pc.cyan("[dry-run] would install"), pc.dim(dest));
+      return;
+    }
+    await installManagedAssets({ files, sidecarFp });
+    console.log(pc.green("Skills installed:"), pc.dim(`${SKILL_NAMES.join(", ")} (${dir})`));
+  } catch (e) {
+    console.warn(
+      pc.yellow("Could not install skills into --skills-dir (skipped):"),
+      e?.message || e
+    );
+  }
 }
 
 /**

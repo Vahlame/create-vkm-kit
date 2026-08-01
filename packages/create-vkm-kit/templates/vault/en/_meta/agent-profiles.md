@@ -5,6 +5,12 @@ On a non-trivial task, read **your** row, follow its tuning, and **append a one-
 a model clearly excelled or stumbled at a task type — over time this learns the best model per job.
 
 > Starting defaults — general, and they evolve. Correct them with real observations below.
+>
+> **Generation maintenance:** these rows expire when the model changes (what worked on
+> opus 4.8 may not on opus 5). The SessionStart hook emits a one-line notice on a model
+> change; on the first session with a new model, re-read your row as a **hypothesis**,
+> confirm or correct it with a dated observation, and prune observations from generations
+> you no longer run.
 
 | Model | Decision-making strength | Lean on it for | Tune the memory |
 | --- | --- | --- | --- |

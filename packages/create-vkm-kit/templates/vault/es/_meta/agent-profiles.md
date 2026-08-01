@@ -5,6 +5,12 @@ En una tarea no trivial, lee **tu** fila, sigue su ajuste y **añade una observa
 un modelo destaque o falle claramente en un tipo de tarea — con el tiempo aprende el mejor modelo por trabajo.
 
 > Defaults de partida — generales, y evolucionan. Corrígelos con observaciones reales abajo.
+>
+> **Mantenimiento por generación:** estas filas caducan cuando cambia el modelo (lo que
+> servía para opus 4.8 puede no servir para opus 5). El hook de SessionStart avisa con una
+> línea al detectar el cambio; en la primera sesión con un modelo nuevo, relee tu fila como
+> **hipótesis**, confírmala o corrígela con una observación fechada, y poda observaciones de
+> generaciones que ya no uses.
 
 | Modelo | Fortaleza al decidir | Aprovéchalo para | Ajusta la memoria |
 | --- | --- | --- | --- |

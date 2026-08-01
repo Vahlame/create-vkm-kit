@@ -33,7 +33,7 @@ import { configureClaudeNativeMemory } from "./claude-native-memory.mjs";
 import { configureTokenSaver } from "./token-saver.mjs";
 import { configureTelemetry } from "./telemetry.mjs";
 import { installRunHidden } from "./runhidden-setup.mjs";
-import { configureSkillAssets, SKILL_NAMES } from "./skills-install.mjs";
+import { configureSkillAssets, installSkillsInto, SKILL_NAMES } from "./skills-install.mjs";
 import { configureCodexNative } from "./codex-native.mjs";
 import { maybeInstallOllama } from "./ollama-setup.mjs";
 import { maybeInstallObscura } from "./obscura-setup.mjs";
@@ -343,6 +343,11 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
       agents: opts.agents
     });
   }
+  // Generic skills target (compatibility with clients the kit has no --ide for yet:
+  // Kimi Code, opencode, ...). Additive and independent of the --ide list; the skills
+  // are plain markdown + portable Node scripts, consumable by any client with a skills
+  // folder. Re-run with the same path to update.
+  if (opts.skillsDir) await installSkillsInto(opts.skillsDir, dryRun);
 
   // Backend before index, so a fresh machine can build in the same run.
   if (opts.installBackend) {
@@ -465,7 +470,7 @@ export function printSummary({ vault, ides, opts, result, meta = {} }) {
   }
   if (opts.effortGate) {
     line(
-      "- Effort gate (ADR-0031): PreToolUse hook (denies the 2nd+ substantive edit until the model proposes an effort level and the user replies) → ~/.claude/settings.json"
+      "- Effort advisor (ADR-0081): PreToolUse hook (persists the effort level the work calls for; one user-only notice, never blocks a tool call) → ~/.claude/settings.json"
     );
   }
   if (opts.tokenSaver) {

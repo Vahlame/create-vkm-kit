@@ -33,11 +33,14 @@ import { SKILL_NAMES } from "../src/skills-install.mjs";
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
 /**
- * Measured 2026-07-24 on v4.5.1 (`node scripts/context-budget.mjs`). The band is
- * ±20%: wide enough that trimming or adding a description is not a build failure,
- * tight enough that a new MCP server or a doubled rules block cannot land unnoticed.
+ * Measured 2026-08-01 after the ADR-0082 context diet (`node scripts/context-budget.mjs`):
+ * always dropped 45,603 → 43,001 chars (rules block −28%, reminders −45%) even after two
+ * NEW skill descriptions (vkm-intake, vkm-ui-judge) joined the always bucket; worst case
+ * rose with those two skills' on-trigger bodies. The band is ±20%: wide enough that
+ * trimming or adding a description is not a build failure, tight enough that a new MCP
+ * server or a doubled rules block cannot land unnoticed.
  */
-const BASELINE = { alwaysChars: 45_247, worstCaseChars: 76_891 };
+const BASELINE = { alwaysChars: 43_001, worstCaseChars: 91_941 };
 const BAND = 0.2;
 
 test("fixed-layer composition: every always-paid piece is present and attributable", () => {

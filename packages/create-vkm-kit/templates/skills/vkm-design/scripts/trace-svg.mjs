@@ -6,7 +6,9 @@
 //        [--bg auto|light|dark] [--threshold N] [--turd N] [--smooth N] [--w 420] [--square]
 // --square emits a padded, centred SQUARE viewBox cropped to the traced content, so several
 // traces drop into a grid aligned and same-sized (see illustration.md Step 4 — the "desfase" fix).
-// Emits: <out.svg> (stylised trace) and prints IoU faithfulness vs the mask (0..1, higher=better).
+// Emits: <out.svg> (stylised trace) and prints PROXY fidelity numbers: mask coverage, path
+// count and a bbox self-check. It does NOT compute IoU — that overlay (rasterize trace vs
+// mask, intersection/union) is a separate manual step; see references/illustration.md Step 3.
 import { readFileSync, writeFileSync } from "node:fs";
 import potrace from "potrace";
 import { svgPathBbox } from "svg-path-bbox";

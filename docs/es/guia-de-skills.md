@@ -1,6 +1,6 @@
 # Guía de skills: cuál usar, cuándo, y cuándo no
 
-El kit instala **cinco skills** en `~/.claude/skills/`. Cada una se dispara sola cuando su
+El kit instala **ocho skills** en `~/.claude/skills/`. Cada una se dispara sola cuando su
 `description` coincide con lo que pediste, y también podés invocarlas a mano (`/vkm-spec`,
 `/vkm-design`, …). Esta guía existe porque la pregunta cara no es "qué hace cada una" sino
 **cuál corresponde ahora** — y sobre todo cuál **no**, porque una skill que se mete donde no
@@ -11,13 +11,16 @@ un alcance concreto, ese alcance gana siempre (regla de arbitraje).
 
 ## El mapa en una línea
 
-| Skill             | Se usa cuando…                                                                            | Entrega                                                            |
-| ----------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `/vkm-spec`       | la idea todavía es vaga y **codificar sería adivinar**                                    | una spec testeable, anclada al vault, validada por máquina         |
-| `/vkm-discipline` | ya sabés qué hacer y hay que **hacerlo bien**: código, datos, infra, docs, PR, postmortem | el trabajo hecho + evidencia ejecutada de que funciona             |
-| `/vkm-design`     | hay algo que **se ve**: UI, pantalla, componente, gráfico, marca, diagrama                | una dirección de diseño con nombre, checks computados, loop visual |
-| `/vkm-verify`     | algo dio **verde** y estás por creerle: "tests pasan", "CI verde", "quedó commiteado"     | un veredicto: PROVEN · VACUOUS · DIRTY                             |
-| `/vkm-research`   | hay un banco `RESEARCH/<tema>` con fuentes sin consolidar                                 | un `summary.md` con wikilinks, supersesión y fuentes marcadas      |
+| Skill             | Se usa cuando…                                                                            | Entrega                                                                       |
+| ----------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `/vkm-spec`       | la idea todavía es vaga y **codificar sería adivinar**                                    | una spec testeable, anclada al vault, validada por máquina                    |
+| `/vkm-discipline` | ya sabés qué hacer y hay que **hacerlo bien**: código, datos, infra, docs, PR, postmortem | el trabajo hecho + evidencia ejecutada de que funciona                        |
+| `/vkm-design`     | hay algo que **se ve**: UI, pantalla, componente, gráfico, marca, diagrama                | una dirección de diseño con nombre, checks computados, loop visual            |
+| `/vkm-verify`     | algo dio **verde** y estás por creerle: "tests pasan", "CI verde", "quedó commiteado"     | un veredicto: PROVEN · VACUOUS · DIRTY                                        |
+| `/vkm-research`   | hay un banco `RESEARCH/<tema>` con fuentes sin consolidar                                 | un `summary.md` con wikilinks, supersesión y fuentes marcadas                 |
+| `/vkm-intake`     | la tarea es **no trivial** y arrancar mal saldría caro: prompt/imágenes/contexto          | objetivo/entregable/no-hacer en 3 líneas + contexto mínimo cargado            |
+| `/vkm-ui-judge`   | una GUI **se ve mal** (web, Flutter o nativa): contraste, dark mode, responsive           | defectos medidos (audit/tests/screenshots reales) + arreglo con antes/después |
+| `/vkm-seo`        | una web debe **posicionar**: sinónimos/variantes/ubicaciones, técnica, búsqueda con IA    | cobertura semántica + audit estático antes/después (`seo-audit.mjs`)          |
 
 ## El orden natural de un trabajo real
 
@@ -54,6 +57,17 @@ para el verde sospechoso, no para el rojo.
 resumir un solo documento. Es específicamente el paso de **consolidación** de un banco que ya
 tiene fuentes persistidas.
 
+**`/vkm-intake`** — no la uses para ediciones de una línea ni cuando el alcance ya viene
+cerrado y claro: reformular lo obvio es puro costo. Es para arranques donde equivocarse de
+entregable saldría caro.
+
+**`/vkm-ui-judge`** — no la uses para diseñar desde cero (eso es `/vkm-design`) ni para
+lógica sin superficie visible. Es para GUIs que **ya existen** y se ven mal.
+
+**`/vkm-seo`** — no la uses para entregables que no sean web ni para campañas de anuncios
+(SEM). Y ojo: no promete posiciones — promete los insumos medibles (audit limpio, cobertura
+hecha); prometer rankings es el humo que esta skill existe para evitar.
+
 ## Las tres que se confunden
 
 - **`/vkm-discipline` vs `/vkm-verify`.** `discipline` termina en evidencia ejecutada:
@@ -82,8 +96,8 @@ tiene fuentes persistidas.
 ## Costo
 
 La `description` de cada skill está **siempre** en contexto (por eso el kit las mantiene
-cortas, con un tope duro en CI); el cuerpo se carga **solo** cuando la skill se activa. Cinco
-skills instaladas no son cinco cuerpos en cada sesión: son cinco descripciones y, como mucho,
+cortas, con un tope duro en CI); el cuerpo se carga **solo** cuando la skill se activa. Ocho
+skills instaladas no son ocho cuerpos en cada sesión: son ocho descripciones y, como mucho,
 un cuerpo cuando hace falta.
 
 Si el estilo de una skill te estorba en un trabajo puntual, decilo y listo — tu instrucción

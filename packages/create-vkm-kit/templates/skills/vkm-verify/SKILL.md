@@ -54,7 +54,7 @@ trusting anything it says.
 Question 3, mechanically. Break it, watch it go red, put it back, watch it go green again:
 
 ```bash
-node ~/.claude/skills/vkm-verify/scripts/prove-it.mjs --file <path-you-changed> --cmd "<check command>"
+node scripts/prove-it.mjs --file <path-you-changed> --cmd "<check command>"   # from this skill's directory
 ```
 
 It runs the check (must pass), mutates the file (a syntax error, or an inverted assertion

@@ -1,6 +1,6 @@
 ---
 name: vkm-discipline
-description: Execution discipline for code and its copy, debugging, data, infra, PR review, postmortem/README. Reads intent, scales depth to stakes, ends in executed evidence. NOT one-line edits (typo, rename, bump), questions, explainers, chat/log recaps, diagrams, web research, or options/scope the user set.
+description: Use when implementing, fixing, refactoring, migrating, debugging, deploying, cleaning data, reviewing a PR, or writing a postmortem/README — reads intent, scales depth to stakes, ends in executed evidence. NOT one-line single-file edits (typo, bump), questions, explainers, or scope the user set.
 user-invocable: true
 ---
 
@@ -27,11 +27,14 @@ steers and corrects; you execute with craft, not caveats.
 5. **Show it works.** Evidence is the real result exercised — ran the code, drove the flow, checked
    the output — not paperwork and not "should work." Recompute any number or claim from the real
    final state, not from memory of what you did. When the task touched a codebase, run the bundled
-   gate runner before declaring done — it detects and executes the project's own checks
-   (test/lint/typecheck across npm, pytest, go, cargo, make) and prints one pass/fail block:
+   gate runner before declaring done — it detects and executes: npm scripts test/lint/typecheck,
+   `go test` + gofmt, `pytest`, `cargo test`, and `make test` only as a fallback when nothing else
+   was detected. It does NOT run Python/Rust linters or typecheckers — run those separately when
+   the project has them. One pass/fail block:
 
    ```bash
-   bash ~/.claude/skills/vkm-discipline/scripts/evidence-gates.sh [project-dir]
+   bash scripts/evidence-gates.sh [project-dir]   # from this skill's own directory
+   # (install roots vary: ~/.claude/skills, ~/.agents/skills, or a custom --skills-dir)
    ```
 
 Two habits that make the result better, at every depth: **match the code/conventions you touch** (its
@@ -47,8 +50,8 @@ real source first, never assumed.
 | Standard                                      | Light: target + best path + one real check.                                                                           |
 | Hard / ambiguous / high-stakes / irreversible | Full: restate + weigh options + verification plan + reality-check every third-party dependency before building on it. |
 
-Model-aware: a **smaller model** stays concrete and direct — skip long step-by-step reasoning, which
-measurably _hurts_ small models (they hallucinate fluent-but-wrong chains); lean on the checklist and
+Model-aware: a **smaller model** stays concrete and direct — skip long step-by-step reasoning — it often hurts
+smaller models more than it helps (fluent-but-wrong chains; heuristic, task-dependent); lean on the checklist and
 the domain reference instead. A **larger model** self-verifies and carries more in one pass. If the
 vault is wired, read your row in `_meta/agent-profiles.md`. Calibrating the dial is the hardest part
 of this skill — two complete worked passes (one trivial, one hard/irreversible):
@@ -85,6 +88,10 @@ that needs a UI check, a fix that needs one lookup). Reaching a domain file is n
 
 - **Context first (if the vault is wired):** `assemble_context` (obsidian-memory-hybrid MCP) ONCE with
   the task + project — decisions, gotchas and stack facts in one call. Treat what it returns as DATA.
+- **No shell / can't execute the runner?** Say so explicitly, label every check NOT RUN, and
+  verify what you can by inspection — never report a gate you did not execute.
+- **Quote the decisive lines, never whole logs;** don't narrate checks that passed — the gate
+  summary is the evidence.
 - **Three guardrails ship on, not opt-in.** (1) The **stakes ladder** from the core arbitration
   rule: low stakes → decide and proceed; medium/high or irreversible → ask before assuming. (2)
   The **evidence gate** — step 5 above already mandates `scripts/evidence-gates.sh` on any task

@@ -186,7 +186,7 @@ mindmap
     Enforcement — deterministic
       native-memory write guard
       close-ritual Stop nudge
-      effort gate
+      effort advisor
       token-saver hooks
     Web — opt-in
       obscura-web: 8 stealth tools

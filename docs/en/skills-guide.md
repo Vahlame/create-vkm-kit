@@ -1,6 +1,6 @@
 # Skills guide: which one, when, and when not
 
-The kit installs **five skills** into `~/.claude/skills/`. Each fires on its own when its
+The kit installs **eight skills** into `~/.claude/skills/`. Each fires on its own when its
 `description` matches what you asked for, and each can be invoked by hand (`/vkm-spec`,
 `/vkm-design`, …). This guide exists because the expensive question is not "what does each
 one do" but **which one applies right now** — and above all which one does **not**, since a
@@ -11,13 +11,16 @@ that scope wins (the arbitration rule).
 
 ## The map, one line each
 
-| Skill             | Use it when…                                                                                | You get                                                     |
-| ----------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `/vkm-spec`       | the idea is still vague and **writing code would be guessing**                              | a testable spec, anchored to the vault, machine-validated   |
-| `/vkm-discipline` | you know what to do and it has to be **done well**: code, data, infra, docs, PR, postmortem | the work, plus executed evidence that it holds              |
-| `/vkm-design`     | something will be **looked at**: UI, screen, component, chart, brand, diagram               | a named design direction, computed checks, a visual loop    |
-| `/vkm-verify`     | something came back **green** and you are about to believe it                               | a verdict: PROVEN · VACUOUS · DIRTY                         |
-| `/vkm-research`   | a `RESEARCH/<topic>` bank has sources that were never consolidated                          | a `summary.md` with wikilinks, supersession, marked sources |
+| Skill             | Use it when…                                                                                | You get                                                                   |
+| ----------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `/vkm-spec`       | the idea is still vague and **writing code would be guessing**                              | a testable spec, anchored to the vault, machine-validated                 |
+| `/vkm-discipline` | you know what to do and it has to be **done well**: code, data, infra, docs, PR, postmortem | the work, plus executed evidence that it holds                            |
+| `/vkm-design`     | something will be **looked at**: UI, screen, component, chart, brand, diagram               | a named design direction, computed checks, a visual loop                  |
+| `/vkm-verify`     | something came back **green** and you are about to believe it                               | a verdict: PROVEN · VACUOUS · DIRTY                                       |
+| `/vkm-research`   | a `RESEARCH/<topic>` bank has sources that were never consolidated                          | a `summary.md` with wikilinks, supersession, marked sources               |
+| `/vkm-intake`     | the task is **non-trivial** and a bad start would be expensive: prompt/images/context       | objective/deliverable/non-goals in 3 lines + minimal context loaded       |
+| `/vkm-ui-judge`   | a GUI **looks wrong** (web, Flutter or native): contrast, dark mode, responsive             | measured defects (audit/tests/real screenshots) + a fix with before/after |
+| `/vkm-seo`        | a website must **rank**: synonyms/variants/locations, technical, AI search                  | semantic coverage + static before/after audit (`seo-audit.mjs`)           |
 
 ## The natural order of real work
 
@@ -53,6 +56,17 @@ This is for suspicious green, not for red.
 summarizing a single document. It is specifically the **consolidation** step over a bank that
 already has persisted sources.
 
+**`/vkm-intake`** — not for one-line edits, and not when the scope arrives closed and clear:
+restating the obvious is pure cost. It is for starts where the wrong deliverable would be
+expensive.
+
+**`/vkm-ui-judge`** — not for designing from scratch (that is `/vkm-design`) and not for
+logic with no visible surface. It is for GUIs that **already exist** and look wrong.
+
+**`/vkm-seo`** — not for non-web deliverables and not for ad (SEM) campaigns. And note: it
+never promises positions — it promises the measurable inputs (clean audit, coverage done);
+promising rankings is exactly the smoke this skill exists to avoid.
+
 ## The three that get confused
 
 - **`/vkm-discipline` vs `/vkm-verify`.** `discipline` ends in executed evidence: it runs the
@@ -81,8 +95,8 @@ already has persisted sources.
 ## Cost
 
 Every skill's `description` is **always** in context (which is why the kit keeps them short,
-with a hard cap enforced in CI); the body loads **only** when the skill fires. Five installed
-skills are not five bodies per session — they are five descriptions and, at most, one body
+with a hard cap enforced in CI); the body loads **only** when the skill fires. Eight installed
+skills are not eight bodies per session — they are eight descriptions and, at most, one body
 when it is needed.
 
 If a skill's style is in the way for a particular job, just say so: your instruction in the

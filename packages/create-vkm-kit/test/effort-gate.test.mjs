@@ -1,11 +1,13 @@
 /**
- * The effort gate (ADR-0080): decide, persist, interrupt ONCE.
+ * The effort advisor (ADR-0081): decide, persist, tell the user ONCE — never interrupt.
  *
- * The property that matters most here is not which level it picks — it is that a session
- * can never get stuck. The previous design denied every edit until a model-authored block
- * parsed and matched, and wedged four autonomous sessions before it was replaced. So the
- * subprocess tests below pin the escape hatches (first edit free, one pause per session,
- * sub-agents exempt, kill switch) as hard as they pin the recommendation itself.
+ * The property that matters most here is not which level it picks — it is that the hook
+ * can never block a tool call. Two prior designs interrupted (ADR-0031 denied until a
+ * model-authored block parsed — wedged four autonomous sessions; ADR-0080 denied exactly
+ * once — still derailed autonomous iteration loops and charged a full model turn). So the
+ * subprocess tests below pin "no deny exists" as hard as they pin the recommendation:
+ * output may only ever carry a `systemMessage`, which renders to the user and costs the
+ * model zero tokens.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -220,7 +222,7 @@ test("the first substantive edit of a session is free", () => {
   assert.equal(settingsOf(home).effortLevel, "medium", "an untouched session was written to");
 });
 
-test("a mismatch pauses once: deny + user notice + persisted decision", () => {
+test("a mismatch advises once: NO deny, user notice + persisted decision", () => {
   const home = tempHome({ effortLevel: "medium", model: "sonnet" });
   const transcript = transcriptWith([
     userSays("esto se va a producción"),
@@ -229,29 +231,49 @@ test("a mismatch pauses once: deny + user notice + persisted decision", () => {
   ]);
   const out = runHook({ home, transcript, env: { CLAUDE_EFFORT: "low" } });
 
-  assert.equal(out?.hookSpecificOutput?.permissionDecision, "deny");
-  const why = out.hookSpecificOutput.permissionDecisionReason;
-  assert.match(why, /\[vkm-effort\]/, "the interruption must be recognizable in a transcript");
-  assert.match(why, /\/effort (high|xhigh|max)/);
+  assert.equal(
+    out?.hookSpecificOutput,
+    undefined,
+    "the advisor must have NO permission opinion — a deny is the failure mode it replaced"
+  );
+  assert.match(out.systemMessage, /\/effort (high|xhigh|max)/);
   assert.match(out.systemMessage, /Apply now/);
 
   const after = settingsOf(home);
   assert.match(after.effortLevel, /^(high|xhigh|max)$/, "the decision was not persisted");
-  assert.equal(readSessionState("s1", home).paused, true);
+  assert.equal(readSessionState("s1", home).noticed, true);
 });
 
-test("the SAME session is never paused twice, whatever the transcript says", () => {
+test("the SAME session is never noticed twice, whatever the transcript says", () => {
   const home = tempHome({ effortLevel: "medium" });
   const transcript = transcriptWith([
     userSays("producción, urgente"),
     editOf("src/auth/login.ts"),
     editOf("src/auth/session.ts")
   ]);
-  assert.ok(runHook({ home, transcript, env: { CLAUDE_EFFORT: "low" } }), "expected a first pause");
+  assert.ok(
+    runHook({ home, transcript, env: { CLAUDE_EFFORT: "low" } }),
+    "expected a first notice"
+  );
 
-  // Exactly the state an autonomous session retries in: nobody replied, nothing changed.
+  // Exactly the state an autonomous session iterates in: nothing changed between edits.
   const second = runHook({ home, transcript, env: { CLAUDE_EFFORT: "low" } });
-  assert.equal(second, null, "a second pause is how autonomous sessions used to wedge");
+  assert.equal(second, null, "a repeated notice would spam every later edit of the session");
+});
+
+test("a pre-rewrite sidecar with `paused` is honored — upgrades never re-notice", () => {
+  const home = tempHome({ effortLevel: "medium" });
+  const transcript = transcriptWith([
+    userSays("producción, urgente"),
+    editOf("src/auth/login.ts"),
+    editOf("src/auth/session.ts")
+  ]);
+  mkdirSync(path.join(home, ".vkm", "effort-gate"), { recursive: true });
+  writeFileSync(
+    path.join(home, ".vkm", "effort-gate", "s1.json"),
+    JSON.stringify({ paused: true })
+  );
+  assert.equal(runHook({ home, transcript, env: { CLAUDE_EFFORT: "low" } }), null);
 });
 
 test("sub-agents and the kill switch are exempt", () => {
@@ -355,5 +377,31 @@ test("a session already at the right level is never touched", () => {
   });
   assert.equal(out, null);
   assert.equal(settingsOf(home).effortLevel, "low", "a no-op decision still wrote to disk");
-  assert.equal(readSessionState("s1", home).paused, undefined, "a no-op decision burned the pause");
+  assert.equal(
+    readSessionState("s1", home).noticed,
+    undefined,
+    "a no-op decision burned the notice"
+  );
+});
+
+test("simple work persists a CHEAPER effort level for the next session", () => {
+  const home = tempHome({ effortLevel: "xhigh" });
+  const transcript = transcriptWith([
+    userSays("arreglá el typo rápido"),
+    editOf("docs/a.md"),
+    editOf("docs/b.md")
+  ]);
+  const out = runHook({
+    home,
+    transcript,
+    payload: { tool_input: { file_path: "docs/c.md", new_string: "hi" } },
+    env: { CLAUDE_EFFORT: "xhigh" }
+  });
+  assert.ok(out?.systemMessage, "a downshift is advice the user should see once");
+  assert.equal(out.hookSpecificOutput, undefined, "advice must never carry a deny");
+  assert.equal(
+    settingsOf(home).effortLevel,
+    "low",
+    "the savings channel IS the persisted downshift"
+  );
 });

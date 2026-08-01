@@ -6,7 +6,87 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **`/vkm-design` remastered against its field failures** (it over-triggered, never stated
+  an objective, and hallucinated): the trigger description now excludes one-line style
+  tweaks; every invocation starts with a mandatory 3-line brief (For / Must do /
+  Constraints) plus a tier pick (Micro/Edit/Surface) that ROUTES how much of the skill is
+  read — micro-tasks read nothing; and a new "Rigor — what you may NOT invent" section
+  makes numbers-from-runs, verified-names-only, no-invented-authorities and NOT-RUN
+  honesty hard rules. Rendered-defect audits are routed to `/vkm-ui-judge`, keeping design
+  judgment and defect measurement on separate instruments.
+
+- **The effort gate is gone; the effort advisor never interrupts (ADR-0081).** The one-time
+  `PreToolUse` deny that ADR-0080 still carried derailed autonomous iteration loops and charged
+  a full model turn to deliver advice. `guard-effort-gate.mjs` (same filename and wiring, so
+  upgrades reconcile in place on Claude Code and Codex) now has NO code path that emits a
+  permission decision: it scores the session's work, persists the `effortLevel` it calls for
+  into `~/.claude/settings.json` — in both directions, so simple work makes the next session
+  cheap — and tells the user once per session via a `systemMessage` the model never sees (zero
+  tokens, zero pauses). Sub-agent exemption, `VKM_EFFORT_GATE=0`, `VKM_EFFORT_ALLOW_HAIKU=1`
+  and the opt-in `VKM_EFFORT_APPLY=keys` applier are unchanged.
+- **Context diet (ADR-0082): ~800 fewer input tokens on every session-turn prefix.** The
+  `memory` and `doctrine` levels of the managed rules block were compressed ~30-40% (es full
+  block 9,258 → 6,675 chars) with every load-bearing rule kept verbatim — the phrase gate in
+  `memory-rules-budget.test.mjs` proves it — and the `SessionStart` reminders dropped from
+  1,335 → 740 chars (es). Budgets and the context-budget baseline were re-cut to the new
+  sizes so the diet cannot silently revert.
+- The Bash token-saver hook now also matches `BashOutput` (background-command output — same
+  log-shaped text, same hard diagnostic-preservation guarantees). `Read`/`Grep`/`WebFetch`
+  stay deliberately uncovered: their output is content, not logs.
+
 ### Added
+
+- **`/vkm-seo` skill + `scripts/seo-audit.mjs`** — brutal, measurable SEO for websites,
+  remastered from a user-provided modern-SEO guide (semantic synonym/variant/location
+  coverage, technical foundations, structured data, GEO/AEO visibility in AI search).
+  Brief-first with tiered reading like its siblings; the bundled zero-dependency audit
+  checks the delivered HTML (metadata windows, noindex traps, canonical, heading
+  hierarchy, alt coverage, JSON-LD validity, social cards, hreflang, robots/sitemap for
+  live URLs) and the loop is audit → fix by severity → re-audit, with NOT-RUN honesty for
+  checks that could not run and a hard rule against invented metrics or promised rankings.
+
+- **`--skills-dir <path>`** — compatibility escape hatch for agents the kit has no `--ide`
+  for yet (Kimi Code, opencode, ...): additionally copies the seven skills (markdown +
+  portable Node scripts) into any client's skills folder, hash-tracked and idempotent,
+  independent of the `--ide` list.
+
+- **Model-epoch awareness (ADR-0083).** Model-specific memory ages the moment the model
+  changes ("tuned for opus 4.8" quietly mis-steers opus 5). The `SessionStart` hook now
+  compares the session's model against the last one seen and, only on a change, injects
+  ONE context line downgrading `_meta/agent-profiles.md` rows and `STACKS/` verdicts to
+  hypotheses to re-verify; the profile templates document the same generation-maintenance
+  rule. Steady state costs zero. The same ADR records the criteria-based rejection of
+  Postgres/pgvector for the memory path (vault = Markdown+git, index = disposable SQLite;
+  pgvector pays off orders of magnitude past a personal vault's scale).
+
+- **`/vkm-intake` skill** — task intake before non-trivial execution: restate
+  objective/deliverable/non-goals in 3 lines, at most one closed question on ambiguity, an
+  inventory of what attached images actually show before interpreting them, and minimal
+  context assembly. Kills the "goes off on a tangent / misreads the prompt" failure mode at
+  the cheapest possible point.
+- **`/vkm-ui-judge` skill + `scripts/ui-audit.mjs`** — measured visual judgment for any GUI,
+  routed by stack: web-rendered UIs (incl. Electron, Flutter Web, Blazor) get the bundled
+  Playwright audit; native Flutter gets generated `flutter_test` accessibility-guideline
+  tests; other native GUIs (Qt/C++, .NET/C#, Python, Java) get a real-screenshot evidence
+  loop plus platform scanners (`references/native-guis.md`). For the web route:
+  The bundled Playwright audit renders the live page at 3 viewports × light AND dark and
+  reports deterministic defects (computed WCAG contrast, invisible-after-theme-flip text,
+  horizontal overflow, sub-44px tap targets, missing viewport meta) as `report.json` +
+  screenshots; the loop is measure → fix by severity → re-measure, replacing slow
+  "visual thinking" that produced mediocre fixes. Static fallback documented for
+  environments without a browser.
+
+### Removed
+
+- The empty `tools/` directory (a README pointing at scripts removed in v3).
+
+### Fixed
+
+- `install.mjs`'s summary line, `--help`, READMEs, install docs and `ARCHITECTURE.md` no
+  longer describe the ADR-0031 deny-until-reply protocol that stopped existing in 5.1.0;
+  ADR-0031's references to the pre-rename package path and a deleted test file were corrected.
 
 - **Codex CLI now receives first-class parity assets.** `--ide codex` and `--full` install the
   four vkm skills under `~/.agents/skills/`, the required-key TOML `vkm-implementer` agent under

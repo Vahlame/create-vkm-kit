@@ -35,7 +35,7 @@ continuation note for a Claude Code session keeping the Codex and Claude surface
 - Managed event mapping:
   - `SessionStart` → `session-start-vault-context.mjs` injects the vault map and reminders.
   - `PreToolUse` → `codex-guard-native-memory-write.mjs` protects generated
-    `~/.codex/memories/` paths; `guard-effort-gate.mjs` applies the effort gate to
+    `~/.codex/memories/` paths; `guard-effort-gate.mjs` runs the effort advisor on
     `apply_patch`.
   - `PostToolUse` → `codex-compact-tool-output.mjs` compacts noisy shell/MCP output.
 - Official sources: [Hooks](https://learn.chatgpt.com/docs/hooks), fetched 2026-07-27;
