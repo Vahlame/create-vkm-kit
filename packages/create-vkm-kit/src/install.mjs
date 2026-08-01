@@ -282,7 +282,8 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
   // registrations state the answer this install just produced instead of asking the
   // filesystem again and hoping the order held.
   const launcher =
-    (await installRunHidden(home, dryRun)) ?? resolveLauncher(path.join(home, ".claude"));
+    (await installRunHidden(home, dryRun, { repoRoot: kitRoot })) ??
+    resolveLauncher(path.join(home, ".claude"));
 
   const serverOpts = {
     withHybrid: opts.withHybrid,
@@ -335,7 +336,10 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
       context: opts.codexContext,
       memoryGuard: opts.codexMemoryGuard,
       effortGate: opts.codexEffortGate,
-      tokenSaver: opts.codexTokenSaver
+      tokenSaver: opts.codexTokenSaver,
+      // Same launcher the Claude hooks and the MCP servers were just wired to — threaded, not
+      // re-probed, so Codex stops being the one surface that still flashes a console.
+      launcher
     });
     await configureSkillAssets(home, dryRun, {
       ide: "codex",

@@ -117,6 +117,28 @@ async function isRunnable(bin) {
   }
 }
 
+/**
+ * The version `bin` reports (`obscura 0.1.10` → `"0.1.10"`), or null when it cannot run or
+ * prints nothing version-shaped. Never throws: an unreadable answer means "not the pinned
+ * one", which makes the caller reinstall — the safe direction.
+ *
+ * @param {string} bin
+ * @returns {Promise<string | null>}
+ */
+async function probeVersion(bin) {
+  try {
+    const res = await execa(bin, ["--version"], {
+      reject: false,
+      timeout: 8000,
+      windowsHide: true
+    });
+    if (res.failed || res.exitCode !== 0) return null;
+    return `${res.stdout || ""} ${res.stderr || ""}`.match(/(\d+\.\d+\.\d+)/)?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Find `binName` directly under root or one level down (archives may nest a top folder). */
 async function locateBin(root, binName) {
   const direct = path.join(root, binName);
@@ -205,7 +227,7 @@ export async function installFromSpec(spec, opts = {}, deps = {}) {
  * plus the resolved binary path (null → obscura-web should fall back to `obscura` on PATH).
  * @param {boolean} dryRun
  * @param {{ enable?: boolean, platform?: NodeJS.Platform, arch?: NodeJS.Architecture }} [opts]
- * @param {{ isRunnable?: typeof isRunnable, installImpl?: typeof installFromSpec }} [deps]
+ * @param {{ isRunnable?: typeof isRunnable, probeVersion?: typeof probeVersion, installImpl?: typeof installFromSpec }} [deps]
  * @returns {Promise<{ status: "ready"|"manual"|"skipped"|"failed", binPath: string|null }>}
  */
 export async function maybeInstallObscura(
@@ -214,7 +236,11 @@ export async function maybeInstallObscura(
   deps = {}
 ) {
   if (!enable) return { status: "skipped", binPath: null };
-  const { isRunnable: runnable = isRunnable, installImpl = installFromSpec } = deps;
+  const {
+    isRunnable: runnable = isRunnable,
+    probeVersion: probeVer = probeVersion,
+    installImpl = installFromSpec
+  } = deps;
 
   const spec = resolveSpec(platform, arch);
   if (!spec) {
@@ -226,12 +252,24 @@ export async function maybeInstallObscura(
   }
   const binPath = path.join(obscuraHome(), spec.bin);
 
-  // Respect an existing install (ours in ~/.vkm/obscura or one already on PATH).
-  if (await runnable(binPath)) {
-    console.log(pc.green("obscura already installed:"), pc.dim(binPath));
+  // Respect the copy WE manage in ~/.vkm/obscura — but only while it is the pinned version.
+  //
+  // This gate used to be presence-only, which made `OBSCURA_VERSION` unenforceable after the
+  // first install: the baked-in sha256 guards a DOWNLOAD, and on an upgrade the download is
+  // exactly what no longer happened. Every existing user silently stayed on the old binary
+  // and a reinstall — the documented repair — could not move them.
+  const installedVersion = await probeVer(binPath);
+  if (installedVersion === OBSCURA_VERSION) {
+    console.log(pc.green("obscura already installed:"), pc.dim(`v${installedVersion} @ ${binPath}`));
     return { status: "ready", binPath };
   }
-  if (await runnable("obscura")) {
+  if (installedVersion) {
+    console.log(
+      pc.cyan(`obscura v${installedVersion} → upgrading to the pinned v${OBSCURA_VERSION} …`)
+    );
+  } else if (await runnable("obscura")) {
+    // Only consulted when we manage NO copy: a user-provided obscura on PATH is theirs to
+    // version. A stale copy of ours must not be masked by it, or the upgrade never happens.
     console.log(pc.green("obscura already on PATH — using it."));
     return { status: "ready", binPath: null };
   }
@@ -264,9 +302,28 @@ export async function maybeInstallObscura(
         "  obscura © its authors — Apache-2.0 (github.com/h4ckf0r0day/obscura); official release, downloaded not bundled."
       )
     );
-    return await installImpl(spec, { platform });
+    const result = await installImpl(spec, { platform });
+    return result.status === "ready" ? result : keepExisting(result);
   } catch (e) {
     console.warn(pc.yellow("obscura setup skipped:"), e?.message || e);
-    return { status: "failed", binPath: null };
+    return keepExisting({ status: "failed", binPath: null });
+  }
+
+  /**
+   * A failed UPGRADE must not downgrade the user to nothing. The old binary still runs (we
+   * just asked it its version), and on Windows the overwhelmingly likely cause is an agent
+   * session holding it open — so reporting "failed" here would unwire a working obscura over
+   * a transient lock. Only a first install has nothing to fall back to.
+   * @param {{ status: string, binPath: string|null }} failure
+   */
+  function keepExisting(failure) {
+    if (!installedVersion) return /** @type {any} */ (failure);
+    console.warn(
+      pc.yellow(`Kept the existing obscura v${installedVersion} — upgrade to v${OBSCURA_VERSION} failed.`)
+    );
+    console.warn(
+      pc.dim("  Close every agent/editor session using obscura and re-run this installer to retry.")
+    );
+    return { status: /** @type {const} */ ("ready"), binPath };
   }
 }

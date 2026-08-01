@@ -12,6 +12,51 @@ import pc from "picocolors";
 export const OLLAMA_MODEL = "phi4-mini:3.8b-q4_K_M";
 /** Structured outputs via `format` need ≥0.5.13 for phi4-mini (model requirement). */
 export const OLLAMA_MIN_VERSION = "0.5.13";
+/** Where the ollama daemon listens; `ollama pull` is an HTTP client to it, not a local job. */
+export const OLLAMA_HOST = "http://127.0.0.1:11434";
+
+/** Is a daemon answering on {@link OLLAMA_HOST}? Never throws. */
+export async function ollamaServing(host = OLLAMA_HOST) {
+  try {
+    const res = await fetch(host, { signal: AbortSignal.timeout(2000) });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Start `ollama serve` detached and wait for it to answer.
+ *
+ * `ollama --version` exits 0 with the daemon DOWN — it prints a warning and the version — so
+ * the version probe above is not evidence that a pull can run. Without this, a machine where
+ * nothing started the daemon (a fresh `winget install`, a server, any box where the desktop
+ * app never ran) failed the pull with `dial tcp 127.0.0.1:11434: connectex …` and the kit
+ * blamed "network/disk?", which sends the user looking in the wrong place.
+ *
+ * @returns {Promise<boolean>} whether the daemon is up afterwards
+ */
+export async function ensureOllamaServing({ host = OLLAMA_HOST, timeoutMs = 15000 } = {}) {
+  if (await ollamaServing(host)) return true;
+  try {
+    // Detached + unref'd: the daemon must outlive this installer, and `serve` never exits.
+    const child = execa("ollama", ["serve"], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+      reject: false
+    });
+    child.unref?.();
+  } catch {
+    return false;
+  }
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 500));
+    if (await ollamaServing(host)) return true;
+  }
+  return false;
+}
 
 /** `ollama --version` → semver string or null (missing/unrunnable binary). */
 export async function ollamaVersion() {
@@ -106,6 +151,16 @@ export async function maybeInstallOllama(
       console.log(pc.cyan("[dry-run] would pull"), OLLAMA_MODEL, pc.dim("(~2.3GB, idempotent)"));
       return "skipped";
     }
+    // `ollama pull` talks HTTP to the daemon; a stopped daemon is the most common failure on
+    // a machine that just installed ollama, and it is fixable here instead of reported.
+    if (!(await ensureOllamaServing())) {
+      console.warn(
+        pc.yellow(`Ollama ${version} is installed but its server is not running on ${OLLAMA_HOST}.`),
+        pc.dim(`Start it (\`ollama serve\`) and run: ollama pull ${OLLAMA_MODEL}`)
+      );
+      return "pull-pending";
+    }
+
     console.log(pc.cyan(`Pulling ${OLLAMA_MODEL} (~2.3GB — skips if already present) …`));
     const pull = await execa("ollama", ["pull", OLLAMA_MODEL], { reject: false, stdio: "inherit" });
     if (pull.failed || pull.exitCode !== 0) {

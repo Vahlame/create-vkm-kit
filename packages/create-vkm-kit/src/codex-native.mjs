@@ -42,8 +42,22 @@ function codexDir(home) {
   return path.join(home, ".codex");
 }
 
-function command(script, args = []) {
-  return ["node", script, ...args]
+/**
+ * A Codex hook `command` is one shell STRING, so the launcher goes in front of `node` rather
+ * than being the `command` with `node` as an arg (the shape Claude's settings.json uses).
+ *
+ * `launcher` is an INPUT, never probed here: a builder that asks the filesystem emits a
+ * different config depending on install order, which is the bug mcp-merge.mjs already paid
+ * for. Null (the default) reproduces the pre-fix wiring — plain `node`, and on Windows one
+ * console flash per hook invocation, which is exactly the Claude-vs-Codex parity gap this
+ * closes.
+ *
+ * @param {string} script
+ * @param {string[]} [args]
+ * @param {string|null} [launcher] absolute path to `vkm-runhidden.exe`, or null for bare node
+ */
+function command(script, args = [], launcher = null) {
+  return [...(launcher ? [launcher] : []), "node", script, ...args]
     .map((part) => `"${String(part).replaceAll('"', '\\"')}"`)
     .join(" ");
 }
@@ -87,7 +101,7 @@ export function codexAssetRoots(home) {
   ];
 }
 
-function managedHookConfig(home, vault, lang, enabled) {
+function managedHookConfig(home, vault, lang, enabled, launcher = null) {
   const hooksDir = path.join(codexDir(home), "hooks");
   return [
     {
@@ -96,7 +110,11 @@ function managedHookConfig(home, vault, lang, enabled) {
       stem: CODEX_HOOK_STEMS.context,
       enabled: enabled.context,
       handler: {
-        command: command(path.join(hooksDir, "session-start-vault-context.mjs"), [vault, lang]),
+        command: command(
+          path.join(hooksDir, "session-start-vault-context.mjs"),
+          [vault, lang],
+          launcher
+        ),
         statusMessage: "Loading vkm vault context",
         additionalContextLimit: 5000
       }
@@ -107,10 +125,11 @@ function managedHookConfig(home, vault, lang, enabled) {
       stem: CODEX_HOOK_STEMS.memoryGuard,
       enabled: enabled.memoryGuard,
       handler: {
-        command: command(path.join(hooksDir, "codex-guard-native-memory-write.mjs"), [
-          codexDir(home),
-          lang
-        ]),
+        command: command(
+          path.join(hooksDir, "codex-guard-native-memory-write.mjs"),
+          [codexDir(home), lang],
+          launcher
+        ),
         statusMessage: "Protecting generated Codex memories"
       }
     },
@@ -120,7 +139,7 @@ function managedHookConfig(home, vault, lang, enabled) {
       stem: CODEX_HOOK_STEMS.effortGate,
       enabled: enabled.effortGate,
       handler: {
-        command: command(path.join(hooksDir, "guard-effort-gate.mjs"), [lang]),
+        command: command(path.join(hooksDir, "guard-effort-gate.mjs"), [lang], launcher),
         statusMessage: "Checking implementation effort"
       }
     },
@@ -130,7 +149,7 @@ function managedHookConfig(home, vault, lang, enabled) {
       stem: CODEX_HOOK_STEMS.tokenSaver,
       enabled: enabled.tokenSaver,
       handler: {
-        command: command(path.join(hooksDir, "codex-compact-tool-output.mjs")),
+        command: command(path.join(hooksDir, "codex-compact-tool-output.mjs"), [], launcher),
         statusMessage: "Compacting tool output",
         additionalContextLimit: 6000
       }
@@ -149,7 +168,8 @@ export async function configureCodexNative(
     context = true,
     memoryGuard = true,
     effortGate = true,
-    tokenSaver = true
+    tokenSaver = true,
+    launcher = null
   } = {}
 ) {
   const enabled = {
@@ -164,7 +184,7 @@ export async function configureCodexNative(
   const unwanted = all.filter((file) => !wantedDests.has(file.dest));
   const hooksFp = path.join(codexDir(home), "hooks.json");
   const sidecarFp = codexAssetsSidecar(home);
-  const managed = managedHookConfig(home, vault, lang, enabled);
+  const managed = managedHookConfig(home, vault, lang, enabled, launcher);
 
   if (dryRun) {
     for (const entry of managed) {
