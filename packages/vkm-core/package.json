@@ -1,6 +1,6 @@
 {
   "name": "@vkmikc/vkm-core",
-  "version": "5.1.0",
+  "version": "5.2.0",
   "private": true,
   "description": "Internal shared layer for the vkm-kit MCP sidecars: stdio server plumbing and the untrusted-data scanner. Not published; imported across the workspace.",
   "license": "SEE LICENSE IN LICENSE.md",

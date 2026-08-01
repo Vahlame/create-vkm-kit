@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.2.0] - 2026-08-01
+
 ### Changed
 
 - **`/vkm-design` remastered against its field failures** (it over-triggered, never stated
@@ -2263,7 +2265,9 @@ scoring, embedder-identity reuse).
 **3.15.0 and earlier** live in [`docs/changelog/pre-4.0.md`](docs/changelog/pre-4.0.md) —
 same text, same format, moved out in 5.0.0 to keep this file readable.
 
-[Unreleased]: https://github.com/Vahlame/create-vkm-kit/compare/v5.0.0...HEAD
+[Unreleased]: https://github.com/Vahlame/create-vkm-kit/compare/v5.2.0...HEAD
+[5.2.0]: https://github.com/Vahlame/create-vkm-kit/compare/v5.1.0...v5.2.0
+[5.1.0]: https://github.com/Vahlame/create-vkm-kit/compare/v5.0.0...v5.1.0
 [5.0.0]: https://github.com/Vahlame/create-vkm-kit/compare/v4.7.1...v5.0.0
 [4.7.1]: https://github.com/Vahlame/create-vkm-kit/compare/v4.7.0...v4.7.1
 [4.7.0]: https://github.com/Vahlame/create-vkm-kit/compare/v4.6.0...v4.7.0
