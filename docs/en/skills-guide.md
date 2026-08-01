@@ -11,15 +11,15 @@ that scope wins (the arbitration rule).
 
 ## The map, one line each
 
-| Skill             | Use it when…                                                                                | You get                                                              |
-| ----------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `/vkm-spec`       | the idea is still vague and **writing code would be guessing**                              | a testable spec, anchored to the vault, machine-validated            |
-| `/vkm-discipline` | you know what to do and it has to be **done well**: code, data, infra, docs, PR, postmortem | the work, plus executed evidence that it holds                       |
-| `/vkm-design`     | something will be **looked at**: UI, screen, component, chart, brand, diagram               | a named design direction, computed checks, a visual loop             |
-| `/vkm-verify`     | something came back **green** and you are about to believe it                               | a verdict: PROVEN · VACUOUS · DIRTY                                  |
-| `/vkm-research`   | a `RESEARCH/<topic>` bank has sources that were never consolidated                          | a `summary.md` with wikilinks, supersession, marked sources          |
-| `/vkm-intake`     | the task is **non-trivial** and a bad start would be expensive: prompt/images/context       | objective/deliverable/non-goals in 3 lines + minimal context loaded  |
-| `/vkm-ui-judge`   | a web UI **looks wrong** and needs judging: contrast, dark mode, responsive                 | measured defects (script on the real page) + a fix with before/after |
+| Skill             | Use it when…                                                                                | You get                                                                   |
+| ----------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `/vkm-spec`       | the idea is still vague and **writing code would be guessing**                              | a testable spec, anchored to the vault, machine-validated                 |
+| `/vkm-discipline` | you know what to do and it has to be **done well**: code, data, infra, docs, PR, postmortem | the work, plus executed evidence that it holds                            |
+| `/vkm-design`     | something will be **looked at**: UI, screen, component, chart, brand, diagram               | a named design direction, computed checks, a visual loop                  |
+| `/vkm-verify`     | something came back **green** and you are about to believe it                               | a verdict: PROVEN · VACUOUS · DIRTY                                       |
+| `/vkm-research`   | a `RESEARCH/<topic>` bank has sources that were never consolidated                          | a `summary.md` with wikilinks, supersession, marked sources               |
+| `/vkm-intake`     | the task is **non-trivial** and a bad start would be expensive: prompt/images/context       | objective/deliverable/non-goals in 3 lines + minimal context loaded       |
+| `/vkm-ui-judge`   | a GUI **looks wrong** (web, Flutter or native): contrast, dark mode, responsive             | measured defects (audit/tests/real screenshots) + a fix with before/after |
 
 ## The natural order of real work
 

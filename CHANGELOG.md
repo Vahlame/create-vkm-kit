@@ -34,7 +34,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   inventory of what attached images actually show before interpreting them, and minimal
   context assembly. Kills the "goes off on a tangent / misreads the prompt" failure mode at
   the cheapest possible point.
-- **`/vkm-ui-judge` skill + `scripts/ui-audit.mjs`** — measured visual judgment for web UIs.
+- **`/vkm-ui-judge` skill + `scripts/ui-audit.mjs`** — measured visual judgment for any GUI,
+  routed by stack: web-rendered UIs (incl. Electron, Flutter Web, Blazor) get the bundled
+  Playwright audit; native Flutter gets generated `flutter_test` accessibility-guideline
+  tests; other native GUIs (Qt/C++, .NET/C#, Python, Java) get a real-screenshot evidence
+  loop plus platform scanners (`references/native-guis.md`). For the web route:
   The bundled Playwright audit renders the live page at 3 viewports × light AND dark and
   reports deterministic defects (computed WCAG contrast, invisible-after-theme-flip text,
   horizontal overflow, sub-44px tap targets, missing viewport meta) as `report.json` +

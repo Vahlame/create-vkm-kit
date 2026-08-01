@@ -11,15 +11,15 @@ un alcance concreto, ese alcance gana siempre (regla de arbitraje).
 
 ## El mapa en una línea
 
-| Skill             | Se usa cuando…                                                                            | Entrega                                                              |
-| ----------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `/vkm-spec`       | la idea todavía es vaga y **codificar sería adivinar**                                    | una spec testeable, anclada al vault, validada por máquina           |
-| `/vkm-discipline` | ya sabés qué hacer y hay que **hacerlo bien**: código, datos, infra, docs, PR, postmortem | el trabajo hecho + evidencia ejecutada de que funciona               |
-| `/vkm-design`     | hay algo que **se ve**: UI, pantalla, componente, gráfico, marca, diagrama                | una dirección de diseño con nombre, checks computados, loop visual   |
-| `/vkm-verify`     | algo dio **verde** y estás por creerle: "tests pasan", "CI verde", "quedó commiteado"     | un veredicto: PROVEN · VACUOUS · DIRTY                               |
-| `/vkm-research`   | hay un banco `RESEARCH/<tema>` con fuentes sin consolidar                                 | un `summary.md` con wikilinks, supersesión y fuentes marcadas        |
-| `/vkm-intake`     | la tarea es **no trivial** y arrancar mal saldría caro: prompt/imágenes/contexto          | objetivo/entregable/no-hacer en 3 líneas + contexto mínimo cargado   |
-| `/vkm-ui-judge`   | una UI web **se ve mal** y hay que juzgarla: contraste, dark mode, responsive             | defectos medidos (script en página real) + arreglo con antes/después |
+| Skill             | Se usa cuando…                                                                            | Entrega                                                                       |
+| ----------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `/vkm-spec`       | la idea todavía es vaga y **codificar sería adivinar**                                    | una spec testeable, anclada al vault, validada por máquina                    |
+| `/vkm-discipline` | ya sabés qué hacer y hay que **hacerlo bien**: código, datos, infra, docs, PR, postmortem | el trabajo hecho + evidencia ejecutada de que funciona                        |
+| `/vkm-design`     | hay algo que **se ve**: UI, pantalla, componente, gráfico, marca, diagrama                | una dirección de diseño con nombre, checks computados, loop visual            |
+| `/vkm-verify`     | algo dio **verde** y estás por creerle: "tests pasan", "CI verde", "quedó commiteado"     | un veredicto: PROVEN · VACUOUS · DIRTY                                        |
+| `/vkm-research`   | hay un banco `RESEARCH/<tema>` con fuentes sin consolidar                                 | un `summary.md` con wikilinks, supersesión y fuentes marcadas                 |
+| `/vkm-intake`     | la tarea es **no trivial** y arrancar mal saldría caro: prompt/imágenes/contexto          | objetivo/entregable/no-hacer en 3 líneas + contexto mínimo cargado            |
+| `/vkm-ui-judge`   | una GUI **se ve mal** (web, Flutter o nativa): contraste, dark mode, responsive           | defectos medidos (audit/tests/screenshots reales) + arreglo con antes/después |
 
 ## El orden natural de un trabajo real
 
