@@ -259,6 +259,9 @@ async function main() {
     findings.push(...net.findings);
     notRun = net.notRun;
   }
+  // The mixed-content check only evaluates on https targets — the NOT RUN guarantee in
+  // SKILL.md is load-bearing, so anything else must say so instead of silently passing.
+  if (!baseUrl || !baseUrl.startsWith("https://")) notRun = [...notRun, "mixed-content"];
 
   const rank = { error: 0, warn: 1 };
   findings.sort((a, b) => rank[a.severity] - rank[b.severity]);

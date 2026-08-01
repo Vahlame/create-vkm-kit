@@ -97,9 +97,10 @@ with their dates — re-verify before treating any of them as current. "Leak-inf
   study (Spearman) put web mentions at 0.664 vs backlinks at 0.218 against AI Overview
   brand visibility, with brand anchors at 0.527 and brand search volume at 0.392 —
   correlation, treat as hypothesis (§13.3).
-- Invest in YouTube presence — in the same correlational data, YouTube mentions correlate
-  ~0.737 with citations across ChatGPT/AI Mode/AI Overviews, the strongest single signal
-  measured, and YouTube is among the most-cited AI Overview sources (§13.3, §12.5).
+- Invest in YouTube presence — correlational data (hypothesis, not law) puts YouTube
+  mentions at ~0.737 with citations across ChatGPT/AI Mode/AI Overviews, the strongest
+  single signal measured, and YouTube is among the most-cited AI Overview sources
+  (§13.3, §12.5).
 - Tune per platform, as dated 2025 observations that can invert with any model or product
   update: ChatGPT rewarded accumulated brand strength (parametric knowledge plus
   Reddit/Wikipedia/directories), Perplexity rewarded freshness (one study: 82% of
@@ -111,9 +112,9 @@ with their dates — re-verify before treating any of them as current. "Leak-inf
   authoritative sources, adding expert quotations and adding concrete statistics lifted
   visibility up to +40% in-benchmark, while keyword stuffing scored below baseline
   (§13.4).
-- Skip llms.txt entirely — as of 2026 Google has confirmed it does not and will not
-  support it (Illyes, July 2025), and SE Ranking's ~300,000-domain study found no
-  citation effect (§13.5).
+- Skip llms.txt entirely — Google has stated it does not and will not support it
+  (Illyes, July 2025 — dated statement, re-verify before relying on it), and SE
+  Ranking's ~300,000-domain study found no citation effect (§13.5).
 - Do not block AI crawlers (GPTBot, ClaudeBot, PerplexityBot, CCBot) if you want AI
   visibility — blocking removes you from citations; use Google-Extended to control Gemini
   training without affecting Search ranking (§13.6).

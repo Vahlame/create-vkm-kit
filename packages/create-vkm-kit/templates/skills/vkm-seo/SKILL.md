@@ -1,6 +1,6 @@
 ---
 name: vkm-seo
-description: Measured SEO for websites — intent and entity coverage, architecture, on-page, technical, schema, local, and AI-search (GEO/AEO) visibility, with a bundled before/after audit script. NOT for paid ads/SEM, social media, or non-web deliverables; NOT a rank tracker or keyword-volume source.
+description: Use when building, auditing, or optimizing how a website ranks in search and AI answers — "audit my SEO", "why don't we rank", meta/title/schema fixes, local/multi-location pages, synonym/intent coverage, GEO/AEO. Ships a before/after audit. NOT paid ads/SEM, social, rank tracking, or non-web.
 user-invocable: true
 ---
 
@@ -20,13 +20,16 @@ Queries:     <the target query families / entities to win>
 Constraints: <stack, pages in scope, rankings to protect>
 ```
 
+At Micro tier the brief may collapse to one line (Site + the requested fix); write "n/a"
+for Queries — do not research targeting for a single-tag fix.
+
 Then pick the tier — reading more than your tier is the failure, not diligence:
 
-| Tier                                                 | What you read                                      | What you do                                       |
-| ---------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------- |
-| **Micro** — one page, one meta/heading/schema fix    | nothing (the audit output is the guide)            | audit → fix its findings → re-audit               |
-| **Standard** — a section or template                 | the ONE reference file covering the phases touched | audit + those phases applied to that template     |
-| **Full** — whole site, new site, "why don't we rank" | both reference files                               | all eight phases, audit gating every page touched |
+| Tier                                                 | What you read                                                                                                                                                                                 | What you do                                                                   |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **Micro** — one page, one meta/heading/schema fix    | nothing (the audit output is the guide)                                                                                                                                                       | audit → make the requested fix (report, don't fix, other findings) → re-audit |
+| **Standard** — a section or template                 | only the reference file(s) covering the phases touched — one in the common case; open the second ONLY if the touched phases genuinely span both. Cross-file phases do NOT promote you to Full | audit + those phases applied to that template                                 |
+| **Full** — whole site, new site, "why don't we rank" | both reference files                                                                                                                                                                          | all eight phases, audit gating every page touched                             |
 
 ## The playbook — eight phases
 
@@ -59,7 +62,7 @@ and 6) and `references/technical-schema-ai.md` (phases 4-5 and 7-8). Load per yo
    quotable, self-contained blocks with statistics and sourcing; brand mentions correlate
    with AI citations more than backlinks do (correlational studies — hypothesis, not
    law); serve raw HTML; don't block AI crawlers you want citations from; skip llms.txt
-   (Google-confirmed unsupported, as of 2026).
+   (Google stated it does not and will not support it — Illyes, July 2025; re-verify if it matters).
 8. **Measurement.** Never steer by average position. GSC API (not UI) with brand vs
    non-brand regex segments, striking-distance mining, template-level SEO A/B with real
    control groups, and the evidence hierarchy: official docs > sworn testimony > leak
@@ -71,7 +74,9 @@ and 6) and `references/technical-schema-ai.md` (phases 4-5 and 7-8). Load per yo
 node ~/.claude/skills/vkm-seo/scripts/seo-audit.mjs <url-or-file.html> [--out DIR]
 ```
 
-Run it BEFORE the first change and AFTER the last one — same target, same flags. Checks:
+Run it BEFORE the first change and AFTER the last one — same target, same flags EXCEPT
+`--out` (use `--out seo-audit/before`, then `--out seo-audit/after`, so the second run
+never clobbers the first run's evidence). Checks:
 title / meta-description presence + length windows, canonical, robots meta + robots.txt
 reachability, sitemap reference, H1 count + heading hierarchy, image alt coverage, JSON-LD
 presence + parse, Open Graph/Twitter cards, hreflang set + x-default, internal link count,
