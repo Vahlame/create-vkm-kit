@@ -29,6 +29,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **`--skills-dir <path>`** — compatibility escape hatch for agents the kit has no `--ide`
+  for yet (Kimi Code, opencode, ...): additionally copies the seven skills (markdown +
+  portable Node scripts) into any client's skills folder, hash-tracked and idempotent,
+  independent of the `--ide` list.
+
 - **Model-epoch awareness (ADR-0083).** Model-specific memory ages the moment the model
   changes ("tuned for opus 4.8" quietly mis-steers opus 5). The `SessionStart` hook now
   compares the session's model against the last one seen and, only on a change, injects

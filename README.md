@@ -183,7 +183,7 @@ no un leaderboard). Detalle · detail: [🇪🇸 cómo funciona](docs/es/como-fu
 </p>
 
 **Y con modelos vivos (ronda 2026-07-21, Haiku 4.5 + Sonnet 5, datos crudos commiteados):**
-las 4 skills evaluadas rutean con **100% de acierto y 0% de falsos positivos** (104 casos ES+EN; `/vkm-verify` es posterior al bench y todavía no está medida);
+las 4 skills evaluadas rutean con **100% de acierto y 0% de falsos positivos** (104 casos ES+EN; `/vkm-verify`, `/vkm-intake` y `/vkm-ui-judge` son posteriores al bench y todavía no están medidas);
 el A/B pre-registrado del token-saver dio **delta 0.0 de calidad** con el log **~81% más
 pequeño** (veredicto: mantener — y la regla dice que un mecanismo que degrade **se elimina**);
 `/vkm-discipline` sube a Haiku **de 47.0 a 91.7 (+44.7)** en la tarea subespecificada sin

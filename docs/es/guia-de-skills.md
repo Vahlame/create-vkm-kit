@@ -1,6 +1,6 @@
 # Guía de skills: cuál usar, cuándo, y cuándo no
 
-El kit instala **cinco skills** en `~/.claude/skills/`. Cada una se dispara sola cuando su
+El kit instala **siete skills** en `~/.claude/skills/`. Cada una se dispara sola cuando su
 `description` coincide con lo que pediste, y también podés invocarlas a mano (`/vkm-spec`,
 `/vkm-design`, …). Esta guía existe porque la pregunta cara no es "qué hace cada una" sino
 **cuál corresponde ahora** — y sobre todo cuál **no**, porque una skill que se mete donde no
@@ -56,6 +56,13 @@ para el verde sospechoso, no para el rojo.
 resumir un solo documento. Es específicamente el paso de **consolidación** de un banco que ya
 tiene fuentes persistidas.
 
+**`/vkm-intake`** — no la uses para ediciones de una línea ni cuando el alcance ya viene
+cerrado y claro: reformular lo obvio es puro costo. Es para arranques donde equivocarse de
+entregable saldría caro.
+
+**`/vkm-ui-judge`** — no la uses para diseñar desde cero (eso es `/vkm-design`) ni para
+lógica sin superficie visible. Es para GUIs que **ya existen** y se ven mal.
+
 ## Las tres que se confunden
 
 - **`/vkm-discipline` vs `/vkm-verify`.** `discipline` termina en evidencia ejecutada:
@@ -84,8 +91,8 @@ tiene fuentes persistidas.
 ## Costo
 
 La `description` de cada skill está **siempre** en contexto (por eso el kit las mantiene
-cortas, con un tope duro en CI); el cuerpo se carga **solo** cuando la skill se activa. Cinco
-skills instaladas no son cinco cuerpos en cada sesión: son cinco descripciones y, como mucho,
+cortas, con un tope duro en CI); el cuerpo se carga **solo** cuando la skill se activa. Siete
+skills instaladas no son siete cuerpos en cada sesión: son siete descripciones y, como mucho,
 un cuerpo cuando hace falta.
 
 Si el estilo de una skill te estorba en un trabajo puntual, decilo y listo — tu instrucción

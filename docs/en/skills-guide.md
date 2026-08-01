@@ -1,6 +1,6 @@
 # Skills guide: which one, when, and when not
 
-The kit installs **five skills** into `~/.claude/skills/`. Each fires on its own when its
+The kit installs **seven skills** into `~/.claude/skills/`. Each fires on its own when its
 `description` matches what you asked for, and each can be invoked by hand (`/vkm-spec`,
 `/vkm-design`, …). This guide exists because the expensive question is not "what does each
 one do" but **which one applies right now** — and above all which one does **not**, since a
@@ -55,6 +55,13 @@ This is for suspicious green, not for red.
 summarizing a single document. It is specifically the **consolidation** step over a bank that
 already has persisted sources.
 
+**`/vkm-intake`** — not for one-line edits, and not when the scope arrives closed and clear:
+restating the obvious is pure cost. It is for starts where the wrong deliverable would be
+expensive.
+
+**`/vkm-ui-judge`** — not for designing from scratch (that is `/vkm-design`) and not for
+logic with no visible surface. It is for GUIs that **already exist** and look wrong.
+
 ## The three that get confused
 
 - **`/vkm-discipline` vs `/vkm-verify`.** `discipline` ends in executed evidence: it runs the
@@ -83,8 +90,8 @@ already has persisted sources.
 ## Cost
 
 Every skill's `description` is **always** in context (which is why the kit keeps them short,
-with a hard cap enforced in CI); the body loads **only** when the skill fires. Five installed
-skills are not five bodies per session — they are five descriptions and, at most, one body
+with a hard cap enforced in CI); the body loads **only** when the skill fires. Seven installed
+skills are not seven bodies per session — they are seven descriptions and, at most, one body
 when it is needed.
 
 If a skill's style is in the way for a particular job, just say so: your instruction in the

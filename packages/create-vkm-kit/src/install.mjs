@@ -33,7 +33,7 @@ import { configureClaudeNativeMemory } from "./claude-native-memory.mjs";
 import { configureTokenSaver } from "./token-saver.mjs";
 import { configureTelemetry } from "./telemetry.mjs";
 import { installRunHidden } from "./runhidden-setup.mjs";
-import { configureSkillAssets, SKILL_NAMES } from "./skills-install.mjs";
+import { configureSkillAssets, installSkillsInto, SKILL_NAMES } from "./skills-install.mjs";
 import { configureCodexNative } from "./codex-native.mjs";
 import { maybeInstallOllama } from "./ollama-setup.mjs";
 import { maybeInstallObscura } from "./obscura-setup.mjs";
@@ -343,6 +343,11 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
       agents: opts.agents
     });
   }
+  // Generic skills target (compatibility with clients the kit has no --ide for yet:
+  // Kimi Code, opencode, ...). Additive and independent of the --ide list; the skills
+  // are plain markdown + portable Node scripts, consumable by any client with a skills
+  // folder. Re-run with the same path to update.
+  if (opts.skillsDir) await installSkillsInto(opts.skillsDir, dryRun);
 
   // Backend before index, so a fresh machine can build in the same run.
   if (opts.installBackend) {

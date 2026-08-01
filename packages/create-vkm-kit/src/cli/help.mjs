@@ -168,13 +168,20 @@ Claude Code native-memory override (when --ide includes claude):
   (professional anti-generic design: direction before pixels, computed checks, visual
   loop), /vkm-research (consolidate a RESEARCH/<topic> bank into a quality summary.md,
   wikilinks + supersedes), /vkm-verify (prove a green check ran, covered the change and
-  can fail — negative control via prove-it.mjs), and the vkm-implementer agent template.
-  Claude uses ~/.claude/skills + ~/.claude/agents/vkm-implementer.md; Codex uses
+  can fail — negative control via prove-it.mjs), /vkm-intake (restate objective/
+  deliverable/non-goals + image inventory + minimal context BEFORE executing), /vkm-ui-judge
+  (measured GUI judgment: live-page Playwright audit for web, flutter_test a11y gates for
+  Flutter, screenshot-evidence loop for other native UIs), and the vkm-implementer agent
+  template. Claude uses ~/.claude/skills + ~/.claude/agents/vkm-implementer.md; Codex uses
   ~/.agents/skills + ~/.codex/agents/vkm-implementer.toml. Hash-tracked files; uninstall
   never deletes one you edited. Which one fits which situation: docs/en/skills-guide.md
   (ES: docs/es/guia-de-skills.md).
-  --skills / --no-skills       Force on / remove the five skills.
+  --skills / --no-skills       Force on / remove the seven skills.
   --agents / --no-agents       Force on / remove the subagent template.
+  --skills-dir <path>          ALSO copy the skills into any other client's skills folder
+                                (Kimi Code, opencode, ...) — additive, independent of
+                                --ide; plain markdown + portable Node scripts. Re-run with
+                                the same path to update; user-edited files are kept.
 
   Obscura web (ADR-0051, opt-in via --obscura or --full) — routes web access through the
   local obscura headless browser (anti-detection) instead of the native tools: an MCP
