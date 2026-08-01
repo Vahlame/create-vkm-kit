@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.3.0] - 2026-08-01
+
+### Security
+
+- **`@modelcontextprotocol/sdk` 1.29.0 → 1.30.0 closes GHSA-frvp-7c67-39w9**, the
+  `@hono/node-server` `serve-static` path traversal this repo documented in 4.7.1 as
+  deliberately open. The reason it was open no longer holds: 1.29.0 pinned
+  `@hono/node-server ^1.19.9` and the patch is in 2.0.5, so the only escapes were
+  downgrading the SDK or overriding outside its declared range. 1.30.0 declares
+  `^1.19.9 || ^2.0.5`, so the fix is now a plain resolution — `npm audit` reports **0
+  vulnerabilities**, down from 2. `mcp-smoke` passes against the new SDK (23 tools).
+
+### Changed
+
+- Dependency refresh: `fs-extra` 11.4.0, `eslint` 10.8.0, `@types/node` 26.1.2,
+  `globals` 17.8.0. **`execa` deliberately stays at 9.6.1**: v10 requires Node 22 (the kit
+  supports ≥20, and raising a user's Node floor is the friction this release exists to
+  remove) and moves `.unref()`/`.on()` onto `subprocess.nodeChildProcess`, which five call
+  sites use. **`typescript` stays at 6.x** — v7 is the native compiler port, a devDependency
+  change with no user-visible benefit and real risk. Both are separate, deliberate calls.
+
+- **`prettier` and `markdownlint-cli` are now pinned devDependencies run through
+  `npm run format:check` / `npm run md:lint`,** instead of `npx --yes <tool>@<version>` in
+  CI only. The old form pinned the version CI used while the repo declared nothing, so a
+  contributor running `npx prettier` locally got whatever was latest that day and disagreed
+  with CI about which files are clean — a failure that only showed up after pushing.
+
 ### Fixed
 
 - **A pinned `OBSCURA_VERSION` bump could never reach an existing user.** The install gate
@@ -42,6 +69,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `uninstallRunHidden` deliberately removes only a byte-identical copy so it never deletes a
   launcher the user built themselves. Harmless while clone installs produced no launcher at
   all — and a teardown that silently leaves the file behind the moment they do.
+
+- **A machine without the Codex CLI was told four times to finish the install by hand.**
+  `registerViaCli` could not tell "this CLI is not installed" from "this one command
+  failed", so it printed the run-it-yourself command and a paste-ready TOML block once per
+  server — for a tool the user does not have. Since `--full` implies `--ide codex,claude`,
+  that was the DEFAULT experience for everyone who only uses Claude Code: four failure-
+  shaped blocks in an install that succeeded. The CLI is now probed once and skipped in
+  one line.
+
+- **On any distro Python (PEP 668), the backend install failed and the advice was to run
+  the command that had just failed.** Debian, Ubuntu, Fedora and Homebrew mark the system
+  interpreter externally-managed and refuse `pip install` into it — including `--user` —
+  so every Linux and macOS user with a distro Python hit an unactionable message. The
+  externally-managed case is now detected and answered with the venv recipe plus the
+  `OBSIDIAN_MEMORY_PYTHON` variable that points the MCP at it; other failures now print
+  the interpreter that was actually used and pip's own last line.
 
 - **The close-ritual reminder never counted `vault_append_file`** — the tool the kit's own
   memory rules prescribe for the close ("Cierre = `vault_append_file` → `SESSION_LOG.md`").

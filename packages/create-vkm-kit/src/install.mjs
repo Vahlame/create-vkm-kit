@@ -149,13 +149,29 @@ async function maybeInstallBackend(repoRoot, semantic, dryRun, vec = false, rera
         pc.green("Python backend installed"),
         extras.length ? `(with [${extras.join(",")}])` : ""
       );
-    } else {
-      console.warn(pc.yellow("Backend install skipped/failed — run it manually:"));
-      console.log('  pip install -e "' + spec + '"');
+      return;
     }
+    // PEP 668: Debian/Ubuntu/Fedora and Homebrew mark the system interpreter
+    // "externally managed" and REFUSE every `pip install` into it — including `--user`.
+    // Reprinting the command that just failed is the one answer that cannot work, and it
+    // was the answer for every Linux and macOS user whose python came from their distro.
+    const out = `${r.stdout || ""}${r.stderr || ""}`;
+    if (/externally[- ]managed/i.test(out)) {
+      console.warn(
+        pc.yellow("This Python is externally managed (PEP 668), so it refuses `pip install`.")
+      );
+      console.log(pc.dim("  Use a venv and point the MCP at it (both commands, in order):"));
+      console.log(`  ${py} -m venv ~/.vkm/py && ~/.vkm/py/bin/pip install -e "${spec}"`);
+      console.log(pc.dim("  then set OBSIDIAN_MEMORY_PYTHON=~/.vkm/py/bin/python for the MCP."));
+      return;
+    }
+    console.warn(pc.yellow("Backend install skipped/failed — run it manually:"));
+    console.log(`  ${py} -m pip install -e "${spec}"`);
+    const lastLine = out.trim().split(/\r?\n/).at(-1);
+    if (lastLine) console.log(pc.dim("  " + lastLine));
   } catch {
-    console.warn(pc.yellow("python not found; install the backend later:"));
-    console.log('  pip install -e "' + spec + '"');
+    console.warn(pc.yellow(`${py} not found; install the backend later:`));
+    console.log(`  ${py} -m pip install -e "${spec}"`);
   }
 }
 

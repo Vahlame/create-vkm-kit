@@ -56,10 +56,16 @@ jobs:
       # load-bearing: without it .agents/rules/*.md, .continue/rules/*.md and
       # .github/PULL_REQUEST_TEMPLATE.md were silently unlinted — which is also why
       # .markdownlintignore lists a .github file that could never have been reached.
+      # Both run from the pinned devDependency, NOT `npx --yes <tool>@<version>`. The npx
+      # form pinned the version CI used and left the repo declaring nothing, so a
+      # contributor running `npx prettier` locally got whatever was latest that day and
+      # disagreed with CI about which files are clean — a failure that only appears after
+      # pushing. `npm run format:check` and `npm run md:lint` are now the same command in
+      # both places.
       - name: markdownlint
-        run: npx --yes markdownlint-cli@0.49.0 "**/*.md" ".*/**/*.md" --ignore-path .markdownlintignore
+        run: npm run md:lint
       - name: prettier
-        run: npx --yes prettier@3.8.4 --check "**/*.{json,yml,yaml,md,mjs,js,cjs,ts}"
+        run: npm run format:check
       - name: eslint (incl. type-aware promise rules over all JS)
         run: npm run lint
       # "strict" is exact, not aspirational: the TS pass is fully strict; the checkJs
