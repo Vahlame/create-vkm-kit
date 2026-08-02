@@ -101,6 +101,16 @@ jobs:
         with:
           go-version-file: go.mod
       - run: go test ./...
+      # The console-visibility test SKIPS when the window station cannot show a window, and
+      # `go test` without -v prints neither skips nor the binary's own output when a package
+      # passes — so a skipped run and a real one are both just `ok ... 4.0s`. That is the
+      # shape of green this repo has been bitten by before (a lint that matched nothing, a
+      # release job that was skipped). Re-running this ONE test verbosely costs seconds and
+      # puts either `VKM-RAN` or `VKM-SKIP … THIS RUN PROVED NOTHING` in the job log, so the
+      # answer is readable instead of assumed.
+      - name: console-visibility test, verbose (windows)
+        if: runner.os == 'Windows'
+        run: go test -v -count=1 -run TestChildConsolesAreCreatedHidden ./cmd/vkm-runhidden/
       - name: go test -race (ubuntu)
         if: matrix.os == 'ubuntu-22.04'
         run: go test ./... -race

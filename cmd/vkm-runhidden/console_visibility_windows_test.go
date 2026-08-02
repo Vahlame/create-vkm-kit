@@ -3,6 +3,8 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"os/exec"
 	"syscall"
 	"testing"
@@ -103,10 +105,19 @@ func TestChildConsolesAreCreatedHidden(t *testing.T) {
 	stopControl()
 
 	if controlPeak == 0 {
+		// Announced on STDERR, not only through t.Skip. `go test` without -v prints neither skips
+		// nor logs, so on CI a skipped run and a real one both read as `ok ... 4.0s` — the exact
+		// shape of green that proves nothing. This line survives into the job log.
+		fmt.Fprintln(os.Stderr, "VKM-SKIP console-visibility: the control produced no visible "+
+			"console, so this window station cannot observe the defect — THIS RUN PROVED NOTHING")
 		t.Skip("no console window became visible even without the fix: this environment (a " +
 			"non-interactive window station, typically) cannot observe the defect, so a pass here " +
 			"would prove nothing")
 	}
+	// Equally load-bearing on the other side: without it, a run that DID observe the defect is
+	// indistinguishable in the log from one that skipped.
+	fmt.Fprintf(os.Stderr, "VKM-RAN console-visibility: control made %d/%d console windows visible; "+
+		"the fix is now being measured against that\n", controlPeak, batch)
 
 	// Wait for the control's windows to go away so the second baseline is honest.
 	time.Sleep(500 * time.Millisecond)
