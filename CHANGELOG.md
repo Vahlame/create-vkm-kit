@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [5.4.0] - 2026-08-01
 
 ### Fixed
 
@@ -56,6 +56,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   until now was a source grep running on Linux, where a Windows console cannot exist. The test runs
   a control batch **without** the fix first and skips if that control shows no window — an
   environment that cannot observe the defect must not report a pass it did not earn.
+
+  That skip is now **legible in CI**, which took a second attempt to get right: `go test` without
+  `-v` buffers the test binary's output and discards it when the package passes, so neither `t.Skip`
+  nor a marker written to `os.Stderr` survives — a skipped run and a real one both read as
+  `ok … 4.0s`. The Windows leg re-runs that one test verbosely, and the job log now carries either
+  `VKM-RAN console-visibility: control made 12/12 console windows visible` or
+  `VKM-SKIP … THIS RUN PROVED NOTHING`. On the GitHub runner it is the former, so the green measures
+  something.
 
 ## [5.3.0] - 2026-08-01
 
@@ -2401,7 +2409,8 @@ scoring, embedder-identity reuse).
 **3.15.0 and earlier** live in [`docs/changelog/pre-4.0.md`](docs/changelog/pre-4.0.md) —
 same text, same format, moved out in 5.0.0 to keep this file readable.
 
-[Unreleased]: https://github.com/Vahlame/create-vkm-kit/compare/v5.2.0...HEAD
+[5.4.0]: https://github.com/Vahlame/create-vkm-kit/compare/v5.3.0...v5.4.0
+[5.3.0]: https://github.com/Vahlame/create-vkm-kit/compare/v5.2.0...v5.3.0
 [5.2.0]: https://github.com/Vahlame/create-vkm-kit/compare/v5.1.0...v5.2.0
 [5.1.0]: https://github.com/Vahlame/create-vkm-kit/compare/v5.0.0...v5.1.0
 [5.0.0]: https://github.com/Vahlame/create-vkm-kit/compare/v4.7.1...v5.0.0

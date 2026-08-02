@@ -1,7 +1,7 @@
 schemaVersion = 1
 name = "vkm-kit"
 title = "Obsidian-style agent memory (cross-platform)"
-version = "5.3.0"
+version = "5.4.0"
 primaryAgentFile = "AGENTS.md"
 platforms = ["windows", "linux", "darwin"]
 defaultMcp = "basic-memory"
