@@ -49,6 +49,25 @@ func TestHideOwnConsoleHidesTheOneItAllocated(t *testing.T) {
 	}
 }
 
+// The launcher's rule, and the reason it is not HideOwnConsole's: a process with no console must
+// give its child a hidden one at creation, and a process that INHERITED the user's terminal must
+// pass that terminal down instead — a private hidden console there would swallow the output the
+// user is watching.
+
+func TestNeedsOwnConsoleWhenThereIsNone(t *testing.T) {
+	if !NeedsOwnConsole(func() uintptr { return 0 }) {
+		t.Fatal("a process with no console must create a hidden one for its child, or the child " +
+			"(and every console-subsystem grandchild) is handed a brand new VISIBLE one by Windows")
+	}
+}
+
+func TestNeedsOwnConsoleLeavesAnInheritedOneAlone(t *testing.T) {
+	if NeedsOwnConsole(func() uintptr { return 0x1234 }) {
+		t.Fatal("an inherited console is the user's own terminal: the child must inherit it too, " +
+			"not get a private hidden console its output would disappear into")
+	}
+}
+
 func TestHideOwnConsoleDoesNothingWhenAllocationFails(t *testing.T) {
 	hides := 0
 

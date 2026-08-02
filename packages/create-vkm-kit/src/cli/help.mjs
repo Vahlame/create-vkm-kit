@@ -227,6 +227,17 @@ Claude Code native-memory override (when --ide includes claude):
                   files to the versions this kit ships (this DISCARDS your local edits to
                   them), or with --dry-run to preview the whole plan with no writes.
 
+  Windows: no console window may appear while the agent works in the background (ADR-0078).
+  --windows-audit Read-only check that every kit-owned hook and MCP server — in Claude's
+                  settings.json and .claude.json, Codex's config.toml and Cursor's mcp.json —
+                  starts through vkm-runhidden.exe. Exits 1 and names each entry that does
+                  not, because the fallback to plain node is silent by design and a machine
+                  that flashes consoles looks identical to one that does not.
+                  Add --fix to rewire the JSON surfaces (your own servers and hooks are never
+                  touched; Codex's TOML is reported, not rewritten). Add --watch <seconds> to
+                  MEASURE instead: it samples the foreground and prints console_steals, so
+                  "no windows appear" stops being a claim and becomes a number.
+
   Uninstall: --no-native-memory-override / --no-memory-enforcement / --no-effort-gate on a
   re-run now ACTIVELY REMOVE the matching pieces this kit previously installed (not just
   skip adding them) — a symmetric install/remove path, so toggling a flag off actually

@@ -6,6 +6,57 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **Console windows no longer steal the foreground during a research run (ADR-0078 amendment).**
+  5.3.0 removed the flashing caused by `CREATE_NO_WINDOW`; what remained was the launcher's own
+  `AllocConsole()` + `ShowWindow(SW_HIDE)`, which is a **race**: conhost creates and activates the
+  window asynchronously, so the hide can run before there is anything to hide and the window shows
+  up anyway. Measured on Windows 11 with a full-screen game in front, A/B on the same machine with
+  the same instrument and the same measured load — **22 obscura fetches in each arm, 120 s each**:
+
+  | launcher                              | foreground steals |
+  | ------------------------------------- | ----------------- |
+  | `AllocConsole` + `ShowWindow` (5.3.0) | **14**            |
+  | console created hidden (this release) | **0**             |
+
+  The pre-fix arm names the culprit in its own output (`image=vkm-runhidden`).
+  `vkm-runhidden.exe` now starts its child with
+  `CREATE_NEW_CONSOLE` + `SW_HIDE`, so Windows creates that console **already hidden** — there is no
+  interval in which it could be seen. A launcher that inherited the user's terminal still passes it
+  down untouched.
+
+  Two facts the measurement corrected: every `vkm-runhidden.exe` started by an MCP server creates
+  its **own** conhost (it does not inherit the server's), so the "no console to inherit" branch is
+  the hot path — once per fetched page; and a synthetic reproducer does **not** reproduce the race
+  (20 launcher starts with a sleeping child: 0 steals), which is why the new regression test ships
+  with a control batch.
+
+### Added
+
+- **`create-vkm-kit --windows-audit`** — the diagnosis for "why is my screen still being taken
+  away". Reports whether every kit-owned hook and MCP server starts through `vkm-runhidden.exe`
+  across **Claude** (`settings.json`, `.claude.json`), **Codex** (`config.toml`) and **Cursor**
+  (`mcp.json`), and exits 1 when one does not — the fallback to plain `node` is silent by design, so
+  a machine that flashes looked identical to one that does not. `--fix` rewires the JSON surfaces
+  (a user's own servers and hooks are never touched, and the `basic-memory` version pin survives);
+  `--watch <seconds>` measures instead, printing `console_steals` counted from the foreground for
+  **both** console window classes (Windows 11 hosts consoles in `CASCADIA_HOSTING_WINDOW_CLASS`,
+  which a detector that only knows `ConsoleWindowClass` misses entirely).
+
+- **Foreign-daemon warnings on research results.** The launcher can only protect the tree it
+  starts, and Ollama/SearXNG are "start it if it is not already up". When the daemon listening on
+  their port has no `vkm-runhidden.exe` in its parent chain, `obscura_research_start` now returns a
+  `foreign-daemon` warning naming the image and PID. `VKM_ADOPT_DAEMONS=1` opts into stopping it so
+  the next use restarts it under the launcher — off by default, because that kills a process the
+  user may have started deliberately.
+
+- **A behavioural test on the `windows-2022` CI leg** (`console_visibility_windows_test.go`): it
+  starts twelve real children and counts visible console windows. Everything guarding this defect
+  until now was a source grep running on Linux, where a Windows console cannot exist. The test runs
+  a control batch **without** the fix first and skips if that control shows no window — an
+  environment that cannot observe the defect must not report a pass it did not earn.
+
 ## [5.3.0] - 2026-08-01
 
 ### Security

@@ -136,6 +136,59 @@ Made structural rather than remembered:
   `windowsHide: true` outside a declared-leaf allowlist, and asserts the hot paths still
   route through the launcher.
 
+## Amendment (5.4.0) — hide the console at creation, because hiding it afterwards is a race
+
+The title of this ADR was half right. "Allocate and hide" fixed the grandchild problem and left a
+smaller one that the user still felt: **AllocConsole followed by ShowWindow(SW_HIDE) is a race, not
+a sequence.** conhost creates and activates the console window asynchronously, so the hide can run
+before the window exists — and the window then appears anyway, takes the foreground, and vanishes.
+
+Measured on the maintainer's machine with a full-screen game in front, sampling
+`GetForegroundWindow` in a tight loop during a live `obscura_research` run:
+
+| Launcher                                | Foreground steals (120 s, 22 fetches each) |
+| --------------------------------------- | ------------------------------------------ |
+| `AllocConsole` + `ShowWindow` (5.3.0)   | **14** — reported as `image=vkm-runhidden` |
+| Console created hidden (this amendment) | **0**                                      |
+
+Both arms ran on the same machine with the same sampler and the same measured load (fetch count
+sampled independently, because a zero measured over an idle machine is not evidence of anything).
+
+Two measurements corrected the diagnosis on the way, and both are worth keeping:
+
+- **Every `vkm-runhidden.exe` started by an MCP server creates its OWN conhost.** It does not
+  inherit the server's hidden console, so the "no console to inherit" branch is the hot path — once
+  per fetched page — not the exception it was assumed to be.
+- **A synthetic reproducer does not reproduce it.** Twenty launcher starts with a sleeping child
+  produced zero steals; the race only shows up under the real load of a research round. A test that
+  cannot fail is not evidence, which is why the regression test below ships with a control batch.
+
+**Decision.** The launcher no longer allocates a console. When it has none of its own it starts the
+child with `CREATE_NEW_CONSOLE` and `STARTF_USESHOWWINDOW`/`SW_HIDE` (Go's
+`SysProcAttr{HideWindow: true}`), so Windows creates that console **already hidden**, before any
+window exists. There is no interval in which it could be seen. When the launcher DID inherit a
+console — started from the user's own terminal — nothing changes: the child inherits it too, and
+`HideOwnConsole`'s rule about never touching someone else's window is preserved intact.
+
+`HideOwnConsole` stays for `obsidian-memoryd`, which runs it once per daemon start where the race
+costs at most one window per boot.
+
+**Made verifiable rather than argued:**
+
+- `cmd/vkm-runhidden/console_visibility_windows_test.go` starts twelve real children and counts
+  visible console windows. It runs a control batch WITHOUT the fix first and **skips** if that
+  control shows no window — an environment that cannot observe the defect must not report a pass.
+- `create-vkm-kit --windows-audit` reports whether every hook and MCP server on THIS machine starts
+  through the launcher (Claude, Codex and Cursor surfaces), `--fix` rewires the JSON ones, and
+  `--watch <seconds>` prints `console_steals` measured from the foreground. The sampler excludes
+  its own process ANCESTORS, not just its own console handle: under Windows Terminal,
+  `GetConsoleWindow()` returns a hidden pseudo-console, so the visible terminal the command was
+  typed into was being counted as a steal — five deliberately created consoles were reported as
+  nine. A console another process created is hosted by a terminal outside that ancestor chain and
+  still counts, which is the line worth drawing.
+- `packages/obscura-web/src/foreign-daemon.mjs` reports a daemon whose parent chain does not contain
+  the launcher: the tree the kit does not own is the one it cannot keep windowless.
+
 ## References
 
 - `internal/winconsole/` — `console.go` (the ownership rule), `console_windows.go` (the syscalls),

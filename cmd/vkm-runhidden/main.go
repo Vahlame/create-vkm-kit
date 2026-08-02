@@ -19,10 +19,16 @@
 // children. So this fixes it from the other end:
 //
 //  1. Built GUI-subsystem (-H windowsgui), so the loader never allocates a console for it.
-//  2. It allocates one deliberately and hides the window. A hidden console is still a real console.
-//  3. It starts the target WITHOUT CREATE_NO_WINDOW, so the child inherits that hidden console —
-//     and so does the child's child, all the way down. Nothing allocates a new one, so nothing
-//     appears.
+//  2. It starts the target with CREATE_NEW_CONSOLE and SW_HIDE, so Windows creates that console
+//     ALREADY HIDDEN, before any window exists. A hidden console is still a real console.
+//  3. It never passes CREATE_NO_WINDOW, so the child's own children inherit that hidden console,
+//     all the way down. Nothing allocates a new one, so nothing appears.
+//
+// Step 2 used to be AllocConsole in THIS process followed by ShowWindow(SW_HIDE). That is a race:
+// conhost creates and activates the window asynchronously, so the hide can run before the window
+// exists and it appears anyway. Measured with a full-screen game in front, it stole the foreground
+// about once every twelve fetches. Handing the show state to CreateProcess removes the interval
+// rather than shortening it.
 //
 // # One binary, one strategy
 //
@@ -69,10 +75,6 @@ func run() int {
 		return 2
 	}
 
-	// Must happen BEFORE the child starts: the hidden console has to exist by the time anything can
-	// inherit it. A failure here is not fatal — a visible console beats not running at all.
-	winconsole.HideOwnConsole()
-
 	name, argv := resolve(args)
 
 	cmd := exec.Command(name, argv...)
@@ -81,8 +83,17 @@ func run() int {
 	cmd.Stderr = os.Stderr
 
 	// Deliberately NOT setting CREATE_NO_WINDOW. That flag is the whole problem: it denies the child
-	// a console, which forces the child's OWN children to allocate visible ones. Inheriting the
-	// hidden console above is the entire point.
+	// a console, which forces the child's OWN children to allocate visible ones. A console the child
+	// OWNS, created hidden, is what the whole tree inherits instead.
+	//
+	// And deliberately not AllocConsole here either. This process having a hidden console would work
+	// too — until it does not: AllocConsole creates the window and ShowWindow hides it one call
+	// later, and conhost shows it on its own schedule in between. Measured live, that race put a
+	// console on screen for roughly one fetch in twelve. Handing the flag to CreateProcess closes it:
+	// the console is hidden before any window exists. See winconsole.NeedsOwnConsole.
+	if winconsole.ChildNeedsHiddenConsole() {
+		hideChildConsole(cmd)
+	}
 
 	if err := cmd.Start(); err != nil {
 		fmt.Fprintf(os.Stderr, "vkm-runhidden: could not run %s: %v\n", name, err)

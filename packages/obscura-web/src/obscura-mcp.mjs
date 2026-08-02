@@ -32,6 +32,7 @@ import { deepResearch } from "./research.mjs";
 import { startResearchJob, getResearchJob, stopResearchJob } from "./research-job.mjs";
 import { startCrawlJob, getCrawlJob, stopCrawlJob } from "./crawl-job.mjs";
 import { ensureSearxng } from "./ensure-searxng.mjs";
+import { adoptionEnabled, foreignDaemons, stopDaemon } from "./foreign-daemon.mjs";
 import { logSearch } from "./search-log.mjs";
 import { wrapUntrustedWeb, flagResultInjection } from "./untrusted-web.mjs";
 import { mapWithConcurrency } from "./concurrency.mjs";
@@ -71,6 +72,38 @@ function nativeFallbackHint(err, nativeTool) {
  * @param {string} text
  * @returns {string}
  */
+/**
+ * Daemons running outside the windowless launcher, as warnings on the research result.
+ *
+ * With `VKM_ADOPT_DAEMONS=1` the foreign daemon is STOPPED instead of merely reported: the next
+ * `ensure…` in the run starts it again under the launcher. That is destructive and therefore
+ * opt-in — the process may be one the user started deliberately, and killing it takes their model
+ * or their search instance down with it.
+ *
+ * Never throws and never blocks the job: the research has already started when this runs.
+ */
+async function foreignDaemonWarnings() {
+  try {
+    const found = await foreignDaemons();
+    if (!found.length || !adoptionEnabled()) return found;
+    const out = [];
+    for (const w of found) {
+      const stopped = w.pid ? await stopDaemon(w.pid) : false;
+      out.push({
+        ...w,
+        adopted: stopped,
+        hint: stopped
+          ? `${w.label} (${w.image} pid ${w.pid}) was stopped; it restarts under the launcher on ` +
+            "the next use, so its children stay windowless."
+          : w.hint
+      });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 function capContent(text) {
   const max = Number(process.env.OBSCURA_FETCH_MAX_CHARS) || 60000;
   const s = typeof text === "string" ? text : String(text ?? "");
@@ -945,11 +978,18 @@ export function buildServer(deps = {}) {
           maxTotalMs: max_total_minutes !== undefined ? max_total_minutes * 60_000 : undefined,
           autoConsolidate: auto_consolidate
         });
+        // Reported, not enforced: a daemon somebody else started still works, it just cannot be
+        // kept windowless, and the user deserves to know WHICH process is taking their screen
+        // rather than being told the kit is doing everything it can. Best-effort by construction —
+        // `foreignDaemons` never throws, and a slow probe must not delay the job that already
+        // started above.
+        const warnings = await foreignDaemonWarnings();
         return {
           job_id: id,
           state: "running",
           topic,
           budget_ms: budget_minutes * 60_000,
+          ...(warnings.length ? { warnings } : {}),
           note:
             `Background job: results persist to RESEARCH/${topic}/ as rounds finish; poll ` +
             "obscura_research_status; a run report lands in " +
