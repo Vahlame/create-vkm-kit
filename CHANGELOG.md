@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [5.4.0] - 2026-08-01
 
 ### Fixed
 
@@ -56,6 +56,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   until now was a source grep running on Linux, where a Windows console cannot exist. The test runs
   a control batch **without** the fix first and skips if that control shows no window — an
   environment that cannot observe the defect must not report a pass it did not earn.
+
+  That skip is now **legible in CI**, which took a second attempt to get right: `go test` without
+  `-v` buffers the test binary's output and discards it when the package passes, so neither `t.Skip`
+  nor a marker written to `os.Stderr` survives — a skipped run and a real one both read as
+  `ok … 4.0s`. The Windows leg re-runs that one test verbosely, and the job log now carries either
+  `VKM-RAN console-visibility: control made 12/12 console windows visible` or
+  `VKM-SKIP … THIS RUN PROVED NOTHING`. On the GitHub runner it is the former, so the green measures
+  something.
 
 ## [5.3.0] - 2026-08-01
 
