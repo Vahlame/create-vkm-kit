@@ -391,6 +391,21 @@ async function main() {
     return;
   }
 
+  // Before --check-update: this is a read-only diagnostic and must stay reachable even when an
+  // install is half-finished — a machine that flashes consoles is usually one whose wiring is off.
+  if (argv.includes("--windows-audit")) {
+    const home = process.env.HOME || process.env.USERPROFILE || process.cwd();
+    const watchArg = flagValue(argv, "--watch");
+    const { runWindowsAudit } = await import("./windows-audit.mjs");
+    process.exitCode = await runWindowsAudit({
+      home,
+      fix: argv.includes("--fix"),
+      watchSeconds: watchArg ? Number(watchArg) : null,
+      dryRun: dryRunFromArgs()
+    });
+    return;
+  }
+
   if (argv.includes("--check-update")) {
     const cwd = process.cwd();
     const home = process.env.HOME || process.env.USERPROFILE || cwd;

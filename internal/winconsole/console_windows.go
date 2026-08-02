@@ -28,6 +28,13 @@ func HideOwnConsole() {
 	HideOwnConsoleWith(getConsoleWindow, allocConsole, hideWindow)
 }
 
+// ChildNeedsHiddenConsole reports whether a child must be started with a new, hidden console of its
+// own because this process has none to pass down. See NeedsOwnConsole for why the child gets it at
+// creation instead of this process allocating one and hiding it afterwards.
+func ChildNeedsHiddenConsole() bool {
+	return NeedsOwnConsole(getConsoleWindow)
+}
+
 func getConsoleWindow() uintptr {
 	hwnd, _, _ := procGetConsoleWindow.Call()
 	return hwnd
