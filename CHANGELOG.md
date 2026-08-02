@@ -2409,7 +2409,8 @@ scoring, embedder-identity reuse).
 **3.15.0 and earlier** live in [`docs/changelog/pre-4.0.md`](docs/changelog/pre-4.0.md) —
 same text, same format, moved out in 5.0.0 to keep this file readable.
 
-[Unreleased]: https://github.com/Vahlame/create-vkm-kit/compare/v5.2.0...HEAD
+[5.4.0]: https://github.com/Vahlame/create-vkm-kit/compare/v5.3.0...v5.4.0
+[5.3.0]: https://github.com/Vahlame/create-vkm-kit/compare/v5.2.0...v5.3.0
 [5.2.0]: https://github.com/Vahlame/create-vkm-kit/compare/v5.1.0...v5.2.0
 [5.1.0]: https://github.com/Vahlame/create-vkm-kit/compare/v5.0.0...v5.1.0
 [5.0.0]: https://github.com/Vahlame/create-vkm-kit/compare/v4.7.1...v5.0.0
