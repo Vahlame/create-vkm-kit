@@ -462,6 +462,10 @@ export async function buildServer() {
           .optional()
           .default("both")
           .describe("out = edges this note declares; in = notes that link to it; both (default)"),
+        scope: z
+          .string()
+          .optional()
+          .describe("Scope to a path prefix at segment boundary, e.g. 'AGENTS/x'."),
         limit: z
           .number()
           .int()
@@ -473,21 +477,16 @@ export async function buildServer() {
       },
       annotations: { readOnlyHint: true }
     },
-    toolHandler(async ({ note, direction, limit }) => {
+    toolHandler(async ({ note, direction, scope, limit }) => {
       const v = requireVault();
-      const result = await runRagJson(
-        [
-          "json-relations",
-          "--vault",
-          v,
-          note,
-          "--direction",
-          direction || "both",
-          "--limit",
-          String(limit ?? 50)
-        ],
-        ragSrc
-      );
+      const args = ragArgs("json-relations", v, {
+        "--direction": direction || "both",
+        "--limit": limit ?? 50,
+        "--scope": scope
+      });
+      // json-relations takes the note as a positional after flags — append it.
+      args.push(note);
+      const result = await runRagJson(args, ragSrc);
       return flagKg(result);
     })
   );
@@ -1139,6 +1138,10 @@ export async function buildServer() {
           .string()
           .optional()
           .describe("CSV of relation types to follow, e.g. 'implements,supersedes'; omitted = all"),
+        scope: z
+          .string()
+          .optional()
+          .describe("Scope to a path prefix at segment boundary, e.g. 'AGENTS/x'."),
         limit: z
           .number()
           .int()
@@ -1150,7 +1153,7 @@ export async function buildServer() {
       },
       annotations: { readOnlyHint: true }
     },
-    toolHandler(async ({ from, depth, direction, types, limit }) => {
+    toolHandler(async ({ from, depth, direction, types, scope, limit }) => {
       const v = requireVault();
       const result = await pgGraph({
         vault: v,
@@ -1158,6 +1161,7 @@ export async function buildServer() {
         depth: depth ?? 2,
         direction: direction || "both",
         types,
+        scope,
         limit: limit ?? 50
       });
       return markUntrusted(result, "Graph rows");

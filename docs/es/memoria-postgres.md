@@ -234,6 +234,7 @@ serían N llamadas encadenadas a `vault_relations`.
     "depth": 3,
     "direction": "both",
     "types": "implements,supersedes,part_of",
+    "scope": "PROJECTS",
     "limit": 200
   }
 }
@@ -241,9 +242,10 @@ serían N llamadas encadenadas a `vault_relations`.
 
 Devuelve `nodes` (`path`, `title`) y `edges` (`source`, `type`, `target`, `depth`).
 En la tool MCP `from` es **obligatorio**, `depth` va de 1 a 4 (2 por defecto), `direction` es
-`out`, `in` o `both` (`both` por defecto) y `limit` va de 1 a 200 (50 por defecto). El grafo
-completo se pide por la API HTTP: `GET /api/graph` sin `from` lo devuelve recortado por
-`limit` (500 aristas por defecto).
+`out`, `in` o `both` (`both` por defecto), `limit` va de 1 a 200 (50 por defecto), y el
+`scope` opcional mantiene ambos extremos de cada arista dentro de un namespace por prefijo
+de ruta (mismo contrato que `vault_timeline`). El grafo completo se pide por la API HTTP:
+`GET /api/graph` sin `from` lo devuelve recortado por `limit` (500 aristas por defecto).
 
 ### `vault_timeline`
 

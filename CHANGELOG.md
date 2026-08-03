@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **`vault_graph_hops` exposes `scope` on the MCP wire** (schema + `buildGraphParams` /
+  `pgGraph`), matching the REST `/api/graph?scope=` contract and ADR-0086. Without it the
+  parameter existed only on HTTP and was unreachable from agents.
+- **`vault_relations` exposes `scope`** and forwards `--scope` to `json-relations` (the
+  Python backend already supported it; the MCP schema/handler did not).
+- **MCP → pg-service GETs time out after 8 s** (`AbortSignal.timeout` in `apiGet`). A stuck
+  or mid-sync service can no longer hang `vault_graph_hops` / `vault_timeline` /
+  `vault_pg_status` indefinitely.
+
+### Changed
+
+- **Upgrading from 5.4.x → 5.5.0:** Postgres projection and the `AGENTS/` scaffold are **on by
+  default** (`--postgres`; opt out with `--no-postgres`). `--full` now wires `cursor` alongside
+  Codex/Claude. Re-run the installer against your vault so hybrid gets `VKM_PG=1` and the
+  projection syncs; notes stay in the vault — Postgres is a disposable derived index under
+  `~/.vkm/pg/<slug>/`.
+
 ## [5.5.0] - 2026-08-03
 
 ### Added

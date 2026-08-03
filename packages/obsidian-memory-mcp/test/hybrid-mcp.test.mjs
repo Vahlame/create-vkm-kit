@@ -537,7 +537,9 @@ test("scoped-memory params: `scope` registered on the search/observations/timeli
       "vault_fts_search",
       "vault_hybrid_search",
       "vault_observations",
-      "vault_timeline"
+      "vault_relations",
+      "vault_timeline",
+      "vault_graph_hops"
     ]) {
       const tool = tools.find((t) => t.name === name);
       assert.ok(tool, `expected tool ${name} to be registered`);
