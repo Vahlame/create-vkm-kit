@@ -20,6 +20,7 @@ import {
   formatStatus,
   buildGraphParams,
   validateScope,
+  API_GET_TIMEOUT_MS,
   pgStatus,
   pgGraph,
   pgTimeline
@@ -112,6 +113,7 @@ test("buildGraphParams: defaults depth 2 / direction both / limit 50", () => {
   assert.equal(p.get("direction"), "both");
   assert.equal(p.get("limit"), "50");
   assert.equal(p.get("types"), null);
+  assert.equal(p.get("scope"), null);
 });
 
 test("buildGraphParams: types CSV is split, trimmed and re-joined", () => {
@@ -122,6 +124,17 @@ test("buildGraphParams: types CSV is split, trimmed and re-joined", () => {
   assert.equal(p.get("types"), "implements,supersedes,part_of");
   // All-whitespace CSV → the param is omitted entirely.
   assert.equal(buildGraphParams({ from: "a.md", types: " , " }).get("types"), null);
+});
+
+test("buildGraphParams: forwards a validated scope; rejects escapes", () => {
+  assert.equal(
+    buildGraphParams({ from: "AGENTS/x.md", scope: "AGENTS/x" }).get("scope"),
+    "AGENTS/x"
+  );
+  assert.throws(
+    () => buildGraphParams({ from: "a.md", scope: "../evil" }),
+    /posix-relative path prefix/
+  );
 });
 
 test("buildGraphParams: rejects out-of-range and malformed arguments", () => {
@@ -188,6 +201,7 @@ test("pgGraph: authenticated GET /api/graph with the built params; result passes
       depth: 3,
       direction: "out",
       types: "implements, supersedes",
+      scope: "PROJECTS",
       limit: 10,
       env: { VKM_PG: "1" },
       fetchImpl,
@@ -202,8 +216,14 @@ test("pgGraph: authenticated GET /api/graph with the built params; result passes
     assert.equal(called.searchParams.get("depth"), "3");
     assert.equal(called.searchParams.get("direction"), "out");
     assert.equal(called.searchParams.get("types"), "implements,supersedes");
+    assert.equal(called.searchParams.get("scope"), "PROJECTS");
     assert.equal(called.searchParams.get("limit"), "10");
     assert.equal(fetchImpl.calls[0].options.headers["x-vkm-pg-token"], "sekret");
+    assert.ok(
+      fetchImpl.calls[0].options.signal instanceof AbortSignal,
+      "apiGet must pass AbortSignal.timeout so a stuck pg-service cannot hang the agent"
+    );
+    assert.equal(API_GET_TIMEOUT_MS, 8000);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

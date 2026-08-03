@@ -57,10 +57,18 @@ export function formatStatus(health) {
  * Validate vault_graph_hops arguments and build the /api/graph query string.
  * Zod already enforces most of this on the wire; this keeps the pure module
  * independently safe (and testable) regardless of the caller.
- * @param {{ from: string, depth?: number, direction?: string, types?: string, limit?: number }} args
+ * @param {{ from: string, depth?: number, direction?: string, types?: string,
+ *           limit?: number, scope?: string }} args
  * @returns {URLSearchParams}
  */
-export function buildGraphParams({ from, depth = 2, direction = "both", types, limit = 50 }) {
+export function buildGraphParams({
+  from,
+  depth = 2,
+  direction = "both",
+  types,
+  limit = 50,
+  scope
+}) {
   if (typeof from !== "string" || from.trim() === "") {
     throw new Error(
       "from is required: a vault-relative note path incl. .md, e.g. 'PROJECTS/app.md'"
@@ -88,6 +96,8 @@ export function buildGraphParams({ from, depth = 2, direction = "both", types, l
       .filter(Boolean);
     if (list.length) params.set("types", list.join(","));
   }
+  const scopeValue = validateScope(scope);
+  if (scopeValue != null) params.set("scope", scopeValue);
   return params;
 }
 
@@ -171,18 +181,23 @@ async function serviceInfo({ vault, env, loadPaths }) {
   return { port, token };
 }
 
+/** Read timeout for MCP → pg-service GETs (status / graph / timeline). */
+export const API_GET_TIMEOUT_MS = 8000;
+
 /**
  * Authenticated GET against the local pg-service. Connection-level failures
  * become the uniform unavailable error; HTTP-level failures keep their status
  * so a real server bug is not misreported as "service off".
- * @param {{ info: { port: number, token: string }, apiPath: string, fetchImpl: typeof fetch }} deps
+ * @param {{ info: { port: number, token: string }, apiPath: string, fetchImpl: typeof fetch,
+ *           timeoutMs?: number }} deps
  * @returns {Promise<any>}
  */
-async function apiGet({ info, apiPath, fetchImpl }) {
+async function apiGet({ info, apiPath, fetchImpl, timeoutMs = API_GET_TIMEOUT_MS }) {
   let res;
   try {
     res = await fetchImpl(`http://127.0.0.1:${info.port}${apiPath}`, {
-      headers: { "x-vkm-pg-token": info.token }
+      headers: { "x-vkm-pg-token": info.token },
+      signal: AbortSignal.timeout(timeoutMs)
     });
   } catch (err) {
     throw unavailable(`pg-service unreachable on port ${info.port}: ${err?.message ?? err}`);
@@ -239,8 +254,9 @@ export async function pgStatus({
  * vault_graph_hops: GET /api/graph. Never starts the service (read tools stay
  * side-effect-free); disabled or not-running → uniform actionable error.
  * @param {{ vault: string, from: string, depth?: number, direction?: string,
- *           types?: string, limit?: number, env?: NodeJS.ProcessEnv,
- *           fetchImpl?: typeof fetch, loadPaths?: () => Promise<any> }} args
+ *           types?: string, limit?: number, scope?: string,
+ *           env?: NodeJS.ProcessEnv, fetchImpl?: typeof fetch,
+ *           loadPaths?: () => Promise<any> }} args
  * @returns {Promise<{ nodes: any[], edges: any[] }>}
  */
 export async function pgGraph({
@@ -250,12 +266,13 @@ export async function pgGraph({
   direction,
   types,
   limit,
+  scope,
   env = process.env,
   fetchImpl = globalThis.fetch,
   loadPaths = defaultLoadPaths
 }) {
   if (!pgEnabled(env)) throw new Error(disabledMessage());
-  const params = buildGraphParams({ from, depth, direction, types, limit });
+  const params = buildGraphParams({ from, depth, direction, types, limit, scope });
   const info = await serviceInfo({ vault, env, loadPaths });
   return apiGet({ info, apiPath: `/api/graph?${params.toString()}`, fetchImpl });
 }

@@ -232,6 +232,7 @@ chained `vault_relations` calls.
     "depth": 3,
     "direction": "both",
     "types": "implements,supersedes,part_of",
+    "scope": "PROJECTS",
     "limit": 200
   }
 }
@@ -239,9 +240,10 @@ chained `vault_relations` calls.
 
 Returns `nodes` (`path`, `title`) and `edges` (`source`, `type`, `target`, `depth`).
 On the MCP tool `from` is **required**, `depth` ranges 1–4 (default 2), `direction` is
-`out`, `in` or `both` (default `both`) and `limit` ranges 1–200 (default 50). The whole
-graph comes from the HTTP API instead: `GET /api/graph` without `from` returns it, capped by
-`limit` (500 edges by default).
+`out`, `in` or `both` (default `both`), `limit` ranges 1–200 (default 50), and optional
+`scope` keeps both endpoints of every edge inside a path-prefix namespace (same contract as
+`vault_timeline`). The whole graph comes from the HTTP API instead: `GET /api/graph`
+without `from` returns it, capped by `limit` (500 edges by default).
 
 ### `vault_timeline`
 
