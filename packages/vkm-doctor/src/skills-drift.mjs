@@ -54,7 +54,11 @@ export function checkSkillsDriftForIde({
   const skillsDir = skillsDirFor(home, ide);
   if (!fs.existsSync(skillsDir)) {
     const label =
-      ide === "codex" ? "~/.agents/skills" : ide === "cursor" ? "~/.cursor/skills" : "~/.claude/skills";
+      ide === "codex"
+        ? "~/.agents/skills"
+        : ide === "cursor"
+          ? "~/.cursor/skills"
+          : "~/.claude/skills";
     return {
       skipped: true,
       ide,

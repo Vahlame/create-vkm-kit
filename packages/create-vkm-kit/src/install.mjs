@@ -365,6 +365,17 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
       terseStyle: opts.terseStyle
     });
     await configureTelemetry(home, dryRun, { enable: opts.telemetry, kitRoot });
+    // Claude SessionStart keep-alive only — Cursor/Codex do not run ~/.claude hooks.
+    // Vault→PG sync for every user is maybeSetupPostgres below (full vs incremental).
+    // Hooks do NOT inherit MCP env, so the hook is only INSTALLED when postgres is on —
+    // same conditional as the telemetry sink, and the same symmetric removal on a re-run
+    // with --no-postgres. The DSN rides as hook argv / hook-dsn.
+    await configurePgHook(home, dryRun, {
+      enable: opts.postgres,
+      kitRoot,
+      vaultAbs: vault,
+      dsn: opts.pgDsn
+    });
     await configureSkillAssets(home, dryRun, {
       ide: "claude",
       skills: opts.skills,
@@ -391,16 +402,6 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
       agents: opts.agents
     });
   }
-  // Postgres keep-alive is IDE-agnostic: install whenever --postgres is on (default), not
-  // only when Claude is selected. Hooks do NOT inherit MCP env, so the hook is only
-  // INSTALLED when postgres is on — same conditional as the telemetry sink, and the same
-  // symmetric removal on a re-run with --no-postgres. The DSN rides as hook argv / hook-dsn.
-  await configurePgHook(home, dryRun, {
-    enable: opts.postgres,
-    kitRoot,
-    vaultAbs: vault,
-    dsn: opts.pgDsn
-  });
   // Generic skills target (compatibility with clients the kit has no --ide for yet:
   // Kimi Code, opencode, ...). Additive and independent of the --ide list; the skills
   // are plain markdown + portable Node scripts, consumable by any client with a skills

@@ -34,7 +34,11 @@ const HOOK_ASSET_BASENAMES = {
   // it would just make the Codex install quietly do less than the Claude one, which is
   // the drift this parity work exists to remove.
   effortGate: ["guard-effort-gate.mjs", "apply-model-effort.mjs", "_transcript-cache.mjs"],
-  tokenSaver: ["codex-compact-tool-output.mjs", "compact-tool-output.mjs", "compact-mcp-output.mjs"],
+  tokenSaver: [
+    "codex-compact-tool-output.mjs",
+    "compact-tool-output.mjs",
+    "compact-mcp-output.mjs"
+  ],
   stop: ["stop-vault-close-reminder.mjs", "_transcript-cache.mjs"]
 };
 

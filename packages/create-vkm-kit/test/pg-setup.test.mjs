@@ -19,7 +19,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { maybeSetupPostgres, configurePgHook, uninstallPgHook, pickInstallSyncMode } from "../src/pg-setup.mjs";
+import {
+  maybeSetupPostgres,
+  configurePgHook,
+  uninstallPgHook,
+  pickInstallSyncMode
+} from "../src/pg-setup.mjs";
 import { pgServiceDir } from "../src/hooks/ensure-pg-service.mjs";
 import { buildServerList, writeCursorMcp } from "../src/mcp-register.mjs";
 

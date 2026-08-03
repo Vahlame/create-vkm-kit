@@ -34,9 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   no `lastSyncAt`) runs `POST /api/sync` with `mode: "full"`; reinstall and update runs
   use `incremental` when health already shows notes or a sync timestamp — every user who
   re-runs the kit keeps the vault in Postgres without a full re-dump. Warns when
-  `fts.sqlite` is missing or the sync returns 0 notes while the index exists. The
-  SessionStart keep-alive hook installs whenever `--postgres` is on (not only with
-  `--ide claude`).
+  `fts.sqlite` is missing or the sync returns 0 notes while the index exists.
 - **`/api/suggestions` honors `?scope=`** like the other projection read APIs.
 - **`vkm-doctor` skills-drift checks Claude, Cursor, and Codex skill homes** (union), not
   only `~/.claude/skills`.
@@ -393,7 +391,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `~/.codex/agents/`, and idempotently merged `SessionStart`, `PreToolUse`, and `PostToolUse`
   handlers in `~/.codex/hooks.json`. New `--codex-hooks` and per-piece opt-outs keep the surface
   independently reversible; update and uninstall are hash-safe and leave user hook entries alone.
-- Added [`docs/codex-parity.md`](docs/codex-parity.md) and its Spanish mirror with official-source
+- Added [`docs/en/codex-parity.md`](docs/en/codex-parity.md) and its Spanish mirror with official-source
   verification, current hook drift, and a Claude Code continuation checklist.
 
 ## [5.1.0] - 2026-07-27

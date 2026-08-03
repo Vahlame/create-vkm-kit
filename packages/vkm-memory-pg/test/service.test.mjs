@@ -514,43 +514,47 @@ test("scope contract: validation matrix and segment-boundary matching", () => {
   assert.equal(pathInScope("AGENTS/x.md", "PROJECTS"), false, "different namespace");
 });
 
-test("scope SQL starts_with: underscore and percent are literal, not LIKE wildcards", { skip }, async () => {
-  // Regression: LIKE $scope || '/%' treated `_`/`%` in the scope as wildcards and diverged
-  // from pathInScope. starts_with keeps the SQL arm literal (AGENTS/fo_o must not match foXo).
-  const { scopeMatchSql } = await import("../src/scope.mjs");
-  const s = await bootService({ initialSync: false });
-  const adapter = s.service.getAdapter();
-  assert.ok(adapter, "service adapter open");
-  try {
-    // Include children under foXo/fo%o so the third arm (prefix/) is exercised: with LIKE,
-    // scope AGENTS/fo_o would wrongly match AGENTS/foXo/child.md via `_` → any char.
-    for (const p of [
-      "AGENTS/fo_o.md",
-      "AGENTS/foXo.md",
-      "AGENTS/fo%o.md",
-      "AGENTS/foXo/child.md",
-      "AGENTS/fo%o/child.md",
-      "AGENTS/fo_o/child.md"
-    ]) {
-      await adapter.query(
-        "INSERT INTO notes(path, title, mtime_ns, size_b, folder, body_fold) VALUES ($1, $2, 1, 0, split_part($1, '/', 1), '')",
-        [p, p]
-      );
+test(
+  "scope SQL starts_with: underscore and percent are literal, not LIKE wildcards",
+  { skip },
+  async () => {
+    // Regression: LIKE $scope || '/%' treated `_`/`%` in the scope as wildcards and diverged
+    // from pathInScope. starts_with keeps the SQL arm literal (AGENTS/fo_o must not match foXo).
+    const { scopeMatchSql } = await import("../src/scope.mjs");
+    const s = await bootService({ initialSync: false });
+    const adapter = s.service.getAdapter();
+    assert.ok(adapter, "service adapter open");
+    try {
+      // Include children under foXo/fo%o so the third arm (prefix/) is exercised: with LIKE,
+      // scope AGENTS/fo_o would wrongly match AGENTS/foXo/child.md via `_` → any char.
+      for (const p of [
+        "AGENTS/fo_o.md",
+        "AGENTS/foXo.md",
+        "AGENTS/fo%o.md",
+        "AGENTS/foXo/child.md",
+        "AGENTS/fo%o/child.md",
+        "AGENTS/fo_o/child.md"
+      ]) {
+        await adapter.query(
+          "INSERT INTO notes(path, title, mtime_ns, size_b, folder, body_fold) VALUES ($1, $2, 1, 0, split_part($1, '/', 1), '')",
+          [p, p]
+        );
+      }
+      const pathsFor = async (scope) => {
+        const { rows } = await adapter.query(
+          `SELECT path FROM notes WHERE ${scopeMatchSql("path", 1)} ORDER BY path`,
+          [scope]
+        );
+        return rows.map((r) => String(r.path));
+      };
+      assert.deepEqual(await pathsFor("AGENTS/fo_o"), ["AGENTS/fo_o.md", "AGENTS/fo_o/child.md"]);
+      assert.deepEqual(await pathsFor("AGENTS/fo%o"), ["AGENTS/fo%o.md", "AGENTS/fo%o/child.md"]);
+      assert.deepEqual(await pathsFor("AGENTS/foXo"), ["AGENTS/foXo.md", "AGENTS/foXo/child.md"]);
+    } finally {
+      await s.cleanup();
     }
-    const pathsFor = async (scope) => {
-      const { rows } = await adapter.query(
-        `SELECT path FROM notes WHERE ${scopeMatchSql("path", 1)} ORDER BY path`,
-        [scope]
-      );
-      return rows.map((r) => String(r.path));
-    };
-    assert.deepEqual(await pathsFor("AGENTS/fo_o"), ["AGENTS/fo_o.md", "AGENTS/fo_o/child.md"]);
-    assert.deepEqual(await pathsFor("AGENTS/fo%o"), ["AGENTS/fo%o.md", "AGENTS/fo%o/child.md"]);
-    assert.deepEqual(await pathsFor("AGENTS/foXo"), ["AGENTS/foXo.md", "AGENTS/foXo/child.md"]);
-  } finally {
-    await s.cleanup();
   }
-});
+);
 
 test("scoped search: fts and vector exclude out-of-scope notes", { skip }, async () => {
   // The fixture embeds alpha's chunk at [1,0,...]; the fake query embedding matches it
