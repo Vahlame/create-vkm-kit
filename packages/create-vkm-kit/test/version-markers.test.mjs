@@ -159,6 +159,11 @@ test("every marker reads back exactly what it wrote (read/write are inverses)", 
     "README.en.md":
       '<img src="https://img.shields.io/badge/release-v1.0.0-orange.svg" alt="Release">\n',
     [GO_FILE]: goSource({ varVersion: "1.0.0", ldflags: "1.0.0" }),
+    // vkm-console carries the same var-version + -ldflags pair as the daemon.
+    "cmd/vkm-console/main.go": goSource({ varVersion: "1.0.0", ldflags: "1.0.0" }).replace(
+      "./cmd/obsidian-memoryd",
+      "./cmd/vkm-console"
+    ),
     // One fixture serves every lock marker: each writes its own entry, from the same
     // pristine string, and must read that entry back.
     [LOCK_FILE]: lockSource()
