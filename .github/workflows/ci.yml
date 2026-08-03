@@ -258,7 +258,14 @@ jobs:
           # github.com answers 128-concurrent HTTP/2 bursts with GOAWAY/protocol errors
           # (transport-level, so the built-in GITHUB_TOKEN API fallback never applies):
           # cap concurrency and retry with backoff instead.
-          args: --no-progress --max-redirects 5 --max-concurrency 32 --max-retries 4 --retry-wait-time 2 .
+          #
+          # cmd/vkm-console/web is excluded because it is not a document: those files are
+          # go:embed payload, and their root-relative hrefs ("/static/style.css") resolve
+          # against the binary's own HTTP routes at runtime, not against the repo tree. A
+          # link checker reading them as a web page can only ever report a false failure.
+          args: >-
+            --no-progress --max-redirects 5 --max-concurrency 32 --max-retries 4
+            --retry-wait-time 2 --exclude-path cmd/vkm-console/web .
           fail: true
 
   secrets-scan:
