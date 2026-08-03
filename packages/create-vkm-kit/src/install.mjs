@@ -427,7 +427,12 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
     launcher,
     dsn: opts.pgDsn
   });
-  const consoleBuild = await maybeBuildConsole({ enable: opts.console, dryRun, kitRoot });
+  const consoleBuild = await maybeBuildConsole({
+    enable: opts.console,
+    dryRun,
+    kitRoot,
+    launcher
+  });
 
   if (opts.ruleTargets.length) {
     await installRules(opts.ruleTargets, lang, {

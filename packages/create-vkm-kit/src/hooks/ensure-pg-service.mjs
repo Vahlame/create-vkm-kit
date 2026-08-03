@@ -68,13 +68,14 @@ function main() {
   const dsn = process.argv[4];
   if (!serviceScript || !vaultAbs || pgServiceAlive(vaultAbs)) return;
   try {
-    // windowsHide as the fallback of the ADR-0078 rule: this file runs standalone from
-    // ~/.claude/hooks/ where @vkmikc/vkm-core is out of reach — and the hook itself is
-    // already started through vkm-runhidden.exe, so the tree owns a hidden console.
+    // Deliberately NO windowsHide (ADR-0078): the hook itself is started through
+    // vkm-runhidden.exe, so this process already sits inside ONE hidden console and the
+    // service inherits it. CREATE_NO_WINDOW here would break that inheritance and hand
+    // every Python dump grandchild a brand new VISIBLE console — the exact failure the
+    // launcher exists to prevent. The service is a parent, never a leaf.
     const child = spawn(process.execPath, [serviceScript, "--vault", vaultAbs], {
       detached: true,
       stdio: "ignore",
-      windowsHide: true,
       env: { ...process.env, VKM_PG: "1", ...(dsn ? { VKM_PG_DSN: dsn } : {}) }
     });
     child.on("error", () => {

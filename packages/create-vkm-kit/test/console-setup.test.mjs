@@ -90,8 +90,34 @@ test("happy path: go build runs hidden, bounded and from the kit root; ready + b
   assert.equal(bin, "go");
   assert.deepEqual(args, ["build", "-o", r.binPath, "./cmd/vkm-console"]);
   assert.equal(opts.cwd, KIT, "the module path ./cmd/vkm-console is relative to the kit root");
-  assert.equal(opts.windowsHide, true, "ADR-0078: nothing an installer runs may flash a console");
+  // ADR-0078, the counter-intuitive half: `go build` fans out to the compiler and linker,
+  // so CREATE_NO_WINDOW on it would hand each of THOSE a new visible console. With no
+  // launcher the build inherits the installer's console, which the user is already watching.
+  assert.equal(opts.windowsHide, false, "CREATE_NO_WINDOW on a parent is what makes a window");
   assert.equal(opts.timeout, 120_000, "a wedged toolchain must not hang the install");
+});
+
+test("with a launcher, the Go toolchain runs inside the one hidden console it owns", async () => {
+  const calls = [];
+  const launcher = path.join("C:", "Users", "x", ".claude", "bin", "vkm-runhidden.exe");
+  const r = await maybeBuildConsole(
+    { enable: true, dryRun: false, kitRoot: KIT, launcher },
+    {
+      execaImpl: (bin, args, opts) => {
+        calls.push([bin, args, opts]);
+        return Promise.resolve({ exitCode: 0 });
+      },
+      pathExists: async () => true,
+      platform: "win32"
+    }
+  );
+  assert.equal(r.status, "ready");
+  const [bin, args, opts] = calls.at(-1);
+  assert.equal(bin, launcher, "the launcher is the command; `go` becomes its first argument");
+  assert.deepEqual(args, ["go", "build", "-o", r.binPath, "./cmd/vkm-console"]);
+  assert.equal(opts.windowsHide, false, "the launcher owns the hidden console, not this flag");
+  const [probeBin, probeArgs] = calls[0];
+  assert.deepEqual([probeBin, probeArgs], [launcher, ["go", "version"]], "the probe too");
 });
 
 test("Go present but the build fails → failed (not manual: the hint would mislead)", async () => {

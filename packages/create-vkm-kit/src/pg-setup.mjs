@@ -121,6 +121,12 @@ export async function maybeSetupPostgres(opts, deps = {}) {
 
     // Spawn-and-forget through the windowless launcher (ADR-0078): detached, no stdio, an
     // error listener so a bad spawn surfaces as a poll timeout instead of an unhandled event.
+    //
+    // NOT `windowsHide: true`: the service is a parent, not a leaf — it shells out to
+    // Python for every dump. CREATE_NO_WINDOW on a parent is what MAKES a window appear,
+    // because Windows hands each console-subsystem grandchild a brand new visible one.
+    // The launcher owns a single hidden console the whole tree inherits; without a
+    // launcher the child inherits the installer's own console, which the user is looking at.
     const [command, args] = launcher
       ? [launcher, [process.execPath, serviceScript, "--vault", vaultAbs]]
       : [process.execPath, [serviceScript, "--vault", vaultAbs]];
@@ -128,7 +134,7 @@ export async function maybeSetupPostgres(opts, deps = {}) {
       const child = spawnImpl(command, args, {
         detached: true,
         stdio: "ignore",
-        windowsHide: true,
+        windowsHide: false,
         env: { ...process.env, VKM_PG: "1", ...(dsn ? { VKM_PG_DSN: dsn } : {}) }
       });
       child.on("error", () => {

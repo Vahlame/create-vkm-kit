@@ -492,6 +492,52 @@ test(
 );
 
 test(
+  "stale chunks with NOTHING stored are written anyway (keeping nothing strands the note)",
+  { skip },
+  async () => {
+    // The skip means "the stored rows are better, keep them" — which collapses when there
+    // are no stored rows: on a first sync of an existing vault every chunk looks stale
+    // (vectors refresh lazily), and skipping the write would leave those notes FTS-visible
+    // but absent from vector search FOREVER, because their mtime is written forward here
+    // and no later incremental re-ships them.
+    const adapter = await freshDb();
+    try {
+      const first = {
+        ...makeDump(),
+        manifest: [["PROJECTS/alpha.md", 500]],
+        notes: [
+          { path: "PROJECTS/alpha.md", title: "Alpha", mtime_ns: 500, size_b: 12, body: "cuerpo" }
+        ],
+        chunks: [
+          {
+            path: "PROJECTS/alpha.md",
+            ordinal: 0,
+            heading: "intro",
+            text: "cuerpo",
+            mtime_ns: 100, // older than the note: "stale" by the rule above
+            vec_b64: vecB64([1, 0, 0, 0, 0, 0, 0, 0])
+          }
+        ],
+        relations: [],
+        observations: []
+      };
+      const result = await syncFromDump(adapter, first);
+      assert.equal(result.staleChunkPaths, 0, "with nothing stored, the path is not skippable");
+      const { rows } = await adapter.query(
+        "SELECT heading, body FROM chunks WHERE path = 'PROJECTS/alpha.md'"
+      );
+      assert.deepEqual(
+        rows.map((r) => [r.heading, r.body]),
+        [["intro", "cuerpo"]],
+        "the note must be vector-searchable after its very first sync"
+      );
+    } finally {
+      await adapter.close();
+    }
+  }
+);
+
+test(
   "a concurrent query during a sync sees pre- or post-sync state, never partial",
   { skip },
   async () => {

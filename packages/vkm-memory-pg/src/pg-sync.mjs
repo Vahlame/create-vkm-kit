@@ -302,6 +302,23 @@ async function applyDumpOn(a, dump) {
 
   await a.exec("BEGIN");
   try {
+    // "Stale" means the dump raced the lazy vector refresh, so the STORED chunks are the
+    // better ones and we keep them. That reasoning collapses when nothing is stored (first
+    // sync of an existing vault, or a path re-added after a manifest-diff delete): skipping
+    // the write would leave the note with no vectors at all — FTS-searchable but invisible
+    // to vector search — and since its mtime is written forward here, no later incremental
+    // re-ships it. Those paths take the normal write instead.
+    if (staleChunkSet.size) {
+      const stalePaths = [...staleChunkSet];
+      const placeholders = stalePaths.map((_, i) => `$${i + 1}`).join(", ");
+      const stored = await a.query(
+        `SELECT DISTINCT path FROM chunks WHERE path IN (${placeholders})`,
+        stalePaths
+      );
+      const hasStored = new Set((stored?.rows ?? []).map((r) => String(r.path)));
+      for (const p of stalePaths) if (!hasStored.has(p)) staleChunkSet.delete(p);
+    }
+
     for (const n of notes) {
       const bodyFold = foldText(`${n.title ?? ""}\n${n.body ?? ""}`);
       await a.query(
