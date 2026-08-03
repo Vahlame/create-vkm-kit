@@ -92,11 +92,20 @@ export function resolveOptions(argv, ctx) {
 
   const claude = ides.includes("claude");
   const codex = ides.includes("codex");
+  const cursor = ides.includes("cursor");
   const codexHooks = codex && on("--codex-hooks", "--no-codex-hooks");
   const codexContext = codexHooks && on("--vault-context-hook", "--no-vault-context-hook");
   const codexMemoryGuard = codexHooks && on("--memory-enforcement", "--no-memory-enforcement");
   const codexEffortGate = codexHooks && on("--effort-gate", "--no-effort-gate");
   const codexTokenSaver = codexHooks && on("--token-saver", "--no-token-saver");
+  // Cursor has its own hooks.json schema (version 1, flat command entries). Same
+  // doctrine flags as Codex: vault context + close-ritual nudge + MCP token-saver.
+  // Native-memory guard / effort-gate are Claude-only (Cursor has no auto-memory dir
+  // and no /effort harness).
+  const cursorHooks = cursor && on("--cursor-hooks", "--no-cursor-hooks");
+  const cursorContext = cursorHooks && on("--vault-context-hook", "--no-vault-context-hook");
+  const cursorCloseReminder = cursorHooks && on("--memory-enforcement", "--no-memory-enforcement");
+  const cursorTokenSaver = cursorHooks && on("--token-saver", "--no-token-saver");
   const withHybrid = on("--with-hybrid", "--no-hybrid");
 
   // Claude Code only: disable the native per-project auto-memory + install the SessionStart
@@ -141,7 +150,10 @@ export function resolveOptions(argv, ctx) {
     // usage. Independent of the token-saver: coupling them meant `--no-token-saver` on a
     // re-run silently stripped a sink the user never asked to touch.
     telemetry: claude && on("--telemetry", "--no-telemetry"),
-    skills: (claude || codex) && on("--skills", "--no-skills"),
+    // Skills are plain SKILL.md dirs — Cursor reads `~/.cursor/skills/` (and also
+    // picks up `~/.claude/skills/` when both are installed).
+    skills: (claude || codex || cursor) && on("--skills", "--no-skills"),
+    // Subagent templates stay Claude/Codex-only (Cursor Task types are a different format).
     agents: (claude || codex) && on("--agents", "--no-agents"),
     // Codex hooks are an independent `hooks.json` surface. Reuse the established
     // component flags without coupling skills, agent, or hooks to one another.
@@ -150,6 +162,10 @@ export function resolveOptions(argv, ctx) {
     codexMemoryGuard,
     codexEffortGate,
     codexTokenSaver,
+    cursorHooks,
+    cursorContext,
+    cursorCloseReminder,
+    cursorTokenSaver,
     // Ollama + phi4-mini (~2.3GB) and obscura (a ~40MB third-party binary) are gated to an
     // EXPLICIT opt-in: a bare install must not surprise anyone with a multi-GB download.
     ollama: (full || argv.includes("--ollama")) && !argv.includes("--no-ollama"),

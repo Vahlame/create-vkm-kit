@@ -49,7 +49,10 @@ export function skillAssetFiles(
   { ide = "claude", skills = true, agents = true, skillsDir = null } = {}
 ) {
   const isCodex = ide === "codex";
-  const scopeDir = path.join(home, isCodex ? ".agents" : ".claude");
+  const isCursor = ide === "cursor";
+  // Cursor personal skills: ~/.cursor/skills/<name>/SKILL.md (create-skill docs).
+  // Codex: ~/.agents/skills. Claude Code: ~/.claude/skills.
+  const scopeDir = path.join(home, isCodex ? ".agents" : isCursor ? ".cursor" : ".claude");
   const agentDir = path.join(home, isCodex ? ".codex" : ".claude", "agents");
   const agentBasenames = isCodex ? CODEX_AGENT_BASENAMES : AGENT_BASENAMES;
   const files = [];
@@ -57,7 +60,8 @@ export function skillAssetFiles(
     const dir = skillsDir || path.join(scopeDir, "skills");
     for (const name of SKILL_NAMES) files.push(...skillDirFiles(name, dir));
   }
-  if (agents) {
+  // Cursor has no vkm-implementer agent template format yet — skills only.
+  if (agents && !isCursor) {
     for (const basename of agentBasenames) {
       files.push({
         src: path.join(templatesDir(), "agents", basename),
@@ -103,7 +107,7 @@ export async function installSkillsInto(skillsDir, dryRun) {
  * modules: a piece that is NOT wanted is actively removed (hash-guarded).
  * @param {string} home
  * @param {boolean} dryRun
- * @param {{ ide?: "claude" | "codex", skills?: boolean, agents?: boolean }} [opts]
+ * @param {{ ide?: "claude" | "codex" | "cursor", skills?: boolean, agents?: boolean }} [opts]
  */
 export async function configureSkillAssets(
   home,
@@ -111,7 +115,14 @@ export async function configureSkillAssets(
   { ide = "claude", skills = true, agents = true } = {}
 ) {
   const isCodex = ide === "codex";
-  const sidecarFp = path.join(home, isCodex ? ".codex" : ".claude", ASSETS_SIDECAR_BASENAME);
+  const isCursor = ide === "cursor";
+  const sidecarHome = isCodex ? ".codex" : isCursor ? ".cursor" : ".claude";
+  const sidecarFp = path.join(home, sidecarHome, ASSETS_SIDECAR_BASENAME);
+  const skillsLabel = isCodex
+    ? "~/.agents/skills"
+    : isCursor
+      ? "~/.cursor/skills"
+      : "~/.claude/skills";
   try {
     const wanted = skillAssetFiles(home, { ide, skills, agents });
     const unwanted = skillAssetFiles(home, { ide, skills: !skills, agents: !agents });
@@ -125,12 +136,9 @@ export async function configureSkillAssets(
     if (wanted.length) {
       const { installed } = await installManagedAssets({ files: wanted, sidecarFp });
       if (skills) {
-        console.log(
-          pc.green("Skills installed:"),
-          pc.dim(`${SKILL_NAMES.join(", ")} (${isCodex ? "~/.agents/skills" : "~/.claude/skills"})`)
-        );
+        console.log(pc.green("Skills installed:"), pc.dim(`${SKILL_NAMES.join(", ")} (${skillsLabel})`));
       }
-      if (agents) {
+      if (agents && !isCursor) {
         console.log(
           pc.green("Subagent template installed:"),
           pc.dim(
