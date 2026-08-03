@@ -6,13 +6,19 @@
 // absent/stale, spawn the pg-service detached and exit immediately. Fail-open: ANY error
 // exits 0 silently — a projection hiccup must never block a session. The vault stays the
 // source of truth; the projection is disposable, so a missed respawn costs nothing but
-// freshness. argv: node <hook> <pg-service-script-path> <vaultAbs> [pgDsn].
+// freshness. argv: node <hook> <pg-service-script-path> <vaultAbs> [dsnFileOrLegacyDsn].
+// argv[4] is preferably a path to a 0o600 file under the vault's pg dir (hook-dsn) so
+// credentials never sit in ~/.claude/settings.json; a raw DSN string still works for
+// installs that predate that layout.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import { pathToFileURL } from "node:url";
+
+/** Filename (under the per-vault pg dir) that holds the external DSN for the SessionStart hook. */
+export const HOOK_DSN_BASENAME = "hook-dsn";
 
 /**
  * The per-vault pg-service home: `<PG_DATA_ROOT>/<slug>/`, where PG_DATA_ROOT is
@@ -58,14 +64,43 @@ export function pgServiceAlive(vaultAbs, env = process.env) {
   }
 }
 
+/**
+ * Path of the 0o600 file that stores an external DSN for hook-driven respawns.
+ * @param {string} vaultAbs
+ * @param {NodeJS.ProcessEnv} [env]
+ * @returns {string}
+ */
+export function hookDsnPath(vaultAbs, env = process.env) {
+  return path.join(pgServiceDir(vaultAbs, env), HOOK_DSN_BASENAME);
+}
+
+/**
+ * Resolve argv[4]: prefer reading a DSN file (so settings.json never holds the secret);
+ * fall back to treating the argument as a legacy raw DSN string.
+ * @param {string | undefined} arg
+ * @returns {string | undefined}
+ */
+export function resolveHookDsnArg(arg) {
+  if (!arg) return undefined;
+  try {
+    if (fs.existsSync(arg) && fs.statSync(arg).isFile()) {
+      const text = fs.readFileSync(arg, "utf8").trim();
+      return text || undefined;
+    }
+  } catch {
+    // fall through to legacy string
+  }
+  return arg;
+}
+
 function main() {
   const serviceScript = process.argv[2];
   const vaultAbs = process.argv[3];
-  // argv[4] (optional): the VKM_PG_DSN this install configured. Hooks inherit no MCP env
+  // argv[4] (optional): path to hook-dsn, or a legacy raw DSN. Hooks inherit no MCP env
   // and the service persists the DSN nowhere, so without threading it through argv every
   // hook-driven respawn would silently fall back to the embedded PGlite backend
   // (pg-adapter selects the backend from env.VKM_PG_DSN alone).
-  const dsn = process.argv[4];
+  const dsn = resolveHookDsnArg(process.argv[4]);
   if (!serviceScript || !vaultAbs || pgServiceAlive(vaultAbs)) return;
   try {
     // Deliberately NO windowsHide (ADR-0078): the hook itself is started through

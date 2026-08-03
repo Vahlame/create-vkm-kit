@@ -338,20 +338,28 @@ test("configurePgHook installs the SessionStart entry with script + vault argv, 
   assert.equal(after.hooks?.SessionStart, undefined, "no empty husk left behind");
 });
 
-test("configurePgHook threads the DSN as the hook's argv[4] (backend survives respawns)", async () => {
+test("configurePgHook stores the DSN in a 0o600 file; settings.json only gets the path", async () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "vkm-pg-hook-dsn-"));
   const vault = path.join(home, "vault");
+  const env = { VKM_PG_DATA_ROOT: path.join(home, "pgroot") };
   const DSN = "postgres://app:s3cret@db.example:5432/vkm";
   await configurePgHook(home, false, {
     enable: true,
     kitRoot: repoRoot,
     vaultAbs: vault,
-    dsn: DSN
+    dsn: DSN,
+    env
   });
 
   const settings = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
+  const settingsText = fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8");
+  assert.ok(!settingsText.includes(DSN), "the secret must not appear in settings.json");
+  assert.ok(!settingsText.includes("s3cret"), "password fragment must not appear in settings.json");
+
   const [entry] = settings.hooks.SessionStart.flatMap((m) => m.hooks);
-  assert.equal(entry.args[3], DSN, "argv[4] carries the DSN the install configured");
+  const dsnFile = entry.args[3];
+  assert.ok(typeof dsnFile === "string" && fs.existsSync(dsnFile), "argv[4] is a path that exists");
+  assert.equal(fs.readFileSync(dsnFile, "utf8").trim(), DSN, "hook-dsn file holds the DSN");
 });
 
 test("configurePgHook enable:false stops the vault's LIVE pg-service (SIGTERM the recorded pid)", async () => {

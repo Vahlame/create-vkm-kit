@@ -27,7 +27,7 @@ import {
   removeManagedHook,
   setOrDeleteHooks
 } from "./settings-io.mjs";
-import { pgServiceDir } from "./hooks/ensure-pg-service.mjs";
+import { hookDsnPath, pgServiceDir } from "./hooks/ensure-pg-service.mjs";
 
 export const ENSURE_PG_HOOK_STEM = "ensure-pg-service";
 export const ENSURE_PG_HOOK_BASENAME = `${ENSURE_PG_HOOK_STEM}.mjs`;
@@ -423,6 +423,21 @@ export async function configurePgHook(
       await fse.copy(packagedHookPath(ENSURE_PG_HOOK_BASENAME), hookDest, { overwrite: true });
     }
 
+    // External DSN lives in a 0o600 file under the vault's pg dir — never inline in
+    // settings.json (that file is world-readable to every process as the user). argv[4]
+    // carries the PATH; the hook reads the secret at respawn time.
+    /** @type {string | null} */
+    let dsnArg = null;
+    if (enable && dsn && vaultAbs) {
+      const dsnFile = hookDsnPath(vaultAbs, env);
+      await fse.ensureDir(path.dirname(dsnFile));
+      await fse.writeFile(dsnFile, `${dsn}\n`, { encoding: "utf8", mode: 0o600 });
+      dsnArg = dsnFile;
+      console.log(
+        pc.dim(`Postgres DSN stored in ${dsnFile} (0o600) — not written into settings.json`)
+      );
+    }
+
     if (invalidJson) {
       const bak = await backupRestricted(settingsFp, priorBytes);
       console.warn(pc.yellow("Invalid JSON in ~/.claude/settings.json; backed up to"), bak);
@@ -440,14 +455,13 @@ export async function configurePgHook(
           "*",
           {
             command: interpreter,
-            // argv[4] (optional) carries the DSN: hooks inherit no MCP env, so without it
-            // every hook-driven respawn would silently flip the service back to the
-            // embedded PGlite backend (pg-adapter selects the backend from env alone).
+            // argv[4] (optional) is the path to hook-dsn (or was historically the raw DSN).
+            // Hooks inherit no MCP env; without this every respawn flips back to PGlite.
             args: [
               hookDest,
               pgServiceScriptFromKitRoot(/** @type {string} */ (kitRoot)),
               vaultAbs,
-              ...(dsn ? [dsn] : [])
+              ...(dsnArg ? [dsnArg] : [])
             ]
           },
           ENSURE_PG_HOOK_STEM

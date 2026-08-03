@@ -49,7 +49,9 @@ npx @vkmikc/create-vkm-kit --full --pg-dsn "postgres://user:pass@localhost:5432/
 - `--no-postgres` leaves it out. The kit works the same; the three Postgres tools simply are
   not registered.
 - `--pg-dsn <string>` uses **your** Postgres server instead of embedded PGlite. No embedded
-  datadir is created.
+  datadir is created. The DSN is written to `~/.vkm/pg/<slug>/hook-dsn` (mode `0600`) so the
+  SessionStart keep-alive hook can respawn the service without putting credentials into
+  `~/.claude/settings.json`.
 
 ### By hand, with environment variables
 
@@ -75,6 +77,7 @@ SHA-256 of its absolute path — so two vaults with the same folder name never c
 | `service.json`        | `{ port, pid, vault, version, startedAt }` for the live service.                 |
 | `service.token`       | 32 random bytes in hex; the auth token (mode `0600` on POSIX).                   |
 | `service.lock`        | `{ pid, port }`; if that process no longer exists, the lock is stale and can go. |
+| `hook-dsn`            | External DSN for the SessionStart hook (mode `0600`; only when `--pg-dsn` set).  |
 | `migration-report.md` | The last migration's report: what synced, what was suggested, how long it took.  |
 
 ---

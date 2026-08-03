@@ -20,7 +20,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { pgServiceDir, pgServiceAlive } from "../src/hooks/ensure-pg-service.mjs";
+import {
+  hookDsnPath,
+  pgServiceDir,
+  pgServiceAlive,
+  resolveHookDsnArg
+} from "../src/hooks/ensure-pg-service.mjs";
 
 const HOOK = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -82,12 +87,23 @@ test("run with no argv the hook exits 0 and spawns nothing (fail-open contract)"
   assert.equal(r.stdout, "", "a keep-alive hook has nothing to say to the session");
 });
 
-test("argv[4] DSN reaches the spawned service as VKM_PG_DSN (backend survives respawns)", async () => {
+test("resolveHookDsnArg: file path reads contents; raw DSN string is legacy-compatible", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "vkm-pg-resolve-dsn-"));
+  const fp = path.join(root, "hook-dsn");
+  fs.writeFileSync(fp, "postgres://from-file/vkm\n", "utf8");
+  assert.equal(resolveHookDsnArg(fp), "postgres://from-file/vkm");
+  assert.equal(
+    resolveHookDsnArg("postgres://legacy/raw"),
+    "postgres://legacy/raw",
+    "pre-file installs still work"
+  );
+  assert.equal(resolveHookDsnArg(undefined), undefined);
+});
+
+async function spawnHookAndReadEnv(argv4) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "vkm-pg-hook-dsn-"));
   const vault = path.join(root, "vault");
   const outFp = path.join(root, "env-dump.json");
-  // Stand-in for pg-service.mjs: dump the env keys the hook is contractually required to
-  // set, then exit. Runs detached with stdio ignored, exactly like the real service.
   const fakeService = path.join(root, "fake-service.mjs");
   fs.writeFileSync(
     fakeService,
@@ -98,16 +114,12 @@ test("argv[4] DSN reaches the spawned service as VKM_PG_DSN (backend survives re
       `}));\n`,
     "utf8"
   );
-
-  const DSN = "postgres://app:s3cret@db.example:5432/vkm";
-  const r = spawnSync(process.execPath, [HOOK, fakeService, vault, DSN], {
+  const r = spawnSync(process.execPath, [HOOK, fakeService, vault, argv4], {
     encoding: "utf8",
     timeout: 15_000,
-    env: { ...process.env, VKM_PG_DATA_ROOT: root } // no service.json there → hook spawns
+    env: { ...process.env, VKM_PG_DATA_ROOT: root }
   });
   assert.equal(r.status, 0, r.stderr);
-
-  // The service is spawned detached and the hook exits immediately — poll for the dump.
   const deadline = Date.now() + 10_000;
   let dump = null;
   while (dump === null && Date.now() < deadline) {
@@ -118,6 +130,26 @@ test("argv[4] DSN reaches the spawned service as VKM_PG_DSN (backend survives re
     }
   }
   assert.ok(dump, "the detached service never ran (no env dump written)");
-  assert.equal(dump.dsn, DSN, "argv[4] must become VKM_PG_DSN in the service env");
+  return dump;
+}
+
+test("argv[4] DSN file contents reach the spawned service as VKM_PG_DSN", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "vkm-pg-hook-dsnfile-"));
+  const vault = path.join(root, "vault");
+  const env = { VKM_PG_DATA_ROOT: root };
+  const DSN = "postgres://app:s3cret@db.example:5432/vkm";
+  const dsnFile = hookDsnPath(vault, env);
+  fs.mkdirSync(path.dirname(dsnFile), { recursive: true });
+  fs.writeFileSync(dsnFile, DSN, "utf8");
+
+  const dump = await spawnHookAndReadEnv(dsnFile);
+  assert.equal(dump.dsn, DSN, "DSN file must become VKM_PG_DSN in the service env");
   assert.equal(dump.pg, "1", "VKM_PG=1 is always set");
+});
+
+test("argv[4] legacy raw DSN still reaches the spawned service as VKM_PG_DSN", async () => {
+  const DSN = "postgres://app:s3cret@db.example:5432/vkm";
+  const dump = await spawnHookAndReadEnv(DSN);
+  assert.equal(dump.dsn, DSN, "legacy argv[4] raw DSN remains supported");
+  assert.equal(dump.pg, "1");
 });
