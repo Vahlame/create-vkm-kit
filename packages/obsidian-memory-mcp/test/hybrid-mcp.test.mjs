@@ -477,6 +477,103 @@ test("assemble_context: rejects a `project` value shaped like a path traversal (
   }
 });
 
+// --- Postgres-projection tools (ADR-0084) -----------------------------------------
+
+test("pg tools: registered read-only with no vault param; vault_graph_hops rejects depth 9 via zod", async () => {
+  const vault = makeVault("hybrid-pg-");
+  // Deterministic regardless of the ambient developer env: projection off.
+  const prevPg = process.env.VKM_PG;
+  const prevDsn = process.env.VKM_PG_DSN;
+  delete process.env.VKM_PG;
+  delete process.env.VKM_PG_DSN;
+  const { client, cleanup } = await connectedClient(vault);
+  try {
+    const { tools } = await client.listTools();
+    for (const name of ["vault_pg_status", "vault_graph_hops", "vault_timeline"]) {
+      const tool = tools.find((t) => t.name === name);
+      assert.ok(tool, `expected tool ${name} to be registered`);
+      assert.equal(tool.annotations?.readOnlyHint, true, `${name} must be read-only annotated`);
+      const props = Object.keys(tool.inputSchema?.properties ?? {});
+      assert.ok(!props.includes("vault"), `${name} must not expose a "vault" input param`);
+    }
+
+    // depth 9 must die in zod, BEFORE the handler (whose disabled-path error
+    // would also be isError — the message tells the two apart).
+    const res = await client.callTool({
+      name: "vault_graph_hops",
+      arguments: { from: "PROJECTS/app.md", depth: 9 }
+    });
+    assert.equal(res.isError, true, "depth 9 must be rejected");
+    assert.ok(
+      !textOf(res).includes("Postgres projection off"),
+      "rejection must come from zod validation, not from the handler's disabled path"
+    );
+
+    // With the projection disabled, the read tools answer with the enable recipe.
+    const disabled = await client.callTool({
+      name: "vault_timeline",
+      arguments: {}
+    });
+    assert.equal(disabled.isError, true);
+    assert.match(textOf(disabled), /VKM_PG=1/);
+  } finally {
+    await cleanup();
+    if (prevPg === undefined) delete process.env.VKM_PG;
+    else process.env.VKM_PG = prevPg;
+    if (prevDsn === undefined) delete process.env.VKM_PG_DSN;
+    else process.env.VKM_PG_DSN = prevDsn;
+    rmSync(vault, { recursive: true, force: true });
+  }
+});
+
+// --- Scoped memory: `scope` / `agentName` params (scoped-memory contract) ---------
+
+test("scoped-memory params: `scope` registered on the search/observations/timeline tools, `agentName` on assemble_context — and still no `vault` leak", async () => {
+  const vault = makeVault("hybrid-scope-params-");
+  const { client, cleanup } = await connectedClient(vault);
+  try {
+    const { tools } = await client.listTools();
+    for (const name of [
+      "vault_fts_search",
+      "vault_hybrid_search",
+      "vault_observations",
+      "vault_timeline"
+    ]) {
+      const tool = tools.find((t) => t.name === name);
+      assert.ok(tool, `expected tool ${name} to be registered`);
+      const props = Object.keys(tool.inputSchema?.properties ?? {});
+      assert.ok(props.includes("scope"), `${name} must expose an optional "scope" param`);
+      assert.ok(!props.includes("vault"), `${name} must not expose a "vault" input param`);
+    }
+    const assemble = tools.find((t) => t.name === "assemble_context");
+    assert.ok(assemble, "expected assemble_context to be registered");
+    const assembleProps = Object.keys(assemble.inputSchema?.properties ?? {});
+    assert.ok(assembleProps.includes("agentName"), "assemble_context must expose agentName");
+    assert.ok(!assembleProps.includes("vault"), "assemble_context must not expose vault");
+  } finally {
+    await cleanup();
+    rmSync(vault, { recursive: true, force: true });
+  }
+});
+
+test("assemble_context: rejects an `agentName` shaped like a path traversal (defense-in-depth)", async () => {
+  const vault = makeVault("hybrid-agentname-traversal-");
+  const { client, cleanup } = await connectedClient(vault);
+  try {
+    for (const bad of ["../evil", "AGENTS/other", "a\\b"]) {
+      const res = await client.callTool({
+        name: "assemble_context",
+        arguments: { query: "x", agentName: bad }
+      });
+      assert.equal(res.isError, true, `agentName ${JSON.stringify(bad)} must be rejected`);
+      assert.match(textOf(res), /invalid/i);
+    }
+  } finally {
+    await cleanup();
+    rmSync(vault, { recursive: true, force: true });
+  }
+});
+
 // --- Retrieval scoping: `section` / `include_research` (spec vkm-research R4) -----
 
 test("vault_fts_search / vault_hybrid_search: `section` scopes RESEARCH/** vs everything else", async () => {

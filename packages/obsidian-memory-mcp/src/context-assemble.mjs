@@ -149,6 +149,8 @@ export function applyBudget(ctx, budgetChars) {
  * @param {string} [opts.query] - the task/idea, used for hybrid search
  * @param {string} [opts.projectName] - bare project name; scopes observations to
  *   PROJECTS/<name>.md and biases the search toward notes about THIS project
+ * @param {string} [opts.agentName] - bare agent name; prepends AGENTS/<name>.md passages
+ *   (scoped-memory contract: scope="AGENTS/<name>") to the bundle, same char budget
  * @param {number} [opts.budgetChars] - total content-char cap (default 6000)
  * @param {boolean} [opts.includeObservations] - skip the typed-observation passes (default true)
  * @param {boolean} [opts.includeResearch] - include RESEARCH/** passages (default false,
@@ -162,18 +164,24 @@ export async function assembleContext({
   vault,
   query,
   projectName,
+  agentName,
   budgetChars = DEFAULT_BUDGET_CHARS,
   includeObservations = true,
   includeResearch = false
 } = {}) {
   const v = requireVault(vault);
   const ragSrc = defaultRagSrc();
+  // Same containment bar as the wire schema's regex — this module is also called
+  // directly, so the name must never smuggle path separators into the scope.
+  if (agentName != null && !/^[\w-]+$/.test(String(agentName))) {
+    throw new Error("invalid agentName: bare agent name only, no path separators or '..'");
+  }
   const projectNote = projectName ? `PROJECTS/${projectName}.md` : undefined;
   // Qualify the search with the project name (when known) so ranking favors notes that
   // are actually ABOUT this project, not just any note sharing a generic keyword.
   const searchQuery = projectName ? `${projectName} ${query}` : query;
 
-  const [hybridAttempt, projectAttempt, stackAttempt] = await Promise.all([
+  const [hybridAttempt, projectAttempt, stackAttempt, agentAttempt] = await Promise.all([
     attempt(
       runRagJson(
         [
@@ -223,14 +231,37 @@ export async function assembleContext({
       ? attempt(
           runRagJson(["json-observations", "--vault", v, "--tag", "stack", "--limit", "20"], ragSrc)
         )
-      : attempt(Promise.resolve({ observations: [] }))
+      : attempt(Promise.resolve({ observations: [] })),
+    // Agent-memory pass (scoped-memory contract): the caller asked for THIS agent's
+    // memory explicitly, so its passages skip the anchor gate below — scope, not
+    // vocabulary, is the relevance signal. The raw query (unqualified) ranks chunks
+    // WITHIN the agent note; a failing pass degrades to backendError, never throws.
+    agentName
+      ? attempt(
+          runRagJson(
+            [
+              "json-hybrid-search",
+              "--vault",
+              v,
+              "--query",
+              query,
+              "--limit",
+              String(HYBRID_LIMIT),
+              "--scope",
+              `AGENTS/${agentName}`
+            ],
+            ragSrc
+          )
+        )
+      : attempt(Promise.resolve({ hits: [] }))
   ]);
 
   const hybridResult = hybridAttempt.ok ? hybridAttempt.value : { hits: [] };
   const projectObservations = projectAttempt.ok ? projectAttempt.value : { observations: [] };
   const stackObservations = stackAttempt.ok ? stackAttempt.value : { observations: [] };
+  const agentResult = agentAttempt.ok ? agentAttempt.value : { hits: [] };
   const backendError =
-    [hybridAttempt, projectAttempt, stackAttempt]
+    [hybridAttempt, projectAttempt, stackAttempt, agentAttempt]
       .map((a) => (a.ok ? null : a.error))
       .find(Boolean) || null;
 
@@ -261,7 +292,12 @@ export async function assembleContext({
     .filter((h) => hitMatchesAnchors({ ...h, _scoped: Boolean(projectName) }, anchors))
     .map((h) => (h?.snippet ? `[${h.path}] ${truncate(h.snippet, SNIPPET_CHAR_BUDGET)}` : ""))
     .filter(Boolean);
-  const patterns = [...otherObservations, ...passages];
+  // Agent passages are PREPENDED: applyBudget pops each bucket from the end, so the
+  // agent's own memory is the last patterns content to be trimmed away.
+  const agentPassages = (Array.isArray(agentResult?.hits) ? agentResult.hits : [])
+    .map((h) => (h?.snippet ? `[${h.path}] ${truncate(h.snippet, SNIPPET_CHAR_BUDGET)}` : ""))
+    .filter(Boolean);
+  const patterns = [...agentPassages, ...otherObservations, ...passages];
 
   const techStack = (
     Array.isArray(stackObservations?.observations) ? stackObservations.observations : []

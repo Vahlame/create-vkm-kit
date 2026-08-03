@@ -120,7 +120,8 @@ export function basicMemoryServer(vaultAbs, opts = {}) {
  * @param {string} vaultAbs
  * @param {string} kitRepoAbs
  * @param {{ semantic?: boolean, vec?: boolean, rerank?: boolean, pinFailures?: boolean,
- *   usage?: boolean, launcher?: string|null }} [opts] - `launcher` starts the server through
+ *   usage?: boolean, postgres?: boolean, pgDsn?: string|null, launcher?: string|null }} [opts] -
+ *   `launcher` starts the server through
  *   `vkm-runhidden.exe` (see {@link viaRunHidden}); the rest: `vec`
  *   enables the sqlite-vec acceleration (ADR-0025) via OBSIDIAN_MEMORY_SQLITE_VEC=1
  *   (ranking-identical, safe fallback, on under `--full`). `rerank` turns on the
@@ -130,6 +131,10 @@ export function basicMemoryServer(vaultAbs, opts = {}) {
  *   wires OBSIDIAN_MEMORY_PIN_FAILURES=1 (resurface recorded lessons on matching
  *   tasks) and `usage` wires OBSIDIAN_MEMORY_USAGE_BOOST=1 (boost notes the agent
  *   demonstrably used) — the ADR-0038 retrieval levers, part of the default stack.
+ *   `postgres` wires VKM_PG=1 (the vkm-memory-pg Postgres projection layer) and
+ *   `pgDsn` wires VKM_PG_DSN (front an EXTERNAL Postgres server instead of the
+ *   embedded PGlite datadir). Falsy values never write a key — an absent toggle
+ *   must leave no trace in the user's config.
  */
 export function hybridServer(vaultAbs, kitRepoAbs, opts = {}) {
   const { hybridJs, pythonSrc } = hybridMcpPathsFromKitRoot(kitRepoAbs);
@@ -145,6 +150,8 @@ export function hybridServer(vaultAbs, kitRepoAbs, opts = {}) {
   if (opts && opts.rerank) env.OBSIDIAN_MEMORY_RERANK = "1";
   if (opts && opts.pinFailures) env.OBSIDIAN_MEMORY_PIN_FAILURES = "1";
   if (opts && opts.usage) env.OBSIDIAN_MEMORY_USAGE_BOOST = "1";
+  if (opts && opts.postgres) env.VKM_PG = "1";
+  if (opts && opts.pgDsn) env.VKM_PG_DSN = opts.pgDsn;
   return viaRunHidden({ command: "node", args: [hybridJs], env }, opts.launcher);
 }
 
@@ -311,8 +318,8 @@ export function mergeBasicMemoryServer(raw, vaultAbs, opts = {}) {
  * @param {string} vaultAbs absolute vault root
  * @param {string} kitRepoAbs absolute path to the kit clone (contains packages/)
  * @param {{ semantic?: boolean, vec?: boolean, rerank?: boolean, pinFailures?: boolean,
- *   usage?: boolean, launcher?: string|null }} [opts] passed straight to
- *   {@link hybridServer} — see its JSDoc for the full mapping.
+ *   usage?: boolean, postgres?: boolean, pgDsn?: string|null, launcher?: string|null }} [opts]
+ *   passed straight to {@link hybridServer} — see its JSDoc for the full mapping.
  * @returns {Record<string, unknown>}
  */
 export function mergeObsidianHybridServer(merged, vaultAbs, kitRepoAbs, opts = {}) {

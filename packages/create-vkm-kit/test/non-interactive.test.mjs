@@ -79,7 +79,18 @@ test("non-interactive --rules claude,agents installs managed blocks (idempotent)
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-rules-"));
   const work = fs.mkdtempSync(path.join(os.tmpdir(), "com-ni-rules-w-"));
   const vault = path.join(work, "vault");
-  const args = [bin, vault, "-y", "--no-cursor-mcp", "--no-git-init", "--rules", "claude,agents"];
+  // --no-postgres keeps this hermetic: a real (non-dry-run) install with a kit clone in
+  // reach would otherwise spawn a live pg-service from inside the test suite.
+  const args = [
+    bin,
+    vault,
+    "-y",
+    "--no-cursor-mcp",
+    "--no-git-init",
+    "--no-postgres",
+    "--rules",
+    "claude,agents"
+  ];
   const env = { ...process.env, USERPROFILE: home, HOME: home };
   const r = spawnSync(process.execPath, args, { cwd: work, encoding: "utf8", env });
   assert.equal(r.status, 0, r.stderr + r.stdout);
@@ -107,7 +118,7 @@ test("non-interactive merges the block without clobbering existing CLAUDE.md con
   fs.writeFileSync(claudeFp, "# My personal rules\n\nAlways answer in pirate.\n", "utf8");
   const r = spawnSync(
     process.execPath,
-    [bin, vault, "-y", "--no-cursor-mcp", "--no-git-init", "--rules", "claude"],
+    [bin, vault, "-y", "--no-cursor-mcp", "--no-git-init", "--no-postgres", "--rules", "claude"],
     { cwd: work, encoding: "utf8", env: { ...process.env, USERPROFILE: home, HOME: home } }
   );
   assert.equal(r.status, 0, r.stderr + r.stdout);
@@ -122,11 +133,15 @@ test("non-interactive writes rules by default (full stack); --minimal and --no-r
   const vault = path.join(work, "vault");
   const env = { ...process.env, USERPROFILE: home, HOME: home };
   // Default (no --minimal): the full stack ships rules for the wired IDE (cursor → agents).
-  const r = spawnSync(process.execPath, [bin, vault, "-y", "--no-cursor-mcp", "--no-git-init"], {
-    cwd: work,
-    encoding: "utf8",
-    env
-  });
+  const r = spawnSync(
+    process.execPath,
+    [bin, vault, "-y", "--no-cursor-mcp", "--no-git-init", "--no-postgres"],
+    {
+      cwd: work,
+      encoding: "utf8",
+      env
+    }
+  );
   assert.equal(r.status, 0, r.stderr + r.stdout);
   assert.ok(fs.existsSync(path.join(work, "AGENTS.md")), "rules ON by default (full stack)");
 
@@ -355,6 +370,11 @@ test("--full --dry-run wires Codex + Claude with hybrid/semantic/index/backend (
   );
   assert.match(r.stdout, /would install backend/, "installs the Python backend");
   assert.match(r.stdout, /would build index/, "builds the index");
+  assert.match(
+    r.stdout,
+    /would start pg-service \+ initial sync/,
+    "the Postgres projection is part of the default stack"
+  );
   // dry-run must not create the vault or touch ~/.cursor
   assert.ok(!fs.existsSync(path.join(vault, "START_HERE.md")), "dry-run scaffolds nothing");
   assert.ok(!fs.existsSync(path.join(home, ".cursor", "mcp.json")), "no cursor write under --full");
@@ -368,7 +388,7 @@ test("non-interactive --rules codex writes the managed block to ~/.codex/AGENTS.
   // exercises the new global Codex rules target.
   const r = spawnSync(
     process.execPath,
-    [bin, vault, "-y", "--ide", "cursor", "--no-git-init", "--rules", "codex"],
+    [bin, vault, "-y", "--ide", "cursor", "--no-git-init", "--no-postgres", "--rules", "codex"],
     { cwd: work, encoding: "utf8", env: { ...process.env, USERPROFILE: home, HOME: home } }
   );
   assert.equal(r.status, 0, r.stderr + r.stdout);

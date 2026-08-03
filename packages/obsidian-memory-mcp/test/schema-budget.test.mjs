@@ -38,7 +38,8 @@ const SRC = path.join(HERE, "..", "src", "hybrid-mcp.mjs");
 // chars each, already trimmed to the load-bearing contract (EOL normalization,
 // scalar-keys-only, read-only markers, recovery semantics).
 // Headroom of ~2% covers a new param or two; a whole new tool must pay its way.
-const BUDGET_CHARS = 10800;
+// 5.5.0: +3 Postgres-projection tools (ADR-0084); raise reviewed deliberately.
+const BUDGET_CHARS = 12200;
 // No single description should be a treatise: the longest legitimate one (the
 // hybrid-search tool description) sits under this after the trim. This is the
 // standard the kit holds itself to; the sibling servers do not meet it yet and

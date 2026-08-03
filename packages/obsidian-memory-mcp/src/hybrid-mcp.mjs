@@ -8,7 +8,6 @@
  * - OBSIDIAN_MEMORY_RAG_SRC — override path to .../obsidian-memory-rag/src
  * - OBSIDIAN_MEMORY_PYTHON — python executable (default: python3 non-Windows, python on Windows)
  */
-import { pathToFileURL } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -25,11 +24,12 @@ import {
   vaultWriteFile
 } from "./vault-fs.mjs";
 import { vaultGitHistory } from "./vault-git.mjs";
-import { toolHandler, pkgVersionFrom } from "@vkmikc/vkm-core/mcp-result";
+import { toolHandler, pkgVersionFrom, isEntryPoint } from "@vkmikc/vkm-core/mcp-result";
 import { scanInjection, wrapUntrusted } from "./untrusted.mjs";
 import { maybeStartOtel } from "./telemetry.mjs";
 import { defaultRagSrc, requireVault, runRagJson } from "./rag-client.mjs";
 import { assembleContext } from "./context-assemble.mjs";
+import { pgStatus, pgGraph, pgTimeline } from "./pg-tools.mjs";
 
 // Re-export so any consumer that already imports these from hybrid-mcp.mjs keeps
 // working; new consumers should import from ./extract.mjs (or ./rag-client.mjs for the
@@ -239,17 +239,24 @@ export async function buildServer() {
           .optional()
           .describe(
             "'research' = RESEARCH/** only; 'memory' = excludes it; omitted = unfiltered (default)."
+          ),
+        scope: z
+          .string()
+          .optional()
+          .describe(
+            "Scope to a path prefix at segment boundary, e.g. 'AGENTS/x' or 'PROJECTS'; applied after section."
           )
       },
       annotations: { readOnlyHint: true }
     },
-    toolHandler(async ({ query, limit, explain, section }) => {
+    toolHandler(async ({ query, limit, explain, section, scope }) => {
       const v = requireVault();
       const args = ragArgs("json-search", v, {
         "--query": query,
         "--limit": limit ?? DEFAULT_SEARCH_LIMIT,
         "--explain": explain,
         "--section": section,
+        "--scope": scope,
         "--log-recall": recallLogEnabled()
       });
       const result = await runRagJson(args, ragSrc);
@@ -367,6 +374,12 @@ export async function buildServer() {
           .optional()
           .describe(
             "'research' = RESEARCH/** only; 'memory' = excludes it; omitted = unfiltered (default)."
+          ),
+        scope: z
+          .string()
+          .optional()
+          .describe(
+            "Scope to a path prefix at segment boundary, e.g. 'AGENTS/x' or 'PROJECTS'; applied after section."
           )
       },
       annotations: { readOnlyHint: true }
@@ -383,7 +396,8 @@ export async function buildServer() {
         mmr,
         passageWindow,
         rerank,
-        section
+        section,
+        scope
       }) => {
         const v = requireVault();
         const args = ragArgs("json-hybrid-search", v, {
@@ -400,6 +414,7 @@ export async function buildServer() {
           "--passage-window": passageWindow || false,
           "--rerank": rerank,
           "--section": section,
+          "--scope": scope,
           "--log-recall": recallLogEnabled()
         });
         const result = await runRagJson(args, ragSrc);
@@ -492,6 +507,10 @@ export async function buildServer() {
           ),
         tag: z.string().optional().describe("A whole inline #tag, with or without the leading '#'"),
         note: z.string().optional().describe("Restrict to one source note (path or bare name)"),
+        scope: z
+          .string()
+          .optional()
+          .describe("Scope to a path prefix at segment boundary, e.g. 'AGENTS/x'."),
         limit: z
           .number()
           .int()
@@ -505,13 +524,14 @@ export async function buildServer() {
       },
       annotations: { readOnlyHint: true }
     },
-    toolHandler(async ({ category, tag, note, limit }) => {
+    toolHandler(async ({ category, tag, note, scope, limit }) => {
       const v = requireVault();
       const args = ragArgs("json-observations", v, {
         "--limit": limit ?? 50,
         "--category": category,
         "--tag": tag,
-        "--note": note
+        "--note": note,
+        "--scope": scope
       });
       const result = await runRagJson(args, ragSrc);
       return flagKg(result);
@@ -1009,6 +1029,11 @@ export async function buildServer() {
           .regex(/^[\w-]+$/, "bare project name only, no path separators or '..'")
           .optional()
           .describe("Bare project name (PROJECTS/<name>.md) to scope decisions and bias ranking"),
+        agentName: z
+          .string()
+          .regex(/^[\w-]+$/, "bare agent name only, no path separators or '..'")
+          .optional()
+          .describe("Bare agent name: prepend AGENTS/<name>.md passages to the bundle"),
         budget_chars: z
           .number()
           .int()
@@ -1031,12 +1056,20 @@ export async function buildServer() {
       annotations: { readOnlyHint: true }
     },
     toolHandler(
-      async ({ query, project, budget_chars, include_observations, include_research }) => {
+      async ({
+        query,
+        project,
+        agentName,
+        budget_chars,
+        include_observations,
+        include_research
+      }) => {
         // Vault resolved server-side ONLY (env) — never a wire param (ADR-0040 posture).
         /** @type {Awaited<ReturnType<typeof assembleContext>> & { _trust?: string, injectionFlagged?: boolean }} */
         const result = await assembleContext({
           query,
           projectName: project,
+          agentName,
           budgetChars: budget_chars ?? 6000,
           includeObservations: include_observations ?? true,
           includeResearch: include_research ?? false
@@ -1058,6 +1091,113 @@ export async function buildServer() {
     )
   );
 
+  // ── Postgres-projection tools (ADR-0084) ─────────────────────────────────
+  // Optional layer behind VKM_PG=1 / VKM_PG_DSN. Only vault_pg_status may start
+  // the service; graph/timeline are pure reads against an already-running one.
+
+  server.registerTool(
+    "vault_pg_status",
+    {
+      title: "Postgres projection health",
+      description:
+        "Optional Postgres projection health: backend (embedded PGlite or DSN), row counts, last sync, capabilities. Starts the local pg-service when needed. The vault stays the source of truth.",
+      inputSchema: {},
+      annotations: { readOnlyHint: true }
+    },
+    toolHandler(async () => {
+      const v = requireVault();
+      return pgStatus({ vault: v });
+    })
+  );
+
+  server.registerTool(
+    "vault_graph_hops",
+    {
+      title: "Multi-hop typed relation traversal (Postgres projection)",
+      description:
+        "Multi-hop typed relation traversal (recursive SQL) over the Postgres projection: follow [[wikilink]] relation chains N hops from a note, optionally filtered by relation types. Needs the pg-service (vault_pg_status first).",
+      inputSchema: {
+        from: z
+          .string()
+          .describe("Start note: path relative to vault root incl. .md, e.g. 'PROJECTS/app.md'"),
+        depth: z
+          .number()
+          .int()
+          .min(1)
+          .max(4)
+          .optional()
+          .default(2)
+          .describe("Hops to follow (1-4, default 2)"),
+        direction: z
+          .enum(["out", "in", "both"])
+          .optional()
+          .default("both")
+          .describe(
+            "out = edges the start note declares; in = edges pointing at it; both (default)"
+          ),
+        types: z
+          .string()
+          .optional()
+          .describe("CSV of relation types to follow, e.g. 'implements,supersedes'; omitted = all"),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .optional()
+          .default(50)
+          .describe("Max edges (default 50)")
+      },
+      annotations: { readOnlyHint: true }
+    },
+    toolHandler(async ({ from, depth, direction, types, limit }) => {
+      const v = requireVault();
+      const result = await pgGraph({
+        vault: v,
+        from,
+        depth: depth ?? 2,
+        direction: direction || "both",
+        types,
+        limit: limit ?? 50
+      });
+      return markUntrusted(result, "Graph rows");
+    })
+  );
+
+  server.registerTool(
+    "vault_timeline",
+    {
+      title: "Recent memory activity (Postgres projection)",
+      description:
+        "Recent memory activity from the Postgres projection log: which notes changed and when, in sync order.",
+      inputSchema: {
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(100)
+          .optional()
+          .default(20)
+          .describe("Max events (default 20)"),
+        sinceId: z
+          .number()
+          .int()
+          .optional()
+          .describe("Only events with id greater than this (resume from the last seen)"),
+        scope: z
+          .string()
+          .optional()
+          .describe("Scope to a path prefix at segment boundary, e.g. 'AGENTS/x'.")
+      },
+      annotations: { readOnlyHint: true }
+    },
+    toolHandler(async ({ limit, sinceId, scope }) => {
+      const v = requireVault();
+      const result = await pgTimeline({ vault: v, limit: limit ?? 20, sinceId, scope });
+      return markUntrusted(result, "Timeline events");
+    })
+  );
+
   return server;
 }
 
@@ -1074,8 +1214,7 @@ async function main() {
 // Guard so importing this module (e.g. from a test) does NOT spawn the stdio
 // server. Without this guard, `node --test` runs that import hybrid-mcp.mjs
 // hang forever because StdioServerTransport waits on stdin.
-const isEntryPoint = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
-if (isEntryPoint) {
+if (isEntryPoint(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);

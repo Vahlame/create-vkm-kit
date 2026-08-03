@@ -15,5 +15,6 @@ Mantiene toda nota alcanzable desde un hub — enlaza las notas nuevas aquí o d
 
 - Núcleo: [[MEMORY]] · [[SESSION_LOG]]
 - Prácticas: [[PRACTICES/observations|observations]] · [[PRACTICES/confirmed-good|confirmed-good]] · [[PRACTICES/confirmed-bad|confirmed-bad]]
+- Memoria por agente (una nota por agente, recall con `scope` — ADR-0086): [[AGENTS/README|AGENTS]]
 - Reglas y meta: [[RULES/TEMPLATE]] · [[_meta/agent-profiles]]
 - Banco de investigación (hallazgos web, separado de la memoria personal — ADR-0056): [[RESEARCH/_index|RESEARCH]]

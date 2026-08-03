@@ -1,6 +1,6 @@
 # ADR-0083: Memory remaster — no Postgres; model-epoch awareness instead
 
-- **Status:** Accepted
+- **Status:** Accepted (Decision 1 superseded by [ADR-0084](./0084-postgres-projection-layer.md); Decision 2 stands)
 - **Date:** 2026-08-01
 - **Deciders:** maintainer
 
@@ -16,6 +16,11 @@ Two prompts from the user this kit serves:
 Both deserve a recorded answer, because both will come up again.
 
 ## Decision 1 — Postgres/pgvector stays OUT of the memory path
+
+> **Superseded (2026-08-02) by [ADR-0084](./0084-postgres-projection-layer.md).** The
+> maintainer decided to integrate Postgres after all, as an **additive, derived, disposable
+> projection** beside the SQLite index rather than instead of it. ADR-0084 dissolves the
+> three objections below point by point. Read it before acting on this section.
 
 The memory's value proposition is the **vault**: Markdown notes in a git repo — auditable,
 portable, diffable, and the user's property. The **index** over it (SQLite: FTS5 +

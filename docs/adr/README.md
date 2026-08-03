@@ -88,7 +88,10 @@ ADRs are **append-only**: a decision that was later reversed is not rewritten, i
 | [ADR-0080](./0080-the-effort-gate-decides.md)                      | The effort gate decides, persists, and interrupts once                                    | Accepted (interruption superseded by 0081)     |
 | [ADR-0081](./0081-effort-advisor-never-interrupts.md)              | The effort advisor never interrupts                                                       | Accepted                                       |
 | [ADR-0082](./0082-context-diet.md)                                 | Context diet — the fixed layer pays rent per token                                        | Accepted                                       |
-| [ADR-0083](./0083-memory-remaster-no-postgres.md)                  | Memory remaster — no Postgres; model-epoch awareness instead                              | Accepted                                       |
+| [ADR-0083](./0083-memory-remaster-no-postgres.md)                  | Memory remaster — no Postgres; model-epoch awareness instead                              | Accepted (Decision 1 superseded by 0084)       |
+| [ADR-0084](./0084-postgres-projection-layer.md)                    | A Postgres projection of the vault — additive, derived, disposable                        | Accepted (supersedes 0083 Decision 1)          |
+| [ADR-0085](./0085-vkm-console-realtime-binary.md)                  | One real-time console for the whole kit — a Go binary, strictly read-only                 | Accepted                                       |
+| [ADR-0086](./0086-scoped-memory-namespaces.md)                     | Scoped memory namespaces — one vault, one index, a `scope` filter                         | Accepted                                       |
 
 ## Template
 

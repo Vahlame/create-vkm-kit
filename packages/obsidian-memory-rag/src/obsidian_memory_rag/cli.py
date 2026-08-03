@@ -13,9 +13,11 @@ from .bench_assemble import format_assemble_report, run_assemble_benchmark
 from .bench_recall import format_report, run_benchmark
 from .bench_tokens import format_token_report, run_token_benchmark
 from .complete import complete as complete_prefix
+from .dump import dump_index, embed_query
 from .embeddings import embedder_for_identity, get_embedder
 from .indexer import ensure_fresh, index_vault, index_vectors
 from .kg_query import observations_query, relations_for, suggest_structure
+from .paths import validate_scope
 from .query import _why, hybrid_search, search_vault
 from .recall_log import log_events
 from .reflect import build_reflection, format_reflection, write_reflection_note
@@ -35,12 +37,45 @@ def _add_section_flag(parser) -> None:
     )
 
 
+def _add_scope_flag(parser) -> None:
+    """Shared ``--scope`` flag (scoped-memory contract: per-agent/per-project
+    namespaces inside the one vault, ADR-0074)."""
+    parser.add_argument(
+        "--scope",
+        default=None,
+        help="Restrict to one vault subtree by posix-style relative path prefix, "
+        "matched at segment boundaries (PROJECTS/vkm-kit = that note + its "
+        "folder; AGENTS = every agent memory). Applied after --section. "
+        "Omitted = unfiltered",
+    )
+
+
+def _scope_ok(args) -> bool:
+    """Validate ``--scope`` per the CLI error contract; True = keep executing.
+
+    Invalid scope on a ``json-*`` command prints a single-line ``{"error": ...}``
+    object and exits 0 (the Node MCP bridge JSON.parses stdout — prose or a
+    non-zero exit would surface as a spawn failure instead of a readable error);
+    on a human command it goes to stderr with exit 1.
+    """
+    try:
+        validate_scope(getattr(args, "scope", None))
+    except ValueError as e:
+        if args.cmd.startswith("json-"):
+            print(json.dumps({"error": str(e)}, ensure_ascii=False))
+            return False
+        print(f"error: {e}", file=sys.stderr)
+        raise SystemExit(1) from None
+    return True
+
+
 def _add_hybrid_flags(parser) -> None:
     """Shared optional retrieval flags for hybrid-search / json-hybrid-search.
 
     Every flag is off by default so the plain call is the deterministic RRF path.
     """
     _add_section_flag(parser)
+    _add_scope_flag(parser)
     parser.add_argument(
         "--graph",
         action="store_true",
@@ -143,6 +178,7 @@ def _hybrid_kwargs(args) -> dict:
         "reranker": get_reranker(args.rerank_model or ("1" if args.rerank else None)),
         "rerank_margin": args.rerank_margin,
         "section": args.section,
+        "scope": args.scope,
     }
 
 
@@ -218,6 +254,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Skip the pre-search incremental index refresh (query the index as-is)",
     )
     _add_section_flag(q)
+    _add_scope_flag(q)
 
     hs = sub.add_parser(
         "hybrid-search",
@@ -387,6 +424,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Log one 'returned' recall_log event per hit (usage telemetry)",
     )
     _add_section_flag(js)
+    _add_scope_flag(js)
 
     jlu = sub.add_parser(
         "json-log-use",
@@ -394,6 +432,51 @@ def build_parser() -> argparse.ArgumentParser:
     )
     jlu.add_argument("--vault", type=Path, required=True)
     jlu.add_argument("--path", required=True, help="Vault-relative note path that was read")
+
+    jdi = sub.add_parser(
+        "json-dump-index",
+        help="Print the whole sidecar index (notes/chunks/relations/observations) "
+        "as one JSON object — the Postgres projection feed",
+    )
+    jdi.add_argument("--vault", type=Path, required=True)
+    jdi.add_argument(
+        "--since-mtime-ns",
+        type=int,
+        default=None,
+        help="Incremental cursor: notes with mtime_ns at or after it are dumped "
+        "(>= — a cursor-tied edit re-sends as a harmless upsert; the manifest "
+        "always stays complete)",
+    )
+    jdi.add_argument(
+        "--paths",
+        default=None,
+        help="Comma-separated vault-relative note paths ALWAYS included in the "
+        "changed set, regardless of --since-mtime-ns (the consumer's targeted "
+        "follow-up dump); alone, the dump covers exactly these paths",
+    )
+    jdi.add_argument(
+        "--include-vectors",
+        action="store_true",
+        help="Attach each chunk's embedding as base64 float32 LE bytes (vec_b64)",
+    )
+    jdi.add_argument(
+        "--no-auto-index",
+        action="store_true",
+        help="Skip the pre-dump incremental index refresh (dump the index as-is)",
+    )
+
+    jeq = sub.add_parser(
+        "json-embed-query",
+        help="Embed one query with the vault's on-disk embedder; print base64 "
+        "float32 LE bytes as one JSON object",
+    )
+    jeq.add_argument("--vault", type=Path, required=True)
+    jeq.add_argument("--query", required=True)
+    jeq.add_argument(
+        "--embedder",
+        default=None,
+        help="Embedder name (default: the dominant identity already in note_chunks)",
+    )
 
     jh = sub.add_parser(
         "json-hybrid-search",
@@ -524,6 +607,7 @@ def build_parser() -> argparse.ArgumentParser:
         )
         rp.add_argument("--limit", type=int, default=200)
         rp.add_argument("--no-auto-index", action="store_true")
+        _add_scope_flag(rp)
 
     for name, helptext in (
         ("observations", "Structured observations filtered by category / tag / note"),
@@ -536,6 +620,7 @@ def build_parser() -> argparse.ArgumentParser:
         op.add_argument("--note", default=None, help="Restrict to one source note")
         op.add_argument("--limit", type=int, default=200)
         op.add_argument("--no-auto-index", action="store_true")
+        _add_scope_flag(op)
 
     for name, helptext in (
         ("kg-suggest", "Read-only: a note's structure + relation/observation candidates"),
@@ -652,9 +737,13 @@ def main(argv: list[str] | None = None) -> None:
                 f"removed={vstats.removed}",
             )
     elif args.cmd == "search":
+        if not _scope_ok(args):
+            return
         if not args.no_auto_index:
             ensure_fresh(args.vault)
-        hits = search_vault(args.vault, args.query, limit=args.limit, section=args.section)
+        hits = search_vault(
+            args.vault, args.query, limit=args.limit, section=args.section, scope=args.scope
+        )
         if args.log_recall and hits:
             log_events(args.vault, "returned", [h.path for h in hits], query=args.query)
         if not hits:
@@ -664,6 +753,8 @@ def main(argv: list[str] | None = None) -> None:
             print(f"{h.path}\tbm25={h.bm25:.4f}\t{h.title!r}")
             print(f"  {h.snippet}")
     elif args.cmd == "hybrid-search":
+        if not _scope_ok(args):
+            return
         embedder = _resolve_hybrid_embedder(
             args.vault, args.embedder, no_auto_index=args.no_auto_index
         )
@@ -777,9 +868,13 @@ def main(argv: list[str] | None = None) -> None:
             print("ASSEMBLE GATE FAILED: " + "; ".join(failures), file=sys.stderr)
             raise SystemExit(1)
     elif args.cmd == "json-search":
+        if not _scope_ok(args):
+            return
         if not args.no_auto_index:
             ensure_fresh(args.vault)
-        hits = search_vault(args.vault, args.query, limit=args.limit, section=args.section)
+        hits = search_vault(
+            args.vault, args.query, limit=args.limit, section=args.section, scope=args.scope
+        )
         if args.log_recall and hits:
             log_events(args.vault, "returned", [h.path for h in hits], query=args.query)
         # Compact wire format (ADR-0034): the consumer is an LLM that pays input
@@ -803,6 +898,8 @@ def main(argv: list[str] | None = None) -> None:
         }
         print(json.dumps(payload, ensure_ascii=False))
     elif args.cmd == "json-hybrid-search":
+        if not _scope_ok(args):
+            return
         embedder = _resolve_hybrid_embedder(
             args.vault, args.embedder, no_auto_index=args.no_auto_index
         )
@@ -870,6 +967,27 @@ def main(argv: list[str] | None = None) -> None:
                 "removed": vstats.removed,
             }
         print(json.dumps(payload, ensure_ascii=False))
+    elif args.cmd == "json-dump-index":
+        # ensure_fresh(semantic=False), NOT bare index_vault: the dump must
+        # reflect fresh Markdown AND refresh already-existing vectors, so the
+        # chunks shipped for an edited note match the note body shipped beside
+        # them (otherwise every watcher-triggered dump ships chunks one edit
+        # behind). semantic=False still never CREATES a vector set — ensure_fresh
+        # runs index_vectors only for a vault that already opted into vectors,
+        # so the possibly-model-downloading first build stays explicit.
+        if not args.no_auto_index:
+            ensure_fresh(args.vault, semantic=False)
+        dump_paths = [p for p in (args.paths or "").split(",") if p.strip()]
+        payload = dump_index(
+            args.vault,
+            since_mtime_ns=args.since_mtime_ns,
+            include_vectors=args.include_vectors,
+            paths=[p.strip() for p in dump_paths] or None,
+        )
+        print(json.dumps(payload, ensure_ascii=False))
+    elif args.cmd == "json-embed-query":
+        result = embed_query(args.vault, args.query, embedder_name=args.embedder)
+        print(json.dumps(result, ensure_ascii=False))
     elif args.cmd == "audit":
         report = audit_vault(args.vault, budget_tokens=args.budget)
         totals = report["totals"]
@@ -937,10 +1055,12 @@ def main(argv: list[str] | None = None) -> None:
             )
         )
     elif args.cmd in ("relations", "json-relations"):
+        if not _scope_ok(args):
+            return
         if not args.no_auto_index:
             ensure_fresh(args.vault)
         hits = relations_for(
-            args.vault, args.note, direction=args.direction, limit=args.limit
+            args.vault, args.note, direction=args.direction, limit=args.limit, scope=args.scope
         )
         if args.cmd == "json-relations":
             print(
@@ -948,6 +1068,7 @@ def main(argv: list[str] | None = None) -> None:
                     {
                         "note": args.note,
                         "direction": args.direction,
+                        "scope": args.scope,
                         "relations": [
                             {
                                 "source_path": h.source_path,
@@ -976,6 +1097,8 @@ def main(argv: list[str] | None = None) -> None:
                 else:
                     print(f"{h.source_path} {arrow} [{h.relation_type}] (this note){ctx}")
     elif args.cmd in ("observations", "json-observations"):
+        if not _scope_ok(args):
+            return
         if not args.no_auto_index:
             ensure_fresh(args.vault)
         hits = observations_query(
@@ -984,6 +1107,7 @@ def main(argv: list[str] | None = None) -> None:
             tag=args.tag,
             note=args.note,
             limit=args.limit,
+            scope=args.scope,
         )
         if args.cmd == "json-observations":
             print(
@@ -993,6 +1117,7 @@ def main(argv: list[str] | None = None) -> None:
                             "category": args.category,
                             "tag": args.tag,
                             "note": args.note,
+                            "scope": args.scope,
                         },
                         "observations": [
                             {
@@ -1074,7 +1199,7 @@ def main(argv: list[str] | None = None) -> None:
                 print(f"    - {s}")
     elif args.cmd == "json-log-use":
         written = log_events(args.vault, "used", [args.path])
-        print(json.dumps({"logged": written}))
+        print(json.dumps({"logged": written}, ensure_ascii=False))
     elif args.cmd in ("memory-reflect", "json-memory-reflect"):
         embedder_name = None
         if not args.no_auto_index:

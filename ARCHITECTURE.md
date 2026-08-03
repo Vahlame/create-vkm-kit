@@ -32,7 +32,12 @@ flowchart LR
     MD[(Markdown notes<br/>START_HERE / MEMORY / PROJECTS ...)]
     IDX[(.obsidian-memory-rag/<br/>fts.sqlite index)]
   end
+  subgraph PROJ["Postgres projection (optional, outside the vault)"]
+    PGS[pg-service 127.0.0.1<br/>token auth + SSE]
+    PG[(~/.vkm/pg/&lt;slug&gt;/<br/>PGlite datadir or external DSN)]
+  end
   DAEMON[obsidian-memoryd<br/>Go watch + git sync]
+  CONSOLE[vkm-console<br/>Go · 127.0.0.1:4930 · read-only]
   REMOTE[(git remote)]
 
   A -->|MCP tool calls| BM
@@ -40,9 +45,14 @@ flowchart LR
   BM <-->|files| MD
   HY <-->|vault-locked fs| MD
   HY -->|subprocess| IDX
+  HY -->|vault_pg_status / graph_hops / timeline| PGS
+  IDX -.json-dump-index.-> PGS
+  PGS <--> PG
   DAEMON -->|debounced add/commit/pull/push| MD
   MD <--> REMOTE
   DAEMON -.heartbeat / doctor.-> REMOTE
+  CONSOLE -.reads state.-> DAEMON
+  CONSOLE -.read-only HTTP /api/*.-> PGS
 ```
 
 ## Repository layout
@@ -50,6 +60,7 @@ flowchart LR
 | Path                                 | Language       | Role                                                                                                                                      |
 | ------------------------------------ | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `cmd/obsidian-memoryd/`              | Go             | Daemon: filesystem watch → debounced git sync; `doctor` health report                                                                     |
+| `cmd/vkm-console/`                   | Go             | Whole-kit real-time console (opt-in): one `go:embed`-ed page on `127.0.0.1:4930`, strictly read-only over every source (ADR-0085)         |
 | `packages/vkm-core/`                 | Node (ESM)     | Internal shared layer for the MCP sidecars: result shaping, stdio plumbing, the prompt-injection scanner. Private, never published        |
 | `packages/obsidian-memory-mcp/`      | Node (ESM)     | The "hybrid" MCP sidecar (stdio): vault-locked file + search tools                                                                        |
 | `packages/obscura-web/`              | Node (ESM)     | Stealth web MCP sidecar (stdio, opt-in): `obscura_fetch` + `obscura_search` via the local obscura headless browser                        |
@@ -57,6 +68,8 @@ flowchart LR
 | `packages/create-vkm-kit/`           | Node           | `npx` initializer: merges MCP config, scaffolds a vault                                                                                   |
 | `packages/vkm-spec/`                 | Node (ESM)     | `vkm-spec` CLI + GUI (4923): idea + vault context → editable `<orchestration_package>` XML; optional Ollama draft, deterministic fallback |
 | `packages/vkm-doctor/`               | Node (ESM)     | Local OTLP sink (4319 → `~/.vkm/telemetry/`) + `vkm-doctor` token/cache usage report                                                      |
+| `packages/vkm-downloads/`            | Node (ESM)     | Downloads MCP sidecar (stdio, opt-in): resolve/probe/download files to `~/Downloads/vkm-kit`                                              |
+| `packages/vkm-memory-pg/`            | Node (ESM)     | Optional Postgres projection of the vault index: PGlite (or external DSN) + single-writer `pg-service` on `127.0.0.1` (ADR-0084)          |
 | `scripts/`                           | TS / Node      | `sync-agents.ts` (rule generator), parity + MCP smoke checks                                                                              |
 | `.agents/`, `.cursor/`, `.continue/` | Markdown       | Per-IDE rule files; `.agents/rules/*` is the source, the rest derived                                                                     |
 | `evals/`                             | Node / Py / MD | Retrieval-quality + token-economy benchmarks (gated) + prompt-adherence smoke                                                             |
@@ -212,6 +225,82 @@ the same now live, so a fix lands once:
 It is `private: true` and has no runtime dependencies. The dependency direction is the
 point: `vkm-downloads` importing a helper out of the _memory_ MCP would be an edge that
 only makes sense as an accident of history.
+
+### 9. `vkm-memory-pg` — the Postgres projection (Node, optional; ADR-0084)
+
+A **derived, disposable** copy of the vault's index in Postgres, added so the memory can do
+what SQLite does not do cheaply: multi-hop typed traversal (recursive CTEs), SQL analytics
+over the whole vault, an append-only activity log, and `LISTEN`/`NOTIFY` real-time push. It
+is strictly additive — the CI-gated ranking path (ADR-0020/0021) is untouched and
+`vault_hybrid_search` never routes through it. It reverses ADR-0083 Decision 1, on the
+maintainer's explicit decision, because the shape changed from "instead of" to "beside".
+
+- **Backend:** [PGlite](https://pglite.dev/) 0.5.4 (Postgres 18 as WASM, in-process, no
+  server to install) by default; an external server via `VKM_PG_DSN` runs the same code
+  through the `pg` driver. `@electric-sql/pglite` and `@electric-sql/pglite-pgvector` 0.0.5
+  are **exact pins upgraded in lockstep** — the extension is compiled against a specific
+  PGlite build. Vectors are serialized as the text literal `'[f1,f2,…]'::vector` rather than
+  through the `pgvector` npm package, which requires Node 22 (the kit's floor is 20).
+- **Single-writer service:** PGlite permits one process per datadir, so every consumer —
+  MCP tools, `vkm-console`, `curl` — is an HTTP client of one `pg-service` bound to
+  `127.0.0.1` on a dynamic port. `service.json` records port/pid/vault/version,
+  `service.lock` makes a dead owner detectable, and `service.token` (32 random bytes,
+  `0o600` on POSIX) authenticates every route but `GET /api/health`. Routes:
+  `/api/health`, `/api/sync`, `/api/graph`, `/api/timeline`, `/api/stats`, `/api/search`,
+  `/api/suggestions`, and `/api/events` (SSE, fed by a `LISTEN` on `vkm_activity`).
+- **Sync path:** `python -m obsidian_memory_rag json-dump-index` reads **only**
+  `fts.sqlite` and emits one JSON object — a manifest of every indexed path plus the rows
+  changed past a `mtime_ns` cursor. The Node side applies it transactionally, deletes rows
+  whose path left the manifest, and advances `meta.cursor_mtime_ns`. Nothing in the pipeline
+  opens a `.md`, so the projection cannot disagree with the index about a note's content;
+  at worst it is stale, and one `POST /api/sync` fixes that.
+- **Data outside the vault:** `~/.vkm/pg/<slug>/` (`VKM_PG_DATA_ROOT` overrides), slug =
+  vault basename + 8 hex of the SHA-256 of the absolute path. A checkpointing binary datadir
+  inside a git-synced, fsnotify-watched vault would be a permanent commit storm.
+- **`vkm-pg-migrate`:** first build, incremental catch-up and `--rebuild` (delete the
+  datadir, rebuild from the dump — the standing answer to a PGlite major-version bump, which
+  invalidates the datadir and has no `pg_upgrade`). `--enrich` adds an optional local-Ollama
+  pass (`VKM_PG_MODEL`, default `phi4-mini:3.8b-q4_K_M`) that writes **only into the
+  `suggestions` table** — never `notes`/`relations`/`observations`, never a `.md` file. Same
+  proposes-never-writes doctrine as ADR-0023/0024; a missing Ollama degrades to a skipped
+  enrichment, not a failed migration (ADR-0047).
+- **MCP surface:** three tools — `vault_pg_status`, `vault_graph_hops`, `vault_timeline` —
+  registered only when `VKM_PG=1`. They cost the schema budget of ADR-0035 a raise from
+  10,800 to 12,200 chars, recorded in ADR-0084 so it is not mistaken for the gate drifting.
+- **Guides:** [`docs/en/postgres-memory.md`](./docs/en/postgres-memory.md)
+  ([ES](./docs/es/memoria-postgres.md)).
+
+### 10. `vkm-console` — the whole-kit real-time console (Go, optional; ADR-0085)
+
+One page on `127.0.0.1:4930` answering the question every existing surface answers only as a
+snapshot: is the kit working **right now**. Panels: daemon health (heartbeat, last push,
+unpushed commits), memory (note counts, folder breakdown, recently touched notes plus the
+projection's aggregates and a graph slice), token telemetry (per day/model/type + cache-hit
+ratio), the Postgres projection (backend, row counts, activity timeline), and research
+(recent obscura searches + downloads). Every collector is fail-soft by contract — it returns
+`ok: false` with a readable error and the card renders as "off" — because every component it
+watches is optional.
+
+- **Why Go:** a single executable that runs when everything else is broken; `go:embed` puts
+  HTML/CSS/JS inside the binary (no asset dir, no CDN, works offline); `fsnotify` is already
+  in this module for the daemon (ADR-0012); zero runtime dependencies, all stdlib.
+- **Read-only over every source, by construction:** the daemon state file, the telemetry
+  NDJSON, the obscura search log and the downloads dir are read, never written; vault stats
+  come from a read-only walk of the `.md` files (it never opens `fts.sqlite` — that
+  single-writer rule belongs to the Python engine); the projection is reached only through
+  the pg-service HTTP API. The console holds no lock, issues no `POST /api/sync`, never
+  touches a datadir, and spawns no subprocess except the browser under `--open`.
+- **Freshness without a busy loop:** the page holds one SSE connection to the console's own
+  `/api/events`, which carries a full snapshot every `--refresh` seconds (default 5) plus an
+  immediate 2 s-debounced push from a single `fsnotify` watcher over the vault, the
+  telemetry dir and the pg data root. A watcher that fails to start degrades to the periodic
+  refresh.
+- **No focus steal (ADR-0078):** starting it opens no window at all. The browser opens only
+  when the user passes `--open`, and that spawn goes through the hidden-console launcher. It
+  is a web page rather than a TUI precisely because a TUI _is_ a console window. Loopback
+  only, no bind-address flag; `VKM_CONSOLE_PORT` moves the port, which is otherwise fixed so
+  the URL stays bookmarkable (the pg-service is dynamic because nobody types that one).
+- **Guides:** [`docs/en/console.md`](./docs/en/console.md) ([ES](./docs/es/consola.md)).
 
 ## Data flows
 
@@ -481,6 +570,8 @@ this architecture:
 - **ADR-0053** — `vkm-design`: a model-agnostic professional design skill (direction before pixels, computed checks, visual-critique loop).
 - **ADR-0054/0055** — `obscura_research`: local deep crawl (CPU/RAM, not tokens) + local-LLM (Ollama) curation of the results.
 - **ADR-0056** — `RESEARCH/`: persistent web-research knowledge bank in the vault, consolidated by the `/vkm-research` skill.
+- **ADR-0084** — the Postgres projection: additive, derived and disposable; supersedes ADR-0083 Decision 1 on the maintainer's explicit decision.
+- **ADR-0085** — `vkm-console`: one read-only Go binary aggregating every surface in real time, opening no window unless asked.
 
 The full list is the [ADR index](./docs/adr/README.md).
 

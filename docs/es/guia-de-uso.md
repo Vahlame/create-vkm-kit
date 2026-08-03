@@ -68,6 +68,14 @@ La pregunta correcta no es «¿qué tool existe?» sino «¿qué situación teng
 | Empezar una tarea con **todo el contexto del proyecto**         | `assemble_context` — 1 llamada presupuestada, en vez de encadenar búsquedas |
 | Leer una nota **entera** (solo si el pasaje no basta)           | `vault_read_file` — nunca `SESSION_LOG`/PROJECTS grandes completos          |
 
+¿Trabajo de **un proyecto o de un agente concreto**? Acota el recall con `scope`:
+`scope: "PROJECTS/<proyecto>"` limita a esa nota, `scope: "AGENTS/<agente>"` a la memoria
+de un agente y `scope: "AGENTS"` a todos los agentes
+([ADR-0086](../adr/0086-scoped-memory-namespaces.md)). Es un prefijo de ruta relativo
+(sensible a mayúsculas, casado en límite de segmento) que se aplica después de `section`;
+la memoria por agente vive en `AGENTS/<agente>.md` con las mismas estructuras que
+`PROJECTS/`, y `assemble_context` acepta `agentName` para incluirla en el paquete.
+
 ### Cuando necesitas escribir o mantener
 
 | Situación                                     | Herramienta                                                                                          |

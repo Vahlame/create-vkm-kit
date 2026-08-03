@@ -28,6 +28,8 @@ The whole user guide, in the recommended reading order.
 | [Glossary](glossary.md)                                      | What each term means (MCP, vault, FTS5…).                                            |
 | [Troubleshooting](troubleshooting.md)                        | Typical errors and how to fix them.                                                  |
 | [Web access (obscura)](../../packages/obscura-web/README.md) | Optional stealth web fetch + on-demand SearXNG search (`--obscura`).                 |
+| [Postgres memory](postgres-memory.md)                        | Optional vault projection: multi-hop graph, SQL analytics and live events.           |
+| [Console](console.md)                                        | The whole kit in real time on `127.0.0.1:4930` — read-only, never steals focus.      |
 | [Observability](observability.md)                            | Daemon health, token/cache usage (`vkm-doctor`) and vault health — all local.        |
 | [Security](../security/README.md)                            | Threat model in one paragraph + deep-dive security notes.                            |
 

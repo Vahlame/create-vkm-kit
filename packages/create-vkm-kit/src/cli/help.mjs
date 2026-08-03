@@ -64,6 +64,19 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
   --usage-boost   With --with-hybrid: boost notes the agent demonstrably used, from the
                   local recall_log telemetry (sets OBSIDIAN_MEMORY_USAGE_BOOST=1; ADR-0038).
                   ON by default; opt out with --no-usage-boost.
+  --postgres      Postgres projection of the vault memory (vkm-memory-pg): embedded PGlite
+                  by default, a localhost-only HTTP service with real-time graph, timeline,
+                  search and live events. ON by default (needs a kit clone; sets VKM_PG=1
+                  on the hybrid MCP, starts the local pg-service, runs the initial full
+                  sync, and installs a SessionStart keep-alive hook). The vault stays the
+                  source of truth — the projection is disposable and rebuildable.
+  --no-postgres   Skip the Postgres projection (a re-run also removes the keep-alive hook).
+  --pg-dsn <dsn>  Point the projection at an EXTERNAL Postgres server (connection string;
+                  sets VKM_PG_DSN) instead of the embedded PGlite datadir.
+  --console       Build the vkm-console terminal UI (Go) into <kit>/bin — a live view over
+                  the pg-service (activity, graph, search); the summary prints the binary
+                  path and usage. Opt-in; ON under --full; needs Go on PATH.
+  --no-console    Skip the console build (wins over --console and --full).
   --build-index   After wiring, build the local FTS (+semantic) index (needs the Python backend)
   --install-backend  pip install -e the Python RAG backend (best-effort; on by default under --full)
   --with-gitleaks Install gitleaks pre-commit hook in <vault>/.git/hooks/
@@ -243,10 +256,10 @@ Claude Code native-memory override (when --ide includes claude):
   skip adding them) — a symmetric install/remove path, so toggling a flag off actually
   reverses a prior toggle-on. For a full teardown of everything this kit's Claude Code and
   Codex integrations installed in one shot, use:
-  --uninstall     Remove all 7 managed hook entries + the autoMemoryEnabled override and
+  --uninstall     Remove all 8 managed hook entries + the autoMemoryEnabled override and
                   the OTLP env block from ~/.claude/settings.json; clear the managed
                   outputStyle; delete the hook script files this kit installed under
-                  ~/.claude/hooks/ (the 7 hooks + a small shared helper module), the
+                  ~/.claude/hooks/ (the 8 hooks + a small shared helper module), the
                   installed skills and subagents, and the Windows hook launcher at
                   ~/.claude/bin/. Every file is deleted only if a marker or hash check
                   confirms this kit wrote it — never a user's own same-named file. Does

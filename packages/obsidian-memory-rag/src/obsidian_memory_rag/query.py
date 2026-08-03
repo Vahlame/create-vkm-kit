@@ -16,7 +16,15 @@ from .graphlink import (
     superseded_map,
     typed_neighbor_paths,
 )
-from .paths import in_section, index_db_path, section_sql_filter, validate_section
+from .paths import (
+    in_section,
+    index_db_path,
+    scope_matches,
+    scope_sql_filter,
+    section_sql_filter,
+    validate_scope,
+    validate_section,
+)
 from .store import connect, init_schema
 from .vector_store import ChunkHit, fetch_adjacent_chunks, fetch_chunk_vecs, search_chunks
 
@@ -80,13 +88,19 @@ def search_vault(
     *,
     limit: int = 20,
     section: str | None = None,
+    scope: str | None = None,
 ) -> list[SearchHit]:
     """``section``: 'research' = only RESEARCH/**, 'memory' = everything except,
-    None (default) = unfiltered — byte-identical to the pre-section ranking. The
-    filter is a SQL WHERE clause, so it narrows candidates BEFORE ``LIMIT`` (a
-    post-filter on the returned rows would silently return fewer than ``limit``).
+    None (default) = unfiltered — byte-identical to the pre-section ranking.
+    ``scope`` (scoped-memory contract) further restricts hits to one vault
+    subtree by posix-style relative path prefix, matched at segment boundaries
+    (see :func:`paths.scope_matches`); it composes with — and applies after —
+    ``section``. Both filters are SQL WHERE clauses, so they narrow candidates
+    BEFORE ``LIMIT`` (a post-filter on the returned rows would silently return
+    fewer than ``limit``).
     """
     validate_section(section)
+    validate_scope(scope)
     vault = vault.resolve()
     db_path = index_db_path(vault)
     if not db_path.is_file():
@@ -99,26 +113,29 @@ def search_vault(
     # weights are inert placeholders). Weights are our own float constants, never
     # user input, so formatting them into the SQL is injection-safe.
     section_clause, section_params = section_sql_filter(section)
+    scope_clause, scope_params = scope_sql_filter(scope)
     sql = f"""
     SELECT path, mtime_ns, title,
            snippet(vault_fts, 3, '[', ']', '…', 24) AS snip,
            bm25(vault_fts, 1.0, 1.0, {TITLE_WEIGHT}, {BODY_WEIGHT}) AS score
     FROM vault_fts
-    WHERE vault_fts MATCH ?{section_clause}
+    WHERE vault_fts MATCH ?{section_clause}{scope_clause}
     ORDER BY score, path
     LIMIT ?
     """
     conn = connect(db_path)
     try:
         init_schema(conn)
-        rows = conn.execute(sql, (match, *section_params, limit)).fetchall()
+        rows = conn.execute(sql, (match, *section_params, *scope_params, limit)).fetchall()
         if not rows:
             # Precision-first AND found nothing — fall back to OR so a single
             # missing/typo'd term doesn't drop an otherwise-relevant note. Skipped
             # for single-term queries (OR == AND there, so no second round-trip).
             or_match = build_match_query(query, op="OR")
             if or_match and or_match != match:
-                rows = conn.execute(sql, (or_match, *section_params, limit)).fetchall()
+                rows = conn.execute(
+                    sql, (or_match, *section_params, *scope_params, limit)
+                ).fetchall()
     finally:
         conn.close()
 
@@ -150,12 +167,13 @@ class HybridHit:
 
 def semantic_search(
     vault: Path, query: str, embedder: Embedder, *, limit: int = 20,
-    section: str | None = None,
+    section: str | None = None, scope: str | None = None,
 ) -> list[ChunkHit]:
     """Rank note *chunks* by embedding cosine similarity to ``query`` (best first).
 
-    ``section`` narrows the candidate chunks before the top-``limit`` cut (see
-    :func:`vector_store.search_chunks`); caller is expected to have validated it.
+    ``section`` and ``scope`` (scope applies after section) narrow the candidate
+    chunks before the top-``limit`` cut (see :func:`vector_store.search_chunks`);
+    caller is expected to have validated both.
     """
     vault = vault.resolve()
     db_path = index_db_path(vault)
@@ -164,7 +182,7 @@ def semantic_search(
     qvec = embedder.embed([query])[0]
     conn = connect(db_path)
     try:
-        return search_chunks(conn, qvec, embedder.name, limit, section=section)
+        return search_chunks(conn, qvec, embedder.name, limit, section=section, scope=scope)
     finally:
         conn.close()
 
@@ -567,6 +585,7 @@ def hybrid_search(
     rerank_pool: int = RERANK_POOL,
     rerank_margin: float | None = RERANK_MARGIN,
     section: str | None = None,
+    scope: str | None = None,
 ) -> list[HybridHit]:
     """Combine BM25 (lexical) and vector cosine (semantic) via RRF.
 
@@ -607,12 +626,21 @@ def hybrid_search(
       EVERY candidate source (BM25, vector, graph neighbours) before fusion, and
       is re-checked as a final invariant on the fused result so no downstream
       stage (rerank/mmr/usage) can let a wrong-section note slip through.
+    - ``scope`` (scoped-memory contract) restricts the candidate pool to one vault
+      subtree by posix-style relative path prefix, matched at segment boundaries
+      (``PROJECTS/vkm`` matches ``PROJECTS/vkm.md`` and ``PROJECTS/vkm/x.md``,
+      never ``PROJECTS/vkm-kit.md``). Composes with — and applies after —
+      ``section``, at the same three points: every candidate source and the final
+      invariant.
     """
     validate_section(section)
-    bm = search_vault(vault, query, limit=candidate_pool, section=section)
+    validate_scope(scope)
+    bm = search_vault(vault, query, limit=candidate_pool, section=section, scope=scope)
     # Pull extra chunks so several notes are represented even when one note owns
     # the top hits; collapse to each note's best (first-seen, since sorted) chunk.
-    sem = semantic_search(vault, query, embedder, limit=candidate_pool * 3, section=section)
+    sem = semantic_search(
+        vault, query, embedder, limit=candidate_pool * 3, section=section, scope=scope
+    )
     best_chunk: dict[str, ChunkHit] = {}
     sem_paths: list[str] = []
     for ch in sem:
@@ -631,10 +659,12 @@ def hybrid_search(
             graph_paths = typed_graph_neighbors(vault, seeds, limit=candidate_pool)
         else:
             graph_paths = graph_neighbors(vault, seeds, limit=candidate_pool)
-        # A [[wikilink]] neighbour can resolve to either section regardless of the
-        # seeds' section, so it needs its own cut (the seeds being pre-filtered
-        # isn't enough — the link graph itself is section-agnostic).
-        graph_paths = [p for p in graph_paths if in_section(p, section)]
+        # A [[wikilink]] neighbour can resolve anywhere regardless of the seeds'
+        # section/scope, so it needs its own cut (the seeds being pre-filtered
+        # isn't enough — the link graph itself is section- and scope-agnostic).
+        graph_paths = [
+            p for p in graph_paths if in_section(p, section) and scope_matches(p, scope)
+        ]
         if graph_paths:
             rankings.append(graph_paths)
             weights.append(graph_weight)
@@ -749,10 +779,13 @@ def hybrid_search(
         fused = fused[:limit]
 
     # Final invariant (defense in depth, cheap): every candidate source above was
-    # already cut by section, so this is normally a no-op — but it guarantees no
-    # rerank/mmr/usage stage can ever resurrect a wrong-section path into the result.
-    if section is not None:
-        fused = [(p, s) for p, s in fused if in_section(p, section)]
+    # already cut by section and scope, so this is normally a no-op — but it
+    # guarantees no rerank/mmr/usage stage can ever resurrect a wrong-section or
+    # out-of-scope path into the result.
+    if section is not None or scope is not None:
+        fused = [
+            (p, s) for p, s in fused if in_section(p, section) and scope_matches(p, scope)
+        ]
 
     out: list[HybridHit] = []
     for path, score in fused:

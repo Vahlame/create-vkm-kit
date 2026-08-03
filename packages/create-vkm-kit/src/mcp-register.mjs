@@ -44,7 +44,8 @@ import { atomicWriteJson, stripLeadingUtf8Bom } from "./settings-io.mjs";
 
 /**
  * @typedef {{ withHybrid?: boolean, repoRoot?: string|null, semantic?: boolean, vec?: boolean,
- *   rerank?: boolean, pinFailures?: boolean, usage?: boolean, obscura?: boolean,
+ *   rerank?: boolean, pinFailures?: boolean, usage?: boolean, postgres?: boolean,
+ *   pgDsn?: string|null, obscura?: boolean,
  *   obscuraBin?: string|null, searxngUrl?: string|null, researchDir?: string|null,
  *   downloads?: boolean, downloadDir?: string|null, launcher?: string|null }} HybridOpts
  *
@@ -54,6 +55,19 @@ import { atomicWriteJson, stripLeadingUtf8Bom } from "./settings-io.mjs";
  * creates. `undefined` (the default) falls back to probing this machine — which is right
  * for any caller that did not just install it. `null` means "start servers directly".
  */
+
+/**
+ * Mask credentials in text about to be ECHOED to the console: dry-run command lines, the
+ * manual-fallback commands/TOML, dumped JSON. Any `scheme://user:secret@` userinfo becomes
+ * `scheme://user:***@` — a `--pg-dsn` password must not land in terminal scrollback or CI
+ * logs. Redaction applies ONLY to what is printed: the real value still reaches the
+ * actually-executed argv and the files being written.
+ * @param {string} text
+ * @returns {string}
+ */
+export function redactUserinfo(text) {
+  return String(text).replace(/([a-z][a-z0-9+.-]*:\/\/[^\s@/:"']+):([^\s@/"']+)@/gi, "$1:***@");
+}
 
 /**
  * The MCP servers this install should wire, as `[id, server]` pairs.
@@ -81,6 +95,8 @@ export function buildServerList(vaultAbs, opts = {}) {
     rerank = false,
     pinFailures = false,
     usage = false,
+    postgres = false,
+    pgDsn = null,
     obscura = false,
     obscuraBin = null,
     searxngUrl = null,
@@ -99,7 +115,16 @@ export function buildServerList(vaultAbs, opts = {}) {
   if (withHybrid && kit) {
     servers.push([
       "obsidian-memory-hybrid",
-      hybridServer(vaultAbs, kit, { semantic, vec, rerank, pinFailures, usage, launcher })
+      hybridServer(vaultAbs, kit, {
+        semantic,
+        vec,
+        rerank,
+        pinFailures,
+        usage,
+        postgres,
+        pgDsn,
+        launcher
+      })
     ]);
   }
   if (obscura && kit) {
@@ -148,6 +173,8 @@ export async function writeCursorMcp(home, vaultAbs, dryRun, opts = {}) {
     rerank = false,
     pinFailures = false,
     usage = false,
+    postgres = false,
+    pgDsn = null,
     obscura = false,
     obscuraBin = null,
     searxngUrl = null,
@@ -173,6 +200,8 @@ export async function writeCursorMcp(home, vaultAbs, dryRun, opts = {}) {
       rerank,
       pinFailures,
       usage,
+      postgres,
+      pgDsn,
       launcher
     });
   }
@@ -190,7 +219,9 @@ export async function writeCursorMcp(home, vaultAbs, dryRun, opts = {}) {
 
   if (dryRun) {
     console.log(pc.cyan("[dry-run] would write"), fp);
-    console.log(JSON.stringify(merged, null, 2));
+    // Redacted dump: the real DSN goes into the FILE on a live run; the echo must not
+    // leak its password into scrollback. See redactUserinfo.
+    console.log(redactUserinfo(JSON.stringify(merged, null, 2)));
     return;
   }
   await fse.ensureDir(dir);
@@ -267,14 +298,21 @@ export async function registerViaCli(client, servers, dryRun) {
 
   for (const [name, server] of servers) {
     const addArgv = makeAdd(name, server);
+    // Everything echoed goes through redactUserinfo: a --pg-dsn password must not land in
+    // the terminal. The UNREDACTED argv is what execa runs and what the files carry — only
+    // the printed copy is masked (paste-and-fill the *** back in by hand).
     const manual = () => {
-      console.log(`  ${bin} ` + addArgv.join(" "));
+      console.log(`  ${bin} ` + redactUserinfo(addArgv.join(" ")));
       if (manualBlock) {
-        console.log(pc.dim(`  …or paste into ~/.codex/config.toml:\n` + manualBlock(name, server)));
+        console.log(
+          pc.dim(
+            `  …or paste into ~/.codex/config.toml:\n` + redactUserinfo(manualBlock(name, server))
+          )
+        );
       }
     };
     if (dryRun) {
-      console.log(pc.cyan(`[dry-run] ${bin}`), addArgv.join(" "));
+      console.log(pc.cyan(`[dry-run] ${bin}`), redactUserinfo(addArgv.join(" ")));
       continue;
     }
     try {

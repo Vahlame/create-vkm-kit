@@ -115,6 +115,39 @@ test("mergeObsidianHybridServer wires the ADR-0038 levers (pin_failures + usage)
   assert.equal(env.OBSIDIAN_MEMORY_USAGE_BOOST, "1");
 });
 
+test("hybridServer wires VKM_PG for the Postgres projection — and writes NO key when off", () => {
+  const off = hybridServer("/vault", repoRoot);
+  assert.ok(!("VKM_PG" in off.env), "an absent toggle must leave no trace in the config");
+  assert.ok(!("VKM_PG_DSN" in off.env));
+  const explicitOff = hybridServer("/vault", repoRoot, { postgres: false, pgDsn: null });
+  assert.ok(!("VKM_PG" in explicitOff.env), "postgres:false must not write VKM_PG at all");
+  assert.ok(!("VKM_PG_DSN" in explicitOff.env), "pgDsn:null must not write VKM_PG_DSN at all");
+
+  const on = hybridServer("/vault", repoRoot, { postgres: true });
+  assert.equal(on.env.VKM_PG, "1");
+  assert.ok(!("VKM_PG_DSN" in on.env), "no DSN key unless a DSN was given");
+});
+
+test("hybridServer wires VKM_PG_DSN when an external server fronts the projection", () => {
+  const dsn = "postgres://u:p@db.example:5432/vkm";
+  const s = hybridServer("/vault", repoRoot, { postgres: true, pgDsn: dsn });
+  assert.equal(s.env.VKM_PG, "1");
+  assert.equal(s.env.VKM_PG_DSN, dsn);
+});
+
+test("mergeObsidianHybridServer passes postgres/pgDsn through to the merged entry", () => {
+  const base = mergeBasicMemoryServer({}, "/vault");
+  const plain = mergeObsidianHybridServer(base, "/vault", repoRoot);
+  assert.ok(!("VKM_PG" in plain.mcpServers["obsidian-memory-hybrid"].env));
+  const pg = mergeObsidianHybridServer(base, "/vault", repoRoot, {
+    postgres: true,
+    pgDsn: "postgres://x"
+  });
+  const env = pg.mcpServers["obsidian-memory-hybrid"].env;
+  assert.equal(env.VKM_PG, "1");
+  assert.equal(env.VKM_PG_DSN, "postgres://x");
+});
+
 test("claudeAddArgv builds `claude mcp add -s user -e … -- cmd args`", () => {
   const argv = claudeAddArgv("basic-memory", basicMemoryServer("/v"));
   assert.deepEqual(argv.slice(0, 5), ["mcp", "add", "basic-memory", "-s", "user"]);

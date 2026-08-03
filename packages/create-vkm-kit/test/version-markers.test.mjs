@@ -151,6 +151,7 @@ test("every marker reads back exactly what it wrote (read/write are inverses)", 
     "packages/vkm-spec/package.json": '{\n  "version": "1.0.0"\n}\n',
     "packages/obscura-web/package.json": '{\n  "version": "1.0.0"\n}\n',
     "packages/vkm-downloads/package.json": '{\n  "version": "1.0.0"\n}\n',
+    "packages/vkm-memory-pg/package.json": '{\n  "version": "1.0.0"\n}\n',
     "packages/obsidian-memory-rag/pyproject.toml": '[project]\nversion = "1.0.0"\n',
     "agent.toml": 'version = "1.0.0"\n',
     "README.md":

@@ -24,6 +24,9 @@ export const messages = {
       "¿Añadir MCP obsidian-memory-hybrid (FTS5 / BM25) además de basic-memory? (requiere clon del kit y pip install -e packages/obsidian-memory-rag)",
     semanticQ:
       "¿Usar embeddings neuronales (fastembed) para recall por significado? (requiere el extra [semantic])",
+    pgQ: "¿Activar la proyección Postgres de la memoria (PGlite embebido, tiempo real)?",
+    consoleQ:
+      "¿Compilar la consola vkm-console (TUI en Go: actividad del vault, grafo y búsqueda; requiere Go)?",
     rulesQ:
       "¿Instalar las reglas de memoria en CLAUDE.md / AGENTS.md / .cursor? (bloque marcado; no pisa tu contenido)"
   },
@@ -41,6 +44,8 @@ export const messages = {
       "Add obsidian-memory-hybrid MCP (FTS5 / BM25) in addition to basic-memory? (needs this repo clone + pip install -e packages/obsidian-memory-rag)",
     semanticQ:
       "Use neural embeddings (fastembed) for meaning-based recall? (needs the [semantic] extra)",
+    pgQ: "Enable the Postgres memory projection (embedded PGlite, real-time)?",
+    consoleQ: "Build the vkm-console TUI (Go: live vault activity, graph and search; needs Go)?",
     rulesQ:
       "Install the memory rules into CLAUDE.md / AGENTS.md / .cursor? (marked block; won't clobber your content)"
   }

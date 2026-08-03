@@ -69,6 +69,14 @@ The right question isn't "what tools exist?" but "what situation am I in?". The 
 | Start a task with the **whole project context**             | `assemble_context` — 1 budgeted call instead of chaining searches              |
 | Read a **whole note** (only if the passage isn't enough)    | `vault_read_file` — never full `SESSION_LOG`/large PROJECTS                    |
 
+Working on **one project or one specific agent**? Narrow the recall with `scope`:
+`scope: "PROJECTS/<project>"` limits it to that note, `scope: "AGENTS/<agent>"` to one
+agent's memory, and `scope: "AGENTS"` to every agent
+([ADR-0086](../adr/0086-scoped-memory-namespaces.md)). It is a relative path prefix
+(case-sensitive, matched at segment boundary) applied after `section`; per-agent memory
+lives in `AGENTS/<agent>.md` with the same structures as `PROJECTS/`, and
+`assemble_context` takes `agentName` to include it in the bundle.
+
 ### When you need to write or maintain
 
 | Situation                                     | Tool                                                                                                |

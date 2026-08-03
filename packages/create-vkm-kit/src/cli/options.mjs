@@ -55,6 +55,9 @@ import { flagValue } from "../mcp-merge.mjs";
  * @property {boolean} ollama
  * @property {boolean} obscura
  * @property {boolean} downloads
+ * @property {boolean} postgres
+ * @property {string|null} pgDsn
+ * @property {boolean} console
  * @property {string|null} searxngUrl
  * @property {string} researchDir
  * @property {string|null} downloadDir
@@ -159,6 +162,18 @@ export function resolveOptions(argv, ctx) {
     // disk, a different risk surface from obscura's web reads, so opting into web access
     // must never silently grant disk-write capability.
     downloads: argv.includes("--downloads") && !argv.includes("--no-downloads"),
+    // Postgres projection of the vault memory (vkm-memory-pg): part of the default stack —
+    // PGlite is EMBEDDED (no server install, no surprise download), the vault stays the
+    // source of truth and the projection is disposable. --no-postgres opts out; --postgres
+    // forces it back on even under --minimal.
+    postgres: on("--postgres", "--no-postgres"),
+    // External Postgres DSN (VKM_PG_DSN): when set, the pg-service fronts that server
+    // instead of the embedded PGlite datadir. Value flag, so it is null when absent.
+    pgDsn: flagValue(argv, "--pg-dsn"),
+    // vkm-console (Go TUI over the pg-service). Opt-in like obscura: building it shells
+    // out to the Go toolchain, which a bare install must not require. --full turns it on;
+    // --no-console always wins.
+    console: (full || argv.includes("--console")) && !argv.includes("--no-console"),
     searxngUrl: flagValue(argv, "--searxng-url"),
     // RESEARCH/ persistence root defaults to <vault>/RESEARCH (ADR-0056).
     researchDir: flagValue(argv, "--obscura-research-dir") || `${vault}/RESEARCH`,

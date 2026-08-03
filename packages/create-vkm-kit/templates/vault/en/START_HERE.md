@@ -15,5 +15,6 @@ Keeps every note reachable from a hub — link new notes here or from a project 
 
 - Core: [[MEMORY]] · [[SESSION_LOG]]
 - Practices: [[PRACTICES/observations|observations]] · [[PRACTICES/confirmed-good|confirmed-good]] · [[PRACTICES/confirmed-bad|confirmed-bad]]
+- Per-agent memory (one note per agent, scoped recall via `scope` — ADR-0086): [[AGENTS/README|AGENTS]]
 - Rules & meta: [[RULES/TEMPLATE]] · [[_meta/agent-profiles]]
 - Research bank (web findings, separate from personal memory — ADR-0056): [[RESEARCH/_index|RESEARCH]]

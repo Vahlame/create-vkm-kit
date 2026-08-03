@@ -6,6 +6,7 @@
   ],
   "scripts": {
     "adr:check": "node scripts/adr-check.mjs",
+    "build:console": "go build -o bin/vkm-console ./cmd/vkm-console",
     "build:runhidden": "node scripts/build-runhidden.mjs",
     "check:runhidden": "node scripts/check-runhidden-asset.mjs",
     "doctor": "node packages/vkm-doctor/src/doctor.mjs",

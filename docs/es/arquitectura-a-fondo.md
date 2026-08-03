@@ -22,10 +22,17 @@ flowchart LR
     end
 
     subgraph node["Sidecars Node (corren desde el clon)"]
-        HY["obsidian-memory-mcp<br/>MCP híbrido · 22 tools de vault"]
+        HY["obsidian-memory-mcp<br/>MCP híbrido · 25 tools de vault"]
         OB["obscura-web MCP<br/>8 tools web (opt-in)"]
         DL["vkm-downloads MCP<br/>6 tools de descarga (opt-in)"]
     end
+
+    subgraph pg["Proyección Postgres (opcional, fuera del vault)"]
+        PGS["pg-service · 127.0.0.1<br/>auth por token · SSE"]
+        PGD[("~/.vkm/pg/&lt;slug&gt;/<br/>datadir PGlite o DSN externo")]
+    end
+
+    CON["vkm-console (Go, opt-in)<br/>127.0.0.1:4930 · solo lectura"]
 
     subgraph py["Motor Python"]
         RAG["obsidian-memory-rag<br/>FTS5 + vectores + KG + recall log"]
@@ -51,6 +58,11 @@ flowchart LR
     RAG --> DB
     RAG -- "lee las notas" --> V
     HY -- "file tools vault-locked<br/>tmp+rename atómico, etag" --> V
+    HY -- "vault_pg_status · vault_graph_hops<br/>vault_timeline (HTTP + token)" --> PGS
+    DB -. "json-dump-index → sync" .-> PGS
+    PGS --> PGD
+    CON -. "lee el estado · solo lectura" .-> D
+    CON -. "HTTP /api/* de solo lectura" .-> PGS
     D -- "vigila" --> V
     D -- "add · commit · pull --rebase · push" --> R
 ```
@@ -174,8 +186,9 @@ mindmap
     Memoria
       Vault: Markdown + git, tuyo
       basic-memory — MCP por defecto
-      MCP híbrido: 22 tools de vault
+      MCP híbrido: 25 tools de vault
       Motor Python: FTS5 · vectores · KG
+      Proyección Postgres — opcional, derivada
     Sync
       obsidian-memoryd — Go
       doctor: salud con exit code
@@ -196,6 +209,7 @@ mindmap
       vkm-doctor + sink OTLP
       doctor del daemon
       vault_audit / memory_report
+      vkm-console — todos los paneles, en vivo
     Evidencia
       bench de retrieval — gate CI
       bench de token-economy — gate CI
@@ -230,25 +244,36 @@ Cada comportamiento estructural se remonta a un ADR. La lista completa está en
 | Banco de conocimiento RESEARCH/, consolidación dual                       | [0056](../adr/0056-research-knowledge-bank.md)                                                                                                                                                        |
 | Descargas guardadas con jobs en segundo plano                             | [0058](../adr/0058-vkm-downloads-file-download-tool.md), [0059](../adr/0059-vkm-downloads-background-jobs-and-mirrors.md)                                                                             |
 | Self-update con contrato never-clobber; gate de estructura de skills      | [0061](../adr/0061-kit-update-and-skill-structure-gate.md)                                                                                                                                            |
+| Ninguna consola puede robar el foco; `--open` lo decides tú               | [0078](../adr/0078-allocate-and-hide-a-console.md)                                                                                                                                                    |
+| Proyección Postgres: aditiva, derivada, desechable                        | [0084](../adr/0084-postgres-projection-layer.md) (reemplaza la Decisión 1 de [0083](../adr/0083-memory-remaster-no-postgres.md))                                                                      |
+| Consola del kit entero en tiempo real, solo lectura                       | [0085](../adr/0085-vkm-console-realtime-binary.md)                                                                                                                                                    |
 
-## 5. La superficie de tools de un vistazo (22 + 8 + 6)
+## 5. La superficie de tools de un vistazo (25 + 8 + 6)
 
-La tabla **autoritativa y drift-gated** de las 22 tools de vault vive en
+La tabla **autoritativa y drift-gated** de las 25 tools de vault vive en
 [`packages/obsidian-memory-mcp/README.md`](../../packages/obsidian-memory-mcp/README.md)
 (inglés). Condensada:
 
-| Servidor                                                              | Tools | Grupos                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| --------------------------------------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **obsidian-memory-hybrid** (por defecto con `--with-hybrid`/`--full`) | 22    | Búsqueda y retrieval (`vault_hybrid_search`, `vault_fts_search`, `vault_fts_index`, `vault_complete`, `assemble_context`) · knowledge graph (`vault_relations`, `vault_observations`, `vault_kg_suggest`) · archivos vault-locked (`vault_read_file`, `vault_write_file`, `vault_edit_file`, `vault_append_file`, `vault_frontmatter_set`, `vault_delete_file`, `vault_move_file`, `vault_list_directory`, `vault_backlinks`, `vault_git_history`) · higiene (`vault_audit`, `vault_memory_report`, `vault_rotate_log`, `memory_extract_candidates`) |
-| **obscura-web** (opt-in `--obscura`, activo bajo `--full`)            | 8     | `obscura_fetch`, `obscura_fetch_many`, `obscura_search`, `obscura_research`, `obscura_research_start`, `obscura_research_status`, `obscura_research_stop`, `obscura_consolidate`                                                                                                                                                                                                                                                                                                                                                                     |
-| **vkm-downloads** (opt-in `--downloads`, adrede FUERA de `--full`)    | 6     | `download_resolve`, `download_file`, `probe_mirrors`, `download_start`, `download_status`, `download_cancel`                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Servidor                                                              | Tools | Grupos                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| --------------------------------------------------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **obsidian-memory-hybrid** (por defecto con `--with-hybrid`/`--full`) | 25    | Búsqueda y retrieval (`vault_hybrid_search`, `vault_fts_search`, `vault_fts_index`, `vault_complete`, `assemble_context`) · knowledge graph (`vault_relations`, `vault_observations`, `vault_kg_suggest`) · archivos vault-locked (`vault_read_file`, `vault_write_file`, `vault_edit_file`, `vault_append_file`, `vault_frontmatter_set`, `vault_delete_file`, `vault_move_file`, `vault_list_directory`, `vault_backlinks`, `vault_git_history`) · higiene (`vault_audit`, `vault_memory_report`, `vault_rotate_log`, `memory_extract_candidates`) · proyección Postgres, registradas solo con `VKM_PG=1` (`vault_pg_status`, `vault_graph_hops`, `vault_timeline`) |
+| **obscura-web** (opt-in `--obscura`, activo bajo `--full`)            | 8     | `obscura_fetch`, `obscura_fetch_many`, `obscura_search`, `obscura_research`, `obscura_research_start`, `obscura_research_status`, `obscura_research_stop`, `obscura_consolidate`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| **vkm-downloads** (opt-in `--downloads`, adrede FUERA de `--full`)    | 6     | `download_resolve`, `download_file`, `probe_mirrors`, `download_start`, `download_status`, `download_cancel`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+
+Las tres tools de Postgres, textual (ADR-0084 — solo aparecen cuando la proyección
+opcional está encendida):
+
+- `vault_pg_status` — Optional Postgres projection health: backend, row counts, last sync; starts the local pg-service when needed.
+- `vault_graph_hops` — Multi-hop typed relation traversal (recursive SQL) over the Postgres projection.
+- `vault_timeline` — Recent memory activity from the Postgres projection's sync log.
 
 Tres propiedades transversales, todas pinneadas por tests:
 
 1. **Envelope de datos no confiables** — todo payload leído del vault o de la web se
    marca como DATOS, nunca instrucciones (`_trust`, heurísticas de injection).
-2. **Presupuesto de schema** — las descriptions de las 22 tools caben en ≤8.000 chars
-   (ADR-0035): los schemas son tokens de entrada que todo agente conectado paga en cada sesión.
+2. **Presupuesto de schema** — las descriptions de las 25 tools caben en ≤12.200 chars
+   (ADR-0035, subido desde 10.800 por ADR-0084): los schemas son tokens de entrada que todo
+   agente conectado paga en cada sesión.
 3. **Vault lock** — las file tools resuelven rutas solo dentro del vault; la ubicación
    del vault viene del entorno del servidor, nunca del wire.
 
