@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Cursor parity** — when `--ide` includes `cursor` (and under `--full`, which now defaults
+  to `codex,claude,cursor`): install skills into `~/.cursor/skills/`, memory rules into
+  `~/.cursor/rules/obsidian-memory.mdc` (user-global, `alwaysApply`), and Cursor-native hooks
+  into `~/.cursor/hooks.json` (`sessionStart` vault context, close-ritual trackers + `stop`
+  nudge, MCP JSON token-saver). Honest gaps documented in `docs/es/cursor-parity.md` /
+  `docs/en/cursor-parity.md` (no Claude native-memory guard, no `/effort` advisor, no
+  `vkm-implementer` Task template).
+
 - **The memory now has a Postgres projection — and it exists because the user overruled
   ADR-0083 (ADR-0084).** One day after this repo recorded a reasoned **no** to "should
   Postgres go into the memory?", the maintainer decided to integrate it anyway. That

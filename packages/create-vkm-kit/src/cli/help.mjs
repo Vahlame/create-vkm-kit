@@ -44,9 +44,10 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
   [vault]         Vault path as the first argument (or --vault <path>); defaults to
                   ~/Documents/obsidian-memory-vault and is created if it doesn't exist.
   --ide <list>    IDEs to wire, comma-separated: codex, claude, cursor (default: cursor;
-                  with --full: codex,claude). codex uses the Codex CLI (codex mcp add →
+                  with --full: codex,claude,cursor). codex uses the Codex CLI (codex mcp add →
                   ~/.codex/config.toml); claude uses the Claude Code CLI (claude mcp add
-                  -s user); cursor writes ~/.cursor/mcp.json.
+                  -s user); cursor writes ~/.cursor/mcp.json + ~/.cursor/hooks.json +
+                  ~/.cursor/skills + ~/.cursor/rules.
   --no-cursor-mcp Skip writing ~/.cursor/mcp.json
   --no-git-init   Skip git init when .git is missing
                   (Merges kit Git/SCM keys into <vault>/.vscode/settings.json — creates or updates.)
@@ -168,6 +169,17 @@ Claude Code native-memory override (when --ide includes claude):
   --effort-gate / --no-effort-gate       Also controls Codex's PreToolUse effort advisor.
   --token-saver / --no-token-saver       Also controls Codex's PostToolUse token-saver.
 
+  Cursor hooks (on by default when --ide includes cursor) live in ~/.cursor/hooks.json
+  (schema version 1) with scripts under ~/.cursor/hooks/:
+  sessionStart injects vault context; afterFileEdit + afterMCPExecution track work for the
+  stop close-ritual nudge; afterMCPExecution also runs the MCP JSON token-saver. Cursor has
+  no Claude native-memory directory and no /effort harness — those Claude-only hooks are
+  not ported. Same shared flags as Codex for the overlapping pieces.
+  --cursor-hooks / --no-cursor-hooks     Force on / remove all Cursor-native hooks.
+  --vault-context-hook / --no-vault-context-hook  Also controls Cursor's sessionStart.
+  --memory-enforcement / --no-memory-enforcement  Also controls Cursor's stop nudge + trackers.
+  --token-saver / --no-token-saver       Also controls Cursor's afterMCPExecution compact.
+
   Local telemetry + doctor (ADR-0044, on by default when --ide includes claude and a kit
   clone is available) — wires Claude Code's OTEL metrics export to a LOCAL sink
   (127.0.0.1:4319 → ~/.vkm/telemetry/, nothing leaves the machine) via a managed env
@@ -175,7 +187,7 @@ Claude Code native-memory override (when --ide includes claude):
   cache-hit ratio and a broken-cache diagnosis.
   --telemetry / --no-telemetry Force on / remove.
 
-  Skills + subagent (ADR-0049/0053/0056, on by default when --ide includes claude or codex):
+  Skills + subagent (ADR-0049/0053/0056, on by default when --ide includes claude, codex, or cursor):
   /vkm-discipline (dense minimal-line code at full quality + verification contract),
   /vkm-spec (idea → precise spec via one assemble_context call), /vkm-design
   (professional anti-generic design: direction before pixels, computed checks, visual
@@ -188,11 +200,12 @@ Claude Code native-memory override (when --ide includes claude):
   semantic query-family coverage + static before/after audit via seo-audit.mjs), and the
   vkm-implementer agent
   template. Claude uses ~/.claude/skills + ~/.claude/agents/vkm-implementer.md; Codex uses
-  ~/.agents/skills + ~/.codex/agents/vkm-implementer.toml. Hash-tracked files; uninstall
-  never deletes one you edited. Which one fits which situation: docs/en/skills-guide.md
-  (ES: docs/es/guia-de-skills.md).
+  ~/.agents/skills + ~/.codex/agents/vkm-implementer.toml; Cursor uses ~/.cursor/skills
+  (no agent template — Cursor Task types are a different format). Hash-tracked files;
+  uninstall never deletes one you edited. Which one fits which situation:
+  docs/en/skills-guide.md (ES: docs/es/guia-de-skills.md).
   --skills / --no-skills       Force on / remove the eight skills.
-  --agents / --no-agents       Force on / remove the subagent template.
+  --agents / --no-agents       Force on / remove the subagent template (claude/codex only).
   --skills-dir <path>          ALSO copy the skills into any other client's skills folder
                                 (Kimi Code, opencode, ...) — additive, independent of
                                 --ide; plain markdown + portable Node scripts. Re-run with

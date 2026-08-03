@@ -348,7 +348,7 @@ test("non-interactive --with-gitleaks installs an executable pre-commit hook", (
   }
 });
 
-test("--full --dry-run wires Codex + Claude with hybrid/semantic/index/backend (no side effects)", () => {
+test("--full --dry-run wires Codex + Claude + Cursor with hybrid/semantic/index/backend (no side effects)", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-full-"));
   const vault = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "com-full-v-")), "vault");
   // NO_COLOR so assertions aren't split by ANSI resets (picocolors forces color on win32).
@@ -360,9 +360,10 @@ test("--full --dry-run wires Codex + Claude with hybrid/semantic/index/backend (
   );
   assert.equal(r.status, 0, r.stderr + r.stdout);
   assert.match(r.stdout, /full preset/, "announces the full preset");
-  // default --ide under --full is codex,claude (not cursor)
+  // default --ide under --full is codex,claude,cursor
   assert.match(r.stdout, /\[dry-run\] codex mcp add basic-memory/, "wires Codex MCP");
   assert.match(r.stdout, /\[dry-run\] claude mcp add basic-memory/, "wires Claude Code MCP");
+  assert.match(r.stdout, /\[dry-run\] would merge Cursor sessionStart hook/, "wires Cursor hooks");
   assert.match(
     r.stdout,
     /\[dry-run\] codex mcp add obsidian-memory-hybrid/,
@@ -375,9 +376,9 @@ test("--full --dry-run wires Codex + Claude with hybrid/semantic/index/backend (
     /would start pg-service \+ initial sync/,
     "the Postgres projection is part of the default stack"
   );
-  // dry-run must not create the vault or touch ~/.cursor
+  // dry-run must not create the vault or touch ~/.cursor on disk
   assert.ok(!fs.existsSync(path.join(vault, "START_HERE.md")), "dry-run scaffolds nothing");
-  assert.ok(!fs.existsSync(path.join(home, ".cursor", "mcp.json")), "no cursor write under --full");
+  assert.ok(!fs.existsSync(path.join(home, ".cursor", "mcp.json")), "dry-run writes no mcp.json");
 });
 
 test("non-interactive --rules codex writes the managed block to ~/.codex/AGENTS.md", () => {

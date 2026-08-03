@@ -26,6 +26,7 @@ import {
   codexHookAssetFiles,
   uninstallCodexNative
 } from "./codex-native.mjs";
+import { uninstallCursorNative } from "./cursor-native.mjs";
 import { defaultVaultPath, findVault, scaffoldNewVault } from "./vault-scaffold.mjs";
 import { ASSETS_SIDECAR_BASENAME } from "./asset-install.mjs";
 import { buildUpdatePlan, applyUpdatePlan, summarizePlan, readKitVersion } from "./update-plan.mjs";
@@ -179,15 +180,15 @@ function rulesFromIdes(ides) {
   return targets;
 }
 /**
- * Parse `--ide codex,claude` → lowercased array. When `--ide` is omitted the
- * default is `["cursor"]` for back-compat, except under `--full`, whose focus is
- * Codex + Claude Code (`["codex", "claude"]`).
+ * Parse `--ide codex,claude,cursor` → lowercased array. When `--ide` is omitted the
+ * default is `["cursor"]` for back-compat, except under `--full`, which wires
+ * Codex + Claude Code + Cursor (`["codex", "claude", "cursor"]`).
  * @param {string[]} argv
  * @param {{ full?: boolean }} [opts]
  */
 function idesFromArgs(argv, { full = false } = {}) {
   const raw = flagValue(argv, "--ide");
-  if (!raw) return full ? ["codex", "claude"] : ["cursor"];
+  if (!raw) return full ? ["codex", "claude", "cursor"] : ["cursor"];
   return raw
     .split(",")
     .map((s) => s.trim().toLowerCase())
@@ -497,6 +498,8 @@ async function main() {
     await uninstallSkillAssets(home, dryRun, { ide: "claude" });
     await uninstallCodexNative(home, dryRun);
     await uninstallSkillAssets(home, dryRun, { ide: "codex" });
+    await uninstallCursorNative(home, dryRun);
+    await uninstallSkillAssets(home, dryRun, { ide: "cursor" });
     await uninstallRunHidden(home, dryRun);
     return;
   }

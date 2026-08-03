@@ -35,6 +35,7 @@ import { configureTelemetry } from "./telemetry.mjs";
 import { installRunHidden } from "./runhidden-setup.mjs";
 import { configureSkillAssets, installSkillsInto, SKILL_NAMES } from "./skills-install.mjs";
 import { configureCodexNative } from "./codex-native.mjs";
+import { configureCursorNative } from "./cursor-native.mjs";
 import { maybeInstallOllama } from "./ollama-setup.mjs";
 import { maybeInstallObscura } from "./obscura-setup.mjs";
 import { configurePgHook, maybeSetupPostgres } from "./pg-setup.mjs";
@@ -336,6 +337,18 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
   if (ides.includes("cursor")) {
     if (opts.noCursorMcp) console.log(pc.dim("Skipped Cursor mcp.json (--no-cursor-mcp)"));
     else await writeCursorMcp(home, vault, dryRun, serverOpts);
+    await configureCursorNative(home, vault, dryRun, {
+      lang,
+      hooks: opts.cursorHooks,
+      context: opts.cursorContext,
+      closeReminder: opts.cursorCloseReminder,
+      tokenSaver: opts.cursorTokenSaver
+    });
+    await configureSkillAssets(home, dryRun, {
+      ide: "cursor",
+      skills: opts.skills,
+      agents: false
+    });
   }
   if (ides.includes("claude")) {
     await registerClaudeCodeMcp(vault, dryRun, serverOpts);
@@ -583,13 +596,18 @@ export function printSummary({ vault, ides, opts, result, meta = {} }) {
   if (ides.includes("codex") && opts.codexHooks) {
     line("- Codex hooks: SessionStart, PreToolUse and PostToolUse → ~/.codex/hooks.json");
   }
+  if (ides.includes("cursor") && opts.cursorHooks) {
+    line(
+      "- Cursor hooks: sessionStart + afterFileEdit/afterMCPExecution + stop (+ MCP token-saver) → ~/.cursor/hooks.json"
+    );
+  }
   if (opts.gitleaks) line("- gitleaks pre-commit hook: installed (vault/.git/hooks/pre-commit)");
   if (opts.ruleTargets.length) {
     line(`- Memory rules installed into: ${opts.ruleTargets.join(", ")}`);
     if (ides.includes("cursor")) {
       console.log(
         pc.dim(
-          "  Cursor GLOBAL User Rules can't be auto-written — paste the block from install.md Step 4 into Settings → Rules → User Rules."
+          "  Cursor project rules: ~/.cursor/rules/obsidian-memory.mdc (alwaysApply). Optional: paste Settings → Rules → User Rules from install.md Step 4 for the prose block in the global User Rules pane."
         )
       );
     }

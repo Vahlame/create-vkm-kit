@@ -106,9 +106,20 @@ export async function installRules(targets, lang, { home, cwd, dryRun = false, p
     written.push(fp);
   }
   if (targets.includes("cursor")) {
-    const fp = path.join(cwd, ".cursor", "rules", "obsidian-memory.mdc");
-    await installRulesFile(fp, block, { dryRun, newFilePrefix: CURSOR_RULE_FRONTMATTER });
-    written.push(fp);
+    // User-global rules apply in every Cursor workspace (the gap vs Claude's
+    // ~/.claude/CLAUDE.md). Always write here when home is set.
+    const userFp = path.join(home, ".cursor", "rules", "obsidian-memory.mdc");
+    await installRulesFile(userFp, block, { dryRun, newFilePrefix: CURSOR_RULE_FRONTMATTER });
+    written.push(userFp);
+    // Also project-local when cwd is a distinct project (kit dogfood / repo checkout).
+    const projectFp = path.join(cwd, ".cursor", "rules", "obsidian-memory.mdc");
+    if (
+      path.resolve(cwd) !== path.resolve(home) &&
+      path.resolve(projectFp) !== path.resolve(userFp)
+    ) {
+      await installRulesFile(projectFp, block, { dryRun, newFilePrefix: CURSOR_RULE_FRONTMATTER });
+      written.push(projectFp);
+    }
   }
   return written;
 }
