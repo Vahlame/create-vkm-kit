@@ -30,6 +30,9 @@ function main() {
   const sinkScript = process.argv[2];
   if (!sinkScript || sinkAlive()) return;
   try {
+    // windowsHide: true is CREATE_NO_WINDOW — safe HERE because the OTEL sink is a leaf
+    // (HTTP server only, no console-subsystem grandchildren). If it ever spawns children,
+    // drop this flag and follow ensure-pg-service.mjs (inherit the launcher's hidden console).
     const child = spawn(process.execPath, [sinkScript], {
       detached: true,
       stdio: "ignore",

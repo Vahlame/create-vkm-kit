@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Postgres `scope` SQL matches the literal JS contract.** The projection used
+  `LIKE $scope || '/%'`, so `_`/`%` inside a scope acted as SQL wildcards and diverged from
+  `pathInScope` (and broke valid scopes like `AGENTS/fo_o`). The third arm is now
+  `starts_with(path, $scope || '/')`.
+- **`vkm-pg-migrate` direct path passes `runDump` / `vaultAbs` into `syncFromDump`.** Without
+  those opts, watermark-gap follow-ups and embedder dim-drift full resyncs were detected but
+  never fetched on the CLI path (the pg-service already passed them).
+- **`vkm-console` research card no longer reports OK on a partial failure** (`||` → all
+  sources must succeed). SSE debounce drains/`Stop`s timers before `Reset`. SESSION_LOG
+  lines render via `textContent` (no `innerHTML` + HTML-escape round-trip).
+- **Codex installs the Stop vault-close nudge** (`stop-vault-close-reminder.mjs`), matching
+  Claude/Cursor. Codex parity docs list all eight skills and live under `docs/en/`.
+
+### Security
+
+- **External `--pg-dsn` is stored in `~/.vkm/pg/<slug>/hook-dsn` (mode `0600`)**, not inline
+  in `~/.claude/settings.json`. The SessionStart hook reads the file (legacy raw-DSN argv
+  still works). Unauthenticated `/api/health` no longer returns the absolute vault path
+  (token-gated `/api/stats` still does).
+
+### Changed
+
+- **`/api/suggestions` honors `?scope=`** like the other projection read APIs.
+- **`vkm-doctor` skills-drift checks Claude, Cursor, and Codex skill homes** (union), not
+  only `~/.claude/skills`.
+
 ## [5.5.0] - 2026-08-02
 
 ### Added

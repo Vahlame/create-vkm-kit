@@ -1,18 +1,21 @@
 # Codex CLI parity hand-off
 
-Verified on 2026-07-27 against the current official Codex manual. This is the
-continuation note for a Claude Code session keeping the Codex and Claude surfaces aligned.
+Verified on 2026-07-27 against the current official Codex manual (Stop hook added
+2026-08-03). This is the continuation note for a Claude Code session keeping the Codex
+and Claude surfaces aligned.
 
 ## Skills
 
-- Installed path: `$HOME/.agents/skills/{vkm-discipline,vkm-spec,vkm-design,vkm-research}/`.
+- Installed path: `$HOME/.agents/skills/{vkm-discipline,vkm-spec,vkm-design,vkm-research,vkm-verify,vkm-intake,vkm-ui-judge,vkm-seo}/`
+  (all eight shipped skills — same set as Claude/Cursor).
 - Source: `packages/create-vkm-kit/templates/skills/`; the installer copies every file in
   each directory, so each `SKILL.md` remains byte-identical.
 - Official source: [Build skills](https://learn.chatgpt.com/docs/build-skills), fetched
   2026-07-27. It requires a directory containing `SKILL.md` with `name` and `description`,
   and documents `$HOME/.agents/skills` as the user scope.
 - Keep in sync: if a skill directory is added or renamed, update `SKILL_NAMES`, the
-  `skills-install` tests, and both Claude and Codex update scopes.
+  `skills-install` tests, and both Claude and Codex update scopes. `skill-count-drift.test.mjs`
+  also gates this parity doc.
 
 ## Custom agent
 
@@ -33,11 +36,14 @@ continuation note for a Claude Code session keeping the Codex and Claude surface
 - Script path: `$HOME/.codex/hooks/`; every shipped script is SHA-256 tracked in
   `$HOME/.codex/vkm-kit.assets.json`.
 - Managed event mapping:
-  - `SessionStart` → `session-start-vault-context.mjs` injects the vault map and reminders.
+  - `SessionStart` → `session-start-vault-context.mjs` injects the vault map and reminders
+    via nested `hookSpecificOutput.additionalContext` (same shape Claude Code consumes;
+    Codex honors `additionalContextLimit` on the handler).
   - `PreToolUse` → `codex-guard-native-memory-write.mjs` protects generated
     `~/.codex/memories/` paths; `guard-effort-gate.mjs` runs the effort advisor on
     `apply_patch`.
   - `PostToolUse` → `codex-compact-tool-output.mjs` compacts noisy shell/MCP output.
+  - `Stop` → `stop-vault-close-reminder.mjs` (same ADR-0030 nudge as Claude Code).
 - Official sources: [Hooks](https://learn.chatgpt.com/docs/hooks), fetched 2026-07-27;
   [Memories](https://learn.chatgpt.com/docs/customization/memories), fetched 2026-07-27.
   Hooks documents `hooks.json`, JSON stdin/stdout, `PreToolUse` denial via exit code `2`
@@ -55,9 +61,9 @@ continuation note for a Claude Code session keeping the Codex and Claude surface
   Claude Code does. Do not silently switch this behavior—revisit it when Codex supports a
   typed replacement field.
 - **Not yet verified / follow-up:** `transcript_path` is documented as unstable. The effort
-  gate reuses the cross-platform transcript scanner and is fail-open if a future Codex rollout
-  format no longer exposes the required turns. Prefer stable event fields if Codex publishes
-  them, then add a real-rollout fixture before changing the gate.
+  gate and Stop close-reminder reuse the cross-platform transcript scanner and are fail-open
+  if a future Codex rollout format no longer exposes the required turns. Prefer stable event
+  fields if Codex publishes them, then add a real-rollout fixture before changing the gate.
 - **Not yet verified / follow-up:** user hooks require Codex trust review (`/hooks`) before
   non-managed commands run. The installer intentionally does not bypass that trust step;
   verify the first-run UX on current CLI releases before promising zero-touch activation.

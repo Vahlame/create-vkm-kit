@@ -13,7 +13,7 @@ The whole user guide, in the recommended reading order.
 | —   | [**Install with an agent**](install-with-agent.md) | Prefer the AI to do it? Paste one file and you're done.                |
 | —   | [**Install on a fresh PC**](install-fresh-pc.md)   | Reproduce everything on a freshly wiped machine (Claude Code).         |
 | 3   | [**Usage + situational guide**](usage.md)          | Day-to-day use after installing: which piece to use in each situation. |
-| 3b  | [**Skills guide**](skills-guide.md)                | Which of the 7 skills fits a situation — and when none of them does.   |
+| 3b  | [**Skills guide**](skills-guide.md)                | Which of the 8 skills fits a situation — and when none of them does.   |
 
 > 🤖 **Claude Code** registers MCP via `claude mcp add` (no `mcp.json`) — see [install on a fresh PC](install-fresh-pc.md).
 

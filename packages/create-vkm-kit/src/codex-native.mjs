@@ -20,7 +20,10 @@ export const CODEX_HOOK_STEMS = {
   context: "session-start-vault-context",
   memoryGuard: "codex-guard-native-memory-write",
   effortGate: "guard-effort-gate",
-  tokenSaver: "codex-compact-tool-output"
+  tokenSaver: "codex-compact-tool-output",
+  // Same Stop nudge Claude ships (ADR-0030) — Codex documents a Stop event with the same
+  // decision/block JSON contract; without it, Codex sessions silently skip the close ritual.
+  stop: "stop-vault-close-reminder"
 };
 
 const HOOK_ASSET_BASENAMES = {
@@ -31,7 +34,8 @@ const HOOK_ASSET_BASENAMES = {
   // it would just make the Codex install quietly do less than the Claude one, which is
   // the drift this parity work exists to remove.
   effortGate: ["guard-effort-gate.mjs", "apply-model-effort.mjs", "_transcript-cache.mjs"],
-  tokenSaver: ["codex-compact-tool-output.mjs", "compact-tool-output.mjs", "compact-mcp-output.mjs"]
+  tokenSaver: ["codex-compact-tool-output.mjs", "compact-tool-output.mjs", "compact-mcp-output.mjs"],
+  stop: ["stop-vault-close-reminder.mjs", "_transcript-cache.mjs"]
 };
 
 function sourceHooksDir() {
@@ -62,12 +66,13 @@ function command(script, args = [], launcher = null) {
     .join(" ");
 }
 
-function selectedAssetBasenames({ context, memoryGuard, effortGate, tokenSaver }) {
+function selectedAssetBasenames({ context, memoryGuard, effortGate, tokenSaver, stop }) {
   return [
     ...(context ? HOOK_ASSET_BASENAMES.context : []),
     ...(memoryGuard ? HOOK_ASSET_BASENAMES.memoryGuard : []),
     ...(effortGate ? HOOK_ASSET_BASENAMES.effortGate : []),
-    ...(tokenSaver ? HOOK_ASSET_BASENAMES.tokenSaver : [])
+    ...(tokenSaver ? HOOK_ASSET_BASENAMES.tokenSaver : []),
+    ...(stop ? HOOK_ASSET_BASENAMES.stop : [])
   ];
 }
 
@@ -81,6 +86,7 @@ export function codexHookAssetFiles(home, options = {}) {
         memoryGuard: true,
         effortGate: true,
         tokenSaver: true,
+        stop: true,
         ...options
       });
   return [...new Set(basenames)].map((basename) => ({
@@ -153,6 +159,16 @@ function managedHookConfig(home, vault, lang, enabled, launcher = null) {
         statusMessage: "Compacting tool output",
         additionalContextLimit: 6000
       }
+    },
+    {
+      event: "Stop",
+      matcher: "*",
+      stem: CODEX_HOOK_STEMS.stop,
+      enabled: enabled.stop,
+      handler: {
+        command: command(path.join(hooksDir, "stop-vault-close-reminder.mjs"), [lang], launcher),
+        statusMessage: "Vault close reminder"
+      }
     }
   ];
 }
@@ -169,6 +185,7 @@ export async function configureCodexNative(
     memoryGuard = true,
     effortGate = true,
     tokenSaver = true,
+    stop = true,
     launcher = null
   } = {}
 ) {
@@ -176,7 +193,8 @@ export async function configureCodexNative(
     context: hooks && context,
     memoryGuard: hooks && memoryGuard,
     effortGate: hooks && effortGate,
-    tokenSaver: hooks && tokenSaver
+    tokenSaver: hooks && tokenSaver,
+    stop: hooks && stop
   };
   const wanted = codexHookAssetFiles(home, enabled);
   const all = codexHookAssetFiles(home, { all: true });

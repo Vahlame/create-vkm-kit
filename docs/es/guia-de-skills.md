@@ -1,10 +1,14 @@
 # Guía de skills: cuál usar, cuándo, y cuándo no
 
-El kit instala **ocho skills** en `~/.claude/skills/`. Cada una se dispara sola cuando su
+El kit instala **ocho skills** en `~/.claude/skills/` (y, según `--ide`, también en
+`~/.cursor/skills/` y `~/.agents/skills/`). Cada una se dispara sola cuando su
 `description` coincide con lo que pediste, y también podés invocarlas a mano (`/vkm-spec`,
 `/vkm-design`, …). Esta guía existe porque la pregunta cara no es "qué hace cada una" sino
 **cuál corresponde ahora** — y sobre todo cuál **no**, porque una skill que se mete donde no
 va empeora el resultado en vez de mejorarlo.
+
+Limitación intencional: los `SKILL.md` (description always-in-context) están **solo en
+inglés** — `--lang es` afecta vault/hooks, no traduce las skills.
 
 Regla de oro: **una skill no reemplaza tu criterio ni el del modelo**. Si pediste algo con
 un alcance concreto, ese alcance gana siempre (regla de arbitraje).
