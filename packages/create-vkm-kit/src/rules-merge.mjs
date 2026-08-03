@@ -113,7 +113,10 @@ export async function installRules(targets, lang, { home, cwd, dryRun = false, p
     written.push(userFp);
     // Also project-local when cwd is a distinct project (kit dogfood / repo checkout).
     const projectFp = path.join(cwd, ".cursor", "rules", "obsidian-memory.mdc");
-    if (path.resolve(cwd) !== path.resolve(home) && path.resolve(projectFp) !== path.resolve(userFp)) {
+    if (
+      path.resolve(cwd) !== path.resolve(home) &&
+      path.resolve(projectFp) !== path.resolve(userFp)
+    ) {
       await installRulesFile(projectFp, block, { dryRun, newFilePrefix: CURSOR_RULE_FRONTMATTER });
       written.push(projectFp);
     }

@@ -79,7 +79,14 @@ test("the reranker is opt-in and needs hybrid", () => {
 
 test("Claude Code-only toggles stay off when Claude Code is not wired", () => {
   const cursorOnly = opts([], { ides: ["cursor"] });
-  for (const k of ["nativeOverride", "enforce", "effortGate", "tokenSaver", "telemetry", "agents"]) {
+  for (const k of [
+    "nativeOverride",
+    "enforce",
+    "effortGate",
+    "tokenSaver",
+    "telemetry",
+    "agents"
+  ]) {
     assert.equal(cursorOnly[k], false, `${k} is Claude Code-only`);
   }
   // Cursor parity: skills + cursor hooks ship when --ide includes cursor.

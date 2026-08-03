@@ -52,6 +52,10 @@ import { flagValue } from "../mcp-merge.mjs";
  * @property {boolean} codexMemoryGuard
  * @property {boolean} codexEffortGate
  * @property {boolean} codexTokenSaver
+ * @property {boolean} cursorHooks
+ * @property {boolean} cursorContext
+ * @property {boolean} cursorCloseReminder
+ * @property {boolean} cursorTokenSaver
  * @property {boolean} ollama
  * @property {boolean} obscura
  * @property {boolean} downloads

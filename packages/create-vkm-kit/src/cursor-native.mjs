@@ -57,7 +57,13 @@ function command(script, args = []) {
 function selectedAssetBasenames({ context, closeReminder, tokenSaver }) {
   return [
     ...(context ? HOOK_ASSET_BASENAMES.context : []),
-    ...(closeReminder ? [...HOOK_ASSET_BASENAMES.trackEdit, ...HOOK_ASSET_BASENAMES.trackMcp, ...HOOK_ASSET_BASENAMES.stop] : []),
+    ...(closeReminder
+      ? [
+          ...HOOK_ASSET_BASENAMES.trackEdit,
+          ...HOOK_ASSET_BASENAMES.trackMcp,
+          ...HOOK_ASSET_BASENAMES.stop
+        ]
+      : []),
     ...(tokenSaver ? HOOK_ASSET_BASENAMES.tokenSaver : [])
   ];
 }
@@ -153,13 +159,7 @@ export async function configureCursorNative(
   home,
   vault,
   dryRun,
-  {
-    lang = "es",
-    hooks = true,
-    context = true,
-    closeReminder = true,
-    tokenSaver = true
-  } = {}
+  { lang = "es", hooks = true, context = true, closeReminder = true, tokenSaver = true } = {}
 ) {
   const enabled = {
     context: hooks && context,

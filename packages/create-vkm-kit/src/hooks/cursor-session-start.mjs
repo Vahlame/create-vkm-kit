@@ -8,11 +8,7 @@
  */
 import { pathToFileURL } from "node:url";
 import fs from "node:fs";
-import {
-  buildContext,
-  modelChangeNotice,
-  reminders
-} from "./session-start-vault-context.mjs";
+import { buildContext, modelChangeNotice, reminders } from "./session-start-vault-context.mjs";
 import { resetState } from "./cursor-session-state.mjs";
 
 function resolveVault() {

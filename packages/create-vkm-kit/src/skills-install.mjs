@@ -136,7 +136,10 @@ export async function configureSkillAssets(
     if (wanted.length) {
       const { installed } = await installManagedAssets({ files: wanted, sidecarFp });
       if (skills) {
-        console.log(pc.green("Skills installed:"), pc.dim(`${SKILL_NAMES.join(", ")} (${skillsLabel})`));
+        console.log(
+          pc.green("Skills installed:"),
+          pc.dim(`${SKILL_NAMES.join(", ")} (${skillsLabel})`)
+        );
       }
       if (agents && !isCursor) {
         console.log(
@@ -164,7 +167,7 @@ export async function configureSkillAssets(
  * Full teardown of both groups (hash-guarded).
  * @param {string} home
  * @param {boolean} dryRun
- * @param {{ ide?: "claude" | "codex" }} [opts]
+ * @param {{ ide?: "claude" | "codex" | "cursor" }} [opts]
  */
 export async function uninstallSkillAssets(home, dryRun, { ide = "claude" } = {}) {
   await configureSkillAssets(home, dryRun, { ide, skills: false, agents: false });
