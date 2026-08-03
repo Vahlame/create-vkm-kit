@@ -45,7 +45,11 @@ npx @vkmikc/create-vkm-kit --full --pg-dsn "postgres://user:pass@localhost:5432/
 ```
 
 - `--postgres` (por defecto **on**) instala la capa y deja `VKM_PG=1` en la configuración
-  MCP del vault.
+  MCP del vault. Tras construir el índice FTS, el instalador arranca el pg-service y
+  **sincroniza tu vault en la proyección**: `full` la primera vez (vacía / nunca
+  sincronizada), `incremental` en reinstalación o update cuando `/api/health` ya muestra
+  notes o un `lastSyncAt` — así quien re-ejecuta el instalador mantiene Postgres al día
+  sin re-volcar el índice entero.
 - `--no-postgres` la deja fuera. El kit funciona igual; las tres tools de Postgres
   simplemente no se registran.
 - `--pg-dsn <cadena>` usa **tu** servidor Postgres en vez del PGlite embebido. El datadir

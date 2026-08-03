@@ -30,6 +30,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Installer Postgres sync detects an already-projected vault.** First install (empty /
+  no `lastSyncAt`) runs `POST /api/sync` with `mode: "full"`; reinstall and update runs
+  use `incremental` when health already shows notes or a sync timestamp — every user who
+  re-runs the kit keeps the vault in Postgres without a full re-dump. Warns when
+  `fts.sqlite` is missing or the sync returns 0 notes while the index exists. The
+  SessionStart keep-alive hook installs whenever `--postgres` is on (not only with
+  `--ide claude`).
 - **`/api/suggestions` honors `?scope=`** like the other projection read APIs.
 - **`vkm-doctor` skills-drift checks Claude, Cursor, and Codex skill homes** (union), not
   only `~/.claude/skills`.
