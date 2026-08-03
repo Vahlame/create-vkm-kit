@@ -56,7 +56,8 @@ export async function maybeBuildConsole({ enable, dryRun, kitRoot, launcher = nu
     // of those children its own VISIBLE console. Route through the launcher when the install
     // has one (it owns a single hidden console the tree inherits); otherwise let the build
     // inherit the installer's console, which the user is already watching.
-    const viaLauncher = (/** @type {string[]} */ argv) =>
+    /** @param {string[]} argv @returns {[string, string[]]} */
+    const viaLauncher = (argv) =>
       launcher ? [launcher, argv] : [argv[0], argv.slice(1)];
     const [probeCmd, probeArgs] = viaLauncher(["go", "version"]);
     const probe = await execaImpl(probeCmd, probeArgs, {
