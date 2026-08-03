@@ -79,16 +79,15 @@ test("the reranker is opt-in and needs hybrid", () => {
 
 test("Claude Code-only toggles stay off when Claude Code is not wired", () => {
   const cursorOnly = opts([], { ides: ["cursor"] });
-  for (const k of [
-    "nativeOverride",
-    "enforce",
-    "effortGate",
-    "tokenSaver",
-    "telemetry",
-    "skills"
-  ]) {
+  for (const k of ["nativeOverride", "enforce", "effortGate", "tokenSaver", "telemetry", "agents"]) {
     assert.equal(cursorOnly[k], false, `${k} is Claude Code-only`);
   }
+  // Cursor parity: skills + cursor hooks ship when --ide includes cursor.
+  assert.equal(cursorOnly.skills, true, "skills install into ~/.cursor/skills");
+  assert.equal(cursorOnly.cursorHooks, true);
+  assert.equal(cursorOnly.cursorContext, true);
+  assert.equal(cursorOnly.cursorCloseReminder, true);
+  assert.equal(cursorOnly.cursorTokenSaver, true);
   const claude = opts([], { ides: ["claude"] });
   for (const k of [
     "nativeOverride",
@@ -100,6 +99,22 @@ test("Claude Code-only toggles stay off when Claude Code is not wired", () => {
   ]) {
     assert.equal(claude[k], true, `${k} should ride along with Claude Code`);
   }
+});
+
+test("Cursor hooks opt out with the shared component flags", () => {
+  const optOut = opts(["--no-cursor-hooks"], { ides: ["cursor"] });
+  assert.equal(optOut.cursorHooks, false);
+  assert.equal(optOut.cursorContext, false);
+  assert.equal(optOut.cursorCloseReminder, false);
+  assert.equal(optOut.cursorTokenSaver, false);
+  const components = opts(
+    ["--no-vault-context-hook", "--no-memory-enforcement", "--no-token-saver"],
+    { ides: ["cursor"] }
+  );
+  assert.equal(components.cursorHooks, true);
+  assert.equal(components.cursorContext, false);
+  assert.equal(components.cursorCloseReminder, false);
+  assert.equal(components.cursorTokenSaver, false);
 });
 
 test("the enforcement hooks hang off the native-memory override", () => {

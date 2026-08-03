@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Cursor parity** — when `--ide` includes `cursor` (and under `--full`, which now defaults
+  to `codex,claude,cursor`): install skills into `~/.cursor/skills/`, memory rules into
+  `~/.cursor/rules/obsidian-memory.mdc` (user-global, `alwaysApply`), and Cursor-native hooks
+  into `~/.cursor/hooks.json` (`sessionStart` vault context, close-ritual trackers + `stop`
+  nudge, MCP JSON token-saver). Honest gaps documented in `docs/es/cursor-parity.md` /
+  `docs/en/cursor-parity.md` (no Claude native-memory guard, no `/effort` advisor, no
+  `vkm-implementer` Task template).
+
 ## [5.4.0] - 2026-08-01
 
 ### Fixed
