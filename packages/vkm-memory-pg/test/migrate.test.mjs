@@ -20,6 +20,16 @@ import {
 import { vaultPgDir, dataDirPath, serviceInfoPath } from "../src/pg-paths.mjs";
 
 const MIGRATE_HREF = new URL("../src/migrate.mjs", import.meta.url).href;
+const MIGRATE_SRC = new URL("../src/migrate.mjs", import.meta.url);
+
+test("direct-path syncFromDump is wired with runDump/vaultAbs (escalation opts)", () => {
+  const src = fs.readFileSync(MIGRATE_SRC, "utf8");
+  assert.match(
+    src,
+    /syncFromDump\(\s*adapter,\s*dump,\s*\{\s*vaultAbs,\s*env,\s*runDump:\s*doDump\s*\}/,
+    "CLI migrate must pass the same escalation opts the pg-service uses"
+  );
+});
 
 function makeTmp(t, prefix) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
