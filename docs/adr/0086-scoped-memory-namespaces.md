@@ -52,6 +52,8 @@ Three consequences of that wording are deliberate:
 - **Segment boundary, not substring.** `scope="AGENTS/vkm"` matches neither
   `AGENTS/vkm-implementer.md` nor `AGENTS/vkm.other/x.md`'s siblings by accident — a path
   matches only as the note itself (`S` or `S + ".md"`) or under the directory (`S + "/"`).
+  The Postgres projection mirrors this with equality + `starts_with(path, S || '/')` —
+  never `LIKE`, so `_`/`%` inside a scope stay literal (e.g. `AGENTS/fo_o`).
 - **Invalid scopes error rather than return empty.** A scope with `..`, a leading `/`, a
   drive letter or backslashes is a caller bug or a traversal attempt; zero results would
   disguise both as "no memory yet".

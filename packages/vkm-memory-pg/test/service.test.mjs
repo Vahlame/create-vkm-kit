@@ -117,11 +117,15 @@ test("boot on port 0: service.json + lock recorded, health needs no token", { sk
     const health = await res.json();
     assert.equal(health.ok, true);
     assert.equal(health.backend, "pglite");
-    assert.equal(health.vault, s.vault);
+    assert.equal(health.vault, undefined, "unauthenticated health must not leak the vault path");
     assert.equal(health.notes, 3); // initial sync ran against the fake dump
     assert.equal(health.watching, false);
     assert.equal(typeof health.capabilities.vector, "boolean");
     assert.match(String(health.pgVersion), /^\d+\./);
+    const stats = await (
+      await fetch(`${s.base}/api/stats`, { headers: { "x-vkm-pg-token": s.token } })
+    ).json();
+    assert.equal(stats.vault, s.vault, "token-gated stats still exposes the vault path");
   } finally {
     await s.cleanup();
   }
@@ -510,6 +514,44 @@ test("scope contract: validation matrix and segment-boundary matching", () => {
   assert.equal(pathInScope("AGENTS/x.md", "PROJECTS"), false, "different namespace");
 });
 
+test("scope SQL starts_with: underscore and percent are literal, not LIKE wildcards", { skip }, async () => {
+  // Regression: LIKE $scope || '/%' treated `_`/`%` in the scope as wildcards and diverged
+  // from pathInScope. starts_with keeps the SQL arm literal (AGENTS/fo_o must not match foXo).
+  const { scopeMatchSql } = await import("../src/scope.mjs");
+  const s = await bootService({ initialSync: false });
+  const adapter = s.service.getAdapter();
+  assert.ok(adapter, "service adapter open");
+  try {
+    // Include children under foXo/fo%o so the third arm (prefix/) is exercised: with LIKE,
+    // scope AGENTS/fo_o would wrongly match AGENTS/foXo/child.md via `_` → any char.
+    for (const p of [
+      "AGENTS/fo_o.md",
+      "AGENTS/foXo.md",
+      "AGENTS/fo%o.md",
+      "AGENTS/foXo/child.md",
+      "AGENTS/fo%o/child.md",
+      "AGENTS/fo_o/child.md"
+    ]) {
+      await adapter.query(
+        "INSERT INTO notes(path, title, mtime_ns, size_b, folder, body_fold) VALUES ($1, $2, 1, 0, split_part($1, '/', 1), '')",
+        [p, p]
+      );
+    }
+    const pathsFor = async (scope) => {
+      const { rows } = await adapter.query(
+        `SELECT path FROM notes WHERE ${scopeMatchSql("path", 1)} ORDER BY path`,
+        [scope]
+      );
+      return rows.map((r) => String(r.path));
+    };
+    assert.deepEqual(await pathsFor("AGENTS/fo_o"), ["AGENTS/fo_o.md", "AGENTS/fo_o/child.md"]);
+    assert.deepEqual(await pathsFor("AGENTS/fo%o"), ["AGENTS/fo%o.md", "AGENTS/fo%o/child.md"]);
+    assert.deepEqual(await pathsFor("AGENTS/foXo"), ["AGENTS/foXo.md", "AGENTS/foXo/child.md"]);
+  } finally {
+    await s.cleanup();
+  }
+});
+
 test("scoped search: fts and vector exclude out-of-scope notes", { skip }, async () => {
   // The fixture embeds alpha's chunk at [1,0,...]; the fake query embedding matches it
   // exactly, so unscoped vector order is deterministic: alpha first, gamma second.
@@ -672,12 +714,36 @@ test(
   }
 );
 
+test("suggestions: scope filters pending rows like timeline", { skip }, async () => {
+  const s = await bootService({ initialSync: false });
+  const adapter = s.service.getAdapter();
+  assert.ok(adapter);
+  try {
+    for (const p of ["PROJECTS/a.md", "PRACTICES/b.md"]) {
+      await adapter.query(
+        "INSERT INTO suggestions(path, kind, payload, status) VALUES ($1, 'relation', '{}'::jsonb, 'pending')",
+        [p]
+      );
+    }
+    const headers = { "x-vkm-pg-token": s.token };
+    const list = async (qs) => {
+      const res = await fetch(`${s.base}/api/suggestions${qs}`, { headers });
+      assert.equal(res.status, 200);
+      return (await res.json()).suggestions.map((row) => row.path).sort();
+    };
+    assert.deepEqual(await list(""), ["PRACTICES/b.md", "PROJECTS/a.md"]);
+    assert.deepEqual(await list("?scope=PROJECTS"), ["PROJECTS/a.md"]);
+  } finally {
+    await s.cleanup();
+  }
+});
+
 test("invalid scope answers 400 on every endpoint; stats honors scope", { skip }, async () => {
   const s = await bootService();
   try {
     const headers = { "x-vkm-pg-token": s.token };
     for (const scope of ["..", "a/../b", "/abs", "C:/vault", "a\\b"]) {
-      for (const route of ["/api/timeline", "/api/stats", "/api/graph"]) {
+      for (const route of ["/api/timeline", "/api/stats", "/api/graph", "/api/suggestions"]) {
         const res = await fetch(`${s.base}${route}?scope=${encodeURIComponent(scope)}`, {
           headers
         });
