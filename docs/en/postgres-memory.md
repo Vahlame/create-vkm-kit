@@ -126,23 +126,30 @@ only touches what changed. From an agent, `vault_pg_status` syncs and answers in
 vkm-pg-migrate --vault "<PATH_TO_VAULT>" --rebuild --yes
 ```
 
-It deletes the datadir and rebuilds from the dump. Safe by design: the projection is
-disposable. Two guard rails: it **refuses** while a `pg-service` holds the datadir (stop it
-first), and without `--yes` it asks for confirmation.
+On the default backend (PGlite) it deletes the local datadir and rebuilds from the dump.
+With `VKM_PG_DSN` there is no local datadir: instead it `TRUNCATE`s the contract tables
+(`notes`, `chunks`, `relations`, `observations`, `activity`, `suggestions`) in one
+transaction, drops the sync cursor and forces a full resync. Safe by design: the projection
+is disposable. Two guard rails in both cases: it **refuses** while a `pg-service` holds the
+database (stop it first), and without `--yes` it asks for confirmation.
 
 ### Every flag
 
-| Flag             | What it does                                                                                 |
-| ---------------- | -------------------------------------------------------------------------------------------- |
-| `--vault <path>` | Vault to project. Falls back to `VKM_VAULT` / `BASIC_MEMORY_HOME` / `OBSIDIAN_MEMORY_VAULT`. |
-| `--full`         | Full resync instead of the incremental one (ignores the cursor).                             |
-| `--rebuild`      | Delete the datadir and rebuild. Refuses while the service runs; prompts without `--yes`.     |
-| `--enrich [N]`   | Local-LLM suggestion pass over up to `N` unstructured notes (default 25).                    |
-| `--model <name>` | Ollama model for `--enrich`. Beats `VKM_PG_MODEL`.                                           |
-| `--dry-run`      | Print what it would do; touch nothing.                                                       |
-| `--yes`          | Skip the `--rebuild` confirmation.                                                           |
-| `--json`         | Machine-readable summary on stdout.                                                          |
-| `--no-report`    | Do not write `migration-report.md`.                                                          |
+| Flag             | What it does                                                                                  |
+| ---------------- | --------------------------------------------------------------------------------------------- |
+| `--vault <path>` | Vault to project. Falls back to `VKM_VAULT` / `BASIC_MEMORY_HOME` / `OBSIDIAN_MEMORY_VAULT`.  |
+| `--full`         | Full resync instead of the incremental one (ignores the cursor).                              |
+| `--rebuild`      | Rebuild from scratch: delete the datadir (PGlite) or `TRUNCATE` + cursor (with `VKM_PG_DSN`). |
+| `--enrich [N]`   | Local-LLM suggestion pass over up to `N` unstructured notes (default 25).                     |
+| `--model <name>` | Ollama model for `--enrich`. Beats `VKM_PG_MODEL`.                                            |
+| `--dry-run`      | Print what it would do; touch nothing.                                                        |
+| `--yes`          | Skip the `--rebuild` confirmation.                                                            |
+| `--json`         | Machine-readable summary on stdout.                                                           |
+| `--no-report`    | Do not write `migration-report.md`.                                                           |
+| `--help`, `-h`   | Print the help and exit (touches nothing).                                                    |
+
+Any other argument aborts with `unknown flag: <flag>` and exit code 1 — no flag is silently
+ignored.
 
 ### `--enrich`: suggestions, never writes
 
@@ -224,8 +231,10 @@ chained `vault_relations` calls.
 ```
 
 Returns `nodes` (`path`, `title`) and `edges` (`source`, `type`, `target`, `depth`).
-`depth` ranges 1–4; `direction` is `out`, `in` or `both`; omitting `from` returns the whole
-graph, capped by `limit` (500 edges by default).
+On the MCP tool `from` is **required**, `depth` ranges 1–4 (default 2), `direction` is
+`out`, `in` or `both` (default `both`) and `limit` ranges 1–200 (default 50). The whole
+graph comes from the HTTP API instead: `GET /api/graph` without `from` returns it, capped by
+`limit` (500 edges by default).
 
 ### `vault_timeline`
 
@@ -237,7 +246,9 @@ sync ran, when a migration happened.
 ```
 
 Each event carries `id`, `at`, `kind` (`note_upsert`, `note_remove`, `sync`, `migrate`,
-`suggestion`), `path` and a free-form `detail`. `sinceId` pages forward.
+`suggestion`), `path` and a free-form `detail`. Without `sinceId` it returns the **newest
+first**; with `sinceId` it pages forward in **ascending** order from that id. It also
+accepts `scope`.
 
 ---
 
@@ -252,8 +263,10 @@ relations and `[category]` observations. The starter vault ships the template
 leakage is handled by scoping the recall, not by multiplying indexes
 ([ADR-0074](../adr/0074-cross-project-leakage.md)).
 
-Retrieval gains one generic filter named **`scope`** everywhere: CLI flag `--scope`, MCP
-param `scope`, service-API query param `scope`. The semantics are a posix-style relative
+Retrieval gains one generic filter named **`scope`**: CLI flag `--scope`, a `scope` param on
+the path-filtering MCP tools (`vault_hybrid_search`, `vault_fts_search`,
+`vault_observations`, `vault_timeline`), and a `scope` query param on the service's
+`/api/graph`, `/api/timeline`, `/api/stats` and `/api/search`. The semantics are a posix-style relative
 path prefix matched at **segment boundary**: a path `P` matches a scope `S` iff `P == S`,
 `P == S + ".md"` or `P` starts with `S + "/"`. Case-sensitive. A scope containing `..`, a
 leading `/`, a drive letter or backslashes is **rejected with an error** (not with "zero
@@ -280,20 +293,31 @@ note in the budgeted bundle, exactly as `project` includes the `PROJECTS/` one.
 Base: `http://127.0.0.1:<port from service.json>`. Header
 `x-vkm-pg-token: <contents of service.token>` on everything except `/api/health`.
 
-| Method + route         | What it does                                                                                               |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `GET /api/health`      | Backend, PG version, counts, last sync, `capabilities`, whether it is watching. **No token.**              |
-| `POST /api/sync`       | `{"mode":"incremental"\|"full"}` → rows synced, the new cursor and `tookMs`.                               |
-| `GET /api/graph`       | `from`, `depth` (1–4), `direction` (`out`/`in`/`both`), `types` (csv), `limit` → `nodes` + `edges`.        |
-| `GET /api/timeline`    | `limit`, `sinceId` → activity events, newest first.                                                        |
-| `GET /api/stats`       | Aggregates: notes by folder, observations by category, relations by type, top tags, chunk count.           |
-| `POST /api/search`     | `{"q":…,"limit":N,"mode":"fts"\|"vector"}`. **Analytics, not ranking**: day-to-day recall stays in SQLite. |
-| `GET /api/events`      | SSE stream. `hello` on connect, `activity` per new row, a heartbeat comment every 25 s.                    |
-| `GET /api/suggestions` | `status=pending` → what `--enrich` proposed, unapplied.                                                    |
+| Method + route         | What it does                                                                                                         |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/health`      | Backend, PG version, counts, last sync, `capabilities`, whether it is watching. **No token.**                        |
+| `POST /api/sync`       | `{"mode":"incremental"\|"full"}` → rows synced, the new cursor and `tookMs`.                                         |
+| `GET /api/graph`       | `from`, `depth` (1–4), `direction` (`out`/`in`/`both`), `types` (csv), `limit`, `scope` → `nodes` + `edges`.         |
+| `GET /api/timeline`    | `limit` (1–1000, default 50), `sinceId`, `scope` → activity events.                                                  |
+| `GET /api/stats`       | `scope`. Aggregates: notes by folder, observations by category, relations by type, top tags, chunks.                 |
+| `POST /api/search`     | `{"q":…,"limit":N,"mode":"fts"\|"vector","scope":…}`. **Analytics, not ranking**: day-to-day recall stays in SQLite. |
+| `GET /api/events`      | SSE stream. `hello` on connect, `activity` per new row, a heartbeat comment every 25 s.                              |
+| `GET /api/suggestions` | `status=pending` → what `--enrich` proposed, unapplied.                                                              |
 
 > `mode:"vector"` needs on-disk embeddings and the `vector` extension. When either is
 > missing it answers **HTTP 200** with empty `hits` and an `error` field explaining why — it
 > does not throw.
+
+On the ordering and `scope` of these routes:
+
+- **`/api/timeline`**: without `sinceId` it returns events **newest first**
+  (`ORDER BY id DESC`); with `sinceId` it switches to **ascending** from that id, which is
+  what makes forward pagination useful. A scoped timeline drops rows with a NULL `path`
+  (`kind:"sync"`, `migrate`): a vault-wide event is not attributable to a namespace.
+- **An invalid `scope`** (`..`, leading `/`, drive letter, backslash) →
+  `400 {"error":"invalid scope"}` on all four routes. Never "zero results".
+- On `POST /api/search` the body's `scope` field wins; `?scope=` on the URL is accepted for
+  parity with the GET routes.
 
 ---
 

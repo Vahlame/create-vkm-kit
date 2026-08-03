@@ -14,16 +14,21 @@ Enable with `VKM_PG=1`. Data lives under `~/.vkm/pg/<vault-slug>/` (override:
 Binds `127.0.0.1` only. Auth: header `x-vkm-pg-token` (from `service.token`); only
 `GET /api/health` is exempt.
 
-| Route              | Method | What                                                              |
-| ------------------ | ------ | ----------------------------------------------------------------- |
-| `/api/health`      | GET    | version, backend, counts, capabilities, watching (no token)       |
-| `/api/sync`        | POST   | `{"mode":"incremental"\|"full"}` -> synced counts + cursor        |
-| `/api/graph`       | GET    | `?from=&depth=1..4&direction=out\|in\|both&types=csv&limit=` hops |
-| `/api/timeline`    | GET    | `?limit=&sinceId=` activity events                                |
-| `/api/stats`       | GET    | notes by folder, observations by category, relations, top tags    |
-| `/api/search`      | POST   | `{"q","limit","mode":"fts"\|"vector"}`                            |
-| `/api/events`      | GET    | SSE: `hello` frame, `activity` frames, `:hb` every 25s            |
-| `/api/suggestions` | GET    | `?status=pending` enrichment proposals                            |
+| Route              | Method | What                                                                     |
+| ------------------ | ------ | ------------------------------------------------------------------------ |
+| `/api/health`      | GET    | version, backend, counts, capabilities, watching (no token)              |
+| `/api/sync`        | POST   | `{"mode":"incremental"\|"full"}` -> synced counts + cursor               |
+| `/api/graph`       | GET    | `?from=&depth=1..4&direction=out\|in\|both&types=csv&limit=&scope=` hops |
+| `/api/timeline`    | GET    | `?limit=&sinceId=&scope=` activity events                                |
+| `/api/stats`       | GET    | `?scope=` notes by folder, observations by category, relations, tags     |
+| `/api/search`      | POST   | `{"q","limit","mode":"fts"\|"vector","scope"}` (`?scope=` also accepted) |
+| `/api/events`      | GET    | SSE: `hello` frame, `activity` frames, `:hb` every 25s                   |
+| `/api/suggestions` | GET    | `?status=pending` enrichment proposals                                   |
+
+`scope` is a posix-style path prefix matched at segment boundary; an invalid one (`..`,
+leading `/`, drive letter, backslash) is rejected with `400 {"error":"invalid scope"}`.
+`/api/timeline` returns **newest first** by default and switches to ascending order
+(forward pagination) when `sinceId` is present.
 
 ## Environment variables
 
@@ -42,9 +47,16 @@ Binds `127.0.0.1` only. Auth: header `x-vkm-pg-token` (from `service.token`); on
 vkm-pg-migrate --vault <path>            # incremental sync (uses a running service if any)
 vkm-pg-migrate --full                    # resync everything
 vkm-pg-migrate --enrich 25 --model ...   # propose relations/observations via local Ollama
-vkm-pg-migrate --rebuild --yes           # delete data/ and resync (service must be stopped)
+vkm-pg-migrate --rebuild --yes           # recreate from scratch (service must be stopped)
+vkm-pg-migrate --dry-run                 # print what it would do; write nothing
 vkm-pg-migrate --json --no-report        # machine summary, skip migration-report.md
+vkm-pg-migrate --help                    # full flag list (also -h)
 ```
+
+`--rebuild` differs by backend: on PGlite (default) it deletes the local `data/` datadir;
+with `VKM_PG_DSN` set there is no local datadir, so it TRUNCATEs the contract tables
+(`notes`, `chunks`, `relations`, `observations`, `activity`, `suggestions`) in one
+transaction, drops the sync cursor and forces a full resync.
 
 Enrichment writes **suggestions**, never notes: proposals are applied to the vault only
 after a human confirms them. Migration completes deterministically — a down or outdated

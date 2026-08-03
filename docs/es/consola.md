@@ -48,11 +48,36 @@ vkm-console --vault "<RUTA_AL_VAULT>"
 Imprime la URL y se queda escuchando:
 
 ```text
-vkm-console 5.5.0 listening on http://127.0.0.1:4930/ (vault: /home/me/vault)
+vkm-console 5.5.0 listening on http://127.0.0.1:4930/?token=<token> (vault: /home/me/vault)
 ```
 
-**Y no hace nada más.** No abre el navegador. Copia esa URL en tu navegador cuando quieras
-verla, o pasa `--open` si prefieres que la abra él.
+**Y no hace nada más.** No abre el navegador. Copia esa URL **entera** en tu navegador cuando
+quieras verla, o pasa `--open` si prefieres que la abra él.
+
+> ⚠️ **La URL impresa es la credencial.** El `?token=` es un token aleatorio **nuevo en cada
+> arranque**: sin él, toda ruta salvo `/api/health` responde `403 forbidden`. Copia la URL
+> completa, no solo `http://127.0.0.1:4930/`. Si reinicias la consola, el token cambia y el
+> marcador viejo deja de servir.
+
+### La verja de autenticación
+
+Dos condiciones, ambas obligatorias en toda ruta menos `/api/health`:
+
+1. **Host loopback.** La cabecera `Host` (sin puerto) tiene que ser `127.0.0.1`, `::1` o
+   `localhost`. Esto corta el DNS rebinding, donde el nombre de una página hostil resuelve a
+   `127.0.0.1` pero su `Host` sigue siendo el dominio del atacante.
+2. **El token de la ejecución**, en el query param `?token=` o en la cabecera
+   `x-vkm-console-token` (comparación en tiempo constante). Ausente o incorrecto →
+   `403 forbidden`.
+
+`GET /api/health` es la **única** ruta sin verja — devuelve `{"ok":true,"version":…}` y nada
+más, justo para poder sondear "¿está viva?" sin repartir el token:
+
+```bash
+curl http://127.0.0.1:4930/api/health                       # sin token: 200
+curl http://127.0.0.1:4930/api/snapshot                     # sin token: 403 forbidden
+curl -H "x-vkm-console-token: <token>" http://127.0.0.1:4930/api/snapshot
+```
 
 Correrlo sin `--vault` es válido: la consola arranca igual y las tarjetas que necesitan un
 vault se muestran como "apagadas".
@@ -137,7 +162,17 @@ cuenta: eso sería escribir, y no escribe.
 ### No veo la página desde otro equipo
 
 Correcto: escucha en `127.0.0.1`. Usa un túnel SSH
-(`ssh -L 4930:127.0.0.1:4930 tu-maquina`) si de verdad la necesitas desde otro sitio.
+(`ssh -L 4930:127.0.0.1:4930 tu-maquina`) si de verdad la necesitas desde otro sitio. Por el
+túnel el `Host` sigue siendo loopback, así que la verja lo acepta — pero necesitas también el
+`?token=` de esa ejecución.
+
+### `403 forbidden` en todo menos `/api/health`
+
+Falta el token o es de un arranque anterior. Vuelve a mirar la línea que imprimió la consola
+y usa la URL entera (`http://127.0.0.1:4930/?token=…`) o manda la cabecera
+`x-vkm-console-token`. Comprueba también que estás entrando por `127.0.0.1` / `localhost` y
+no por el nombre de red de la máquina: un `Host` que no sea loopback se rechaza aunque el
+token sea correcto.
 
 ### Cambié el CSS y no se ve
 

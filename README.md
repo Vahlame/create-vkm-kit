@@ -139,8 +139,9 @@ Guía completa paso a paso, con verificación: [🇪🇸 **instalación**](docs/
 
 <br>
 
-Lo **único obligatorio** es el servidor MCP. Todo lo demás abajo es opcional y se activa cuando lo
-pides — por eso la instalación es un comando aunque la lista sea larga.
+Lo **único obligatorio** es el servidor MCP. Todo lo demás abajo es opcional y casi todo se activa
+cuando lo pides — la excepción es la proyección Postgres, que viene puesta y se quita con
+`--no-postgres`. Por eso la instalación es un comando aunque la lista sea larga.
 
 | Pieza · Piece                                                    | Lenguaje | Rol                                                                                                                                                                                                                                                                                                                                                                               |
 | ---------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

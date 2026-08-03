@@ -137,8 +137,9 @@ flows: [**how it works**](docs/en/how-it-works.md).
 
 <br>
 
-The **only required piece** is the MCP server. Everything below is optional and switches on when you
-ask for it — which is why the install is one command even though the list is long.
+The **only required piece** is the MCP server. Everything below is optional and nearly all of it
+switches on when you ask for it — the exception is the Postgres projection, which ships on and comes
+off with `--no-postgres`. Which is why the install is one command even though the list is long.
 
 | Piece                                                            | Language | Role                                                                                                                                                                                                                                                                                                                                                          |
 | ---------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

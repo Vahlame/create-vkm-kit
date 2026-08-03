@@ -48,11 +48,35 @@ vkm-console --vault "<PATH_TO_VAULT>"
 It prints the URL and keeps listening:
 
 ```text
-vkm-console 5.5.0 listening on http://127.0.0.1:4930/ (vault: /home/me/vault)
+vkm-console 5.5.0 listening on http://127.0.0.1:4930/?token=<token> (vault: /home/me/vault)
 ```
 
-**And it does nothing else.** It does not open a browser. Paste that URL when you want to
-look, or pass `--open` if you would rather it did.
+**And it does nothing else.** It does not open a browser. Paste that **whole** URL when you
+want to look, or pass `--open` if you would rather it did.
+
+> ⚠️ **The printed URL is the credential.** That `?token=` is a random token minted **fresh
+> on every start**: without it every route except `/api/health` answers `403 forbidden`. Copy
+> the full URL, not just `http://127.0.0.1:4930/`. Restart the console and the token changes,
+> so an old bookmark stops working.
+
+### The auth gate
+
+Two conditions, both required on every route except `/api/health`:
+
+1. **Loopback Host.** The `Host` header (port stripped) must be `127.0.0.1`, `::1` or
+   `localhost`. This defeats DNS rebinding, where a hostile page's hostname resolves to
+   `127.0.0.1` but its `Host` header still names the attacker's domain.
+2. **The per-run token**, either as the `?token=` query param or the `x-vkm-console-token`
+   header (constant-time comparison). Missing or wrong → `403 forbidden`.
+
+`GET /api/health` is the **only** ungated route — it returns `{"ok":true,"version":…}` and
+nothing else, precisely so "is it alive?" can be probed without handing out the token:
+
+```bash
+curl http://127.0.0.1:4930/api/health                       # no token: 200
+curl http://127.0.0.1:4930/api/snapshot                     # no token: 403 forbidden
+curl -H "x-vkm-console-token: <token>" http://127.0.0.1:4930/api/snapshot
+```
 
 Running it with no `--vault` is fine: the console still starts, and the cards that need a
 vault render as "off".
@@ -136,7 +160,17 @@ that would be writing, and it does not write.
 ### I cannot reach the page from another machine
 
 Correct: it listens on `127.0.0.1`. Use an SSH tunnel
-(`ssh -L 4930:127.0.0.1:4930 your-machine`) if you genuinely need it elsewhere.
+(`ssh -L 4930:127.0.0.1:4930 your-machine`) if you genuinely need it elsewhere. Through the
+tunnel the `Host` is still loopback, so the gate accepts it — but you also need that run's
+`?token=`.
+
+### `403 forbidden` on everything except `/api/health`
+
+The token is missing or left over from an earlier start. Re-read the line the console
+printed and use the whole URL (`http://127.0.0.1:4930/?token=…`), or send the
+`x-vkm-console-token` header. Check too that you are reaching it as `127.0.0.1` /
+`localhost` and not by the machine's network name: a non-loopback `Host` is rejected even
+with a correct token.
 
 ### I changed the CSS and nothing changed
 

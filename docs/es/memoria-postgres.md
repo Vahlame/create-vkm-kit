@@ -127,9 +127,12 @@ sincroniza y responde.
 vkm-pg-migrate --vault "<RUTA_AL_VAULT>" --rebuild --yes
 ```
 
-Borra el datadir y lo rehace desde el volcado. Es seguro por diseño: la proyección es
-desechable. Dos barandillas: **se niega** mientras un `pg-service` tenga el datadir
-(párale primero), y sin `--yes` te pide confirmación.
+Con el backend por defecto (PGlite) borra el datadir local y lo rehace desde el volcado. Con
+`VKM_PG_DSN` no hay datadir local: en su lugar hace `TRUNCATE` de las tablas del contrato
+(`notes`, `chunks`, `relations`, `observations`, `activity`, `suggestions`) en una sola
+transacción, borra el cursor de sync y fuerza un resync completo. Es seguro por diseño: la
+proyección es desechable. Dos barandillas en ambos casos: **se niega** mientras un
+`pg-service` tenga la base (párale primero), y sin `--yes` te pide confirmación.
 
 ### Todos los flags
 
@@ -137,13 +140,17 @@ desechable. Dos barandillas: **se niega** mientras un `pg-service` tenga el data
 | ------------------ | ----------------------------------------------------------------------------------------- |
 | `--vault <ruta>`   | Vault a proyectar. Si falta: `VKM_VAULT` / `BASIC_MEMORY_HOME` / `OBSIDIAN_MEMORY_VAULT`. |
 | `--full`           | Resync completo en vez del incremental (ignora el cursor).                                |
-| `--rebuild`        | Borra el datadir y lo rehace. Se niega con el servicio vivo; pregunta sin `--yes`.        |
+| `--rebuild`        | Rehace desde cero: borra el datadir (PGlite) o `TRUNCATE` + cursor (con `VKM_PG_DSN`).    |
 | `--enrich [N]`     | Pase de sugerencias con LLM local sobre hasta `N` notas sin estructura (25 por defecto).  |
 | `--model <nombre>` | Modelo de Ollama para `--enrich`. Gana sobre `VKM_PG_MODEL`.                              |
 | `--dry-run`        | Dice qué haría; no toca nada.                                                             |
 | `--yes`            | Salta la confirmación de `--rebuild`.                                                     |
 | `--json`           | Resumen legible por máquina en stdout.                                                    |
 | `--no-report`      | No escribe `migration-report.md`.                                                         |
+| `--help`, `-h`     | Imprime la ayuda y sale (no toca la base).                                                |
+
+Cualquier otro argumento aborta con `unknown flag: <flag>` y exit code 1 — no hay flags
+silenciosamente ignorados.
 
 ### `--enrich`: sugerencias, nunca escrituras
 
@@ -226,8 +233,10 @@ serían N llamadas encadenadas a `vault_relations`.
 ```
 
 Devuelve `nodes` (`path`, `title`) y `edges` (`source`, `type`, `target`, `depth`).
-`depth` va de 1 a 4; `direction` es `out`, `in` o `both`; omitir `from` devuelve el grafo
-completo, recortado por `limit` (500 aristas por defecto).
+En la tool MCP `from` es **obligatorio**, `depth` va de 1 a 4 (2 por defecto), `direction` es
+`out`, `in` o `both` (`both` por defecto) y `limit` va de 1 a 200 (50 por defecto). El grafo
+completo se pide por la API HTTP: `GET /api/graph` sin `from` lo devuelve recortado por
+`limit` (500 aristas por defecto).
 
 ### `vault_timeline`
 
@@ -239,7 +248,9 @@ cuándo corrió un sync, cuándo se migró.
 ```
 
 Cada evento trae `id`, `at`, `kind` (`note_upsert`, `note_remove`, `sync`, `migrate`,
-`suggestion`), `path` y un `detail` libre. `sinceId` pagina hacia adelante.
+`suggestion`), `path` y un `detail` libre. Sin `sinceId` devuelve los **más recientes
+primero**; con `sinceId` pagina hacia adelante en orden **ascendente** desde ese id. Acepta
+también `scope`.
 
 ---
 
@@ -254,8 +265,10 @@ relaciones tipadas y observaciones `[categoría]`. El vault inicial trae la plan
 entre proyectos se maneja acotando el recall, no multiplicando índices
 ([ADR-0074](../adr/0074-cross-project-leakage.md)).
 
-El recall gana un filtro genérico llamado **`scope`** en todas partes: flag `--scope` en
-CLI, parámetro `scope` en las tools MCP, query param `scope` en la API del servicio. La
+El recall gana un filtro genérico llamado **`scope`**: flag `--scope` en la CLI, parámetro
+`scope` en las tools MCP que filtran por ruta (`vault_hybrid_search`, `vault_fts_search`,
+`vault_observations`, `vault_timeline`) y query param `scope` en las rutas
+`/api/graph`, `/api/timeline`, `/api/stats` y `/api/search` del servicio. La
 semántica es un prefijo de ruta relativo estilo posix, casado en **límite de segmento**:
 una ruta `P` casa con un scope `S` si `P == S`, `P == S + ".md"` o `P` empieza por
 `S + "/"`. Sensible a mayúsculas. Un scope con `..`, `/` inicial, letra de unidad o
@@ -283,20 +296,32 @@ el paquete presupuestado, igual que `project` incluye la de `PROJECTS/`.
 Base: `http://127.0.0.1:<puerto de service.json>`. Cabecera
 `x-vkm-pg-token: <contenido de service.token>` en todas menos `/api/health`.
 
-| Método + ruta          | Para qué                                                                                                        |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `GET /api/health`      | Backend, versión de PG, conteos, último sync, `capabilities`, si está vigilando. **Sin token.**                 |
-| `POST /api/sync`       | `{"mode":"incremental"\|"full"}` → filas sincronizadas, cursor nuevo y `tookMs`.                                |
-| `GET /api/graph`       | `from`, `depth` (1–4), `direction` (`out`/`in`/`both`), `types` (csv), `limit` → `nodes` + `edges`.             |
-| `GET /api/timeline`    | `limit`, `sinceId` → eventos de actividad, más recientes primero.                                               |
-| `GET /api/stats`       | Agregados: notas por carpeta, observaciones por categoría, relaciones por tipo, tags top, total de chunks.      |
-| `POST /api/search`     | `{"q":…,"limit":N,"mode":"fts"\|"vector"}`. **Analítica, no ranking**: el recall del día a día sigue en SQLite. |
-| `GET /api/events`      | Stream SSE. `hello` al conectar, `activity` por cada fila nueva, comentario de heartbeat cada 25 s.             |
-| `GET /api/suggestions` | `status=pending` → lo que propuso `--enrich`, sin aplicar.                                                      |
+| Método + ruta          | Para qué                                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `GET /api/health`      | Backend, versión de PG, conteos, último sync, `capabilities`, si está vigilando. **Sin token.**                    |
+| `POST /api/sync`       | `{"mode":"incremental"\|"full"}` → filas sincronizadas, cursor nuevo y `tookMs`.                                   |
+| `GET /api/graph`       | `from`, `depth` (1–4), `direction` (`out`/`in`/`both`), `types` (csv), `limit`, `scope` → `nodes` + `edges`.       |
+| `GET /api/timeline`    | `limit` (1–1000, 50 por defecto), `sinceId`, `scope` → eventos de actividad.                                       |
+| `GET /api/stats`       | `scope`. Agregados: notas por carpeta, observaciones por categoría, relaciones por tipo, tags top y chunks.        |
+| `POST /api/search`     | `{"q":…,"limit":N,"mode":"fts"\|"vector","scope":…}`. **Analítica, no ranking**: el recall diario sigue en SQLite. |
+| `GET /api/events`      | Stream SSE. `hello` al conectar, `activity` por cada fila nueva, comentario de heartbeat cada 25 s.                |
+| `GET /api/suggestions` | `status=pending` → lo que propuso `--enrich`, sin aplicar.                                                         |
 
 > `mode:"vector"` necesita embeddings en disco y la extensión `vector`. Si falta alguna,
 > responde **HTTP 200** con `hits` vacío y un campo `error` explicando por qué — no lanza
 > excepción.
+
+Sobre el orden y el `scope` de estas rutas:
+
+- **`/api/timeline`**: sin `sinceId` devuelve los eventos **más recientes primero**
+  (`ORDER BY id DESC`); con `sinceId` cambia a **ascendente** desde ese id, que es lo que
+  hace útil la paginación hacia adelante. Un timeline con `scope` descarta las filas con
+  `path` nulo (`kind:"sync"`, `migrate`): un evento de todo el vault no es atribuible a un
+  namespace.
+- **`scope` inválido** (`..`, `/` inicial, letra de unidad, backslash) →
+  `400 {"error":"invalid scope"}` en las cuatro rutas. Nunca «cero resultados».
+- En `POST /api/search` el campo `scope` del body gana; `?scope=` en la URL se acepta por
+  paridad con las rutas GET.
 
 ---
 
