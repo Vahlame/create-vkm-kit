@@ -143,7 +143,8 @@ func TestCollectVaultStatsWalksAndSkips(t *testing.T) {
 			t.Fatalf("recent path not slash-normalized: %q", n.Path)
 		}
 	}
-	want := []string{"line one", "line two", "line &lt;three&gt; &amp; last"}
+	// Raw text — the dashboard assigns via textContent (no HTML escape on the wire).
+	want := []string{"line one", "line two", "line <three> & last"}
 	if len(vs.SessionLogTail) != 3 {
 		t.Fatalf("session log tail: want 3 lines, got %+v", vs.SessionLogTail)
 	}
@@ -261,6 +262,15 @@ func TestCollectResearchTailAndDownloads(t *testing.T) {
 	}
 	if len(r.Downloads) != 1 || r.Downloads[0].Name != "a.iso" || r.Downloads[0].SizeB != 2 {
 		t.Fatalf("downloads wrong: %+v", r.Downloads)
+	}
+
+	// Partial failure: one source missing must NOT report OK (regression: used ||).
+	partial := collectResearch(logPath, filepath.Join(dir, "missing-downloads"))
+	if partial.OK {
+		t.Fatalf("expected !OK when downloads dir is missing, got OK with %d searches", len(partial.Searches))
+	}
+	if partial.Error == "" {
+		t.Fatal("expected Error to name the missing source")
 	}
 }
 
