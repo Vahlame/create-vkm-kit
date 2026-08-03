@@ -16,6 +16,8 @@ import { findVault, scaffoldNewVault } from "../src/vault-scaffold.mjs";
 /** Every note and marker file a scaffolded vault must contain, in either language. */
 const EXPECTED = [
   ".gitignore",
+  "AGENTS/README.md",
+  "AGENTS/TEMPLATE.md",
   "MEMORY.md",
   "PRACTICES/confirmed-bad.md",
   "PRACTICES/confirmed-good.md",

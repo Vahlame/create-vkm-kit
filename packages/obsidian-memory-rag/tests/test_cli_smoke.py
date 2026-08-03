@@ -127,6 +127,10 @@ INVOCATIONS: dict[str, list[str]] = {
     "memory-reflect": ["--vault", "{vault}"],
     "json-memory-reflect": ["--vault", "{vault}"],
     "json-log-use": ["--vault", "{vault}", "--path", "PROJECTS/bike-shop.md"],
+    "json-dump-index": ["--vault", "{vault}"],
+    # The fixture vault has no vectors, so this exercises the documented
+    # {"error": "no vectors indexed"} wire shape — still exactly one JSON object.
+    "json-embed-query": ["--vault", "{vault}", "--query", "tauri supabase"],
     # rotate-log rewrites SESSION_LOG.md, so it runs last against a keep count
     # that leaves the fixture intact for any test ordering.
     "rotate-log": ["--vault", "{vault}", "--keep", "8"],

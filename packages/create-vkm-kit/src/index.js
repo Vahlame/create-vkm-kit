@@ -17,6 +17,7 @@ import { PROFILES, DEFAULT_PROFILE } from "./memory-rules.mjs";
 import { uninstallClaudeNativeMemory } from "./claude-native-memory.mjs";
 import { uninstallTokenSaver } from "./token-saver.mjs";
 import { uninstallTelemetry } from "./telemetry.mjs";
+import { uninstallPgHook } from "./pg-setup.mjs";
 import { uninstallRunHidden } from "./runhidden-setup.mjs";
 import { uninstallSkillAssets, skillAssetFiles } from "./skills-install.mjs";
 import {
@@ -101,7 +102,8 @@ const VALUE_FLAGS = new Set([
   "--repo-root",
   "--lang",
   "--rules",
-  "--rules-profile"
+  "--rules-profile",
+  "--pg-dsn"
 ]);
 
 /**
@@ -364,6 +366,26 @@ async function runWizard(argv) {
     }
   }
 
+  // Postgres projection + console: asked like hybrid/semantic — the wizard only overrides
+  // what it actually asks, on top of what the flags already resolved. The initial answer
+  // IS the resolved flag value (projection on by default, console off), so an explicit
+  // --no-postgres/--console shows up as the prompt's default instead of being contradicted
+  // by a hardcoded true/false.
+  const { pg } = await prompts({
+    type: "confirm",
+    name: "pg",
+    message: t.pgQ,
+    initial: opts.postgres
+  });
+  opts.postgres = Boolean(pg);
+  const { consoleTui } = await prompts({
+    type: "confirm",
+    name: "consoleTui",
+    message: t.consoleQ,
+    initial: opts.console
+  });
+  opts.console = Boolean(consoleTui);
+
   if (opts.ruleTargets.length) {
     const { rules } = await prompts({
       type: "confirm",
@@ -472,6 +494,7 @@ async function main() {
     await uninstallClaudeNativeMemory(home, dryRun);
     await uninstallTokenSaver(home, dryRun);
     await uninstallTelemetry(home, dryRun);
+    await uninstallPgHook(home, dryRun);
     await uninstallSkillAssets(home, dryRun, { ide: "claude" });
     await uninstallCodexNative(home, dryRun);
     await uninstallSkillAssets(home, dryRun, { ide: "codex" });

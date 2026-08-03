@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [5.5.0] - 2026-08-02
 
 ### Added
 
@@ -15,6 +15,111 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   nudge, MCP JSON token-saver). Honest gaps documented in `docs/es/cursor-parity.md` /
   `docs/en/cursor-parity.md` (no Claude native-memory guard, no `/effort` advisor, no
   `vkm-implementer` Task template).
+
+- **The memory now has a Postgres projection — and it exists because the user overruled
+  ADR-0083 (ADR-0084).** One day after this repo recorded a reasoned **no** to "should
+  Postgres go into the memory?", the maintainer decided to integrate it anyway. That
+  decision is the reason, written down as one: an ADR reversed by the person the software is
+  for is a preference exercised, not a technical epiphany retrofitted.
+  [ADR-0084](docs/adr/0084-postgres-projection-layer.md) supersedes **ADR-0083 Decision 1**
+  (Decision 2, model-epoch awareness, stands untouched) and dissolves its three objections
+  point by point, because the shape changed from "Postgres **instead of** SQLite" to
+  "Postgres **beside** it, fed by it":
+
+  - _"A server to install, run, secure and migrate."_ **PGlite 0.5.4** — Postgres 18 as WASM
+    running in-process over a plain directory. No `initdb`, no service, no admin. An external
+    server is an option (`VKM_PG_DSN`), never a requirement.
+  - _"No retrieval gain at vault scale."_ Still true, and not claimed: the CI-gated ranking
+    path (ADR-0020/0021) is untouched and `vault_hybrid_search` never routes through the
+    projection. What it buys is capability SQLite cannot express cheaply — **multi-hop typed
+    traversal** by recursive CTE, **SQL analytics** over the whole vault, an **append-only
+    activity log**, and **`LISTEN`/`NOTIFY` real-time push**.
+  - _"A second source of truth."_ Answered structurally: **nothing writes to Postgres except
+    the sync**, which reads only the Python engine's dump of `fts.sqlite`, which reads only
+    the notes. The projection lives **outside the vault** (`~/.vkm/pg/<slug>/`, so git-sync
+    never churns) and is rebuilt with one command. The vault in git stays the single source
+    of truth.
+
+  `packages/vkm-memory-pg` ships the whole path: `vkm-pg-migrate` (first build, `--full`,
+  `--rebuild`, `--dry-run`) and a **single-writer** `pg-service` on `127.0.0.1` — PGlite
+  permits one process per datadir, so MCP tools and the console are HTTP clients of it, with
+  a 32-byte `service.token` on every route but `GET /api/health`. `@electric-sql/pglite`
+  0.5.4 and `@electric-sql/pglite-pgvector` 0.0.5 are **exact pins upgraded in lockstep**;
+  vectors are written as the text literal `'[…]'::vector` because the `pgvector` npm package
+  requires Node 22 and the kit's floor is 20. `vkm-pg-migrate --enrich` adds an optional
+  local-Ollama pass that writes **only into the `suggestions` table** — never notes,
+  relations, observations or a `.md` file, and a missing Ollama yields
+  `enrichment: skipped`, not a failed migration. Guides:
+  [🇪🇸 memoria en Postgres](docs/es/memoria-postgres.md) ·
+  [🇬🇧 Postgres memory](docs/en/postgres-memory.md).
+
+- **Three new MCP tools (22 → 25), and the schema budget rises 10,800 → 12,200 chars.**
+  `vault_pg_status` (projection health: backend, row counts, last sync — and it starts the
+  local pg-service when needed), `vault_graph_hops` (multi-hop typed relation traversal via
+  recursive SQL) and `vault_timeline` (recent memory activity from the projection's sync
+  log). They register **only** under `VKM_PG=1` / `VKM_PG_DSN`. The ADR-0035 budget gate was
+  raised deliberately and recorded in ADR-0084, so it reads as capability bought rather than
+  a gate quietly loosening — schemas are input tokens every wired agent pays every session.
+
+- **`vkm-console` — one real-time page for the whole kit (ADR-0085).** A single Go binary
+  serving `127.0.0.1:4930`: daemon health, memory stats and graph, token telemetry, Postgres
+  projection activity and research logs, in one place instead of four commands across three
+  languages. Go for four reasons that decided it in order — a single executable that runs
+  when everything else is broken, `go:embed` for the UI (no asset dir, no CDN, works
+  offline), `fsnotify` already vendored for the daemon, and zero runtime dependencies.
+  **Strictly read-only over every source**: it opens no writable handle, holds no lock,
+  never touches `fts.sqlite` or a PGlite datadir, reaches the projection only through its
+  HTTP API, and spawns no subprocess at all — except the browser, and **only** when the user
+  passes `--open` (ADR-0078's focus-steal rule; nothing auto-opens, ever). Every collector is
+  fail-soft, so an absent optional component renders as an "off" card rather than a broken
+  page. Guides: [🇪🇸 consola](docs/es/consola.md) · [🇬🇧 console](docs/en/console.md).
+
+- **Installer flags for both, and a `SessionStart` hook that keeps the projection alive.**
+  `--postgres` is **on by default** (embedded PGlite, sets `VKM_PG=1` on the hybrid MCP, runs
+  the initial full sync), `--no-postgres` skips it and a re-run removes the hook,
+  `--pg-dsn <dsn>` points the layer at an external server, and `--console` builds the Go
+  binary into `<kit>/bin` (on under `--full`; `--no-console` wins). `ensure-pg-service.mjs`
+  mirrors `ensure-otel-sink.mjs`: one `service.json` pid read plus `kill(0)`, respawn
+  detached when stale, and **fail-open on any error** — a projection hiccup must never block
+  a session, and a missed respawn costs freshness, nothing else.
+
+- **Two new Python bridge subcommands, both read-only.** `json-dump-index` reads **only**
+  `fts.sqlite` and emits one JSON object — a manifest of every indexed path plus the notes,
+  chunks, relations and observations changed past a `--since-mtime-ns` cursor
+  (`--include-vectors` adds base64 float32 payloads) — which is the entire input the
+  projection sync consumes; nothing in that pipeline opens a `.md`. `json-embed-query`
+  returns one query embedding for the projection's vector search, using the dominant
+  on-disk embedder unless told otherwise, and reports `{"error": …}` with exit 0 when a
+  vault has no vectors at all.
+
+- **Scoped memory — per-agent and per-project namespaces over the one vault
+  ([ADR-0086](docs/adr/0086-scoped-memory-namespaces.md)).** No vault-per-agent: the
+  memory stays ONE vault and ONE index, and isolation is a recall question, not an
+  infrastructure one ([ADR-0074](docs/adr/0074-cross-project-leakage.md)).
+  `PROJECTS/<name>.md` keeps per-project context as before, and a new top-level `AGENTS/`
+  folder carries one note per agent (`AGENTS/<agent-name>.md`) with the same structures —
+  frontmatter, typed relations, `[category]` observations. Retrieval gains one generic
+  filter named `scope` everywhere (CLI `--scope`, MCP param `scope`, PG query param
+  `scope`): a posix-style relative path prefix matched at segment boundary,
+  case-sensitive, applied after `section`, and a scope carrying `..`, a leading `/`, a
+  drive letter or backslashes is rejected with an error rather than an empty result.
+  `scope="PROJECTS/vkm-kit"` is that note only; `scope="AGENTS"` is every agent memory.
+  `assemble_context` takes `agentName` to bundle the agent's note the way `project`
+  bundles the project's; the starter vault scaffolds `AGENTS/README.md` +
+  `AGENTS/TEMPLATE.md` in both languages, and `examples/AGENTS/vkm-implementer.md` shows
+  a filled note.
+
+### Fixed
+
+- **`json-log-use` was the one JSON emitter still escaping non-ASCII.** Every other
+  `json-*` subcommand already printed with `ensure_ascii=False`; this one did not, so a
+  usage-log acknowledgement came back with `\uXXXX` escapes on any path with an accent —
+  inconsistent with the wire format the rest of the bridge is measured against.
+
+- **`ARCHITECTURE.md`'s repository-layout table never listed `packages/vkm-downloads`.** The
+  package has existed since 4.6.0 (ADR-0058/0059) and the map that is supposed to name every
+  piece skipped it — the exact silent drift the ADR index has a checker for. It now has its
+  row, alongside the new `packages/vkm-memory-pg` and `cmd/vkm-console` ones.
 
 ## [5.4.0] - 2026-08-01
 
@@ -2421,6 +2526,7 @@ scoring, embedder-identity reuse).
 **3.15.0 and earlier** live in [`docs/changelog/pre-4.0.md`](docs/changelog/pre-4.0.md) —
 same text, same format, moved out in 5.0.0 to keep this file readable.
 
+[5.5.0]: https://github.com/Vahlame/create-vkm-kit/compare/v5.4.0...v5.5.0
 [5.4.0]: https://github.com/Vahlame/create-vkm-kit/compare/v5.3.0...v5.4.0
 [5.3.0]: https://github.com/Vahlame/create-vkm-kit/compare/v5.2.0...v5.3.0
 [5.2.0]: https://github.com/Vahlame/create-vkm-kit/compare/v5.1.0...v5.2.0

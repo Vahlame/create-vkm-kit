@@ -32,7 +32,7 @@ from .knowledge_graph import (
     parse_relations,
 )
 from .markdown_io import read_note
-from .paths import index_db_path
+from .paths import index_db_path, scope_matches, scope_sql_predicate, validate_scope
 from .store import connect, init_schema
 
 
@@ -69,7 +69,12 @@ def _open(vault: Path):
 
 
 def relations_for(
-    vault: Path, note: str, *, direction: str = "both", limit: int = 200
+    vault: Path,
+    note: str,
+    *,
+    direction: str = "both",
+    limit: int = 200,
+    scope: str | None = None,
 ) -> list[RelationHit]:
     """Typed relations touching ``note``. ``direction`` is ``out`` | ``in`` | ``both``.
 
@@ -77,7 +82,14 @@ def relations_for(
     resolved Obsidian-style. Outgoing edges come from this note; incoming edges are
     any note whose relation target resolves to this one. Returns ``[]`` when the
     index is missing or the note is unknown.
+
+    ``scope`` (scoped-memory contract) restricts hits to relations *authored*
+    inside the scope, i.e. by ``source_path`` — the same column
+    :func:`observations_query` scopes on: outgoing edges survive only when the
+    note itself lives in scope, incoming edges only when the linking note does.
+    Segment-boundary prefix semantics, see :func:`paths.scope_matches`.
     """
+    validate_scope(scope)
     vault = vault.resolve()
     conn = _open(vault)
     if conn is None:
@@ -88,7 +100,7 @@ def relations_for(
         if not note_path:
             return []
         hits: list[RelationHit] = []
-        if direction in ("out", "both"):
+        if direction in ("out", "both") and scope_matches(note_path, scope):
             rows = conn.execute(
                 "SELECT relation_type, target, context FROM relations "
                 "WHERE source_path = ? ORDER BY relation_type, target",
@@ -112,7 +124,7 @@ def relations_for(
             ).fetchall()
             for r in rows:
                 src = str(r["source_path"])
-                if src == note_path:
+                if src == note_path or not scope_matches(src, scope):
                     continue
                 if resolve(str(r["target"])) == note_path:
                     hits.append(
@@ -137,13 +149,19 @@ def observations_query(
     tag: str | None = None,
     note: str | None = None,
     limit: int = 200,
+    scope: str | None = None,
 ) -> list[ObservationHit]:
     """Structured observations filtered by ``category`` / ``tag`` / ``note`` (any combo).
 
     ``category`` matches exactly (case-insensitive). ``tag`` matches one whole
     ``#tag`` (without the ``#``). ``note`` restricts to a single source note,
-    resolved Obsidian-style. Returns ``[]`` when no index exists.
+    resolved Obsidian-style. ``scope`` (scoped-memory contract) restricts to
+    observations whose ``source_path`` lies inside one vault subtree —
+    segment-boundary prefix semantics, see :func:`paths.scope_matches`; applied
+    after the other filters, in SQL, so it narrows candidates before ``LIMIT``.
+    Returns ``[]`` when no index exists.
     """
+    validate_scope(scope)
     vault = vault.resolve()
     conn = _open(vault)
     if conn is None:
@@ -165,6 +183,10 @@ def observations_query(
             # Exact whole-tag match via sentinel-padded LIKE (avoids substring hits).
             where.append("(' ' || tags || ' ') LIKE ?")
             params.append(f"% {tag.strip().lower().lstrip('#')} %")
+        if scope is not None:
+            predicate, scope_params = scope_sql_predicate(scope, column="source_path")
+            where.append(predicate)
+            params.extend(scope_params)
         clause = (" WHERE " + " AND ".join(where)) if where else ""
         params.append(limit)
         rows = conn.execute(

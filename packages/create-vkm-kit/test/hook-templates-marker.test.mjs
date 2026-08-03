@@ -19,7 +19,8 @@ const FRESH_INSTALL_HOOKS = [
   "stop-vault-close-reminder.mjs",
   "compact-mcp-output.mjs",
   "compact-tool-output.mjs",
-  "ensure-otel-sink.mjs"
+  "ensure-otel-sink.mjs",
+  "ensure-pg-service.mjs"
 ];
 
 for (const name of FRESH_INSTALL_HOOKS) {

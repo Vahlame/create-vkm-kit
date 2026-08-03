@@ -1,0 +1,32 @@
+{
+  "name": "@vkmikc/vkm-memory-pg",
+  "version": "5.5.0",
+  "private": true,
+  "description": "Postgres projection layer for the vkm vault: PGlite embedded by default (external DSN optional), incremental sync from the Python FTS index, a localhost-only HTTP service, and an intelligent migration CLI. The vault stays the source of truth; this is a disposable, rebuildable projection.",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "bin": {
+    "vkm-pg-service": "./src/pg-service.mjs",
+    "vkm-pg-migrate": "./src/migrate.mjs"
+  },
+  "exports": {
+    ".": "./src/index.mjs",
+    "./paths": "./src/pg-paths.mjs",
+    "./adapter": "./src/pg-adapter.mjs",
+    "./sync": "./src/pg-sync.mjs",
+    "./client": "./src/pg-http-client.mjs"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.5.4",
+    "@electric-sql/pglite-pgvector": "0.0.5",
+    "@vkmikc/vkm-core": "*",
+    "execa": "^9.6.1",
+    "pg": "^8.22.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

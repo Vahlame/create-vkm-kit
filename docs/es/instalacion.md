@@ -256,6 +256,31 @@ Si el agente devuelve el contenido del archivo, **funciona**. Confirmado:
 
 ---
 
+## La proyección Postgres viene activada (5.5.0)
+
+La instalación por defecto añade una **proyección Postgres** del índice del vault
+(`vkm-memory-pg`, [ADR-0084](../adr/0084-postgres-projection-layer.md)). Lo que conviene saber
+antes del primer arranque:
+
+- **Qué se levanta:** un `pg-service` local sobre **PGlite embebido** — Postgres compilado a WASM
+  dentro del proceso Node, sin instalar ningún servidor y sin puerto accesible desde fuera de la
+  máquina. El instalador lo arranca, corre la primera sincronización completa y registra un hook
+  `SessionStart` que lo mantiene vivo entre sesiones.
+- **Dónde viven los datos:** en `~/.vkm/pg/<slug-del-vault>/`, **fuera del vault** (raíz
+  configurable con `VKM_PG_DATA_ROOT`). Tus notas no cambian: la proyección es **derivada y
+  desechable**, y si discrepa con el Markdown, la equivocada es ella — se reconstruye.
+- **Cómo saltártela:** `--no-postgres` (o `--minimal`). Re-ejecutar con `--no-postgres` también
+  retira el hook. Con `--pg-dsn "postgres://…"` la apuntas a **tu** servidor Postgres en vez de
+  a PGlite.
+- **Sin clon del kit se apaga sola:** la proyección (y la consola `--console`) corren desde el
+  código del clon, así que una instalación sin clon degrada a `basic-memory` y las salta — sin
+  abortar. El resumen final imprime siempre una línea `Postgres projection: …` con lo que pasó
+  de verdad.
+
+Detalle completo, tools, diagnóstico y reconstrucción: [`memoria-postgres.md`](memoria-postgres.md).
+
+---
+
 ## Opcional — Capas extra
 
 | Quiero…                                                         | Ve a                                                             |

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 SIDECAR_DIR = ".obsidian-memory-rag"
@@ -84,3 +85,78 @@ def section_sql_filter(section: str | None, *, column: str = "path") -> tuple[st
         return "", []
     op = "LIKE" if section == "research" else "NOT LIKE"
     return f" AND {column} {op} ?", [f"{RESEARCH_PREFIX}%"]
+
+
+# --- Generic scope filter (scoped-memory contract, ADR-0074: one vault, ---------
+# --- per-agent/per-project namespaces inside it) --------------------------------
+
+# A Windows drive-letter prefix ("C:", "d:/x") — always an absolute, out-of-vault
+# reference, never a valid vault-relative scope.
+_DRIVE_LETTER_RE = re.compile(r"^[A-Za-z]:")
+
+
+def validate_scope(scope: str | None) -> None:
+    """Raise ValueError unless ``scope`` is a safe posix-style relative path prefix.
+
+    ``None`` = unfiltered (the default). The scoped-memory contract mandates
+    reject-with-error (never silent empty results) for scopes containing ``..``,
+    a leading ``/``, a drive letter, or backslashes; the empty string is equally
+    a caller mistake and is rejected too. Anything else is accepted verbatim —
+    matching is defined solely by :func:`scope_matches` (note: a trailing ``/``
+    is legal but by the frozen matching rule can never match any path).
+    """
+    if scope is None:
+        return
+    if (
+        not scope
+        or ".." in scope
+        or scope.startswith("/")
+        or "\\" in scope
+        or _DRIVE_LETTER_RE.match(scope)
+    ):
+        raise ValueError(
+            f"invalid scope {scope!r}: must be a non-empty posix-style relative path "
+            "prefix (no '..', no leading '/', no drive letter, no backslashes)"
+        )
+
+
+def scope_matches(path: str, scope: str | None) -> bool:
+    """True if vault-relative ``path`` falls inside ``scope`` (segment-boundary prefix).
+
+    Frozen contract: ``P`` matches ``S`` iff ``P == S``, ``P == S + '.md'`` or
+    ``P.startswith(S + '/')`` — case-sensitive, so ``PROJECTS/vkm`` matches
+    ``PROJECTS/vkm.md`` and ``PROJECTS/vkm/x.md`` but never ``PROJECTS/vkm-kit.md``.
+    ``None`` = unfiltered (every path matches). Assumes ``scope`` already passed
+    :func:`validate_scope`.
+    """
+    if scope is None:
+        return True
+    return path == scope or path == scope + ".md" or path.startswith(scope + "/")
+
+
+def scope_sql_predicate(scope: str, *, column: str = "path") -> tuple[str, list[object]]:
+    """Bare SQL predicate + bound params expressing :func:`scope_matches` for ``column``.
+
+    Uses ``substr`` (not ``LIKE``/``GLOB``) for the prefix leg so a scope containing
+    pattern metacharacters (``%``, ``_``, ``*``) needs no escaping — the comparison
+    is byte-exact, mirroring the Python semantics. All three legs are bound params,
+    so the fragment is injection-safe for any validated scope.
+    """
+    return (
+        f"({column} = ? OR {column} = ? OR substr({column}, 1, ?) = ?)",
+        [scope, scope + ".md", len(scope) + 1, scope + "/"],
+    )
+
+
+def scope_sql_filter(scope: str | None, *, column: str = "path") -> tuple[str, list[object]]:
+    """SQL fragment + params for scope, shaped like :func:`section_sql_filter`.
+
+    Returns ``("", [])`` when unfiltered, else ``" AND (<predicate>)"`` ready to
+    append after an existing ``WHERE``. Applied AFTER the section filter (the
+    clauses AND together, so ordering is purely conventional). Like the section
+    fragment it narrows candidates BEFORE ``LIMIT``, never after.
+    """
+    if scope is None:
+        return "", []
+    predicate, params = scope_sql_predicate(scope, column=column)
+    return f" AND {predicate}", params

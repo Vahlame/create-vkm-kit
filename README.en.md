@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="./LICENSE.md"><img src="https://img.shields.io/badge/license-MIT--derived_%2B_attribution_(non--OSI)-blue.svg" alt="License"></a>
-  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v5.4.0-orange.svg" alt="Release"></a>
+  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v5.5.0-orange.svg" alt="Release"></a>
   <a href="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.npmjs.com/package/@vkmikc/create-vkm-kit"><img src="https://img.shields.io/npm/v/%40vkmikc%2Fcreate-vkm-kit?label=npm&color=cb3837" alt="npm"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A5%2020-43853d.svg" alt="Node ≥ 20">
@@ -137,8 +137,9 @@ flows: [**how it works**](docs/en/how-it-works.md).
 
 <br>
 
-The **only required piece** is the MCP server. Everything below is optional and switches on when you
-ask for it — which is why the install is one command even though the list is long.
+The **only required piece** is the MCP server. Everything below is optional and nearly all of it
+switches on when you ask for it — the exception is the Postgres projection, which ships on and comes
+off with `--no-postgres`. Which is why the install is one command even though the list is long.
 
 | Piece                                                            | Language | Role                                                                                                                                                                                                                                                                                                                                                          |
 | ---------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -149,7 +150,9 @@ ask for it — which is why the install is one command even though the list is l
 | [`packages/vkm-doctor/`](packages/vkm-doctor/)                   | Node     | Local OTLP sink + usage/cache doctor: tokens, cost, and cache health — all on your machine.                                                                                                                                                                                                                                                                   |
 | [`packages/vkm-spec/`](packages/vkm-spec/)                       | Node     | Idea → vault-grounded XML spec (GUI on `127.0.0.1:4923`; optional Ollama `phi4-mini`, deterministic fallback).                                                                                                                                                                                                                                                |
 | [`packages/vkm-downloads/`](packages/vkm-downloads/)             | Node     | Guarded downloads MCP **(opt-in `--downloads`; deliberately outside `--full` — it writes to disk; runs from the clone)**: `download_resolve` (metadata only) → confirm → download into `~/Downloads/vkm-kit/`; background jobs with resume, sets and fastest-mirror (ADR-0058/0059).                                                                          |
+| [`packages/vkm-memory-pg/`](packages/vkm-memory-pg/)             | Node     | Postgres projection of the index **(opt-out `--no-postgres`; embedded PGlite, or your own server via `--pg-dsn`)**: multi-hop typed graph in one query, SQL analytics over the whole vault, a temporal activity log and live SSE events. Derived and disposable — the vault still governs (ADR-0084).                                                         |
 | [`cmd/obsidian-memoryd/`](cmd/obsidian-memoryd/)                 | Go       | Optional daemon: watches the vault and syncs git.                                                                                                                                                                                                                                                                                                             |
+| [`cmd/vkm-console/`](cmd/vkm-console/)                           | Go       | Whole-kit real-time console **(opt-in `--console`)**: daemon, memory, tokens, Postgres activity and research on `127.0.0.1:4930`. Single binary, strictly read-only, and it **opens no window** unless you pass `--open` (ADR-0085).                                                                                                                          |
 
 > ℹ️ **obscura** is third-party software under the **Apache-2.0** license ([h4ckf0r0day/obscura](https://github.com/h4ckf0r0day/obscura)). The kit **downloads** the official release and verifies it by SHA-256 — it does **not** bundle or redistribute it. Structured search runs via **on-demand SearXNG** (started only while searching, stopped when idle; optional desktop monitor) — [ADR-0052](docs/adr/0052-searxng-on-demand-lifecycle.md).
 >

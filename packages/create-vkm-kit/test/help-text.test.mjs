@@ -19,6 +19,7 @@ import {
 } from "../src/claude-native-memory.mjs";
 import { COMPACT_BASH_HOOK_STEM, COMPACT_MCP_HOOK_STEM } from "../src/token-saver.mjs";
 import { ENSURE_SINK_HOOK_STEM } from "../src/telemetry.mjs";
+import { ENSURE_PG_HOOK_STEM } from "../src/pg-setup.mjs";
 
 /** Every hook stem `--uninstall` is responsible for, from the modules that own them. */
 const MANAGED_HOOK_STEMS = [
@@ -28,7 +29,8 @@ const MANAGED_HOOK_STEMS = [
   EFFORT_GATE_HOOK_STEM,
   COMPACT_BASH_HOOK_STEM,
   COMPACT_MCP_HOOK_STEM,
-  ENSURE_SINK_HOOK_STEM
+  ENSURE_SINK_HOOK_STEM,
+  ENSURE_PG_HOOK_STEM
 ];
 
 test("the hook count in --help matches the number of managed hooks", () => {

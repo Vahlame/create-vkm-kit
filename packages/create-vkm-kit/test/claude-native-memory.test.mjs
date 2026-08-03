@@ -523,6 +523,7 @@ test("CLI: --uninstall removes a real prior install end-to-end", () => {
       "--no-rules",
       "--no-build-index",
       "--no-install-backend",
+      "--no-postgres",
       "--no-git-init"
     ],
     { encoding: "utf8", env }
@@ -646,6 +647,7 @@ test("CLI: re-run with --no-native-memory-override REMOVES a prior override (dry
     "--no-rules",
     "--no-build-index",
     "--no-install-backend",
+    "--no-postgres",
     "--no-git-init"
   ];
   const install = spawnSync(process.execPath, [bin, ...baseArgs], { encoding: "utf8", env });

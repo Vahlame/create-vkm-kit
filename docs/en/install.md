@@ -255,6 +255,31 @@ Fails? → [`troubleshooting.md`](troubleshooting.md), section **MCP / Cursor**.
 
 ---
 
+## The Postgres projection ships on (5.5.0)
+
+The default install adds a **Postgres projection** of the vault index (`vkm-memory-pg`,
+[ADR-0084](../adr/0084-postgres-projection-layer.md)). What to know before the first run:
+
+- **What starts:** a local `pg-service` on **embedded PGlite** — Postgres compiled to WASM,
+  running inside the Node process, installing no server and exposing no port reachable from
+  outside the machine. The installer starts it, runs the first full sync, and registers a
+  `SessionStart` hook that keeps it alive across sessions.
+- **Where the data lives:** in `~/.vkm/pg/<vault-slug>/`, **outside the vault** (root
+  overridable with `VKM_PG_DATA_ROOT`). Your notes are untouched: the projection is **derived
+  and disposable**, and if it disagrees with the Markdown, the projection is the one that is
+  wrong — it gets rebuilt.
+- **How to opt out:** `--no-postgres` (or `--minimal`). Re-running with `--no-postgres` also
+  removes the hook. With `--pg-dsn "postgres://…"` it fronts **your** Postgres server instead
+  of PGlite.
+- **No kit clone → it turns itself off:** the projection (and the `--console` dashboard) run
+  from the clone's code, so an install with no clone degrades to `basic-memory` and skips them —
+  without aborting. The final summary always prints a `Postgres projection: …` line with what
+  actually happened.
+
+Full detail, tools, diagnostics and rebuild: [`postgres-memory.md`](postgres-memory.md).
+
+---
+
 ## Optional — Extra layers
 
 | I want…                                                    | Go to                                                              |

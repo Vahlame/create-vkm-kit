@@ -1,11 +1,12 @@
 # obsidian-memory-mcp
 
-The **hybrid MCP sidecar** (Node, stdio): **22 vault tools** for any MCP-capable
+The **hybrid MCP sidecar** (Node, stdio): **25 vault tools** for any MCP-capable
 agent. Search/index/KG calls bridge to the Python engine
 [`obsidian-memory-rag`](../obsidian-memory-rag/); file tools are vault-locked and
-run locally (atomic writes, etag preconditions).
+run locally (atomic writes, etag preconditions). Three tools front the optional
+Postgres projection ([`vkm-memory-pg`](../vkm-memory-pg/), `VKM_PG=1`).
 
-## The 22 tools (authoritative list)
+## The 25 tools (authoritative list)
 
 This table is drift-gated: `test/tool-doc-drift.test.mjs` extracts every tool
 registered in `src/hybrid-mcp.mjs` and fails the build if one is missing here.
@@ -19,6 +20,12 @@ registered in `src/hybrid-mcp.mjs` and fails the build if one is missing here.
 | `vault_fts_index`     | Incremental reindex; `semantic: true` also builds embeddings.                                                                                                                                                        |
 | `vault_complete`      | Prefix autocomplete over titles / filenames / `#tags` (trie).                                                                                                                                                        |
 | `assemble_context`    | One budgeted call: decisions + stack + passages for a project (ADR-0045).                                                                                                                                            |
+
+Scoped memory: `vault_hybrid_search`, `vault_fts_search`, `vault_observations`
+and `vault_timeline` take an optional `scope` — a posix path-prefix filter
+matched at segment boundary (e.g. `AGENTS/<agent>`, `PROJECTS/vkm-kit`) — and
+`assemble_context` takes `agentName`, prepending `AGENTS/<name>.md` passages to
+the bundle under the same char budget.
 
 ### Knowledge graph (read-only)
 
@@ -52,6 +59,17 @@ registered in `src/hybrid-mcp.mjs` and fails the build if one is missing here.
 | `vault_rotate_log`          | Archive old `SESSION_LOG` entries, keeping the newest N.                                                              |
 | `memory_extract_candidates` | Close-ritual proposals with BM25 dedup flags; never writes.                                                           |
 
+### Postgres projection (optional, read-only — ADR-0084)
+
+Enabled by `VKM_PG=1` (or `VKM_PG_DSN`); backed by the local `pg-service` from
+[`vkm-memory-pg`](../vkm-memory-pg/). The vault stays the source of truth.
+
+| Tool               | One line                                                                                                          |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `vault_pg_status`  | Projection health: backend (PGlite/DSN), row counts, last sync, capabilities; starts the pg-service when needed.  |
+| `vault_graph_hops` | Multi-hop typed `[[wikilink]]` traversal (recursive SQL), filterable by relation types; never starts the service. |
+| `vault_timeline`   | Recent memory activity from the projection log (which notes changed, in sync order); never starts the service.    |
+
 Private by design — it runs from the clone (`node src/hybrid-mcp.mjs`), wired
 by [`create-vkm-kit`](../create-vkm-kit/) (`--ide
 codex,claude,cursor` or `--full`). Config example:
@@ -63,7 +81,7 @@ Three properties the tests pin:
   instructions (`_trust`, injection heuristics — see `src/untrusted.mjs` and
   [`SECURITY.md`](../../SECURITY.md)).
 - **Schema budget (ADR-0035):** tool descriptions + server instructions are
-  capped at 8,000 chars by `test/schema-budget.test.mjs` — they're input
+  capped at 12,200 chars by `test/schema-budget.test.mjs` — they're input
   tokens every wired agent pays every session, so bloat fails the build.
 - **Doc drift (this README):** `test/tool-doc-drift.test.mjs` keeps the tool
   table above in lockstep with the registered tools.

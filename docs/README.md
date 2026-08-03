@@ -22,6 +22,9 @@ Elige tu idioma · Pick your language:
 [Migración 4.0](es/migracion-4.0.md) ·
 [Glosario](es/glosario.md)
 
+[Memoria en Postgres](es/memoria-postgres.md) ·
+[Consola](es/consola.md)
+
 </td>
 <td align="center" width="50%">
 
@@ -40,6 +43,9 @@ Elige tu idioma · Pick your language:
 [5.0 migration](en/migration-5.0.md) ·
 [4.0 migration](en/migration-4.0.md) ·
 [Glossary](en/glossary.md)
+
+[Postgres memory](en/postgres-memory.md) ·
+[Console](en/console.md)
 
 </td>
 </tr>

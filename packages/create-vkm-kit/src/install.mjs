@@ -38,6 +38,8 @@ import { configureCodexNative } from "./codex-native.mjs";
 import { configureCursorNative } from "./cursor-native.mjs";
 import { maybeInstallOllama } from "./ollama-setup.mjs";
 import { maybeInstallObscura } from "./obscura-setup.mjs";
+import { configurePgHook, maybeSetupPostgres } from "./pg-setup.mjs";
+import { maybeBuildConsole } from "./console-setup.mjs";
 import { writeVaultGitWorkspaceSettings } from "./vault-scaffold.mjs";
 import { messages } from "./i18n.mjs";
 
@@ -58,7 +60,8 @@ import { messages } from "./i18n.mjs";
  * @returns {Promise<string|null>} the kit root, or null
  */
 async function resolveKitRootAndDegrade(opts, { argv, cwd }) {
-  const needsKit = opts.withHybrid || opts.obscura || opts.downloads;
+  const needsKit =
+    opts.withHybrid || opts.obscura || opts.downloads || opts.postgres || opts.console;
   const kitRoot = needsKit
     ? await resolveKitRepoRoot({ cwd, argv, pathExists: (p) => fse.pathExists(p) })
     : null;
@@ -80,12 +83,15 @@ async function resolveKitRootAndDegrade(opts, { argv, cwd }) {
       }
       console.warn(
         pc.yellow(
-          "No kit clone found, so hybrid/semantic/index/vec are skipped — wiring basic-memory only."
+          "No kit clone found, so hybrid/semantic/index/vec/postgres are skipped — wiring basic-memory only."
         )
       );
       console.log(
         pc.dim("  For full hybrid power, run from a clone of the kit or pass --repo-root <clone>.")
       );
+      // postgres/console degrade here too: this branch returns early, so the loop below
+      // never sees them — and postgres is ON by default, exactly the option that would
+      // otherwise survive with no clone to run its service from.
       Object.assign(opts, {
         withHybrid: false,
         semantic: false,
@@ -94,7 +100,9 @@ async function resolveKitRootAndDegrade(opts, { argv, cwd }) {
         vec: false,
         rerank: false,
         pinFailures: false,
-        usage: false
+        usage: false,
+        postgres: false,
+        console: false
       });
       return null;
     }
@@ -102,7 +110,9 @@ async function resolveKitRootAndDegrade(opts, { argv, cwd }) {
 
   for (const [flag, label] of /** @type {const} */ ([
     ["obscura", "obscura-web"],
-    ["downloads", "vkm-downloads"]
+    ["downloads", "vkm-downloads"],
+    ["postgres", "vkm-memory-pg (Postgres projection)"],
+    ["console", "vkm-console"]
   ])) {
     if (opts[flag] && !kitRoot) {
       console.warn(
@@ -265,9 +275,12 @@ exec gitleaks protect --staged --no-banner --redact
  * @param {string} ctx.vault absolute vault path (already scaffolded if it was new)
  * @param {string[]} ctx.ides
  * @param {import("./cli/options.mjs").InstallOptions} ctx.opts
- * @returns {Promise<{ kitRoot: string|null, obscuraBin: string|null, launcher: string|null }>}
+ * @returns {Promise<{ kitRoot: string|null, obscuraBin: string|null, launcher: string|null,
+ *   pg: import("./pg-setup.mjs").PgSetupResult,
+ *   console: import("./console-setup.mjs").ConsoleBuildResult }>}
  *   what actually landed — `launcher` is threaded to `printSummary` so the block it prints
- *   is the one that was registered, rather than a second guess at it
+ *   is the one that was registered, rather than a second guess at it; `pg`/`console` are
+ *   the statuses their summary lines report
  */
 export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
   const { dryRun, lang } = opts;
@@ -316,6 +329,8 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
     researchDir: opts.researchDir,
     downloads: opts.downloads,
     downloadDir: opts.downloadDir,
+    postgres: opts.postgres,
+    pgDsn: opts.pgDsn,
     launcher
   };
 
@@ -350,6 +365,17 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
       terseStyle: opts.terseStyle
     });
     await configureTelemetry(home, dryRun, { enable: opts.telemetry, kitRoot });
+    // Hooks do NOT inherit MCP env, so the keep-alive hook is only INSTALLED when the
+    // postgres option is on — same conditional wiring as the telemetry sink hook above,
+    // and the same symmetric removal on a re-run with --no-postgres. The DSN rides along
+    // as hook argv: without it every hook-driven respawn would silently flip an external-
+    // Postgres install back to the embedded PGlite backend.
+    await configurePgHook(home, dryRun, {
+      enable: opts.postgres,
+      kitRoot,
+      vaultAbs: vault,
+      dsn: opts.pgDsn
+    });
     await configureSkillAssets(home, dryRun, {
       ide: "claude",
       skills: opts.skills,
@@ -390,6 +416,24 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
     await maybeBuildIndex(vault, opts.dryRun, { repoRoot: kitRoot, semantic: opts.semantic });
   }
 
+  // Postgres projection AFTER the index build: the pg-service's initial full sync reads
+  // the Python fts.sqlite, so ordering it here means the first sync sees a populated
+  // index instead of an empty one. The console rides along — it is a UI over the service.
+  const pg = await maybeSetupPostgres({
+    enable: opts.postgres,
+    dryRun,
+    vaultAbs: vault,
+    kitRoot,
+    launcher,
+    dsn: opts.pgDsn
+  });
+  const consoleBuild = await maybeBuildConsole({
+    enable: opts.console,
+    dryRun,
+    kitRoot,
+    launcher
+  });
+
   if (opts.ruleTargets.length) {
     await installRules(opts.ruleTargets, lang, {
       home,
@@ -410,7 +454,7 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
   await writeVaultGitWorkspaceSettings(vault, dryRun);
   await maybeInstallGitleaksHook(vault, opts.gitleaks, dryRun);
 
-  return { kitRoot, obscuraBin, launcher };
+  return { kitRoot, obscuraBin, launcher, pg, console: consoleBuild };
 }
 
 /**
@@ -424,7 +468,9 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
  * @param {string} ctx.vault
  * @param {string[]} ctx.ides
  * @param {import("./cli/options.mjs").InstallOptions} ctx.opts
- * @param {{ kitRoot: string|null, launcher?: string|null }} ctx.result
+ * @param {{ kitRoot: string|null, launcher?: string|null,
+ *   pg?: import("./pg-setup.mjs").PgSetupResult,
+ *   console?: import("./console-setup.mjs").ConsoleBuildResult }} ctx.result
  * @param {{ usedDefault?: boolean, createdVault?: boolean }} [ctx.meta]
  */
 export function printSummary({ vault, ides, opts, result, meta = {} }) {
@@ -487,6 +533,35 @@ export function printSummary({ vault, ides, opts, result, meta = {} }) {
   }
   if (opts.obscura) line("- obscura-web: wired (stealth fetch + search + local deep research)");
   if (opts.downloads) line("- vkm-downloads: wired (guarded file downloads)");
+
+  // Always one line each, so "did the projection/console install?" is answered by the
+  // summary rather than by scrolling back through the log.
+  const pg = result.pg;
+  if (!opts.postgres) {
+    line("- Postgres projection: off");
+  } else if (pg && pg.status === "ready") {
+    const c = pg.counts;
+    line(
+      `- Postgres projection: ready (${pg.backend || "pglite"}` +
+        (c
+          ? `; notes ${c.notes}, chunks ${c.chunks}, relations ${c.relations}, observations ${c.observations})`
+          : ")")
+    );
+  } else {
+    line(
+      `- Postgres projection: ${pg ? pg.status : "skipped"}${pg && pg.detail ? ` — ${pg.detail}` : ""}`
+    );
+  }
+  const consoleBuild = result.console;
+  if (!opts.console) {
+    line("- vkm-console: off");
+  } else if (consoleBuild && consoleBuild.status === "ready" && consoleBuild.binPath) {
+    line(`- vkm-console: ${consoleBuild.binPath} (run: vkm-console --vault ${vault})`);
+  } else {
+    line(
+      `- vkm-console: ${consoleBuild ? consoleBuild.status : "skipped"} (build later: npm run build:console)`
+    );
+  }
 
   if (ides.includes("claude")) {
     line("- Claude Code: MCP registered via `claude mcp add -s user` (verify: `claude mcp list`)");

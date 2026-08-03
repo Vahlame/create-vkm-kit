@@ -179,6 +179,34 @@ test("Codex installs skills, agent and hooks independently", () => {
   assert.equal(components.codexTokenSaver, false);
 });
 
+test("the Postgres projection defaults on; the console stays opt-in", () => {
+  const defaults = opts([]);
+  assert.equal(defaults.postgres, true, "projection is part of the default stack");
+  assert.equal(defaults.pgDsn, null, "no DSN unless --pg-dsn provides one");
+  assert.equal(defaults.console, false, "console needs the Go toolchain — opt-in only");
+
+  assert.equal(opts(["--no-postgres"]).postgres, false);
+  assert.equal(opts(["--minimal"]).postgres, false, "minimal opts out of the projection too");
+  assert.equal(opts(["--minimal", "--postgres"]).postgres, true, "explicit opt-in beats minimal");
+  assert.equal(opts(["--postgres", "--no-postgres"]).postgres, false, "--no-postgres always wins");
+
+  assert.equal(opts(["--console"]).console, true);
+  assert.equal(opts(["--full"]).console, true, "--full implies the console");
+  assert.equal(opts(["--full", "--no-console"]).console, false, "--no-console always wins");
+});
+
+test("--pg-dsn captures the external Postgres connection string", () => {
+  assert.equal(
+    opts(["--pg-dsn", "postgres://u:p@db.example:5432/vkm"]).pgDsn,
+    "postgres://u:p@db.example:5432/vkm"
+  );
+  // The DSN rides on the projection toggle but never flips it: an explicit --no-postgres
+  // with a leftover --pg-dsn in a script must stay OFF.
+  const off = opts(["--no-postgres", "--pg-dsn", "postgres://x"]);
+  assert.equal(off.postgres, false);
+  assert.equal(off.pgDsn, "postgres://x");
+});
+
 test("value flags are read, and RESEARCH/ defaults under the vault", () => {
   assert.equal(
     opts(["--searxng-url", "http://127.0.0.1:8888"]).searxngUrl,

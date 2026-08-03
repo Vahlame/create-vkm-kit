@@ -108,6 +108,20 @@ const FILE_MARKERS = [
     file: "cmd/obsidian-memoryd/main.go",
     read: (s) => (s.match(/main\.version=(\d+\.\d+\.\d+)/) || [])[1],
     write: (s, v) => s.replace(/(main\.version=)\d+\.\d+\.\d+/, `$1${v}`)
+  },
+  // vkm-console carries the same var-version + -ldflags pair as the daemon,
+  // split into two markers for the same drift reason documented above.
+  {
+    name: "cmd/vkm-console/main.go (var version)",
+    file: "cmd/vkm-console/main.go",
+    read: (s) => (s.match(/var version = "([^"]+)"/) || [])[1],
+    write: (s, v) => s.replace(/(var version = ")[^"]+(")/, `$1${v}$2`)
+  },
+  {
+    name: "cmd/vkm-console/main.go (-ldflags example)",
+    file: "cmd/vkm-console/main.go",
+    read: (s) => (s.match(/main\.version=(\d+\.\d+\.\d+)/) || [])[1],
+    write: (s, v) => s.replace(/(main\.version=)\d+\.\d+\.\d+/, `$1${v}`)
   }
 ];
 

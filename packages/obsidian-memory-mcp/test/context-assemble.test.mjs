@@ -76,6 +76,21 @@ test("assembleContext: a traversal-shaped project name cannot read outside the v
   }
 });
 
+test("assembleContext: a traversal-shaped agentName is rejected before any bridge call", async () => {
+  const { outer, vault } = await makeVaultWithSecretOutside();
+  try {
+    for (const bad of ["../secret", "AGENTS/other", "a\\b", "a/b"]) {
+      await assert.rejects(
+        assembleContext({ vault, query: "irrelevant", agentName: bad }),
+        /invalid agentName/,
+        `agentName ${JSON.stringify(bad)} must be rejected`
+      );
+    }
+  } finally {
+    await rm(outer, { recursive: true, force: true });
+  }
+});
+
 test("assembleContext: a legitimate project falls back to a wrapped, in-vault excerpt", async () => {
   const { outer, vault } = await makeVaultWithSecretOutside();
   try {
