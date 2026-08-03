@@ -1,6 +1,6 @@
 {
   "name": "@vkmikc/vkm-memory-pg",
-  "version": "5.5.0",
+  "version": "5.5.1",
   "private": true,
   "description": "Postgres projection layer for the vkm vault: PGlite embedded by default (external DSN optional), incremental sync from the Python FTS index, a localhost-only HTTP service, and an intelligent migration CLI. The vault stays the source of truth; this is a disposable, rebuildable projection.",
   "license": "SEE LICENSE IN LICENSE.md",

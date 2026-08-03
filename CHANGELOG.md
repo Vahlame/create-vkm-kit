@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.5.1] - 2026-08-03
+
 ### Fixed
 
 - **`vault_graph_hops` exposes `scope` on the MCP wire** (schema + `buildGraphParams` /
@@ -19,7 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- **Upgrading from 5.4.x → 5.5.0:** Postgres projection and the `AGENTS/` scaffold are **on by
+- **Upgrading from 5.4.x → 5.5.x:** Postgres projection and the `AGENTS/` scaffold are **on by
   default** (`--postgres`; opt out with `--no-postgres`). `--full` now wires `cursor` alongside
   Codex/Claude. Re-run the installer against your vault so hybrid gets `VKM_PG=1` and the
   projection syncs; notes stay in the vault — Postgres is a disposable derived index under
@@ -2576,6 +2578,7 @@ scoring, embedder-identity reuse).
 **3.15.0 and earlier** live in [`docs/changelog/pre-4.0.md`](docs/changelog/pre-4.0.md) —
 same text, same format, moved out in 5.0.0 to keep this file readable.
 
+[5.5.1]: https://github.com/Vahlame/create-vkm-kit/compare/v5.5.0...v5.5.1
 [5.5.0]: https://github.com/Vahlame/create-vkm-kit/compare/v5.4.0...v5.5.0
 [5.4.0]: https://github.com/Vahlame/create-vkm-kit/compare/v5.3.0...v5.4.0
 [5.3.0]: https://github.com/Vahlame/create-vkm-kit/compare/v5.2.0...v5.3.0
