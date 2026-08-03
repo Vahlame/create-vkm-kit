@@ -46,20 +46,44 @@ func newBroadcaster(dirs []string, debounce time.Duration) *broadcaster {
 func (b *broadcaster) loop(debounce time.Duration) {
 	var timer *time.Timer
 	var fire <-chan time.Time
+	stopTimer := func() {
+		if timer == nil {
+			return
+		}
+		if !timer.Stop() {
+			select {
+			case <-timer.C:
+			default:
+			}
+		}
+		timer = nil
+		fire = nil
+	}
 	for {
 		select {
 		case _, ok := <-b.watcher.Events:
 			if !ok {
+				stopTimer()
 				return
 			}
 			if timer == nil {
 				timer = time.NewTimer(debounce)
 				fire = timer.C
 			} else {
+				// Drain before Reset — required when the timer already fired but
+				// the <-fire case has not been selected yet (Go time.Timer contract).
+				if !timer.Stop() {
+					select {
+					case <-timer.C:
+					default:
+					}
+				}
 				timer.Reset(debounce)
+				fire = timer.C
 			}
 		case _, ok := <-b.watcher.Errors:
 			if !ok {
+				stopTimer()
 				return
 			}
 		case <-fire:

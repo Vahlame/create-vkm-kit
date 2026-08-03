@@ -45,11 +45,17 @@ npx @vkmikc/create-vkm-kit --full --pg-dsn "postgres://user:pass@localhost:5432/
 ```
 
 - `--postgres` (por defecto **on**) instala la capa y deja `VKM_PG=1` en la configuración
-  MCP del vault.
+  MCP del vault. Tras construir el índice FTS, el instalador arranca el pg-service y
+  **sincroniza tu vault en la proyección**: `full` la primera vez (vacía / nunca
+  sincronizada), `incremental` en reinstalación o update cuando `/api/health` ya muestra
+  notes o un `lastSyncAt` — así quien re-ejecuta el instalador mantiene Postgres al día
+  sin re-volcar el índice entero.
 - `--no-postgres` la deja fuera. El kit funciona igual; las tres tools de Postgres
   simplemente no se registran.
 - `--pg-dsn <cadena>` usa **tu** servidor Postgres en vez del PGlite embebido. El datadir
-  embebido no se crea.
+  embebido no se crea. El DSN se guarda en `~/.vkm/pg/<slug>/hook-dsn` (modo `0600`) para
+  que el hook SessionStart pueda respawnear el servicio sin poner credenciales en
+  `~/.claude/settings.json`.
 
 ### A mano, con variables de entorno
 
@@ -75,6 +81,7 @@ hex del SHA-256 de su ruta absoluta — así dos vaults que se llamen igual nunc
 | `service.json`        | `{ port, pid, vault, version, startedAt }` del servicio vivo.                        |
 | `service.token`       | 32 bytes aleatorios en hex; el token de autenticación (modo `0600` en POSIX).        |
 | `service.lock`        | `{ pid, port }`; si el proceso ya no existe, el lock es obsoleto y se puede limpiar. |
+| `hook-dsn`            | DSN externo para el hook SessionStart (modo `0600`; solo con `--pg-dsn`).            |
 | `migration-report.md` | El informe de la última migración: qué se sincronizó, qué se sugirió, cuánto tardó.  |
 
 ---

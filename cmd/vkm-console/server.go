@@ -24,7 +24,7 @@ var webFS embed.FS
 
 // consolePolicy is set on EVERY response (middleware, not per-handler), so the
 // dashboard HTML can never be reached — from any route — without it. It is the
-// defense-in-depth layer in front of app.js's innerHTML sink.
+// defense-in-depth layer; the dashboard uses textContent for vault-sourced text.
 const consolePolicy = "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'"
 
 // newConsoleToken returns the per-run auth token: 32 hex chars from

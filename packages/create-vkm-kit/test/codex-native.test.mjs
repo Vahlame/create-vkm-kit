@@ -112,10 +112,12 @@ test("Codex install copies skills byte-identically, parses its agent TOML, and m
   assert.ok(first.hooks.SessionStart?.length, "SessionStart hook installed");
   assert.ok(first.hooks.PreToolUse?.length, "PreToolUse hooks installed");
   assert.ok(first.hooks.PostToolUse?.length, "PostToolUse hook installed");
+  assert.ok(first.hooks.Stop?.length, "Stop close-reminder hook installed");
   assert.ok(managedEntryCount(first, CODEX_HOOK_STEMS.context), "vault context hook installed");
   assert.ok(managedEntryCount(first, CODEX_HOOK_STEMS.memoryGuard), "memory guard installed");
   assert.ok(managedEntryCount(first, CODEX_HOOK_STEMS.effortGate), "effort gate installed");
   assert.ok(managedEntryCount(first, CODEX_HOOK_STEMS.tokenSaver), "token saver installed");
+  assert.ok(managedEntryCount(first, CODEX_HOOK_STEMS.stop), "stop close reminder installed");
   first.hooks.PreToolUse.push({
     matcher: "user-tool",
     hooks: [{ type: "command", command: "echo user" }]

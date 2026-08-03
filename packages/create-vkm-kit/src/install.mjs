@@ -365,11 +365,11 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
       terseStyle: opts.terseStyle
     });
     await configureTelemetry(home, dryRun, { enable: opts.telemetry, kitRoot });
-    // Hooks do NOT inherit MCP env, so the keep-alive hook is only INSTALLED when the
-    // postgres option is on — same conditional wiring as the telemetry sink hook above,
-    // and the same symmetric removal on a re-run with --no-postgres. The DSN rides along
-    // as hook argv: without it every hook-driven respawn would silently flip an external-
-    // Postgres install back to the embedded PGlite backend.
+    // Claude SessionStart keep-alive only — Cursor/Codex do not run ~/.claude hooks.
+    // Vault→PG sync for every user is maybeSetupPostgres below (full vs incremental).
+    // Hooks do NOT inherit MCP env, so the hook is only INSTALLED when postgres is on —
+    // same conditional as the telemetry sink, and the same symmetric removal on a re-run
+    // with --no-postgres. The DSN rides as hook argv / hook-dsn.
     await configurePgHook(home, dryRun, {
       enable: opts.postgres,
       kitRoot,

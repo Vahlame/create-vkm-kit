@@ -151,11 +151,15 @@
     const recent = document.createDocumentFragment();
     for (const n of v.recent || []) recent.append(li(n.path, ago(n.mtime)));
     $("m-recent").replaceChildren(recent);
-    // SESSION_LOG lines arrive HTML-escaped from the server, so innerHTML here
-    // renders the escapes back as literal text.
-    const markup = (v.sessionLogTail || []).map((line) => "<div>" + line + "</div>").join("");
+    // textContent — never innerHTML: SESSION_LOG is untrusted vault data.
     const tail = $("m-tail");
-    if (tail.innerHTML !== markup) tail.innerHTML = markup;
+    const frag = document.createDocumentFragment();
+    for (const line of v.sessionLogTail || []) {
+      const d = document.createElement("div");
+      d.textContent = line;
+      frag.append(d);
+    }
+    tail.replaceChildren(frag);
     setError("m-error", v);
   }
 

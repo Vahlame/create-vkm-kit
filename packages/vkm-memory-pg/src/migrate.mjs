@@ -579,7 +579,9 @@ export async function runMigrate(opts, deps = {}) {
       if (opts.rebuild && isDsn) await truncateProjection(adapter);
       const since = mode === "full" ? null : await metaGet(adapter, "cursor_mtime_ns");
       const dump = await doDump({ vaultAbs, sinceMtimeNs: since, includeVectors: true, env });
-      const result = await syncFromDump(adapter, dump);
+      // Same opts the pg-service passes: without runDump/vaultAbs, watermark-gap follow-ups
+      // and embedder dim-drift full resyncs are detected but never fetched (silent incompleteness).
+      const result = await syncFromDump(adapter, dump, { vaultAbs, env, runDump: doDump });
       synced = result.synced;
       cursor = result.cursor;
       tookMs = result.tookMs;

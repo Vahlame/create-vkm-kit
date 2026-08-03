@@ -5,11 +5,14 @@ Keeps Claude Code ↔ Cursor surfaces aligned.
 
 ## Skills
 
-- Install path: `$HOME/.cursor/skills/{vkm-discipline,vkm-spec,…}/`.
+- Install path: `$HOME/.cursor/skills/{vkm-discipline,vkm-spec,…}/` (all eight shipped skills).
 - Source: `packages/create-vkm-kit/templates/skills/`.
-- Cursor may also load `$HOME/.claude/skills/` when both are present; the Cursor-only
-  canonical path is `~/.cursor/skills`.
+- Canonical Cursor-only path is `~/.cursor/skills`. (Whether Cursor also loads
+  `~/.claude/skills/` is **unverified** — do not rely on cross-loading; install with
+  `--ide cursor` so the Cursor home is populated.)
 - No `vkm-implementer` agent template for Cursor (Task subagent types differ).
+- Multi-window note: `cursor-session-state.json` is one global file under `~/.vkm/` — two
+  simultaneous Cursor windows share the stop-nudge counters.
 
 ## Rules
 
@@ -23,7 +26,9 @@ Keeps Claude Code ↔ Cursor surfaces aligned.
 - Scripts: `$HOME/.cursor/hooks/`.
 - Mapping: `sessionStart` vault context · `afterFileEdit`/`afterMCPExecution` trackers ·
   `stop` close nudge · MCP JSON token-saver.
-- **Not ported (honest):** Claude native-memory write guard and effort advisor.
+- **Not ported (honest):**
+  - Claude native-memory write guard and effort advisor.
+  - Bash / shell output compaction (Cursor has no `afterBash` event; only MCP JSON is compacted).
 
 ## Checks
 

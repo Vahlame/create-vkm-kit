@@ -41,10 +41,14 @@ export function pathInScope(p, scope) {
  * SQL predicate matching `column` against the scope value bound at placeholder `$<idx>`.
  * `column` is a code-controlled identifier (never user input); the scope itself only ever
  * travels as a bind parameter — it is never interpolated into the SQL text.
+ *
+ * The third arm uses `starts_with`, not `LIKE … || '/%'`: LIKE would treat `%`/`_` inside
+ * the bound scope as wildcards and diverge from the literal `pathInScope` contract (and
+ * would break valid scopes that contain `_`, e.g. `AGENTS/vkm_implementer`).
  * @param {string} column - column or expression to test (e.g. "n.path", "source_path")
  * @param {number} idx - 1-based placeholder index the scope is bound at
  * @returns {string}
  */
 export function scopeMatchSql(column, idx) {
-  return `(${column} = $${idx} OR ${column} = $${idx} || '.md' OR ${column} LIKE $${idx} || '/%')`;
+  return `(${column} = $${idx} OR ${column} = $${idx} || '.md' OR starts_with(${column}, $${idx} || '/'))`;
 }

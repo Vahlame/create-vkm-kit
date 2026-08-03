@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"html"
 	"io"
 	"io/fs"
 	"net/http"
@@ -238,8 +237,9 @@ func collectVaultStats(vault string) VaultStats {
 	return out
 }
 
-// sessionLogTail returns the last 3 non-empty lines of SESSION_LOG.md,
-// HTML-escaped (they are rendered into the dashboard as-is).
+// sessionLogTail returns the last 3 non-empty lines of SESSION_LOG.md as raw
+// text. The dashboard assigns them via textContent (never innerHTML), so the
+// browser escapes — do not HTML-escape here or the UI would show entities.
 func sessionLogTail(vault string) []string {
 	data, err := os.ReadFile(filepath.Join(vault, "SESSION_LOG.md"))
 	if err != nil {
@@ -254,9 +254,6 @@ func sessionLogTail(vault string) []string {
 	}
 	if len(lines) > 3 {
 		lines = lines[len(lines)-3:]
-	}
-	for i := range lines {
-		lines[i] = html.EscapeString(lines[i])
 	}
 	return lines
 }
@@ -670,7 +667,9 @@ func collectResearch(searchLog, downloadsDir string) ResearchLogs {
 		}
 	}
 
-	out.OK = serr == nil || derr == nil
+	// Both sources must succeed for OK — OR would hide a partial failure (e.g. search
+	// log readable but downloads dir missing) behind a green card.
+	out.OK = len(errs) == 0
 	if !out.OK {
 		out.Error = strings.Join(errs, "; ")
 	}

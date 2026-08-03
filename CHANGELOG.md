@@ -4,6 +4,41 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Postgres `scope` SQL matches the literal JS contract.** The projection used
+  `LIKE $scope || '/%'`, so `_`/`%` inside a scope acted as SQL wildcards and diverged from
+  `pathInScope` (and broke valid scopes like `AGENTS/fo_o`). The third arm is now
+  `starts_with(path, $scope || '/')`.
+- **`vkm-pg-migrate` direct path passes `runDump` / `vaultAbs` into `syncFromDump`.** Without
+  those opts, watermark-gap follow-ups and embedder dim-drift full resyncs were detected but
+  never fetched on the CLI path (the pg-service already passed them).
+- **`vkm-console` research card no longer reports OK on a partial failure** (`||` → all
+  sources must succeed). SSE debounce drains/`Stop`s timers before `Reset`. SESSION_LOG
+  lines render via `textContent` (no `innerHTML` + HTML-escape round-trip).
+- **Codex installs the Stop vault-close nudge** (`stop-vault-close-reminder.mjs`), matching
+  Claude/Cursor. Codex parity docs list all eight skills and live under `docs/en/`.
+
+### Security
+
+- **External `--pg-dsn` is stored in `~/.vkm/pg/<slug>/hook-dsn` (mode `0600`)**, not inline
+  in `~/.claude/settings.json`. The SessionStart hook reads the file (legacy raw-DSN argv
+  still works). Unauthenticated `/api/health` no longer returns the absolute vault path
+  (token-gated `/api/stats` still does).
+
+### Changed
+
+- **Installer Postgres sync detects an already-projected vault.** First install (empty /
+  no `lastSyncAt`) runs `POST /api/sync` with `mode: "full"`; reinstall and update runs
+  use `incremental` when health already shows notes or a sync timestamp — every user who
+  re-runs the kit keeps the vault in Postgres without a full re-dump. Warns when
+  `fts.sqlite` is missing or the sync returns 0 notes while the index exists.
+- **`/api/suggestions` honors `?scope=`** like the other projection read APIs.
+- **`vkm-doctor` skills-drift checks Claude, Cursor, and Codex skill homes** (union), not
+  only `~/.claude/skills`.
+
 ## [5.5.0] - 2026-08-02
 
 ### Added
@@ -356,7 +391,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `~/.codex/agents/`, and idempotently merged `SessionStart`, `PreToolUse`, and `PostToolUse`
   handlers in `~/.codex/hooks.json`. New `--codex-hooks` and per-piece opt-outs keep the surface
   independently reversible; update and uninstall are hash-safe and leave user hook entries alone.
-- Added [`docs/codex-parity.md`](docs/codex-parity.md) and its Spanish mirror with official-source
+- Added [`docs/en/codex-parity.md`](docs/en/codex-parity.md) and its Spanish mirror with official-source
   verification, current hook drift, and a Claude Code continuation checklist.
 
 ## [5.1.0] - 2026-07-27

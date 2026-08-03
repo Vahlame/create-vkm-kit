@@ -310,10 +310,15 @@ export function createService({
     }
 
     if (req.method === "GET" && route === "/api/suggestions") {
+      const scoped = readScope(url.searchParams.get("scope"));
+      if ("invalid" in scoped) return sendJson(res, 400, { error: "invalid scope" });
       const status = url.searchParams.get("status") || "pending";
+      const scope = scoped.scope;
+      const scopeSql = scope === null ? "" : ` AND ${scopeMatchSql("path", 2)}`;
+      const params = scope === null ? [status] : [status, scope];
       const { rows } = await adapter.query(
-        "SELECT id, path, kind, payload, status, created_at FROM suggestions WHERE status = $1 ORDER BY id DESC LIMIT 200",
-        [status]
+        `SELECT id, path, kind, payload, status, created_at FROM suggestions WHERE status = $1${scopeSql} ORDER BY id DESC LIMIT 200`,
+        params
       );
       return sendJson(res, 200, {
         suggestions: rows.map((r) => ({
@@ -331,6 +336,9 @@ export function createService({
   }
 
   async function handleHealth(res) {
+    // Unauthenticated liveness probe — omit the absolute vault path (multi-user
+    // localhost can discover the port). Token-gated /api/stats carries `vault`.
+    if (!adapter) return sendJson(res, 503, { error: "service stopping" });
     const count = async (table) =>
       Number((await adapter.query(`SELECT count(*)::int AS n FROM ${table}`)).rows[0].n);
     const [notes, chunks, relations, observations] = await Promise.all([
@@ -345,7 +353,6 @@ export function createService({
       version: PKG_VERSION,
       backend: adapter.backend,
       pgVersion,
-      vault,
       notes,
       chunks,
       relations,
@@ -395,6 +402,7 @@ export function createService({
       adapter.query(`SELECT count(*)::int AS n FROM chunks${where("path")}`, params)
     ]);
     return {
+      vault,
       notesByFolder: pairs(byFolder.rows, "folder"),
       observationsByCategory: pairs(byCategory.rows, "category"),
       relationsByType: pairs(byType.rows, "relation_type"),

@@ -19,7 +19,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { maybeSetupPostgres, configurePgHook, uninstallPgHook } from "../src/pg-setup.mjs";
+import {
+  maybeSetupPostgres,
+  configurePgHook,
+  uninstallPgHook,
+  pickInstallSyncMode
+} from "../src/pg-setup.mjs";
 import { pgServiceDir } from "../src/hooks/ensure-pg-service.mjs";
 import { buildServerList, writeCursorMcp } from "../src/mcp-register.mjs";
 
@@ -33,7 +38,7 @@ function fakeChild() {
 }
 
 /** Deps where everything exists, the service is healthy and the sync returns counts. */
-function happyDeps(log, { backend = "pglite" } = {}) {
+function happyDeps(log, { backend = "pglite", notes = 0, lastSyncAt = null } = {}) {
   const dir = pgServiceDir(VAULT);
   return {
     pathExists: async (p) => {
@@ -55,7 +60,10 @@ function happyDeps(log, { backend = "pglite" } = {}) {
     fetchImpl: async (url, init = {}) => {
       log.push(["fetch", url, init]);
       if (String(url).endsWith("/api/health")) {
-        return { ok: true, json: async () => ({ ok: true, backend }) };
+        return {
+          ok: true,
+          json: async () => ({ ok: true, backend, notes, lastSyncAt })
+        };
       }
       if (String(url).endsWith("/api/sync")) {
         return {
@@ -143,6 +151,17 @@ test("an external DSN skips the PGlite check (the pg driver fronts that server)"
   );
 });
 
+test("pickInstallSyncMode: empty → full; notes or lastSyncAt → incremental", () => {
+  assert.equal(pickInstallSyncMode(null), "full");
+  assert.equal(pickInstallSyncMode({ notes: 0, lastSyncAt: null }), "full");
+  assert.equal(pickInstallSyncMode({ notes: 0 }), "full");
+  assert.equal(pickInstallSyncMode({ notes: 12, lastSyncAt: null }), "incremental");
+  assert.equal(
+    pickInstallSyncMode({ notes: 0, lastSyncAt: "2026-08-03T00:00:00.000Z" }),
+    "incremental"
+  );
+});
+
 test("happy path: spawn → health → one full sync with the token header, counts reported", async () => {
   const log = [];
   const r = await maybeSetupPostgres(
@@ -173,7 +192,7 @@ test("happy path: spawn → health → one full sync with the token header, coun
   const syncInit = fetches[1][2];
   assert.equal(syncInit.method, "POST");
   assert.equal(syncInit.headers["x-vkm-pg-token"], "aabbcc", "token read from service.token");
-  assert.deepEqual(JSON.parse(syncInit.body), { mode: "full" }, "the initial sync is FULL");
+  assert.deepEqual(JSON.parse(syncInit.body), { mode: "full" }, "empty projection → FULL sync");
 
   const [, command, args, spawnOpts] = log[spawnAt];
   assert.equal(command, process.execPath, "no launcher → node runs the service directly");
@@ -182,6 +201,18 @@ test("happy path: spawn → health → one full sync with the token header, coun
   assert.equal(spawnOpts.detached, true);
   assert.equal(spawnOpts.stdio, "ignore");
   assert.equal(spawnOpts.env.VKM_PG, "1");
+});
+
+test("reinstall/update: populated health → incremental sync (no full re-dump)", async () => {
+  const log = [];
+  const r = await maybeSetupPostgres(
+    { enable: true, dryRun: false, vaultAbs: VAULT, kitRoot: KIT },
+    happyDeps(log, { notes: 42, lastSyncAt: "2026-08-01T12:00:00.000Z" })
+  );
+  assert.equal(r.status, "ready");
+  const sync = log.find(([kind, u]) => kind === "fetch" && String(u).endsWith("/api/sync"));
+  assert.ok(sync, "sync must still run so updates catch vault changes");
+  assert.deepEqual(JSON.parse(sync[2].body), { mode: "incremental" });
 });
 
 test("the launcher wraps the spawn without disturbing the service argv (ADR-0078)", async () => {
@@ -338,20 +369,28 @@ test("configurePgHook installs the SessionStart entry with script + vault argv, 
   assert.equal(after.hooks?.SessionStart, undefined, "no empty husk left behind");
 });
 
-test("configurePgHook threads the DSN as the hook's argv[4] (backend survives respawns)", async () => {
+test("configurePgHook stores the DSN in a 0o600 file; settings.json only gets the path", async () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "vkm-pg-hook-dsn-"));
   const vault = path.join(home, "vault");
+  const env = { VKM_PG_DATA_ROOT: path.join(home, "pgroot") };
   const DSN = "postgres://app:s3cret@db.example:5432/vkm";
   await configurePgHook(home, false, {
     enable: true,
     kitRoot: repoRoot,
     vaultAbs: vault,
-    dsn: DSN
+    dsn: DSN,
+    env
   });
 
   const settings = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
+  const settingsText = fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8");
+  assert.ok(!settingsText.includes(DSN), "the secret must not appear in settings.json");
+  assert.ok(!settingsText.includes("s3cret"), "password fragment must not appear in settings.json");
+
   const [entry] = settings.hooks.SessionStart.flatMap((m) => m.hooks);
-  assert.equal(entry.args[3], DSN, "argv[4] carries the DSN the install configured");
+  const dsnFile = entry.args[3];
+  assert.ok(typeof dsnFile === "string" && fs.existsSync(dsnFile), "argv[4] is a path that exists");
+  assert.equal(fs.readFileSync(dsnFile, "utf8").trim(), DSN, "hook-dsn file holds the DSN");
 });
 
 test("configurePgHook enable:false stops the vault's LIVE pg-service (SIGTERM the recorded pid)", async () => {

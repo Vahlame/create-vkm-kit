@@ -5,12 +5,15 @@ create-hook). Esta nota mantiene alineadas las superficies Claude Code ↔ Curso
 
 ## Skills
 
-- Ruta instalada: `$HOME/.cursor/skills/{vkm-discipline,vkm-spec,…}/`.
+- Ruta instalada: `$HOME/.cursor/skills/{vkm-discipline,vkm-spec,…}/` (las ocho skills).
 - Fuente: `packages/create-vkm-kit/templates/skills/`.
-- Cursor también puede leer `$HOME/.claude/skills/` si ya están ahí (doble instalación
-  desde `--ide cursor,claude`); la ruta canónica para Cursor-only es `~/.cursor/skills`.
+- Ruta canónica Cursor-only: `~/.cursor/skills`. (Si Cursor también carga
+  `~/.claude/skills/` es **no verificado** — no depender del cross-load; instalar con
+  `--ide cursor` para poblar el home de Cursor.)
 - **No** hay plantilla `vkm-implementer` para Cursor: los Task/subagent types de Cursor
   son otro formato (queda documentado como deuda, no como bug).
+- Multi-ventana: `cursor-session-state.json` es un solo archivo global bajo `~/.vkm/` —
+  dos ventanas Cursor simultáneas comparten los contadores del stop-nudge.
 
 ## Reglas
 
@@ -28,8 +31,9 @@ create-hook). Esta nota mantiene alineadas las superficies Claude Code ↔ Curso
   - `afterFileEdit` + `afterMCPExecution` → contadores de sesión (stop nudge)
   - `stop` → recordatorio de cierre (`followup_message`)
   - `afterMCPExecution` → token-saver MCP (`updated_mcp_tool_output`)
-- **No portado (honesto):** guard de auto-memoria nativa de Claude y effort-advisor
-  (`/effort`) — Cursor no tiene esas superficies.
+- **No portado (honesto):**
+  - guard de auto-memoria nativa de Claude y effort-advisor (`/effort`)
+  - compactación de salida Bash/shell (Cursor no tiene `afterBash`; solo se compacta MCP JSON)
 
 ## Drift / seguimiento
 

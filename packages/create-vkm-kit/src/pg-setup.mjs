@@ -27,7 +27,7 @@ import {
   removeManagedHook,
   setOrDeleteHooks
 } from "./settings-io.mjs";
-import { pgServiceDir } from "./hooks/ensure-pg-service.mjs";
+import { hookDsnPath, pgServiceDir } from "./hooks/ensure-pg-service.mjs";
 
 export const ENSURE_PG_HOOK_STEM = "ensure-pg-service";
 export const ENSURE_PG_HOOK_BASENAME = `${ENSURE_PG_HOOK_STEM}.mjs`;
@@ -51,8 +51,29 @@ export function pgServiceScriptFromKitRoot(kitRoot) {
   return path.join(kitRoot, "packages", "vkm-memory-pg", "src", "pg-service.mjs");
 }
 
+/** Vault-side FTS index the projection is derived from (ADR-0084). */
+export function vaultFtsSqlitePath(vaultAbs) {
+  return path.join(vaultAbs, ".obsidian-memory-rag", "fts.sqlite");
+}
+
 /**
- * Start the pg-service and run the initial full sync. Never throws; returns a status the
+ * Install/update sync mode from an unauthenticated `/api/health` body.
+ * Already-projected vaults (notes or a recorded lastSyncAt) catch up with `incremental`
+ * so re-installs and updates do not re-dump the whole index; an empty/never-synced
+ * service gets `full` so the vault lands in Postgres on first install.
+ * @param {{ notes?: unknown, lastSyncAt?: unknown } | null | undefined} health
+ * @returns {"full"|"incremental"}
+ */
+export function pickInstallSyncMode(health) {
+  const notes = Number(health?.notes);
+  if (Number.isFinite(notes) && notes > 0) return "incremental";
+  const last = health?.lastSyncAt;
+  if (typeof last === "string" && last.length > 0) return "incremental";
+  return "full";
+}
+
+/**
+ * Start the pg-service and ensure the vault is projected. Never throws; returns a status the
  * summary prints. Dependency-injected so it is unit-testable without spawning anything.
  *
  * Order of operations is the contract: preflight (script + @electric-sql/pglite on disk)
@@ -60,9 +81,10 @@ export function pgServiceScriptFromKitRoot(kitRoot) {
  * passing /api/health → reconcile the backend (a service left running by a previous
  * session keeps its OLD backend; when it differs from what this run configured, SIGTERM
  * the recorded pid, respawn with the new env and re-poll — else warn explicitly) → ONE
- * POST /api/sync {mode:"full"} (the initial migration), best-effort with a 120s budget —
- * a huge vault's first sync failing to finish in time must not turn a running service
- * into a reported failure.
+ * POST /api/sync — `full` when the projection is empty/never synced, `incremental` when
+ * health already shows notes or lastSyncAt (reinstall/update) — best-effort with a 120s
+ * budget; a huge vault's first sync failing to finish in time must not turn a running
+ * service into a reported failure.
  *
  * @param {{ enable: boolean, dryRun: boolean, vaultAbs: string, kitRoot: string|null,
  *   launcher?: string|null, dsn?: string|null }} opts
@@ -148,7 +170,8 @@ export async function maybeSetupPostgres(opts, deps = {}) {
     // running by a previous session — then the first probe already answers.
     const serviceJsonFp = path.join(pgServiceDir(vaultAbs), "service.json");
     const attempts = Math.max(1, Math.ceil(pollTimeoutMs / pollIntervalMs));
-    /** @returns {Promise<{ port: number, pid: number|null, backend: string|null }|null>} */
+    /** @returns {Promise<{ port: number, pid: number|null, backend: string|null,
+     *   notes: number, lastSyncAt: string|null }|null>} */
     const pollHealth = async () => {
       for (let i = 0; i < attempts; i++) {
         try {
@@ -159,10 +182,13 @@ export async function maybeSetupPostgres(opts, deps = {}) {
             });
             if (res.ok) {
               const health = await res.json();
+              const notes = Number(health?.notes);
               return {
                 port: info.port,
                 pid: Number.isInteger(info.pid) ? info.pid : null,
-                backend: typeof health?.backend === "string" ? health.backend : null
+                backend: typeof health?.backend === "string" ? health.backend : null,
+                notes: Number.isFinite(notes) ? notes : 0,
+                lastSyncAt: typeof health?.lastSyncAt === "string" ? health.lastSyncAt : null
               };
             }
           }
@@ -251,22 +277,51 @@ export async function maybeSetupPostgres(opts, deps = {}) {
     const port = up.port;
     const backend = up.backend;
 
-    // Initial full sync (the one-time migration). Best-effort: a sync that fails or
-    // overruns its 120s budget leaves a READY service whose watcher catches up later.
+    // Project the vault: full on first install (empty projection), incremental on
+    // reinstall/update when health already shows a populated copy. Best-effort: a sync
+    // that fails or overruns its 120s budget leaves a READY service whose watcher catches up.
+    const ftsPath = vaultFtsSqlitePath(vaultAbs);
+    if (!(await pathExists(ftsPath))) {
+      console.warn(
+        pc.yellow(
+          "Postgres projection: fts.sqlite not found — build the index first (--build-index / vault_fts_index). Syncing anyway; the projection may stay empty until then."
+        )
+      );
+      console.log(pc.dim(`  expected ${ftsPath}`));
+    }
+
+    const syncMode = pickInstallSyncMode(up);
+    if (syncMode === "incremental") {
+      console.log(
+        pc.dim(
+          `Postgres projection already populated (${up.notes} notes) — catching up with incremental sync`
+        )
+      );
+    } else {
+      console.log(pc.dim("Postgres projection: first sync (full) — loading the vault index"));
+    }
+
     let counts = null;
     try {
       const token = (await readFile(path.join(pgServiceDir(vaultAbs), "service.token"))).trim();
       const res = await fetchImpl(`http://127.0.0.1:${port}/api/sync`, {
         method: "POST",
         headers: { "content-type": "application/json", "x-vkm-pg-token": token },
-        body: JSON.stringify({ mode: "full" }),
+        body: JSON.stringify({ mode: syncMode }),
         signal: AbortSignal.timeout(syncTimeoutMs)
       });
       const body = await res.json();
       if (res.ok && body && typeof body === "object" && body.synced) counts = body.synced;
     } catch {
       console.warn(
-        pc.yellow("Postgres projection: initial sync did not finish — it will catch up on its own.")
+        pc.yellow("Postgres projection: sync did not finish — it will catch up on its own.")
+      );
+    }
+    if (counts && Number(counts.notes) === 0 && (await pathExists(ftsPath))) {
+      console.warn(
+        pc.yellow(
+          "Postgres projection: synced 0 notes while fts.sqlite exists — re-run vault_fts_index or vkm-pg-migrate if the vault has notes."
+        )
       );
     }
     const resolvedBackend = backend ?? (dsn ? "dsn" : "pglite");
@@ -423,6 +478,21 @@ export async function configurePgHook(
       await fse.copy(packagedHookPath(ENSURE_PG_HOOK_BASENAME), hookDest, { overwrite: true });
     }
 
+    // External DSN lives in a 0o600 file under the vault's pg dir — never inline in
+    // settings.json (that file is world-readable to every process as the user). argv[4]
+    // carries the PATH; the hook reads the secret at respawn time.
+    /** @type {string | null} */
+    let dsnArg = null;
+    if (enable && dsn && vaultAbs) {
+      const dsnFile = hookDsnPath(vaultAbs, env);
+      await fse.ensureDir(path.dirname(dsnFile));
+      await fse.writeFile(dsnFile, `${dsn}\n`, { encoding: "utf8", mode: 0o600 });
+      dsnArg = dsnFile;
+      console.log(
+        pc.dim(`Postgres DSN stored in ${dsnFile} (0o600) — not written into settings.json`)
+      );
+    }
+
     if (invalidJson) {
       const bak = await backupRestricted(settingsFp, priorBytes);
       console.warn(pc.yellow("Invalid JSON in ~/.claude/settings.json; backed up to"), bak);
@@ -440,14 +510,13 @@ export async function configurePgHook(
           "*",
           {
             command: interpreter,
-            // argv[4] (optional) carries the DSN: hooks inherit no MCP env, so without it
-            // every hook-driven respawn would silently flip the service back to the
-            // embedded PGlite backend (pg-adapter selects the backend from env alone).
+            // argv[4] (optional) is the path to hook-dsn (or was historically the raw DSN).
+            // Hooks inherit no MCP env; without this every respawn flips back to PGlite.
             args: [
               hookDest,
               pgServiceScriptFromKitRoot(/** @type {string} */ (kitRoot)),
               vaultAbs,
-              ...(dsn ? [dsn] : [])
+              ...(dsnArg ? [dsnArg] : [])
             ]
           },
           ENSURE_PG_HOOK_STEM

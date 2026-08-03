@@ -61,3 +61,19 @@ test("the hero band title does not name a major version", () => {
     "drop the version from the band title so the asset survives a major"
   );
 });
+
+for (const parity of [
+  ["docs/en/codex-parity.md", "en"],
+  ["docs/es/codex-parity.md", "es"]
+]) {
+  test(`${parity[0]} names every shipped skill (or uses … ellipsis)`, () => {
+    const text = readFileSync(path.join(ROOT, parity[0]), "utf8");
+    if (text.includes("…") || text.includes("...")) return; // cursor-parity style
+    const missing = SHIPPED.filter((name) => !text.includes(name));
+    assert.deepEqual(
+      missing,
+      [],
+      `these skills ship but are not mentioned in ${parity[0]}: ${missing.join(", ")}`
+    );
+  });
+}
