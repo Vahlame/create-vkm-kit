@@ -631,9 +631,7 @@ export async function configureCursorPgHook(
       );
       // Put ensure-pg FIRST so the service is up before the vault-context hook runs.
       const list = Array.isArray(hookMap.sessionStart) ? [...hookMap.sessionStart] : [];
-      const ours = list.filter((h) =>
-        String(h?.command || "").includes(ENSURE_PG_HOOK_STEM)
-      );
+      const ours = list.filter((h) => String(h?.command || "").includes(ENSURE_PG_HOOK_STEM));
       const rest = list.filter((h) => !String(h?.command || "").includes(ENSURE_PG_HOOK_STEM));
       hookMap.sessionStart = [...ours, ...rest];
     } else {
