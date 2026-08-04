@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.5.3] - 2026-08-03
+
+### Changed
+
+- **Dependency bumps on current `main`:** `github.com/go-git/go-git/v5` 5.19.2,
+  `golang.org/x/sys` 0.47.0, `clipboardy` 5.3.2, `prettier` 3.9.6,
+  `markdownlint-cli` 0.49.1 (PRs #135, #138, #147).
+
 ## [5.5.2] - 2026-08-03
 
 ### Added
