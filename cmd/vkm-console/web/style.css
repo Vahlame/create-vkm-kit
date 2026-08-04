@@ -26,7 +26,10 @@ body {
     radial-gradient(ellipse 70% 40% at 100% -10%, rgba(14, 116, 144, 0.07), transparent 50%),
     linear-gradient(180deg, #f2f5f7 0%, var(--bg) 120px, var(--bg) 100%);
   color: var(--ink);
-  font: 14px/1.45 "Segoe UI", system-ui, sans-serif;
+  font:
+    14px/1.45 "Segoe UI",
+    system-ui,
+    sans-serif;
 }
 
 header {
@@ -434,6 +437,216 @@ canvas {
   background: #f3f6f8;
   border: 1px solid var(--edge);
   border-radius: 2px;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 14px 0 6px;
+}
+
+.section-head h3 {
+  margin: 0;
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid var(--edge);
+  background: var(--panel);
+  color: var(--ink);
+  font:
+    600 11px/1.2 "Segoe UI",
+    system-ui,
+    sans-serif;
+  padding: 4px 9px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #f4fbfd;
+}
+
+.btn.primary:hover {
+  filter: brightness(1.05);
+  color: #f4fbfd;
+}
+
+.graph-preview {
+  cursor: zoom-in;
+}
+
+.graph-preview:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* --- Fullscreen graph explorer (Obsidian-style interaction) --- */
+
+.graph-explorer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 1fr min(280px, 34vw);
+  background: #0f171c;
+  color: #e7eef2;
+}
+
+.graph-explorer.hidden {
+  display: none;
+}
+
+.ge-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #24323a;
+  background: #14212b;
+  flex-wrap: wrap;
+}
+
+.ge-left,
+.ge-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ge-bar h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.ge-bar .chip {
+  background: #1c2a33;
+  border-color: #334652;
+  color: #9db0bc;
+}
+
+.ge-bar .logo {
+  background: #14b8a6;
+  color: #042f2e;
+}
+
+.ge-filter {
+  width: min(240px, 40vw);
+  border: 1px solid #334652;
+  background: #0f171c;
+  color: #e7eef2;
+  border-radius: 2px;
+  padding: 5px 8px;
+  font: 12px/1.3 var(--mono);
+}
+
+.ge-filter::placeholder {
+  color: #6b7f8c;
+}
+
+.ge-bar .btn {
+  background: #1c2a33;
+  border-color: #334652;
+  color: #e7eef2;
+}
+
+.ge-bar .btn.primary {
+  background: #0e7490;
+  border-color: #0e7490;
+}
+
+#ge-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 45%, rgba(20, 184, 166, 0.06), transparent 70%), #0f171c;
+  border: 0;
+  border-radius: 0;
+  cursor: grab;
+}
+
+#ge-canvas.dragging {
+  cursor: grabbing;
+}
+
+.ge-side {
+  border-left: 1px solid #24323a;
+  background: #14212b;
+  padding: 14px 14px 20px;
+  overflow: auto;
+}
+
+.ge-hint {
+  margin: 0 0 14px;
+  font-size: 11px;
+  color: #8aa0ae;
+  line-height: 1.4;
+}
+
+.ge-note-title {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 650;
+  word-break: break-word;
+}
+
+.ge-note-meta {
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-family: var(--mono);
+}
+
+.ge-side h4 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8aa0ae;
+}
+
+.ge-side .list li {
+  border-bottom-color: #24323a;
+  cursor: pointer;
+}
+
+.ge-side .list li:hover .l {
+  color: #5eead4;
+}
+
+.ge-side .muted {
+  color: #8aa0ae;
+}
+
+body.ge-open {
+  overflow: hidden;
+}
+
+@media (max-width: 720px) {
+  .graph-explorer {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+  }
+
+  .ge-side {
+    border-left: 0;
+    border-top: 1px solid #24323a;
+    max-height: 34vh;
+  }
 }
 
 code.wrap,

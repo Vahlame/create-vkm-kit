@@ -104,13 +104,13 @@ notas a la red de casa no es una opción que deba existir.
 
 ## Los paneles
 
-| Panel        | Qué muestra                                                                                             | De dónde lo lee                                                                     |
-| ------------ | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| **Daemon**   | Edad del heartbeat, último push exitoso, commits sin empujar, rebases abortados, fallos consecutivos.   | El archivo de estado de `obsidian-memoryd`.                                         |
-| **Memoria**  | Conteo de notas, notas por carpeta, notas tocadas más recientemente — y los agregados de la proyección. | Un recorrido de solo lectura de los `.md` del vault, y `/api/stats` + `/api/graph`. |
-| **Tokens**   | Uso por día / modelo / tipo y ratio de acierto de caché.                                                | Los rollups NDJSON de `vkm-doctor` en `~/.vkm/telemetry/`.                          |
-| **Postgres** | Backend, conteo de filas, último sync y el timeline de actividad de la proyección.                      | `/api/health`, `/api/timeline`, `/api/stats`, `/api/graph` del pg-service.          |
-| **Research** | Búsquedas recientes de obscura y descargas.                                                             | El log de búsquedas de obscura y `~/Downloads/vkm-kit/`.                            |
+| Panel        | Qué muestra                                                                                                              | De dónde lo lee                                                                     |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| **Daemon**   | Edad del heartbeat, último push exitoso, commits sin empujar, rebases abortados, fallos consecutivos.                    | El archivo de estado de `obsidian-memoryd`.                                         |
+| **Memoria**  | Conteo de notas, notas por carpeta, notas tocadas más recientemente — y los agregados de la proyección.                  | Un recorrido de solo lectura de los `.md` del vault, y `/api/stats` + `/api/graph`. |
+| **Tokens**   | Uso por día / modelo / tipo y ratio de acierto de caché.                                                                 | Los rollups NDJSON de `vkm-doctor` en `~/.vkm/telemetry/`.                          |
+| **Postgres** | Backend, conteo de filas, último sync, timeline, mini-grafo + **Abrir grafo** (explorador fullscreen pan/zoom/arrastre). | `/api/health`, `/api/timeline`, `/api/stats`, `/api/graph` del pg-service.          |
+| **Research** | Búsquedas recientes de obscura y descargas.                                                                              | El log de búsquedas de obscura y `~/Downloads/vkm-kit/`.                            |
 
 Cada colector es **fail-soft**: una fuente ausente o rota devuelve un error legible y su
 tarjeta se muestra "apagada" en vez de tumbar la página. El daemon, la proyección y obscura

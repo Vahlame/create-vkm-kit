@@ -16,18 +16,31 @@
       </div>
       <div class="hdr-right">
         <span id="hdr-vault" class="vault-path" title="vault">–</span>
-        <span class="conn"><span id="conn-dot" class="dot off"></span><span id="conn-label" data-en="connecting">conectando</span></span>
+        <span class="conn"
+          ><span id="conn-dot" class="dot off"></span
+          ><span id="conn-label" data-en="connecting">conectando</span></span
+        >
         <a id="lang-toggle" class="lang" href="?lang=en">EN</a>
       </div>
     </header>
 
     <div class="strip" id="status-strip">
-      <span class="st" id="st-daemon"><span class="dot off"></span><span data-en="Daemon">Daemon</span></span>
-      <span class="st" id="st-vault"><span class="dot off"></span><span data-en="Memory">Memoria</span></span>
+      <span class="st" id="st-daemon"
+        ><span class="dot off"></span><span data-en="Daemon">Daemon</span></span
+      >
+      <span class="st" id="st-vault"
+        ><span class="dot off"></span><span data-en="Memory">Memoria</span></span
+      >
       <span class="st" id="st-pg"><span class="dot off"></span>Postgres</span>
-      <span class="st" id="st-tel"><span class="dot off"></span><span data-en="Telemetry">Telemetría</span></span>
-      <span class="st" id="st-research"><span class="dot off"></span><span data-en="Research">Investigación</span></span>
-      <span class="st time"><span data-en="updated">actualizado</span> <span id="st-updated">–</span></span>
+      <span class="st" id="st-tel"
+        ><span class="dot off"></span><span data-en="Telemetry">Telemetría</span></span
+      >
+      <span class="st" id="st-research"
+        ><span class="dot off"></span><span data-en="Research">Investigación</span></span
+      >
+      <span class="st time"
+        ><span data-en="updated">actualizado</span> <span id="st-updated">–</span></span
+      >
     </div>
 
     <main class="grid">
@@ -35,7 +48,9 @@
         <h2 data-en="Daemon">Daemon</h2>
         <div class="gauge-wrap">
           <div class="gauge"><div id="d-gauge" class="gauge-fill"></div></div>
-          <div class="gauge-label"><span data-en="heartbeat">latido</span>: <span id="d-age">–</span></div>
+          <div class="gauge-label">
+            <span data-en="heartbeat">latido</span>: <span id="d-age">–</span>
+          </div>
         </div>
         <dl>
           <dt data-en="last push">último push</dt>
@@ -74,13 +89,26 @@
           <dt data-en="observations">observaciones</dt>
           <dd id="p-observations">–</dd>
         </dl>
-        <p class="kv"><span data-en="last sync">último sync</span>: <span id="p-lastsync">–</span></p>
+        <p class="kv">
+          <span data-en="last sync">último sync</span>: <span id="p-lastsync">–</span>
+        </p>
         <div id="p-start" class="hidden">
           <p data-en="start it with:">arráncalo con:</p>
           <code id="p-startcmd" class="mono wrap"></code>
         </div>
-        <h3 data-en="graph">grafo</h3>
-        <canvas id="p-graph" width="320" height="200"></canvas>
+        <div class="section-head">
+          <h3 data-en="graph">grafo</h3>
+          <button
+            type="button"
+            id="p-graph-open"
+            class="btn"
+            data-en="Open large graph"
+            title="Abrir grafo interactivo"
+          >
+            Abrir grafo
+          </button>
+        </div>
+        <canvas id="p-graph" width="320" height="200" class="graph-preview" tabindex="0"></canvas>
         <h3 data-en="activity">actividad</h3>
         <ul id="p-activity" class="list mono"></ul>
         <p id="p-error" class="err hidden"></p>
@@ -109,7 +137,51 @@
     </main>
 
     <footer>
-      <span data-en="local only (127.0.0.1) — no data leaves this machine">solo local (127.0.0.1) — ningún dato sale de esta máquina</span>
+      <span data-en="local only (127.0.0.1) — no data leaves this machine"
+        >solo local (127.0.0.1) — ningún dato sale de esta máquina</span
+      >
     </footer>
+
+    <div
+      id="graph-explorer"
+      class="graph-explorer hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="ge-title"
+    >
+      <div class="ge-bar">
+        <div class="ge-left">
+          <span class="logo">vkm</span>
+          <h2 id="ge-title" data-en="Graph explorer">Explorador de grafo</h2>
+          <span id="ge-stats" class="chip">–</span>
+        </div>
+        <div class="ge-right">
+          <input
+            id="ge-filter"
+            type="search"
+            class="ge-filter"
+            placeholder="filtrar notas…"
+            data-en-placeholder="filter notes…"
+            autocomplete="off"
+          />
+          <button type="button" id="ge-reset" class="btn" data-en="Reset view">Reset</button>
+          <button type="button" id="ge-close" class="btn primary" data-en="Close">Cerrar</button>
+        </div>
+      </div>
+      <canvas id="ge-canvas"></canvas>
+      <aside id="ge-side" class="ge-side">
+        <p
+          id="ge-hint"
+          class="ge-hint"
+          data-en="Drag nodes · scroll to zoom · pan empty space · click a note"
+        >
+          Arrastrá nodos · scroll para zoom · arrastrá el fondo · clic en una nota
+        </p>
+        <h3 id="ge-note-title" class="ge-note-title">–</h3>
+        <p id="ge-note-meta" class="ge-note-meta muted">–</p>
+        <h4 data-en="neighbors">vecinos</h4>
+        <ul id="ge-neighbors" class="list mono"></ul>
+      </aside>
+    </div>
   </body>
 </html>

@@ -22,7 +22,10 @@ body {
     radial-gradient(ellipse 80% 50% at 10% 0%, rgba(14, 116, 144, 0.08), transparent 55%),
     linear-gradient(180deg, #f3f6f8 0%, var(--bg) 100%);
   color: var(--ink);
-  font: 16px/1.5 "Segoe UI", system-ui, sans-serif;
+  font:
+    16px/1.5 "Segoe UI",
+    system-ui,
+    sans-serif;
   padding: 24px;
 }
 

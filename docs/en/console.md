@@ -104,13 +104,13 @@ of your notes to a home network is not an option that should exist.
 
 ## The panels
 
-| Panel        | What it shows                                                                                | Where it reads from                                                           |
-| ------------ | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| **Daemon**   | Heartbeat age, last successful push, unpushed commits, rebase aborts, consecutive failures.  | `obsidian-memoryd`'s state file.                                              |
-| **Memory**   | Note count, notes by folder, most recently touched notes — plus the projection's aggregates. | A read-only walk of the vault's `.md` files, and `/api/stats` + `/api/graph`. |
-| **Tokens**   | Usage per day / model / type and cache-hit ratio.                                            | `vkm-doctor`'s NDJSON rollups in `~/.vkm/telemetry/`.                         |
-| **Postgres** | Backend, row counts, last sync, and the projection's activity timeline.                      | `/api/health`, `/api/timeline`, `/api/stats`, `/api/graph` on the pg-service. |
-| **Research** | Recent obscura searches and downloads.                                                       | The obscura search log and `~/Downloads/vkm-kit/`.                            |
+| Panel        | What it shows                                                                                                             | Where it reads from                                                           |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **Daemon**   | Heartbeat age, last successful push, unpushed commits, rebase aborts, consecutive failures.                               | `obsidian-memoryd`'s state file.                                              |
+| **Memory**   | Note count, notes by folder, most recently touched notes — plus the projection's aggregates.                              | A read-only walk of the vault's `.md` files, and `/api/stats` + `/api/graph`. |
+| **Tokens**   | Usage per day / model / type and cache-hit ratio.                                                                         | `vkm-doctor`'s NDJSON rollups in `~/.vkm/telemetry/`.                         |
+| **Postgres** | Backend, row counts, last sync, activity timeline, mini graph + **Open large graph** (fullscreen pan/zoom/drag explorer). | `/api/health`, `/api/timeline`, `/api/stats`, `/api/graph` on the pg-service. |
+| **Research** | Recent obscura searches and downloads.                                                                                    | The obscura search log and `~/Downloads/vkm-kit/`.                            |
 
 Every collector is **fail-soft**: a missing or broken source returns an error string and its
 card renders as "off" instead of taking the page down. The daemon, the projection and

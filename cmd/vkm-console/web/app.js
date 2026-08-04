@@ -20,6 +20,9 @@
     for (const el of document.querySelectorAll("[data-en]")) {
       el.textContent = el.getAttribute("data-en");
     }
+    for (const el of document.querySelectorAll("[data-en-placeholder]")) {
+      el.placeholder = el.getAttribute("data-en-placeholder");
+    }
     document.documentElement.lang = "en";
   }
   const toggle = document.getElementById("lang-toggle");
@@ -226,6 +229,7 @@
     }
     while (list.children.length > 15) list.removeChild(list.lastChild);
     renderGraph(svc ? svc.graph : null);
+    graphExplorer.setGraph(svc ? svc.graph : null);
     setError("p-error", pg);
   }
 
@@ -253,7 +257,7 @@
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, w, h);
     if (!nodes.length) {
-      ctx.fillStyle = "#4a5262";
+      ctx.fillStyle = "#6b7c88";
       ctx.font = "12px system-ui";
       ctx.fillText(L("sin datos de grafo", "no graph data"), 12, 20);
       return;
@@ -271,7 +275,7 @@
       deg[a] += 1;
       deg[b] += 1;
     }
-    ctx.strokeStyle = "rgba(90, 200, 250, 0.25)";
+    ctx.strokeStyle = "rgba(14, 116, 144, 0.28)";
     ctx.lineWidth = 1;
     for (const [a, b] of links) {
       ctx.beginPath();
@@ -281,7 +285,7 @@
     }
     for (let i = 0; i < nodes.length; i++) {
       ctx.beginPath();
-      ctx.fillStyle = deg[i] > 2 ? "#5ac8fa" : "#7a86a0";
+      ctx.fillStyle = deg[i] > 2 ? "#0e7490" : "#7a8f9c";
       ctx.arc(pos.x[i] * w, pos.y[i] * h, Math.min(5, 2 + deg[i] * 0.6), 0, Math.PI * 2);
       ctx.fill();
     }
@@ -338,6 +342,424 @@
     }
     return { x, y };
   }
+
+  // --- Fullscreen interactive graph (Obsidian-style pan/zoom/drag) -------
+
+  const GE_MAX_NODES = 500;
+  const graphExplorer = (() => {
+    const root = $("graph-explorer");
+    const canvas = $("ge-canvas");
+    const filterEl = $("ge-filter");
+    const titleEl = $("ge-note-title");
+    const metaEl = $("ge-note-meta");
+    const neighEl = $("ge-neighbors");
+    const ctx = canvas.getContext("2d");
+
+    let open = false;
+    let rawGraph = null;
+    let nodes = [];
+    let links = [];
+    let adj = [];
+    let deg = [];
+    let labels = [];
+    let x = null;
+    let y = null;
+    let layoutSig = "";
+    let cam = { x: 0, y: 0, k: 1 };
+    let selected = -1;
+    let hover = -1;
+    let filter = "";
+    let match = null; // Boolean array or null = all
+    let drag = null; // { kind:'pan'|'node', i, sx, sy, ox, oy }
+    let raf = 0;
+    let world = 900;
+
+    function shortLabel(path) {
+      if (!path) return "?";
+      const base = path.replace(/\\/g, "/").split("/").pop() || path;
+      return base.replace(/\.md$/i, "");
+    }
+
+    function schedule() {
+      if (raf || !open) return;
+      raf = window.requestAnimationFrame(() => {
+        raf = 0;
+        draw();
+      });
+    }
+
+    function resize() {
+      if (!open) return;
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.clientWidth || 1;
+      const h = canvas.clientHeight || 1;
+      canvas.width = Math.max(1, Math.floor(w * dpr));
+      canvas.height = Math.max(1, Math.floor(h * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      schedule();
+    }
+
+    function build(graph) {
+      const all = graph && Array.isArray(graph.nodes) ? graph.nodes : [];
+      // Prefer higher-degree notes when we have to truncate.
+      const scored = all
+        .map((n, i) => ({ n, i, d: typeof n.degree === "number" ? n.degree : 0 }))
+        .sort((a, b) => b.d - a.d || a.i - b.i)
+        .slice(0, GE_MAX_NODES)
+        .map((r) => r.n);
+      nodes = scored;
+      const byPath = new Map(nodes.map((n, i) => [n.path, i]));
+      links = [];
+      adj = Array.from({ length: nodes.length }, () => []);
+      const rawEdges = graph && Array.isArray(graph.edges) ? graph.edges : [];
+      for (const e of rawEdges) {
+        const a = byPath.get(e.source);
+        const b = byPath.get(e.target);
+        if (a === undefined || b === undefined || a === b) continue;
+        links.push([a, b]);
+        adj[a].push(b);
+        adj[b].push(a);
+      }
+      deg = adj.map((ns) => ns.length);
+      labels = nodes.map((n) => shortLabel(n.path));
+      const sig =
+        nodes.map((n) => n.path).join("|") + "#" + links.map(([a, b]) => a + ">" + b).join("|");
+      if (sig !== layoutSig) {
+        layoutSig = sig;
+        const pos = layoutGraph(nodes.length, links);
+        // Map unit layout → world pixels for freer pan/zoom.
+        world = Math.max(720, Math.sqrt(Math.max(nodes.length, 1)) * 48);
+        x = new Float64Array(nodes.length);
+        y = new Float64Array(nodes.length);
+        for (let i = 0; i < nodes.length; i++) {
+          x[i] = (pos.x[i] - 0.5) * world;
+          y[i] = (pos.y[i] - 0.5) * world;
+        }
+        cam = { x: 0, y: 0, k: 1 };
+        selected = -1;
+      }
+      applyFilter();
+      setText(
+        "ge-stats",
+        nodes.length
+          ? nodes.length +
+              " · " +
+              links.length +
+              (all.length > nodes.length ? " / " + all.length : "")
+          : L("sin datos", "no data")
+      );
+      renderSide();
+      schedule();
+    }
+
+    function applyFilter() {
+      const q = filter.trim().toLowerCase();
+      if (!q) {
+        match = null;
+        return;
+      }
+      match = nodes.map(
+        (n, i) => (n.path || "").toLowerCase().includes(q) || labels[i].toLowerCase().includes(q)
+      );
+    }
+
+    function toScreen(wx, wy, w, h) {
+      return {
+        x: w / 2 + (wx - cam.x) * cam.k,
+        y: h / 2 + (wy - cam.y) * cam.k
+      };
+    }
+
+    function toWorld(sx, sy, w, h) {
+      return {
+        x: cam.x + (sx - w / 2) / cam.k,
+        y: cam.y + (sy - h / 2) / cam.k
+      };
+    }
+
+    function hitTest(sx, sy, w, h) {
+      let best = -1;
+      let bestD = 14;
+      for (let i = 0; i < nodes.length; i++) {
+        if (match && !match[i]) continue;
+        const p = toScreen(x[i], y[i], w, h);
+        const r = Math.max(3, Math.min(10, 3 + deg[i] * 0.55)) * Math.min(1.4, cam.k);
+        const d = Math.hypot(p.x - sx, p.y - sy);
+        if (d <= r + 4 && d < bestD) {
+          best = i;
+          bestD = d;
+        }
+      }
+      return best;
+    }
+
+    function neighborSet(i) {
+      const set = new Set();
+      if (i < 0) return set;
+      set.add(i);
+      for (const j of adj[i]) set.add(j);
+      return set;
+    }
+
+    function draw() {
+      if (!open) return;
+      const w = canvas.clientWidth || 1;
+      const h = canvas.clientHeight || 1;
+      ctx.clearRect(0, 0, w, h);
+
+      if (!nodes.length) {
+        ctx.fillStyle = "#8aa0ae";
+        ctx.font = "14px system-ui";
+        ctx.fillText(
+          L("sin datos de grafo — ¿Postgres corriendo?", "no graph data — is Postgres up?"),
+          24,
+          40
+        );
+        return;
+      }
+
+      const focus = neighborSet(selected);
+      const dim = selected >= 0;
+
+      // Edges
+      for (const [a, b] of links) {
+        if (match && !match[a] && !match[b]) continue;
+        const pa = toScreen(x[a], y[a], w, h);
+        const pb = toScreen(x[b], y[b], w, h);
+        const hot = !dim || (focus.has(a) && focus.has(b));
+        ctx.strokeStyle = hot ? "rgba(94, 234, 212, 0.35)" : "rgba(52, 70, 82, 0.25)";
+        ctx.lineWidth = hot && dim ? 1.6 : 1;
+        ctx.beginPath();
+        ctx.moveTo(pa.x, pa.y);
+        ctx.lineTo(pb.x, pb.y);
+        ctx.stroke();
+      }
+
+      // Nodes
+      for (let i = 0; i < nodes.length; i++) {
+        if (match && !match[i]) continue;
+        const p = toScreen(x[i], y[i], w, h);
+        if (p.x < -20 || p.y < -20 || p.x > w + 20 || p.y > h + 20) continue;
+        const r = Math.max(3, Math.min(10, 3 + deg[i] * 0.55));
+        const hot = !dim || focus.has(i);
+        const isSel = i === selected;
+        const isHov = i === hover;
+        ctx.beginPath();
+        if (isSel) {
+          ctx.fillStyle = "#5eead4";
+          ctx.strokeStyle = "#99f6e4";
+          ctx.lineWidth = 2;
+        } else if (isHov) {
+          ctx.fillStyle = "#2dd4bf";
+          ctx.strokeStyle = "#5eead4";
+          ctx.lineWidth = 1.5;
+        } else if (hot) {
+          ctx.fillStyle = deg[i] > 3 ? "#14b8a6" : "#5b7c8a";
+          ctx.strokeStyle = "transparent";
+        } else {
+          ctx.fillStyle = "rgba(58, 78, 90, 0.45)";
+          ctx.strokeStyle = "transparent";
+        }
+        ctx.globalAlpha = match && !match[i] ? 0.15 : hot ? 1 : 0.25;
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+        ctx.fill();
+        if (isSel || isHov) ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      // Labels: selected + hover + high-degree hubs when zoomed in
+      const labelBudget = cam.k >= 1.2 ? 40 : cam.k >= 0.85 ? 18 : 8;
+      const labeled = new Set();
+      const maybeLabel = (i, force) => {
+        if (i < 0 || labeled.has(i)) return;
+        if (match && !match[i]) return;
+        if (!force && labeled.size >= labelBudget) return;
+        const p = toScreen(x[i], y[i], w, h);
+        if (p.x < 8 || p.y < 8 || p.x > w - 8 || p.y > h - 8) return;
+        labeled.add(i);
+        ctx.font = (i === selected || i === hover ? "600 " : "") + "11px system-ui";
+        ctx.fillStyle = i === selected || i === hover ? "#ecfeff" : "#9db0bc";
+        ctx.fillText(labels[i], p.x + 8, p.y + 3);
+      };
+      maybeLabel(selected, true);
+      maybeLabel(hover, true);
+      if (selected >= 0) {
+        for (const j of adj[selected]) maybeLabel(j, true);
+      }
+      const hubs = nodes
+        .map((_, i) => i)
+        .filter((i) => !match || match[i])
+        .sort((a, b) => deg[b] - deg[a]);
+      for (const i of hubs) maybeLabel(i, false);
+    }
+
+    function renderSide() {
+      if (selected < 0 || !nodes[selected]) {
+        titleEl.textContent = L("ninguna nota seleccionada", "no note selected");
+        metaEl.textContent = L("clic en un nodo del grafo", "click a node in the graph");
+        neighEl.replaceChildren();
+        return;
+      }
+      const n = nodes[selected];
+      titleEl.textContent = labels[selected];
+      metaEl.textContent = (n.path || "") + " · deg " + deg[selected];
+      const frag = document.createDocumentFragment();
+      const seen = new Set();
+      for (const j of adj[selected]) {
+        if (seen.has(j)) continue;
+        seen.add(j);
+        const item = li(labels[j], String(deg[j]));
+        item.dataset.idx = String(j);
+        frag.append(item);
+      }
+      neighEl.replaceChildren(frag);
+    }
+
+    function select(i) {
+      selected = i;
+      renderSide();
+      if (i >= 0) {
+        // Soft-center on selection without resetting zoom.
+        cam.x += (x[i] - cam.x) * 0.35;
+        cam.y += (y[i] - cam.y) * 0.35;
+      }
+      schedule();
+    }
+
+    function openExplorer() {
+      if (open) return;
+      open = true;
+      root.classList.remove("hidden");
+      document.body.classList.add("ge-open");
+      build(rawGraph);
+      resize();
+      filterEl.focus();
+    }
+
+    function closeExplorer() {
+      if (!open) return;
+      open = false;
+      root.classList.add("hidden");
+      document.body.classList.remove("ge-open");
+      drag = null;
+      canvas.classList.remove("dragging");
+    }
+
+    function resetView() {
+      cam = { x: 0, y: 0, k: 1 };
+      selected = -1;
+      renderSide();
+      schedule();
+    }
+
+    function setGraph(graph) {
+      rawGraph = graph;
+      if (open) build(graph);
+    }
+
+    // Pointer interactions
+    canvas.addEventListener("pointerdown", (ev) => {
+      if (!open) return;
+      canvas.setPointerCapture(ev.pointerId);
+      const rect = canvas.getBoundingClientRect();
+      const sx = ev.clientX - rect.left;
+      const sy = ev.clientY - rect.top;
+      const w = rect.width;
+      const h = rect.height;
+      const i = hitTest(sx, sy, w, h);
+      if (i >= 0) {
+        drag = { kind: "node", i, sx, sy, ox: x[i], oy: y[i] };
+        select(i);
+      } else {
+        drag = { kind: "pan", sx, sy, ox: cam.x, oy: cam.y };
+        canvas.classList.add("dragging");
+      }
+    });
+    canvas.addEventListener("pointermove", (ev) => {
+      if (!open) return;
+      const rect = canvas.getBoundingClientRect();
+      const sx = ev.clientX - rect.left;
+      const sy = ev.clientY - rect.top;
+      const w = rect.width;
+      const h = rect.height;
+      if (drag) {
+        if (drag.kind === "pan") {
+          cam.x = drag.ox - (sx - drag.sx) / cam.k;
+          cam.y = drag.oy - (sy - drag.sy) / cam.k;
+        } else {
+          const ww = toWorld(sx, sy, w, h);
+          x[drag.i] = ww.x;
+          y[drag.i] = ww.y;
+        }
+        schedule();
+        return;
+      }
+      const i = hitTest(sx, sy, w, h);
+      if (i !== hover) {
+        hover = i;
+        canvas.style.cursor = i >= 0 ? "pointer" : "grab";
+        schedule();
+      }
+    });
+    const endDrag = () => {
+      drag = null;
+      canvas.classList.remove("dragging");
+      if (hover < 0) canvas.style.cursor = "grab";
+    };
+    canvas.addEventListener("pointerup", endDrag);
+    canvas.addEventListener("pointercancel", endDrag);
+    canvas.addEventListener(
+      "wheel",
+      (ev) => {
+        if (!open) return;
+        ev.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const sx = ev.clientX - rect.left;
+        const sy = ev.clientY - rect.top;
+        const w = rect.width;
+        const h = rect.height;
+        const before = toWorld(sx, sy, w, h);
+        const factor = ev.deltaY < 0 ? 1.12 : 1 / 1.12;
+        cam.k = Math.max(0.25, Math.min(4.5, cam.k * factor));
+        const after = toWorld(sx, sy, w, h);
+        cam.x += before.x - after.x;
+        cam.y += before.y - after.y;
+        schedule();
+      },
+      { passive: false }
+    );
+
+    filterEl.addEventListener("input", () => {
+      filter = filterEl.value || "";
+      applyFilter();
+      schedule();
+    });
+    neighEl.addEventListener("click", (ev) => {
+      const liEl = ev.target.closest("li[data-idx]");
+      if (!liEl) return;
+      select(Number(liEl.dataset.idx));
+    });
+    $("ge-close").addEventListener("click", closeExplorer);
+    $("ge-reset").addEventListener("click", resetView);
+    $("p-graph-open").addEventListener("click", openExplorer);
+    $("p-graph").addEventListener("click", openExplorer);
+    $("p-graph").addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter" || ev.key === " ") {
+        ev.preventDefault();
+        openExplorer();
+      }
+    });
+    document.addEventListener("keydown", (ev) => {
+      if (!open) return;
+      if (ev.key === "Escape") {
+        ev.preventDefault();
+        closeExplorer();
+      }
+    });
+    window.addEventListener("resize", resize);
+
+    return { setGraph, open: openExplorer, close: closeExplorer };
+  })();
 
   // --- Tokens card -------------------------------------------------------
 

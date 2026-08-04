@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [5.5.2] - 2026-08-03
 
+### Added
+
+- **`vkm-console` interactive graph explorer** — Postgres card button “Abrir grafo” (also
+  click the preview) opens a fullscreen Obsidian-style view: pan, scroll-zoom, drag nodes,
+  hover/select labels, neighbor sidebar, and text filter. Graph API fetch raised to
+  `limit=800` (explorer caps layout at 500 hubs).
+
 ### Fixed
 
 - **`vkm-console` no longer paints a blank white page.** `/static/*` (CSS/JS) only needs a
