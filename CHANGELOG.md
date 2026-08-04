@@ -23,6 +23,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   sticky status strip; sharper panels.
 - **Desktop shortcut helper** — `node scripts/install-console-shortcut.mjs` writes
   `Desktop\vkm-console.lnk` → `bin\vkm-console.exe --vault … --open`.
+- **Postgres keep-alive on Cursor too** — `ensure-pg-service` installs into
+  `~/.cursor/hooks.json` `sessionStart` (not only Claude). A Windows Startup shortcut
+  `vkm-pg-keepalive.lnk` also respawns the projection at login so the console / any IDE
+  does not wake to “Postgres detenido” after the process died overnight.
 
 ## [5.5.1] - 2026-08-03
 

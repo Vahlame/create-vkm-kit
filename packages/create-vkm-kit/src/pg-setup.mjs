@@ -28,9 +28,17 @@ import {
   setOrDeleteHooks
 } from "./settings-io.mjs";
 import { hookDsnPath, pgServiceDir } from "./hooks/ensure-pg-service.mjs";
+import { mergeCursorHook, removeCursorHook } from "./cursor-native.mjs";
 
 export const ENSURE_PG_HOOK_STEM = "ensure-pg-service";
 export const ENSURE_PG_HOOK_BASENAME = `${ENSURE_PG_HOOK_STEM}.mjs`;
+
+/** Quote a Cursor hooks.json command the same way cursor-native.mjs does. */
+function cursorHookCommand(script, args = []) {
+  return ["node", script, ...args]
+    .map((part) => `"${String(part).replaceAll('"', '\\"')}"`)
+    .join(" ");
+}
 
 /** Default process-signal implementation; injectable so tests never signal real pids. */
 const defaultKill = (pid, signal) => process.kill(pid, signal);
@@ -544,6 +552,115 @@ export async function configurePgHook(
 }
 
 /**
+ * Cursor sessionStart keep-alive for the pg-service — same ensure-pg-service.mjs as
+ * Claude, wired into `~/.cursor/hooks.json`. Without this, only Claude SessionStart
+ * respawned the projection and Cursor sessions saw "Postgres detenido" after the
+ * process died overnight.
+ * @param {string} home
+ * @param {boolean} dryRun
+ * @param {{ enable?: boolean, kitRoot?: string | null, vaultAbs?: string | null,
+ *   dsn?: string | null, env?: NodeJS.ProcessEnv }} [opts]
+ */
+export async function configureCursorPgHook(
+  home,
+  dryRun,
+  { enable = true, kitRoot = null, vaultAbs = null, dsn = null, env = process.env } = {}
+) {
+  const cursorDir = path.join(home, ".cursor");
+  const hooksDir = path.join(cursorDir, "hooks");
+  const hooksFp = path.join(cursorDir, "hooks.json");
+  const hookDest = path.join(hooksDir, ENSURE_PG_HOOK_BASENAME);
+
+  try {
+    if (enable && (!kitRoot || !vaultAbs)) {
+      console.log(
+        pc.dim("Cursor Postgres keep-alive skipped: needs a kit clone to host the pg-service.")
+      );
+      return;
+    }
+    if (dryRun) {
+      console.log(
+        pc.cyan(
+          enable
+            ? "[dry-run] would install Cursor sessionStart pg-service keep-alive"
+            : "[dry-run] would remove Cursor pg-service keep-alive"
+        )
+      );
+      return;
+    }
+
+    let dsnArg = null;
+    if (enable && dsn && vaultAbs) {
+      const dsnFile = hookDsnPath(vaultAbs, env);
+      await fse.ensureDir(path.dirname(dsnFile));
+      await fse.writeFile(dsnFile, `${dsn}\n`, { encoding: "utf8", mode: 0o600 });
+      dsnArg = dsnFile;
+    }
+
+    if (enable) {
+      await fse.ensureDir(hooksDir);
+      await fse.copy(packagedHookPath(ENSURE_PG_HOOK_BASENAME), hookDest, { overwrite: true });
+    }
+
+    let { existing, priorBytes, invalidJson } = await readSettingsSafe(hooksFp);
+    if (invalidJson) {
+      const bak = await backupRestricted(hooksFp, priorBytes);
+      console.warn(pc.yellow("Invalid JSON in ~/.cursor/hooks.json; backed up to"), bak);
+      existing = {};
+    }
+    const document =
+      existing && typeof existing === "object" && !Array.isArray(existing) ? { ...existing } : {};
+    document.version = 1;
+    let hookMap =
+      document.hooks && typeof document.hooks === "object" && !Array.isArray(document.hooks)
+        ? { ...document.hooks }
+        : {};
+
+    if (enable) {
+      const args = [
+        hookDest,
+        pgServiceScriptFromKitRoot(/** @type {string} */ (kitRoot)),
+        /** @type {string} */ (vaultAbs),
+        ...(dsnArg ? [dsnArg] : [])
+      ];
+      hookMap = mergeCursorHook(
+        hookMap,
+        "sessionStart",
+        { command: cursorHookCommand(args[0], args.slice(1)) },
+        ENSURE_PG_HOOK_STEM
+      );
+      // Put ensure-pg FIRST so the service is up before the vault-context hook runs.
+      const list = Array.isArray(hookMap.sessionStart) ? [...hookMap.sessionStart] : [];
+      const ours = list.filter((h) =>
+        String(h?.command || "").includes(ENSURE_PG_HOOK_STEM)
+      );
+      const rest = list.filter((h) => !String(h?.command || "").includes(ENSURE_PG_HOOK_STEM));
+      hookMap.sessionStart = [...ours, ...rest];
+    } else {
+      hookMap = removeCursorHook(hookMap, "sessionStart", ENSURE_PG_HOOK_STEM);
+    }
+
+    if (Object.keys(hookMap).length) document.hooks = hookMap;
+    else delete document.hooks;
+    await atomicWriteJson(hooksFp, document);
+
+    if (enable) {
+      console.log(
+        pc.green("Cursor Postgres keep-alive:"),
+        pc.dim("sessionStart respawns the pg-service when it is not running")
+      );
+    } else {
+      console.log(pc.green("Cursor Postgres keep-alive removed:"), hooksFp);
+    }
+  } catch (e) {
+    console.warn(
+      pc.yellow("Could not configure the Cursor pg-service hook (skipped):"),
+      e?.message || e
+    );
+  }
+}
+
+/**
  * Full teardown: the settings entry + the hook script file (marker-checked) + every live
  * pg-service under the data root — `--uninstall` has no vault argument, so it sweeps the
  * slug dirs (see {@link stopAllPgServices}) instead of stopping one vault's service.
@@ -558,27 +675,33 @@ export async function uninstallPgHook(
   { env = process.env, killImpl = defaultKill } = {}
 ) {
   await configurePgHook(home, dryRun, { enable: false });
+  await configureCursorPgHook(home, dryRun, { enable: false });
   await stopAllPgServices(dryRun, { env, killImpl });
-  const fp = path.join(home, ".claude", "hooks", ENSURE_PG_HOOK_BASENAME);
-  if (!(await fse.pathExists(fp))) return;
-  const owned = await isKitOwnedFile(fp);
-  if (dryRun) {
-    console.log(
-      owned
-        ? pc.cyan("[dry-run] would remove")
-        : pc.yellow("[dry-run] would SKIP (not recognized as this kit's file)"),
-      pc.dim(fp)
-    );
-    return;
-  }
-  if (!owned) {
-    console.warn(pc.yellow("Skipped (not recognized as this kit's file):"), fp);
-    return;
-  }
-  try {
-    await fse.remove(fp);
-    console.log(pc.green("Removed"), pc.dim(fp));
-  } catch (e) {
-    console.warn(pc.yellow("Could not remove"), fp, e?.message || e);
+  for (const rel of [
+    path.join(".claude", "hooks", ENSURE_PG_HOOK_BASENAME),
+    path.join(".cursor", "hooks", ENSURE_PG_HOOK_BASENAME)
+  ]) {
+    const fp = path.join(home, rel);
+    if (!(await fse.pathExists(fp))) continue;
+    const owned = await isKitOwnedFile(fp);
+    if (dryRun) {
+      console.log(
+        owned
+          ? pc.cyan("[dry-run] would remove")
+          : pc.yellow("[dry-run] would SKIP (not recognized as this kit's file)"),
+        pc.dim(fp)
+      );
+      continue;
+    }
+    if (!owned) {
+      console.warn(pc.yellow("Skipped (not recognized as this kit's file):"), fp);
+      continue;
+    }
+    try {
+      await fse.remove(fp);
+      console.log(pc.green("Removed"), pc.dim(fp));
+    } catch (e) {
+      console.warn(pc.yellow("Could not remove"), fp, e?.message || e);
+    }
   }
 }

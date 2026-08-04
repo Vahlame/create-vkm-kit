@@ -22,6 +22,7 @@ import { fileURLToPath } from "node:url";
 import {
   maybeSetupPostgres,
   configurePgHook,
+  configureCursorPgHook,
   uninstallPgHook,
   pickInstallSyncMode
 } from "../src/pg-setup.mjs";
@@ -367,6 +368,48 @@ test("configurePgHook installs the SessionStart entry with script + vault argv, 
   await configurePgHook(home, false, { enable: false });
   const after = JSON.parse(fs.readFileSync(settingsFp, "utf8"));
   assert.equal(after.hooks?.SessionStart, undefined, "no empty husk left behind");
+});
+
+test("configureCursorPgHook installs sessionStart ensure-pg ahead of other Cursor hooks", async () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "vkm-pg-cursor-hook-"));
+  const vault = path.join(home, "vault");
+  const hooksFp = path.join(home, ".cursor", "hooks.json");
+  fs.mkdirSync(path.dirname(hooksFp), { recursive: true });
+  fs.writeFileSync(
+    hooksFp,
+    JSON.stringify({
+      version: 1,
+      hooks: {
+        sessionStart: [{ command: '"node" "C:\\\\x\\\\cursor-session-start.mjs" "v" "es"' }]
+      }
+    }),
+    "utf8"
+  );
+
+  await configureCursorPgHook(home, false, {
+    enable: true,
+    kitRoot: repoRoot,
+    vaultAbs: vault
+  });
+
+  const doc = JSON.parse(fs.readFileSync(hooksFp, "utf8"));
+  const list = doc.hooks.sessionStart;
+  assert.ok(list.length >= 2, "ensure-pg + prior sessionStart entry");
+  assert.match(list[0].command, /ensure-pg-service\.mjs/, "ensure-pg runs first");
+  assert.match(list[0].command, /pg-service\.mjs/);
+  assert.ok(
+    fs.existsSync(path.join(home, ".cursor", "hooks", "ensure-pg-service.mjs")),
+    "hook script copied into ~/.cursor/hooks/"
+  );
+
+  await configureCursorPgHook(home, false, { enable: false });
+  const after = JSON.parse(fs.readFileSync(hooksFp, "utf8"));
+  assert.equal(
+    (after.hooks.sessionStart || []).some((h) => String(h.command).includes("ensure-pg-service")),
+    false,
+    "ensure-pg stripped; other Cursor hooks kept"
+  );
+  assert.ok((after.hooks.sessionStart || []).length >= 1, "prior sessionStart kept");
 });
 
 test("configurePgHook stores the DSN in a 0o600 file; settings.json only gets the path", async () => {
