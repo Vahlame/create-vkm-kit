@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>vkm-console — open with token</title>
+    <link rel="stylesheet" href="/static/gate.css" />
+  </head>
+  <body>
+    <main class="gate">
+      <p class="mark">vkm</p>
+      <h1>vkm-console</h1>
+      <p
+        class="lead"
+        data-en="This page needs the per-run URL (with token). Opening http://127.0.0.1:4930/ alone shows nothing."
+      >
+        Esta página necesita la URL de esta ejecución (con token). Abrir
+        <code>http://127.0.0.1:4930/</code> solo deja la pantalla en blanco.
+      </p>
+      <ol>
+        <li data-en="From the kit folder run:">Desde la carpeta del kit:</li>
+      </ol>
+      <pre class="cmd">
+bin\vkm-console.exe --vault "%USERPROFILE%\Documents\obsidian-memory-vault" --open</pre
+      >
+      <p
+        class="hint"
+        data-en="Or double-click the Desktop shortcut “vkm-console”. --open opens the browser with the token already in the URL."
+      >
+        O el acceso directo del Escritorio «vkm-console». <code>--open</code> abre el navegador con
+        el token ya en la URL.
+      </p>
+      <p class="foot" data-en="Local only · 127.0.0.1 · no data leaves this machine">
+        Solo local · 127.0.0.1 · ningún dato sale de esta máquina
+      </p>
+    </main>
+  </body>
+</html>

@@ -38,7 +38,7 @@ import { configureCodexNative } from "./codex-native.mjs";
 import { configureCursorNative } from "./cursor-native.mjs";
 import { maybeInstallOllama } from "./ollama-setup.mjs";
 import { maybeInstallObscura } from "./obscura-setup.mjs";
-import { configurePgHook, maybeSetupPostgres } from "./pg-setup.mjs";
+import { configureCursorPgHook, configurePgHook, maybeSetupPostgres } from "./pg-setup.mjs";
 import { maybeBuildConsole } from "./console-setup.mjs";
 import { writeVaultGitWorkspaceSettings } from "./vault-scaffold.mjs";
 import { messages } from "./i18n.mjs";
@@ -344,6 +344,13 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
       closeReminder: opts.cursorCloseReminder,
       tokenSaver: opts.cursorTokenSaver
     });
+    // Cursor sessionStart keep-alive — Claude's hook lives in ~/.claude and never runs here.
+    await configureCursorPgHook(home, dryRun, {
+      enable: opts.postgres,
+      kitRoot,
+      vaultAbs: vault,
+      dsn: opts.pgDsn
+    });
     await configureSkillAssets(home, dryRun, {
       ide: "cursor",
       skills: opts.skills,
@@ -365,11 +372,8 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
       terseStyle: opts.terseStyle
     });
     await configureTelemetry(home, dryRun, { enable: opts.telemetry, kitRoot });
-    // Claude SessionStart keep-alive only — Cursor/Codex do not run ~/.claude hooks.
-    // Vault→PG sync for every user is maybeSetupPostgres below (full vs incremental).
-    // Hooks do NOT inherit MCP env, so the hook is only INSTALLED when postgres is on —
-    // same conditional as the telemetry sink, and the same symmetric removal on a re-run
-    // with --no-postgres. The DSN rides as hook argv / hook-dsn.
+    // Claude SessionStart keep-alive. Vault→PG sync for every user is maybeSetupPostgres
+    // below. Hooks do NOT inherit MCP env — only installed when postgres is on.
     await configurePgHook(home, dryRun, {
       enable: opts.postgres,
       kitRoot,

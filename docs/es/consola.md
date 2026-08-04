@@ -42,32 +42,31 @@ npx @vkmikc/create-vkm-kit --full --console
 ## Ejecutarlo
 
 ```bash
-vkm-console --vault "<RUTA_AL_VAULT>"
+vkm-console --vault "<RUTA_AL_VAULT>" --open
 ```
 
-Imprime la URL y se queda escuchando:
+Imprime la URL (con token) y, con `--open`, abre el navegador. Sin `--open` solo escucha:
 
 ```text
-vkm-console 5.5.0 listening on http://127.0.0.1:4930/?token=<token> (vault: /home/me/vault)
+vkm-console 5.5.2 listening on http://127.0.0.1:4930/?token=<token> (vault: …)
 ```
 
-**Y no hace nada más.** No abre el navegador. Copia esa URL **entera** en tu navegador cuando
-quieras verla, o pasa `--open` si prefieres que la abra él.
+En Windows, acceso directo en el Escritorio:
 
-> ⚠️ **La URL impresa es la credencial.** El `?token=` es un token aleatorio **nuevo en cada
-> arranque**: sin él, toda ruta salvo `/api/health` responde `403 forbidden`. Copia la URL
-> completa, no solo `http://127.0.0.1:4930/`. Si reinicias la consola, el token cambia y el
-> marcador viejo deja de servir.
+```bash
+node scripts/install-console-shortcut.mjs --vault "<RUTA_AL_VAULT>"
+```
+
+> ⚠️ **La URL impresa es la credencial.** El `?token=` es nuevo en cada arranque. Abrir
+> solo `http://127.0.0.1:4930/` muestra la **página de acceso** (cómo lanzar con `--open`),
+> no el dashboard. CSS/JS en `/static/*` no exigen token (sí exigen Host loopback); el
+> documento y las APIs sí. Una visita con `?token=` válido deja además una cookie HttpOnly.
 
 ### La verja de autenticación
 
-Dos condiciones, ambas obligatorias en toda ruta menos `/api/health`:
-
-1. **Host loopback.** La cabecera `Host` (sin puerto) tiene que ser `127.0.0.1`, `::1` o
-   `localhost`. Esto corta el DNS rebinding, donde el nombre de una página hostil resuelve a
-   `127.0.0.1` pero su `Host` sigue siendo el dominio del atacante.
-2. **El token de la ejecución**, en el query param `?token=` o en la cabecera
-   `x-vkm-console-token` (comparación en tiempo constante). Ausente o incorrecto →
+1. **Host loopback.** `Host` (sin puerto) = `127.0.0.1`, `::1` o `localhost`.
+2. **Token de la ejecución** en `?token=`, cabecera `x-vkm-console-token` o cookie
+   `vkm-console-token` — en documento y APIs (no en `/static/*` ni `/api/health`). Ausente →
    `403 forbidden`.
 
 `GET /api/health` es la **única** ruta sin verja — devuelve `{"ok":true,"version":…}` y nada
@@ -105,13 +104,13 @@ notas a la red de casa no es una opción que deba existir.
 
 ## Los paneles
 
-| Panel        | Qué muestra                                                                                             | De dónde lo lee                                                                     |
-| ------------ | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| **Daemon**   | Edad del heartbeat, último push exitoso, commits sin empujar, rebases abortados, fallos consecutivos.   | El archivo de estado de `obsidian-memoryd`.                                         |
-| **Memoria**  | Conteo de notas, notas por carpeta, notas tocadas más recientemente — y los agregados de la proyección. | Un recorrido de solo lectura de los `.md` del vault, y `/api/stats` + `/api/graph`. |
-| **Tokens**   | Uso por día / modelo / tipo y ratio de acierto de caché.                                                | Los rollups NDJSON de `vkm-doctor` en `~/.vkm/telemetry/`.                          |
-| **Postgres** | Backend, conteo de filas, último sync y el timeline de actividad de la proyección.                      | `/api/health`, `/api/timeline`, `/api/stats`, `/api/graph` del pg-service.          |
-| **Research** | Búsquedas recientes de obscura y descargas.                                                             | El log de búsquedas de obscura y `~/Downloads/vkm-kit/`.                            |
+| Panel        | Qué muestra                                                                                                              | De dónde lo lee                                                                     |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| **Daemon**   | Edad del heartbeat, último push exitoso, commits sin empujar, rebases abortados, fallos consecutivos.                    | El archivo de estado de `obsidian-memoryd`.                                         |
+| **Memoria**  | Conteo de notas, notas por carpeta, notas tocadas más recientemente — y los agregados de la proyección.                  | Un recorrido de solo lectura de los `.md` del vault, y `/api/stats` + `/api/graph`. |
+| **Tokens**   | Uso por día / modelo / tipo y ratio de acierto de caché.                                                                 | Los rollups NDJSON de `vkm-doctor` en `~/.vkm/telemetry/`.                          |
+| **Postgres** | Backend, conteo de filas, último sync, timeline, mini-grafo + **Abrir grafo** (explorador fullscreen pan/zoom/arrastre). | `/api/health`, `/api/timeline`, `/api/stats`, `/api/graph` del pg-service.          |
+| **Research** | Búsquedas recientes de obscura y descargas.                                                                              | El log de búsquedas de obscura y `~/Downloads/vkm-kit/`.                            |
 
 Cada colector es **fail-soft**: una fuente ausente o rota devuelve un error legible y su
 tarjeta se muestra "apagada" en vez de tumbar la página. El daemon, la proyección y obscura

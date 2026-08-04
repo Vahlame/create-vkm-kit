@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.5.2] - 2026-08-03
+
+### Added
+
+- **`vkm-console` interactive graph explorer** — Postgres card button “Abrir grafo” (also
+  click the preview) opens a fullscreen Obsidian-style view: pan, scroll-zoom, drag nodes,
+  hover/select labels, neighbor sidebar, and text filter. Graph API fetch raised to
+  `limit=800` (explorer caps layout at 500 hubs).
+
+### Fixed
+
+- **`vkm-console` no longer paints a blank white page.** `/static/*` (CSS/JS) only needs a
+  loopback Host — token-gating those subresources broke the dashboard because `/?token=…`
+  loaded the HTML but `<link>`/`<script>` requests did not carry the token. Document/API
+  routes stay token-gated; a successful `?token=` visit also sets an HttpOnly cookie.
+- **Unauthenticated `/` serves a gate page** (how to launch with `--open` / Desktop shortcut)
+  instead of a bare `forbidden` body.
+
+### Changed
+
+- **Console visual refresh** — cool stone “signal board” theme (no purple gradient bars);
+  sticky status strip; sharper panels.
+- **Desktop shortcut helper** — `node scripts/install-console-shortcut.mjs` writes
+  `Desktop\vkm-console.lnk` → `bin\vkm-console.exe --vault … --open`.
+- **Postgres keep-alive on Cursor too** — `ensure-pg-service` installs into
+  `~/.cursor/hooks.json` `sessionStart` (not only Claude). A Windows Startup shortcut
+  `vkm-pg-keepalive.lnk` also respawns the projection at login so the console / any IDE
+  does not wake to “Postgres detenido” after the process died overnight.
+
 ## [5.5.1] - 2026-08-03
 
 ### Fixed
@@ -2578,6 +2607,7 @@ scoring, embedder-identity reuse).
 **3.15.0 and earlier** live in [`docs/changelog/pre-4.0.md`](docs/changelog/pre-4.0.md) —
 same text, same format, moved out in 5.0.0 to keep this file readable.
 
+[5.5.2]: https://github.com/Vahlame/create-vkm-kit/compare/v5.5.1...v5.5.2
 [5.5.1]: https://github.com/Vahlame/create-vkm-kit/compare/v5.5.0...v5.5.1
 [5.5.0]: https://github.com/Vahlame/create-vkm-kit/compare/v5.4.0...v5.5.0
 [5.4.0]: https://github.com/Vahlame/create-vkm-kit/compare/v5.3.0...v5.4.0

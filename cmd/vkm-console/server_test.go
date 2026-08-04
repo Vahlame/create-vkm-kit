@@ -61,12 +61,47 @@ func TestStaticNeverServesIndexHTML(t *testing.T) {
 	s := newServer("test", emptyPaths(t), time.Hour, time.Hour)
 	defer s.Close()
 
-	for _, target := range []string{"/static/", "/static/index.html"} {
+	for _, target := range []string{"/static/", "/static/index.html", "/static/gate.html"} {
 		rec := httptest.NewRecorder()
 		s.ServeHTTP(rec, authedRequest(s, "GET", target))
 		if rec.Code != 404 {
 			t.Fatalf("%s: want 404, got %d\n%.200s", target, rec.Code, rec.Body.String())
 		}
+	}
+}
+
+// A successful ?token= visit plants a cookie; a later request with only that
+// cookie (no query/header) must still reach the dashboard.
+func TestAuthCookieAfterQueryToken(t *testing.T) {
+	s := newServer("test", emptyPaths(t), time.Hour, time.Hour)
+	defer s.Close()
+
+	req := httptest.NewRequest("GET", "/?token="+s.token, nil)
+	req.Host = "127.0.0.1:4930"
+	rec := httptest.NewRecorder()
+	s.ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("authed /: want 200, got %d", rec.Code)
+	}
+	cookies := rec.Result().Cookies()
+	var tokenCookie *http.Cookie
+	for _, c := range cookies {
+		if c.Name == consoleCookie {
+			tokenCookie = c
+			break
+		}
+	}
+	if tokenCookie == nil || tokenCookie.Value != s.token {
+		t.Fatalf("missing/wrong %s cookie: %#v", consoleCookie, cookies)
+	}
+
+	req2 := httptest.NewRequest("GET", "/api/snapshot", nil)
+	req2.Host = "127.0.0.1:4930"
+	req2.AddCookie(tokenCookie)
+	rec2 := httptest.NewRecorder()
+	s.ServeHTTP(rec2, req2)
+	if rec2.Code != 200 {
+		t.Fatalf("cookie-only snapshot: want 200, got %d", rec2.Code)
 	}
 }
 
@@ -91,8 +126,8 @@ func TestCSPOnEveryResponse(t *testing.T) {
 	}
 }
 
-// The auth gate: loopback Host AND per-run token, on every route except
-// /api/health.
+// The auth gate: loopback Host AND per-run token on document/API routes.
+// /api/health and /static/* are exceptions (see server.go).
 func TestAuthGate(t *testing.T) {
 	s := newServer("test", emptyPaths(t), time.Hour, time.Hour)
 	defer s.Close()
@@ -103,13 +138,28 @@ func TestAuthGate(t *testing.T) {
 		return rec
 	}
 
-	// No token → 403 on every gated route, even from a loopback Host.
-	for _, target := range []string{"/", "/api/snapshot", "/api/events", "/static/app.js"} {
+	// No token → 403 on gated document/API routes (HTML gate for "/").
+	for _, target := range []string{"/", "/api/snapshot", "/api/events"} {
 		req := httptest.NewRequest("GET", target, nil)
 		req.Host = "127.0.0.1:4930"
 		if rec := serve(req); rec.Code != 403 {
 			t.Fatalf("%s without token: want 403, got %d", target, rec.Code)
 		}
+	}
+	// "/" without token must serve the gate page, not a blank body.
+	reqGate := httptest.NewRequest("GET", "/", nil)
+	reqGate.Host = "127.0.0.1:4930"
+	if rec := serve(reqGate); rec.Code != 403 || !strings.Contains(rec.Body.String(), "vkm-console") {
+		t.Fatalf("ungated /: want 403 gate HTML, got %d (%.120s)", rec.Code, rec.Body.String())
+	}
+
+	// Static assets: loopback Host is enough (no token). This is what keeps
+	// <link>/<script> loading after /?token=… opens the dashboard.
+	reqStatic := httptest.NewRequest("GET", "/static/app.js", nil)
+	reqStatic.Host = "127.0.0.1:4930"
+	if rec := serve(reqStatic); rec.Code != 200 || rec.Body.Len() == 0 {
+		t.Fatalf("/static/app.js without token: want 200 with body, got %d (%d bytes)",
+			rec.Code, rec.Body.Len())
 	}
 
 	// Wrong token → 403.

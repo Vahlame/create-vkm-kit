@@ -491,7 +491,8 @@ func collectPg(ctx context.Context, client *http.Client, pgRoot, vaultFilter str
 		if st, serr := httpGetJSON(ctx, client, base+"/api/stats", token); serr == nil {
 			svc.Stats = st
 		}
-		if g, gerr := httpGetJSON(ctx, client, base+"/api/graph?limit=300", token); gerr == nil {
+		// Higher cap for the interactive explorer (still bounded for the SSE payload).
+		if g, gerr := httpGetJSON(ctx, client, base+"/api/graph?limit=800", token); gerr == nil {
 			svc.Graph = g
 		}
 		out.Services = append(out.Services, svc)
