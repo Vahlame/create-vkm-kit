@@ -18,10 +18,10 @@ import (
 
 // version is the console version. Override at build time with:
 //
-//	go build -ldflags="-X main.version=5.5.1" ./cmd/vkm-console
+//	go build -ldflags="-X main.version=5.5.2" ./cmd/vkm-console
 //
 // Keep in sync with agent.toml.
-var version = "5.5.1"
+var version = "5.5.2"
 
 // defaultVault resolves the vault the same way the rest of the kit does
 // (pg contract precedence): VKM_VAULT, then BASIC_MEMORY_HOME, then

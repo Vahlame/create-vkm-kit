@@ -42,35 +42,36 @@ npx @vkmikc/create-vkm-kit --full --console
 ## Running it
 
 ```bash
-vkm-console --vault "<PATH_TO_VAULT>"
+vkm-console --vault "<PATH_TO_VAULT>" --open
 ```
 
-It prints the URL and keeps listening:
+It prints the URL (with token) and, with `--open`, opens the browser. Without `--open` it
+only listens:
 
 ```text
-vkm-console 5.5.0 listening on http://127.0.0.1:4930/?token=<token> (vault: /home/me/vault)
+vkm-console 5.5.2 listening on http://127.0.0.1:4930/?token=<token> (vault: …)
 ```
 
-**And it does nothing else.** It does not open a browser. Paste that **whole** URL when you
-want to look, or pass `--open` if you would rather it did.
+On Windows, a Desktop shortcut:
 
-> ⚠️ **The printed URL is the credential.** That `?token=` is a random token minted **fresh
-> on every start**: without it every route except `/api/health` answers `403 forbidden`. Copy
-> the full URL, not just `http://127.0.0.1:4930/`. Restart the console and the token changes,
-> so an old bookmark stops working.
+```bash
+node scripts/install-console-shortcut.mjs --vault "<PATH_TO_VAULT>"
+```
+
+> ⚠️ **The printed URL is the credential.** `?token=` is minted fresh each start. Opening
+> bare `http://127.0.0.1:4930/` shows the **gate page** (how to launch with `--open`), not
+> the dashboard. `/static/*` CSS/JS need loopback Host only (not the token); the document
+> and APIs still require the token. A successful `?token=` visit also sets an HttpOnly cookie.
 
 ### The auth gate
 
-Two conditions, both required on every route except `/api/health`:
+1. **Loopback Host.** `Host` (port stripped) must be `127.0.0.1`, `::1` or `localhost`.
+2. **Per-run token** via `?token=`, `x-vkm-console-token` header, or `vkm-console-token`
+   cookie — on the document and APIs (not on `/static/*` or `/api/health`). Missing →
+   `403` (gate HTML on `/`).
 
-1. **Loopback Host.** The `Host` header (port stripped) must be `127.0.0.1`, `::1` or
-   `localhost`. This defeats DNS rebinding, where a hostile page's hostname resolves to
-   `127.0.0.1` but its `Host` header still names the attacker's domain.
-2. **The per-run token**, either as the `?token=` query param or the `x-vkm-console-token`
-   header (constant-time comparison). Missing or wrong → `403 forbidden`.
-
-`GET /api/health` is the **only** ungated route — it returns `{"ok":true,"version":…}` and
-nothing else, precisely so "is it alive?" can be probed without handing out the token:
+`GET /api/health` stays an ungated liveness probe (`{"ok":true,"version":…}`). `/static/*`
+needs loopback Host only:
 
 ```bash
 curl http://127.0.0.1:4930/api/health                       # no token: 200

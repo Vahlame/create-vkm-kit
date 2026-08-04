@@ -1,0 +1,101 @@
+/* Gate page — shown on 403 for "/". Same visual family as the dashboard. */
+:root {
+  --bg: #e8edf1;
+  --ink: #14212b;
+  --muted: #5a6b78;
+  --panel: #ffffff;
+  --edge: #b7c3cd;
+  --accent: #0e7490;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(ellipse 80% 50% at 10% 0%, rgba(14, 116, 144, 0.08), transparent 55%),
+    linear-gradient(180deg, #f3f6f8 0%, var(--bg) 100%);
+  color: var(--ink);
+  font: 16px/1.5 "Segoe UI", system-ui, sans-serif;
+  padding: 24px;
+}
+
+.gate {
+  width: min(520px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 2px;
+  padding: 28px 28px 22px;
+  box-shadow: 0 1px 0 rgba(20, 33, 43, 0.04);
+}
+
+.mark {
+  display: inline-block;
+  margin: 0 0 10px;
+  padding: 2px 8px;
+  background: var(--accent);
+  color: #f4fbfd;
+  font: 700 12px/1.4 var(--mono);
+  letter-spacing: 0.04em;
+}
+
+h1 {
+  margin: 0 0 12px;
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.lead {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+ol {
+  margin: 0;
+  padding-left: 1.2em;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.cmd {
+  margin: 10px 0 14px;
+  padding: 12px 14px;
+  background: #14212b;
+  color: #d7eef4;
+  font: 12px/1.45 var(--mono);
+  border-radius: 2px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.hint {
+  margin: 0 0 18px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.hint code,
+.lead code {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: #eef3f6;
+  border: 1px solid var(--edge);
+  border-radius: 2px;
+  padding: 0 4px;
+}
+
+.foot {
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--edge);
+  font-size: 11px;
+  color: var(--muted);
+}
