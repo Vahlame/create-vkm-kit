@@ -364,11 +364,7 @@ test("--full --dry-run wires Codex + Claude + Cursor + Kimi with hybrid/semantic
   assert.match(r.stdout, /\[dry-run\] codex mcp add basic-memory/, "wires Codex MCP");
   assert.match(r.stdout, /\[dry-run\] claude mcp add basic-memory/, "wires Claude Code MCP");
   assert.match(r.stdout, /\[dry-run\] would merge Cursor sessionStart hook/, "wires Cursor hooks");
-  assert.match(
-    r.stdout,
-    /\[dry-run\] would write .*\.kimi-code.*mcp\.json/,
-    "wires Kimi Code MCP"
-  );
+  assert.match(r.stdout, /\[dry-run\] would write .*\.kimi-code.*mcp\.json/, "wires Kimi Code MCP");
   assert.match(
     r.stdout,
     /\[dry-run\] would merge hooks block into .*config\.toml/,
