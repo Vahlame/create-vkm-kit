@@ -92,6 +92,7 @@ ADRs are **append-only**: a decision that was later reversed is not rewritten, i
 | [ADR-0084](./0084-postgres-projection-layer.md)                    | A Postgres projection of the vault — additive, derived, disposable                        | Accepted (supersedes 0083 Decision 1)          |
 | [ADR-0085](./0085-vkm-console-realtime-binary.md)                  | One real-time console for the whole kit — a Go binary, strictly read-only                 | Accepted                                       |
 | [ADR-0086](./0086-scoped-memory-namespaces.md)                     | Scoped memory namespaces — one vault, one index, a `scope` filter                         | Accepted                                       |
+| [ADR-0087](./0087-kimi-code-first-class.md)                        | Kimi Code as a first-class wiring target (`--ide kimi`)                                   | Accepted                                       |
 
 ## Template
 

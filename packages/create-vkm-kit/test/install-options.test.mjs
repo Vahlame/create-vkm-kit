@@ -179,6 +179,28 @@ test("Codex installs skills, agent and hooks independently", () => {
   assert.equal(components.codexTokenSaver, false);
 });
 
+test("Kimi Code installs skills, agent and hooks by default; Claude-only toggles stay off", () => {
+  const defaults = opts([], { ides: ["kimi"] });
+  for (const key of ["skills", "agents", "kimiHooks", "kimiContext", "kimiCloseReminder"]) {
+    assert.equal(defaults[key], true, `${key} should default on for Kimi Code`);
+  }
+  for (const k of ["nativeOverride", "enforce", "effortGate", "tokenSaver", "telemetry"]) {
+    assert.equal(defaults[k], false, `${k} is Claude Code-only`);
+  }
+
+  const optOut = opts(["--no-kimi-hooks"], { ides: ["kimi"] });
+  assert.equal(optOut.kimiHooks, false);
+  assert.equal(optOut.kimiContext, false);
+  assert.equal(optOut.kimiCloseReminder, false);
+
+  const components = opts(["--no-vault-context-hook", "--no-memory-enforcement"], {
+    ides: ["kimi"]
+  });
+  assert.equal(components.kimiHooks, true, "master Kimi hook switch stays on");
+  assert.equal(components.kimiContext, false);
+  assert.equal(components.kimiCloseReminder, false);
+});
+
 test("the Postgres projection defaults on; the console stays opt-in", () => {
   const defaults = opts([]);
   assert.equal(defaults.postgres, true, "projection is part of the default stack");

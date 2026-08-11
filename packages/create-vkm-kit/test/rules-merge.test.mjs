@@ -56,3 +56,26 @@ test("installRules cursor fresh install: byte-equal to frontmatter + managed blo
     fs.rmSync(cwd, { recursive: true, force: true });
   }
 });
+
+test("installRules kimi target writes the managed block to ~/.kimi-code/AGENTS.md", async () => {
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "rules-merge-kimi-"));
+  const prior = process.env.KIMI_CODE_HOME;
+  delete process.env.KIMI_CODE_HOME;
+  try {
+    const written = await installRules(["kimi"], "es", { home: cwd, cwd });
+    const fp = path.join(cwd, ".kimi-code", "AGENTS.md");
+    assert.deepEqual(written, [fp], "kimi target writes exactly one file");
+    const got = fs.readFileSync(fp, "utf8");
+    assert.ok(got.includes(RULES_START) && got.includes(RULES_END), "managed block present");
+    // Re-run replaces only the block; user content above survives.
+    fs.writeFileSync(fp, "# Notas propias\n\n" + got, "utf8");
+    await installRules(["kimi"], "es", { home: cwd, cwd });
+    const again = fs.readFileSync(fp, "utf8");
+    assert.ok(again.startsWith("# Notas propias"), "user content preserved");
+    assert.equal(again.split(RULES_START).length - 1, 1, "still exactly one block");
+  } finally {
+    if (prior === undefined) delete process.env.KIMI_CODE_HOME;
+    else process.env.KIMI_CODE_HOME = prior;
+    fs.rmSync(cwd, { recursive: true, force: true });
+  }
+});

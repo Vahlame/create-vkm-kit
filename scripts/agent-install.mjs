@@ -2,9 +2,9 @@
 /**
  * Agent-friendly one-shot installer + verifier.
  *
- * Hand this repo to a Claude Code or Codex agent and say "install it": the agent
- * runs `npm run setup`, this preflights the dependencies, runs the `--full`
- * install (Codex + Claude by default, or whatever CLIs are on PATH), verifies the
+ * Hand this repo to a Claude Code, Codex or Kimi Code agent and say "install it": the
+ * agent runs `npm run setup`, this preflights the dependencies, runs the `--full`
+ * install (whichever agent CLIs are on PATH, else Cursor), verifies the
  * result, and prints a status table + a RESTART notice.
  *
  * Honest limitation it encodes: MCP servers register at user scope, but the
@@ -16,7 +16,7 @@
  * Pure Node built-ins (no deps) so it runs before `npm ci`, like version.mjs.
  *
  * Usage:
- *   node scripts/agent-install.mjs [--vault <path>] [--ide codex,claude,cursor]
+ *   node scripts/agent-install.mjs [--vault <path>] [--ide codex,claude,cursor,kimi]
  *                                  [--lang es|en] [--dry-run] [--no-rules]
  */
 import { spawnSync } from "node:child_process";
@@ -113,6 +113,7 @@ const python = probe("python") || probe("python3");
 const pip = python ? probe(WIN ? "python" : "python3", "-m pip --version") : null;
 const claude = probe("claude");
 const codex = probe("codex");
+const kimi = probe("kimi");
 
 console.log("\n" + C.bold("Preflight"));
 line("node ≥ 20", node, true);
@@ -122,6 +123,7 @@ line("python ≥ 3.11 (hybrid + semantic)", python, false, "python");
 line("pip", pip, false, "python");
 line("claude CLI", claude, false);
 line("codex CLI", codex, false);
+line("kimi CLI", kimi, false);
 
 function line(label, value, required, tool) {
   if (value) {
@@ -148,7 +150,7 @@ if (!uv) {
 // IDEs: explicit override wins; else whichever agent CLIs are present; else Cursor.
 let ides = ideOverride;
 if (!ides) {
-  const detected = [codex && "codex", claude && "claude"].filter(Boolean);
+  const detected = [codex && "codex", claude && "claude", kimi && "kimi"].filter(Boolean);
   ides = detected.length ? detected.join(",") : "cursor";
 }
 // Full power (hybrid + semantic + index + backend) needs python + pip. Without
@@ -254,6 +256,17 @@ if (dryRun) {
     }
     status("Cursor mcp.json written", ok, fp);
   }
+  if (wired.includes("kimi")) {
+    const kimiRoot = process.env.KIMI_CODE_HOME || path.join(HOME, ".kimi-code");
+    const fp = path.join(kimiRoot, "mcp.json");
+    let ok;
+    try {
+      ok = existsSync(fp) && /basic-memory/.test(readFileSync(fp, "utf8"));
+    } catch {
+      ok = false;
+    }
+    status("Kimi Code mcp.json written", ok, fp);
+  }
 }
 
 function status(label, ok, detail) {
@@ -273,6 +286,9 @@ console.log(
   "    • Claude Code: quit and reopen (or run `claude mcp list` to confirm it's registered)."
 );
 console.log("    • Codex CLI: reopen; check with `codex mcp list`.");
+console.log(
+  "    • Kimi Code: start a NEW session (MCP config loads at session start; check with /mcp)."
+);
 console.log(
   "    • Cursor: Command Palette → “Developer: Reload Window”, then paste the global User Rules"
 );

@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="./LICENSE.md"><img src="https://img.shields.io/badge/licencia-MIT--derivada_%2B_atribuci%C3%B3n_(no_OSI)-blue.svg" alt="Licencia"></a>
-  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v5.5.3-orange.svg" alt="Release"></a>
+  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v5.6.0-orange.svg" alt="Release"></a>
   <a href="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.npmjs.com/package/@vkmikc/create-vkm-kit"><img src="https://img.shields.io/npm/v/%40vkmikc%2Fcreate-vkm-kit?label=npm&color=cb3837" alt="npm"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A5%2020-43853d.svg" alt="Node ≥ 20">
@@ -57,8 +57,8 @@ para empezar** — de aquí para abajo es opcional.
 
 <br>
 
-Enfocado **primero en Codex y Claude Code**, con **todas las funciones activas por defecto**:
-registra el MCP en ambos, activa la búsqueda híbrida (BM25, semántica y grafo), el **grafo de
+Enfocado **primero en Codex, Claude Code y Kimi Code** (también cablea Cursor), con **todas las
+funciones activas por defecto**: registra el MCP en los cuatro, activa la búsqueda híbrida (BM25, semántica y grafo), el **grafo de
 conocimiento** (relaciones tipadas y observaciones), los **memory reports**, la **aceleración
 sqlite-vec**, la **seguridad multi-escritor** (etag, `ifMatch` y lock de escritura, ADR-0037) y el
 **bucle de memoria evolutiva** (recall de fallos, boost por uso, propuestas de `memory-reflect`,
@@ -66,7 +66,7 @@ ADR-0038), instala el backend Python, construye el índice e instala las reglas 
 Córrelo desde un clon del kit (o pásale `--repo-root <clon>`):
 
 ```bash
-npx @vkmikc/create-vkm-kit --full          # = --ide codex,claude --with-hybrid --semantic --vec --build-index --install-backend --rules --obscura
+npx @vkmikc/create-vkm-kit --full          # = --ide codex,claude,cursor,kimi --with-hybrid --semantic --vec --build-index --install-backend --rules --obscura
 ```
 
 Si no hay clon a mano, `--full` **no aborta**: cae a `basic-memory` (sin híbrido) y avisa.
@@ -102,8 +102,12 @@ plantillas de skills/subagentes cambiaron — **no escribe nada y nunca falla** 
 **deja intacto cualquier archivo que hayas editado tú** (lo lista por nombre; `--force` lo pisa y
 **descarta tus cambios**, `--dry-run` previsualiza sin escribir).
 
-**Claude Code / Codex en PC nuevo.** `--full` ya registra el MCP vía `claude mcp add` /
-`codex mcp add` y construye el índice en el mismo comando. Para Claude Code además deja el vault
+**Claude Code / Codex / Kimi Code en PC nuevo.** `--full` ya registra el MCP vía `claude mcp add` /
+`codex mcp add` (en Kimi Code lo fusiona directo en `~/.kimi-code/mcp.json` — no existe
+`kimi mcp add`) y construye el índice en el mismo comando. En Kimi Code además instala las reglas
+en `~/.kimi-code/AGENTS.md`, las skills, el agente `vkm-implementer` y dos hooks: el mapa del vault
+en el **primer prompt** de cada sesión y un recordatorio de cierre una vez por sesión (ADR-0087; el
+hook `Stop` no corre en modo `kimi -p`). Para Claude Code además deja el vault
 como **única** memoria: apaga la auto-memoria nativa (`autoMemoryEnabled:false`), instala un hook
 `SessionStart` del vault (ADR-0029), dos hooks de aplicación determinista — bloqueo de escritura a
 la memoria nativa + recordatorio de cierre — para que funcione con cualquier modelo (ADR-0030), y

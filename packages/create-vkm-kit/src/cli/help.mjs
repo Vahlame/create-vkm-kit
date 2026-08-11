@@ -32,9 +32,10 @@ Interactive (default):
   --dry-run       Show what would be written (no writes)
 
 Feature set:
-  --full, --all   Alias for the default full stack PLUS --ide codex,claude (implies -y).
-                  Since the full stack is now the default, --full flips the IDE default to
-                  codex,claude and adds the pieces a bare install deliberately leaves off:
+  --full, --all   Alias for the default full stack PLUS --ide codex,claude,cursor,kimi
+                  (implies -y). Since the full stack is now the default, --full flips the
+                  IDE default to codex,claude,cursor,kimi and adds the pieces a bare
+                  install deliberately leaves off:
                   ollama, obscura and the vkm-console build. Opt out of a piece with
                   --no-semantic / --no-vec / --no-pin-failures / --no-usage-boost /
                   --no-build-index / --no-install-backend / --no-postgres / --no-console /
@@ -47,11 +48,13 @@ Feature set:
 Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
   [vault]         Vault path as the first argument (or --vault <path>); defaults to
                   ~/Documents/obsidian-memory-vault and is created if it doesn't exist.
-  --ide <list>    IDEs to wire, comma-separated: codex, claude, cursor (default: cursor;
-                  with --full: codex,claude,cursor). codex uses the Codex CLI (codex mcp add →
-                  ~/.codex/config.toml); claude uses the Claude Code CLI (claude mcp add
-                  -s user); cursor writes ~/.cursor/mcp.json + ~/.cursor/hooks.json +
-                  ~/.cursor/skills + ~/.cursor/rules.
+  --ide <list>    IDEs to wire, comma-separated: codex, claude, cursor, kimi (default:
+                  cursor; with --full: codex,claude,cursor,kimi). codex uses the Codex CLI
+                  (codex mcp add → ~/.codex/config.toml); claude uses the Claude Code CLI
+                  (claude mcp add -s user); cursor writes ~/.cursor/mcp.json +
+                  ~/.cursor/hooks.json + ~/.cursor/skills + ~/.cursor/rules; kimi writes
+                  ~/.kimi-code/mcp.json + a [[hooks]] block in ~/.kimi-code/config.toml +
+                  ~/.kimi-code/skills + ~/.kimi-code/AGENTS.md (honors KIMI_CODE_HOME).
   --no-cursor-mcp Skip writing ~/.cursor/mcp.json
   --no-git-init   Skip git init when .git is missing
                   (Merges kit Git/SCM keys into <vault>/.vscode/settings.json — creates or updates.)
@@ -92,7 +95,8 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
   --with-gitleaks Install gitleaks pre-commit hook in <vault>/.git/hooks/
   --rules <list>  Install the memory-rules block into agent configs: claude
                   (~/.claude/CLAUDE.md, global), codex (~/.codex/AGENTS.md, global),
-                  agents (./AGENTS.md), cursor (.cursor/rules/obsidian-memory.mdc).
+                  agents (./AGENTS.md), cursor (.cursor/rules/obsidian-memory.mdc),
+                  kimi (~/.kimi-code/AGENTS.md, global).
                   Or 'all' / 'none'. Headless installs rules by DEFAULT (for each wired
                   agent); pass --no-rules or --minimal to skip, or --rules <list> to
                   choose. Interactive asks (deriving from --ide). Idempotent marked block
@@ -189,6 +193,20 @@ Claude Code native-memory override (when --ide includes claude):
   --memory-enforcement / --no-memory-enforcement  Also controls Cursor's stop nudge + trackers.
   --token-saver / --no-token-saver       Also controls Cursor's afterMCPExecution compact.
 
+  Kimi Code hooks (on by default when --ide includes kimi) live in a managed [[hooks]]
+  block in ~/.kimi-code/config.toml (between # vkm-kit:start/end TOML comments — your own
+  hooks and settings are never touched) with scripts under ~/.kimi-code/hooks/:
+  a UserPromptSubmit hook injects the vault map + memory reminders on the FIRST prompt of
+  each session (Kimi's SessionStart is observation-only — its stdout never reaches the
+  context — so the injection rides the first prompt instead, bounded by a sidecar
+  marker); a Stop hook nudges the close ritual once per session when real file work never
+  touched the vault
+  (reads the session's wire.jsonl; blocks via exit code 2). Kimi has no native auto-memory
+  and no /effort harness — the Claude-only guard/effort/token-saver hooks are not ported.
+  --kimi-hooks / --no-kimi-hooks         Force on / remove all Kimi-native hooks.
+  --vault-context-hook / --no-vault-context-hook  Also controls Kimi's context injection.
+  --memory-enforcement / --no-memory-enforcement  Also controls Kimi's Stop nudge.
+
   Local telemetry + doctor (ADR-0044, on by default when --ide includes claude and a kit
   clone is available) — wires Claude Code's OTEL metrics export to a LOCAL sink
   (127.0.0.1:4319 → ~/.vkm/telemetry/, nothing leaves the machine) via a managed env
@@ -196,7 +214,8 @@ Claude Code native-memory override (when --ide includes claude):
   cache-hit ratio and a broken-cache diagnosis.
   --telemetry / --no-telemetry Force on / remove.
 
-  Skills + subagent (ADR-0049/0053/0056, on by default when --ide includes claude, codex, or cursor):
+  Skills + subagent (ADR-0049/0053/0056, on by default when --ide includes claude, codex,
+  cursor or kimi):
   /vkm-discipline (dense minimal-line code at full quality + verification contract),
   /vkm-spec (idea → precise spec via one assemble_context call), /vkm-design
   (professional anti-generic design: direction before pixels, computed checks, visual
@@ -209,14 +228,16 @@ Claude Code native-memory override (when --ide includes claude):
   semantic query-family coverage + static before/after audit via seo-audit.mjs), and the
   vkm-implementer agent
   template. Claude uses ~/.claude/skills + ~/.claude/agents/vkm-implementer.md; Codex uses
-  ~/.agents/skills + ~/.codex/agents/vkm-implementer.toml; Cursor uses ~/.cursor/skills
+  ~/.agents/skills + ~/.codex/agents/vkm-implementer.toml; Kimi Code uses
+  ~/.kimi-code/skills + ~/.kimi-code/agents/vkm-implementer.md; Cursor uses
+  ~/.cursor/skills
   (no agent template — Cursor Task types are a different format). Hash-tracked files;
   uninstall never deletes one you edited. Which one fits which situation:
   docs/en/skills-guide.md (ES: docs/es/guia-de-skills.md).
   --skills / --no-skills       Force on / remove the eight skills.
-  --agents / --no-agents       Force on / remove the subagent template (claude/codex only).
+  --agents / --no-agents       Force on / remove the subagent template (claude/codex/kimi only).
   --skills-dir <path>          ALSO copy the skills into any other client's skills folder
-                                (Kimi Code, opencode, ...) — additive, independent of
+                                (opencode, ...) — additive, independent of
                                 --ide; plain markdown + portable Node scripts. Re-run with
                                 the same path to update; user-edited files are kept.
 
@@ -248,8 +269,9 @@ Claude Code native-memory override (when --ide includes claude):
   --download-dir <dir>         Override VKM_DOWNLOAD_DIR (default ~/Downloads/vkm-kit).
 
   Self-update (ADR-0061) — checks/refreshes the skill + subagent template assets this kit
-  manages under Claude and Codex skill/agent/hook locations (the same set --skills/
-  --agents/--codex-hooks install), plus reports whether a newer create-vkm-kit is on npm. Safety contract in one
+  manages under Claude, Codex and Kimi Code skill/agent/hook locations (the same set
+  --skills/--agents/--codex-hooks/--kimi-hooks install), plus reports whether a newer
+  create-vkm-kit is on npm. Safety contract in one
   sentence: files you edited are never overwritten without --force.
   --check-update  Read-only: prints the installed and npm-latest versions (offline/registry
                   failure prints an honest "skipped" line, never an error) and a summary of
@@ -287,6 +309,8 @@ Claude Code native-memory override (when --ide includes claude):
                   confirms this kit wrote it — never a user's own same-named file. Does
                   The equivalent Codex teardown removes only vkm-kit hook entries from
                   ~/.codex/hooks.json plus hash-tracked Codex skills, agent and hooks;
+                  the Kimi Code teardown strips the managed [[hooks]] block from
+                  ~/.kimi-code/config.toml plus hash-tracked Kimi skills, agent and hooks;
                   user entries and locally edited assets remain untouched. Does NOT touch MCP server
                   registrations, the vault, or rules blocks — see
                   docs/en/faq.md for those. Combine with --dry-run to preview. Exits

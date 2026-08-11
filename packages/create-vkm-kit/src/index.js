@@ -27,6 +27,8 @@ import {
   uninstallCodexNative
 } from "./codex-native.mjs";
 import { uninstallCursorNative } from "./cursor-native.mjs";
+import { kimiHookAssetFiles, uninstallKimiNative } from "./kimi-native.mjs";
+import { kimiHome } from "./kimi-home.mjs";
 import { defaultVaultPath, findVault, scaffoldNewVault } from "./vault-scaffold.mjs";
 import { ASSETS_SIDECAR_BASENAME } from "./asset-install.mjs";
 import { buildUpdatePlan, applyUpdatePlan, summarizePlan, readKitVersion } from "./update-plan.mjs";
@@ -72,6 +74,19 @@ function updateScopes(home) {
       ],
       sidecarFp: codexAssetsSidecar(home),
       managedRoots: codexAssetRoots(home)
+    },
+    {
+      label: "Kimi Code assets",
+      files: [
+        ...skillAssetFiles(home, { ide: "kimi", skills: true, agents: true }),
+        ...kimiHookAssetFiles(home, { all: true })
+      ],
+      sidecarFp: path.join(kimiHome(home), ASSETS_SIDECAR_BASENAME),
+      managedRoots: [
+        path.join(kimiHome(home), "skills"),
+        path.join(kimiHome(home), "agents"),
+        path.join(kimiHome(home), "hooks")
+      ]
     }
   ];
 }
@@ -79,7 +94,7 @@ function updateScopes(home) {
 /**
  * The `--full` (alias `--all`) one-shot preset: max power, zero questions. Turns
  * on hybrid + semantic + index build + backend install + rules, and defaults the
- * wired IDEs to Codex + Claude Code. Implies non-interactive.
+ * wired IDEs to Codex + Claude Code + Cursor + Kimi Code. Implies non-interactive.
  */
 function fullPresetFromArgs() {
   return process.argv.includes("--full") || process.argv.includes("--all");
@@ -127,7 +142,7 @@ function positionalVault(argv) {
 function rulesTargetsFromArgs(argv, ides, { defaultFromIde = false, full = false } = {}) {
   if (argv.includes("--no-rules")) return [];
   const raw = flagValue(argv, "--rules");
-  const valid = ["claude", "agents", "cursor", "codex"];
+  const valid = ["claude", "agents", "cursor", "codex", "kimi"];
   if (raw) {
     const v = raw.trim().toLowerCase();
     if (v === "none") return [];
@@ -177,18 +192,19 @@ function rulesFromIdes(ides) {
   if (ides.includes("claude")) targets.push("claude");
   if (ides.includes("codex")) targets.push("codex");
   if (ides.includes("cursor")) targets.push("cursor");
+  if (ides.includes("kimi")) targets.push("kimi");
   return targets;
 }
 /**
- * Parse `--ide codex,claude,cursor` → lowercased array. When `--ide` is omitted the
+ * Parse `--ide codex,claude,cursor,kimi` → lowercased array. When `--ide` is omitted the
  * default is `["cursor"]` for back-compat, except under `--full`, which wires
- * Codex + Claude Code + Cursor (`["codex", "claude", "cursor"]`).
+ * Codex + Claude Code + Cursor + Kimi Code.
  * @param {string[]} argv
  * @param {{ full?: boolean }} [opts]
  */
 function idesFromArgs(argv, { full = false } = {}) {
   const raw = flagValue(argv, "--ide");
-  if (!raw) return full ? ["codex", "claude", "cursor"] : ["cursor"];
+  if (!raw) return full ? ["codex", "claude", "cursor", "kimi"] : ["cursor"];
   return raw
     .split(",")
     .map((s) => s.trim().toLowerCase())
@@ -318,6 +334,7 @@ async function runWizard(argv) {
     choices: [
       { title: "Codex CLI", value: "codex", selected: true },
       { title: "Claude Code", value: "claude", selected: true },
+      { title: "Kimi Code", value: "kimi", selected: false },
       { title: "Cursor", value: "cursor", selected: false },
       { title: "VS Code / Cline", value: "cline", selected: false },
       { title: "Windsurf", value: "windsurf", selected: false },
@@ -500,6 +517,8 @@ async function main() {
     await uninstallSkillAssets(home, dryRun, { ide: "codex" });
     await uninstallCursorNative(home, dryRun);
     await uninstallSkillAssets(home, dryRun, { ide: "cursor" });
+    await uninstallKimiNative(home, dryRun);
+    await uninstallSkillAssets(home, dryRun, { ide: "kimi" });
     await uninstallRunHidden(home, dryRun);
     return;
   }

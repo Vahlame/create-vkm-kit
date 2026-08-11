@@ -54,6 +54,10 @@ const VAULT_CLOSE_TOOLS =
 /** Below this many substantive edits, the nudge is more noise than signal — stay quiet. */
 const MIN_SUBSTANTIVE_CALLS = 2;
 
+// Shared with the Kimi Code Stop variant (kimi-stop-vault-close-reminder.mjs), which scans
+// Kimi's wire.jsonl instead of Claude's transcript but applies the identical policy.
+export { SUBSTANTIVE_TOOLS, VAULT_CLOSE_TOOLS, MIN_SUBSTANTIVE_CALLS };
+
 function readStdin() {
   try {
     return fs.readFileSync(0, "utf8");
@@ -98,7 +102,7 @@ export function scanTranscript(transcriptPath) {
   return getIncrementalState(transcriptPath, "stop-reminder", initialScanState, foldTranscriptLine);
 }
 
-function reason(lang) {
+export function reason(lang) {
   if (lang === "en") {
     return (
       "Before stopping: this session edited/wrote files but never touched the Obsidian " +

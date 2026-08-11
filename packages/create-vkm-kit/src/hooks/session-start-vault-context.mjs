@@ -23,7 +23,7 @@ import os from "node:os";
 import path from "node:path";
 
 /** Vault path: 1st CLI arg wins, else the MCP env vars the kit sets. */
-function resolveVault() {
+export function resolveVault() {
   const fromArg = process.argv[2];
   if (fromArg && fromArg.trim()) return fromArg.trim();
   return (
@@ -129,7 +129,29 @@ export function reminders(lang) {
   ].join("\n");
 }
 
-export function buildContext(vault, lang) {
+/**
+ * Kimi Code variant of the reminders. Kimi has NO native auto-memory to disable and no
+ * ToolSearch/deferred-tools mechanism — MCP tools are simply there — so both Claude-only
+ * lines drop out; the hard rule and the recall/close one-liners stay verbatim.
+ */
+export function kimiReminders(lang) {
+  if (lang === "en") {
+    return [
+      "---",
+      "MEMORY (HARD RULE): the Obsidian vault is the ONLY source of truth for persistent memory — recall and the close ritual go through the vault_* MCP tools, never through ad-hoc notes files.",
+      '- Non-trivial task: BEFORE answering, vault_hybrid_search("<topic>") and answer from the returned section (passage-first). First task of the session -> START_HERE.md + MEMORY.md.',
+      '- CLOSE: SESSION_LOG.md (1 line) + PROJECTS/<project>.md (above "## Related"); anchor each vault_edit_file on ONE line (CRLF); don\'t commit (the daemon syncs).'
+    ].join("\n");
+  }
+  return [
+    "---",
+    "MEMORIA (REGLA DURA): el vault Obsidian es la UNICA fuente de verdad para memoria persistente — el recall y el cierre van por las tools MCP vault_*, nunca por archivos de notas ad-hoc.",
+    '- Tarea no trivial: ANTES de responder, vault_hybrid_search("<tema>") y responde con la seccion devuelta (passage-first). Primera tarea de la sesion -> START_HERE.md + MEMORY.md.',
+    '- CIERRE: SESSION_LOG.md (1 linea) + PROJECTS/<proyecto>.md (arriba de "## Relacionado"); ancla cada vault_edit_file en UNA linea (CRLF); no commitees (el daemon sincroniza).'
+  ].join("\n");
+}
+
+export function buildContext(vault, lang, remindersFn = reminders) {
   const header =
     lang === "en"
       ? "## Obsidian vault available (MCP memory)"
@@ -176,7 +198,7 @@ export function buildContext(vault, lang) {
     }
   }
 
-  parts.push(reminders(lang));
+  parts.push(remindersFn(lang));
   return parts.join("\n");
 }
 

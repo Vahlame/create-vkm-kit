@@ -27,7 +27,12 @@ import {
   resolveLauncher,
   SEMANTIC_EMBEDDER
 } from "./mcp-merge.mjs";
-import { registerClaudeCodeMcp, registerCodexMcp, writeCursorMcp } from "./mcp-register.mjs";
+import {
+  registerClaudeCodeMcp,
+  registerCodexMcp,
+  writeCursorMcp,
+  writeKimiMcp
+} from "./mcp-register.mjs";
 import { installRules } from "./rules-merge.mjs";
 import { configureClaudeNativeMemory } from "./claude-native-memory.mjs";
 import { configureTokenSaver } from "./token-saver.mjs";
@@ -36,6 +41,7 @@ import { installRunHidden } from "./runhidden-setup.mjs";
 import { configureSkillAssets, installSkillsInto, SKILL_NAMES } from "./skills-install.mjs";
 import { configureCodexNative } from "./codex-native.mjs";
 import { configureCursorNative } from "./cursor-native.mjs";
+import { configureKimiNative } from "./kimi-native.mjs";
 import { maybeInstallOllama } from "./ollama-setup.mjs";
 import { maybeInstallObscura } from "./obscura-setup.mjs";
 import { configureCursorPgHook, configurePgHook, maybeSetupPostgres } from "./pg-setup.mjs";
@@ -406,8 +412,24 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
       agents: opts.agents
     });
   }
+  if (ides.includes("kimi")) {
+    // Kimi Code has no `mcp add` CLI — its documented config surface IS the JSON file,
+    // so it gets the same direct merge as Cursor.
+    await writeKimiMcp(home, vault, dryRun, serverOpts);
+    await configureKimiNative(home, vault, dryRun, {
+      lang,
+      hooks: opts.kimiHooks,
+      context: opts.kimiContext,
+      closeReminder: opts.kimiCloseReminder
+    });
+    await configureSkillAssets(home, dryRun, {
+      ide: "kimi",
+      skills: opts.skills,
+      agents: opts.agents
+    });
+  }
   // Generic skills target (compatibility with clients the kit has no --ide for yet:
-  // Kimi Code, opencode, ...). Additive and independent of the --ide list; the skills
+  // opencode, ...). Additive and independent of the --ide list; the skills
   // are plain markdown + portable Node scripts, consumable by any client with a skills
   // folder. Re-run with the same path to update.
   if (opts.skillsDir) await installSkillsInto(opts.skillsDir, dryRun);
@@ -498,7 +520,7 @@ export function printSummary({ vault, ides, opts, result, meta = {} }) {
 
   // Clients the kit cannot write config for get the block to paste. This used to exist
   // only in the wizard, so a headless install that selected them printed nothing.
-  const others = ides.filter((x) => !["cursor", "claude", "codex"].includes(x));
+  const others = ides.filter((x) => !["cursor", "claude", "codex", "kimi"].includes(x));
   if (others.length) {
     console.log(pc.yellow(t.otherIdes), others.join(", "));
     console.log(JSON.stringify({ mcpServers: { "basic-memory": server } }, null, 2));

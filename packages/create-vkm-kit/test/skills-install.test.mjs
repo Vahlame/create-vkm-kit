@@ -106,3 +106,35 @@ test("installSkillsInto dry-run writes nothing", async () => {
   await installSkillsInto(dir, true);
   assert.equal(fs.existsSync(dir), false);
 });
+
+test("configureSkillAssets kimi: skills + agent land under ~/.kimi-code", async () => {
+  const home = tempHome();
+  const prior = process.env.KIMI_CODE_HOME;
+  delete process.env.KIMI_CODE_HOME;
+  try {
+    await configureSkillAssets(home, false, { ide: "kimi" });
+    for (const name of SKILL_NAMES) {
+      assert.ok(
+        fs.existsSync(path.join(home, ".kimi-code", "skills", name, "SKILL.md")),
+        `${name} missing under ~/.kimi-code/skills`
+      );
+    }
+    const agentFp = path.join(home, ".kimi-code", "agents", "vkm-implementer.md");
+    assert.ok(fs.existsSync(agentFp), "kimi agent template installed");
+    const agent = fs.readFileSync(agentFp, "utf8");
+    assert.match(agent, /^---\r?\nname: vkm-implementer\r?\n/, "frontmatter opens the file");
+    assert.ok(!agent.includes("model: sonnet"), "no Claude-only frontmatter in the kimi variant");
+    assert.ok(!fs.existsSync(path.join(home, ".claude")), "claude scope untouched");
+    // Removal is symmetric and hash-guarded.
+    await uninstallSkillAssets(home, false, { ide: "kimi" });
+    assert.equal(fs.existsSync(agentFp), false, "uninstall removes the unmodified agent");
+    assert.equal(
+      fs.existsSync(path.join(home, ".kimi-code", "skills", "vkm-spec", "SKILL.md")),
+      false,
+      "uninstall removes unmodified skills"
+    );
+  } finally {
+    if (prior === undefined) delete process.env.KIMI_CODE_HOME;
+    else process.env.KIMI_CODE_HOME = prior;
+  }
+});

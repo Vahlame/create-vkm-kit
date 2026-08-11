@@ -97,3 +97,10 @@ test("--uninstall's scope sentence lists what it actually removes", () => {
     "the boundary matters: uninstall is not a de-registration"
   );
 });
+
+test("--help documents the kimi surface wherever the other IDEs appear", () => {
+  assert.match(HELP, /codex, claude, cursor, kimi \(default:/, "the --ide list names kimi");
+  assert.match(HELP, /~\/\.kimi-code\/mcp\.json/, "what kimi writes is stated");
+  assert.match(HELP, /--kimi-hooks \/ --no-kimi-hooks/, "the kimi hook toggle is documented");
+  assert.match(HELP, /~\/\.kimi-code\/AGENTS\.md/, "the kimi rules target is documented");
+});

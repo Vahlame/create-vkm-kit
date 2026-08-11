@@ -82,7 +82,7 @@ npx @vkmikc/create-vkm-kit "<VAULT>" -y
 > **Full stack by default (since v3.8.1).** That command installs **everything** — hybrid + semantic +
 > sqlite-vec + index + rules — when run from a clone of the kit (or with `--repo-root <clone>`). Run
 > from anywhere else it **degrades to `basic-memory` only** (with a warning), so it's always safe.
-> Want just `basic-memory`? add `--minimal`. Want the full stack _and_ Codex+Claude wired? use
+> Want just `basic-memory`? add `--minimal`. Want the full stack _and_ Codex+Claude+Kimi wired? use
 > `--full`. The rest of this guide describes the `basic-memory` baseline that's always present.
 
 **What it does, exactly:**
@@ -111,6 +111,13 @@ npx @vkmikc/create-vkm-kit "<VAULT>" -y
 >
 > For the complete fresh-machine flow (clone kit + vault, semantic backend, global `CLAUDE.md`),
 > see [`install-fresh-pc.md`](install-fresh-pc.md) (Claude Code).
+>
+> **Using Kimi Code?** Pass `--ide kimi`: the installer merges the servers into
+> `~/.kimi-code/mcp.json` directly (honors `KIMI_CODE_HOME`) — there is **no** `kimi mcp add` CLI,
+> the JSON file is the config surface. It also writes the memory rules into
+> `~/.kimi-code/AGENTS.md`, the skills into `~/.kimi-code/skills/`, the `vkm-implementer` agent into
+> `~/.kimi-code/agents/` and a managed hooks block into `~/.kimi-code/config.toml` (ADR-0087). MCP
+> config loads at session start, so open a **new session** and check with `/mcp`.
 
 <details>
 <summary><b>Manual alternative</b> (without the installer): edit <code>mcp.json</code> by hand</summary>
@@ -164,8 +171,9 @@ The **User Rules** tell the agent _when_ to read which note and _how_ to wrap up
 > `mcp.json`. If you renamed a server, adjust it here too.
 
 **Shortcut:** the initializer can install this same block for you — run it with `--rules all` (or it
-asks interactively). It writes an idempotent marked block into `~/.claude/CLAUDE.md`, `./AGENTS.md`
-and `.cursor/rules/obsidian-memory.mdc`, never clobbering your content. Cursor's **global** User
+asks interactively). It writes an idempotent marked block into `~/.claude/CLAUDE.md`, `./AGENTS.md`,
+`~/.kimi-code/AGENTS.md` and `.cursor/rules/obsidian-memory.mdc`, never clobbering your content.
+Cursor's **global** User
 Rules still need the manual paste below (the IDE stores them outside any file).
 
 ```markdown

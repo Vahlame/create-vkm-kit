@@ -34,9 +34,10 @@ npm run setup            # options: npm run setup -- --vault "<PATH>" --ide code
 ```
 
 `npm run setup` **preflights** dependencies (`node`, `uv`, `git`, `python`/`pip`), **auto-detects**
-which agent CLIs are on PATH (`codex`, `claude`; falls back to Cursor), runs the **`--full`**
+which agent CLIs are on PATH (`codex`, `claude`, `kimi`; falls back to Cursor), runs the **`--full`**
 install, **verifies** (vault on disk, index built, Python backend importable,
-`codex/claude mcp list`) and prints a status table. `npm run setup:dry` previews it with zero
+`codex/claude mcp list`; for Kimi Code it reads `~/.kimi-code/mcp.json`) and prints a status table.
+`npm run setup:dry` previews it with zero
 writes.
 
 ```mermaid
@@ -56,26 +57,29 @@ flowchart TD
 
 With Python ≥ 3.11 present, `npm run setup` installs the complete 4.0 suite in one pass:
 
-| Piece                                                                                                                | What it gives you                                                                                                                                                |
-| -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Vault + `basic-memory` MCP**                                                                                       | Markdown memory that survives across chats (read/write/search), version-pinned                                                                                   |
-| **`obsidian-memory-hybrid` MCP**                                                                                     | passage-first search (BM25 + semantic + graph), typed knowledge graph, `vault_audit`, memory reports                                                             |
-| **FTS index + sqlite-vec**                                                                                           | search by meaning, accelerated — in `<VAULT>/.obsidian-memory-rag/`                                                                                              |
-| **Memory rules**                                                                                                     | the agent protocol as an idempotent marked block in `~/.claude/CLAUDE.md`, `AGENTS.md` and `.cursor/rules/`                                                      |
-| **token-saver** _(Claude Code)_                                                                                      | noisy-output compaction hooks + artifact deny rules + the `vkm-terse` output style (ADR-0043)                                                                    |
-| **Local telemetry + `vkm-doctor`** _(Claude Code)_                                                                   | OTLP sink at `127.0.0.1:4319`; `npm run doctor` reports tokens, cost and cache health — nothing leaves your machine (ADR-0044)                                   |
-| **`/vkm-discipline`, `/vkm-spec`, `/vkm-design` & `/vkm-research` skills + `vkm-implementer` agent** _(Claude Code)_ | dense-code discipline + the idea→spec pipeline anchored to the vault + the anti-generic design method + consolidating `RESEARCH/` (ADR-0049, ADR-0053, ADR-0056) |
-| **vkm-spec GUI**                                                                                                     | idea to XML spec at `127.0.0.1:4923`, runs from the clone                                                                                                        |
-| **Ollama + `phi4-mini`** _(≈2.3 GB; best-effort)_                                                                    | local spec drafting; if it fails or you skip it with `--no-ollama`, vkm-spec uses its deterministic fallback (ADR-0047)                                          |
-| **Memory hooks** _(Claude Code)_                                                                                     | native auto-memory OFF + deterministic enforcement + effort advisor (ADR-0029/0030/0081)                                                                         |
+| Piece                                                                                                                | What it gives you                                                                                                                                                                                                                                                                                       |
+| -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Vault + `basic-memory` MCP**                                                                                       | Markdown memory that survives across chats (read/write/search), version-pinned                                                                                                                                                                                                                          |
+| **`obsidian-memory-hybrid` MCP**                                                                                     | passage-first search (BM25 + semantic + graph), typed knowledge graph, `vault_audit`, memory reports                                                                                                                                                                                                    |
+| **FTS index + sqlite-vec**                                                                                           | search by meaning, accelerated — in `<VAULT>/.obsidian-memory-rag/`                                                                                                                                                                                                                                     |
+| **Memory rules**                                                                                                     | the agent protocol as an idempotent marked block in `~/.claude/CLAUDE.md`, `AGENTS.md` and `.cursor/rules/`                                                                                                                                                                                             |
+| **token-saver** _(Claude Code)_                                                                                      | noisy-output compaction hooks + artifact deny rules + the `vkm-terse` output style (ADR-0043)                                                                                                                                                                                                           |
+| **Local telemetry + `vkm-doctor`** _(Claude Code)_                                                                   | OTLP sink at `127.0.0.1:4319`; `npm run doctor` reports tokens, cost and cache health — nothing leaves your machine (ADR-0044)                                                                                                                                                                          |
+| **`/vkm-discipline`, `/vkm-spec`, `/vkm-design` & `/vkm-research` skills + `vkm-implementer` agent** _(Claude Code)_ | dense-code discipline + the idea→spec pipeline anchored to the vault + the anti-generic design method + consolidating `RESEARCH/` (ADR-0049, ADR-0053, ADR-0056)                                                                                                                                        |
+| **vkm-spec GUI**                                                                                                     | idea to XML spec at `127.0.0.1:4923`, runs from the clone                                                                                                                                                                                                                                               |
+| **Ollama + `phi4-mini`** _(≈2.3 GB; best-effort)_                                                                    | local spec drafting; if it fails or you skip it with `--no-ollama`, vkm-spec uses its deterministic fallback (ADR-0047)                                                                                                                                                                                 |
+| **Memory hooks** _(Claude Code)_                                                                                     | native auto-memory OFF + deterministic enforcement + effort advisor (ADR-0029/0030/0081)                                                                                                                                                                                                                |
+| **Kimi Code wiring** _(Kimi Code)_                                                                                   | MCP into `~/.kimi-code/mcp.json`, rules into `~/.kimi-code/AGENTS.md`, skills + `vkm-implementer` agent, and two hooks: vault context on the first prompt of each session + once-per-session close nudge (ADR-0087). Token-saver, telemetry, native-memory guard and effort-gate stay Claude/Codex-only |
 
 Pieces marked _(Claude Code)_ install only if the `claude` CLI is on PATH (or you pass
-`--ide claude`). Without a kit clone, the hybrid part degrades to `basic-memory` with a warning —
+`--ide claude`). The _(Kimi Code)_ row installs when the `kimi` CLI is on PATH (or you pass
+`--ide kimi`). Without a kit clone, the hybrid part degrades to `basic-memory` with a warning —
 it never aborts.
 
 > **Honest limit:** registering an MCP does **not** make its tools live in the current session — no
 > agent can hot-load its own MCP. After `npm run setup`, **restart** Claude Code / Codex (or reload
-> the Cursor window); the memory tools (`vault_hybrid_search`, …) answer in the **next** session. The
+> the Cursor window; in Kimi Code start a **new session** — MCP config loads at session start — and
+> check with `/mcp`); the memory tools (`vault_hybrid_search`, …) answer in the **next** session. The
 > agent can confirm wiring with `claude mcp list` / `codex mcp list`.
 
 No clone (npx-only, basic install)? Use the prompt below.

@@ -348,7 +348,7 @@ test("non-interactive --with-gitleaks installs an executable pre-commit hook", (
   }
 });
 
-test("--full --dry-run wires Codex + Claude + Cursor with hybrid/semantic/index/backend (no side effects)", () => {
+test("--full --dry-run wires Codex + Claude + Cursor + Kimi with hybrid/semantic/index/backend (no side effects)", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-full-"));
   const vault = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "com-full-v-")), "vault");
   // NO_COLOR so assertions aren't split by ANSI resets (picocolors forces color on win32).
@@ -360,10 +360,20 @@ test("--full --dry-run wires Codex + Claude + Cursor with hybrid/semantic/index/
   );
   assert.equal(r.status, 0, r.stderr + r.stdout);
   assert.match(r.stdout, /full preset/, "announces the full preset");
-  // default --ide under --full is codex,claude,cursor
+  // default --ide under --full is codex,claude,cursor,kimi
   assert.match(r.stdout, /\[dry-run\] codex mcp add basic-memory/, "wires Codex MCP");
   assert.match(r.stdout, /\[dry-run\] claude mcp add basic-memory/, "wires Claude Code MCP");
   assert.match(r.stdout, /\[dry-run\] would merge Cursor sessionStart hook/, "wires Cursor hooks");
+  assert.match(
+    r.stdout,
+    /\[dry-run\] would write .*\.kimi-code.*mcp\.json/,
+    "wires Kimi Code MCP"
+  );
+  assert.match(
+    r.stdout,
+    /\[dry-run\] would merge hooks block into .*config\.toml/,
+    "wires Kimi Code hooks"
+  );
   assert.match(
     r.stdout,
     /\[dry-run\] codex mcp add obsidian-memory-hybrid/,
@@ -376,9 +386,36 @@ test("--full --dry-run wires Codex + Claude + Cursor with hybrid/semantic/index/
     /would start pg-service \+ initial sync/,
     "the Postgres projection is part of the default stack"
   );
-  // dry-run must not create the vault or touch ~/.cursor on disk
+  // dry-run must not create the vault or touch ~/.cursor / ~/.kimi-code on disk
   assert.ok(!fs.existsSync(path.join(vault, "START_HERE.md")), "dry-run scaffolds nothing");
   assert.ok(!fs.existsSync(path.join(home, ".cursor", "mcp.json")), "dry-run writes no mcp.json");
+  assert.ok(!fs.existsSync(path.join(home, ".kimi-code")), "dry-run writes no ~/.kimi-code");
+});
+
+test("non-interactive --ide kimi --minimal writes mcp.json + rules, hooks off under --minimal", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "com-kimi-"));
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), "com-kimi-w-"));
+  const vault = path.join(work, "vault");
+  const env = { ...process.env, USERPROFILE: home, HOME: home, NO_COLOR: "1" };
+  delete env.KIMI_CODE_HOME;
+  const r = spawnSync(
+    process.execPath,
+    [bin, vault, "-y", "--ide", "kimi", "--minimal", "--no-git-init", "--rules", "kimi"],
+    { cwd: work, encoding: "utf8", env }
+  );
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  const kimiDir = path.join(home, ".kimi-code");
+  const mcp = JSON.parse(fs.readFileSync(path.join(kimiDir, "mcp.json"), "utf8"));
+  assert.ok(mcp.mcpServers["basic-memory"], "basic-memory registered for Kimi Code");
+  assert.match(
+    fs.readFileSync(path.join(kimiDir, "AGENTS.md"), "utf8"),
+    /vkm-kit:start/,
+    "rules block written to ~/.kimi-code/AGENTS.md"
+  );
+  assert.ok(
+    !fs.existsSync(path.join(kimiDir, "config.toml")),
+    "--minimal keeps the hooks (and their config.toml block) off"
+  );
 });
 
 test("non-interactive --rules codex writes the managed block to ~/.codex/AGENTS.md", () => {

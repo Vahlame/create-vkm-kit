@@ -1,7 +1,7 @@
 # Guía de skills: cuál usar, cuándo, y cuándo no
 
 El kit instala **ocho skills** en `~/.claude/skills/` (y, según `--ide`, también en
-`~/.cursor/skills/` y `~/.agents/skills/`). Cada una se dispara sola cuando su
+`~/.cursor/skills/`, `~/.agents/skills/` y `~/.kimi-code/skills/`). Cada una se dispara sola cuando su
 `description` coincide con lo que pediste, y también podés invocarlas a mano (`/vkm-spec`,
 `/vkm-design`, …). Esta guía existe porque la pregunta cara no es "qué hace cada una" sino
 **cuál corresponde ahora** — y sobre todo cuál **no**, porque una skill que se mete donde no

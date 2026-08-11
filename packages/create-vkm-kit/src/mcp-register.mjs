@@ -1,7 +1,7 @@
 /**
  * Wiring the kit's MCP servers into each supported client.
  *
- * # One server list, three clients
+ * # One server list, four clients
  *
  * `registerClaudeCodeMcp` and `registerCodexMcp` used to be 32 BYTE-IDENTICAL lines
  * apiece — the same fourteen-key destructure of the options object, then the same four
@@ -12,10 +12,11 @@
  *
  * # Why two shapes at all
  *
- * Cursor reads a JSON file, so the kit merges into `~/.cursor/mcp.json` directly. Claude
- * Code keeps no such file and Codex merges TOML itself, so both are driven through their
- * own CLI (`claude mcp add` / `codex mcp add`) rather than by editing their config behind
- * their back. That difference is real and stays.
+ * Cursor and Kimi Code read a JSON file, so the kit merges into `~/.cursor/mcp.json` /
+ * `~/.kimi-code/mcp.json` directly. Claude Code keeps no such file and Codex merges TOML
+ * itself, so both are driven through their own CLI (`claude mcp add` / `codex mcp add`)
+ * rather than by editing their config behind their back. That difference is real and
+ * stays.
  *
  * @module
  */
@@ -40,6 +41,7 @@ import {
   resolveLauncher
 } from "./mcp-merge.mjs";
 import { restrictFileToOwner } from "./file-perms.mjs";
+import { kimiHome } from "./kimi-home.mjs";
 import { atomicWriteJson, stripLeadingUtf8Bom } from "./settings-io.mjs";
 
 /**
@@ -140,15 +142,16 @@ export function buildServerList(vaultAbs, opts = {}) {
 }
 
 /**
- * Merge the server list into `~/.cursor/mcp.json`, preserving every entry the user
- * already has and backing up the previous file first.
- * @param {string} home
+ * Merge the server list into a client's `mcp.json` (`~/.cursor/mcp.json`,
+ * `~/.kimi-code/mcp.json`), preserving every entry the user already has and backing up
+ * the previous file first.
+ * @param {string} home - used only for the launcher probe fallback (see below)
+ * @param {string} dir - the client config directory that holds `mcp.json`
  * @param {string} vaultAbs
  * @param {boolean} dryRun
  * @param {HybridOpts} [opts]
  */
-export async function writeCursorMcp(home, vaultAbs, dryRun, opts = {}) {
-  const dir = path.join(home, ".cursor");
+async function writeJsonMcp(home, dir, vaultAbs, dryRun, opts = {}) {
   const fp = path.join(dir, "mcp.json");
   let parsed = {};
   /** @type {Buffer | null} */
@@ -189,9 +192,10 @@ export async function writeCursorMcp(home, vaultAbs, dryRun, opts = {}) {
   const launcher =
     opts.launcher !== undefined ? opts.launcher : resolveLauncher(path.join(home, ".claude"));
 
-  // Cursor takes the MERGE functions rather than buildServerList's plain objects: each
-  // one preserves the user's other `mcpServers` entries, which a wholesale write would
-  // destroy. Same decision table as buildServerList, applied to a file instead of a CLI.
+  // The JSON-file clients take the MERGE functions rather than buildServerList's plain
+  // objects: each one preserves the user's other `mcpServers` entries, which a wholesale
+  // write would destroy. Same decision table as buildServerList, applied to a file
+  // instead of a CLI.
   let merged = mergeBasicMemoryServer(parsed, vaultAbs, { launcher });
   if (withHybrid && kit) {
     merged = mergeObsidianHybridServer(merged, vaultAbs, kit, {
@@ -236,6 +240,31 @@ export async function writeCursorMcp(home, vaultAbs, dryRun, opts = {}) {
   }
   await atomicWriteJson(fp, merged);
   console.log(pc.green("Wrote"), fp);
+}
+
+/**
+ * Merge the server list into `~/.cursor/mcp.json`.
+ * @param {string} home
+ * @param {string} vaultAbs
+ * @param {boolean} dryRun
+ * @param {HybridOpts} [opts]
+ */
+export async function writeCursorMcp(home, vaultAbs, dryRun, opts = {}) {
+  return writeJsonMcp(home, path.join(home, ".cursor"), vaultAbs, dryRun, opts);
+}
+
+/**
+ * Merge the server list into Kimi Code's `mcp.json`. Kimi Code has no `mcp add` CLI
+ * command — its documented config surface IS the JSON file (`$KIMI_CODE_HOME/mcp.json`,
+ * default `~/.kimi-code/mcp.json`), in the same `{"mcpServers": {...}}` shape Cursor
+ * uses, so it gets the same merge-and-backup treatment.
+ * @param {string} home
+ * @param {string} vaultAbs
+ * @param {boolean} dryRun
+ * @param {HybridOpts} [opts]
+ */
+export async function writeKimiMcp(home, vaultAbs, dryRun, opts = {}) {
+  return writeJsonMcp(home, kimiHome(home), vaultAbs, dryRun, opts);
 }
 
 /**

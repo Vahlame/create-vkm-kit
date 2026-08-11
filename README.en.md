@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="./LICENSE.md"><img src="https://img.shields.io/badge/license-MIT--derived_%2B_attribution_(non--OSI)-blue.svg" alt="License"></a>
-  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v5.5.3-orange.svg" alt="Release"></a>
+  <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v5.6.0-orange.svg" alt="Release"></a>
   <a href="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml"><img src="https://github.com/Vahlame/create-vkm-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.npmjs.com/package/@vkmikc/create-vkm-kit"><img src="https://img.shields.io/npm/v/%40vkmikc%2Fcreate-vkm-kit?label=npm&color=cb3837" alt="npm"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A5%2020-43853d.svg" alt="Node ≥ 20">
@@ -57,8 +57,9 @@ started** — everything below is optional.
 
 <br>
 
-Focused **on Codex and Claude Code first**, with **every feature on by default**: it registers the
-MCP in both, enables hybrid search (BM25, semantic, and graph), the **knowledge graph** (typed
+Focused **on Codex, Claude Code and Kimi Code first** (it also wires Cursor), with **every feature
+on by default**: it registers the
+MCP in all four, enables hybrid search (BM25, semantic, and graph), the **knowledge graph** (typed
 relations and observations), the **memory reports**, the **sqlite-vec acceleration**,
 **multi-writer safety** (etag/`ifMatch` + write lock, ADR-0037) and the **evolutive memory loop**
 (failure recall, usage boost, `memory-reflect` proposals, ADR-0038), installs the Python backend,
@@ -66,7 +67,7 @@ builds the index, and installs the rules — no questions. Run it from a clone o
 `--repo-root <clone>`):
 
 ```bash
-npx @vkmikc/create-vkm-kit --full          # = --ide codex,claude --with-hybrid --semantic --vec --build-index --install-backend --rules --obscura
+npx @vkmikc/create-vkm-kit --full          # = --ide codex,claude,cursor,kimi --with-hybrid --semantic --vec --build-index --install-backend --rules --obscura
 ```
 
 If no clone is at hand, `--full` **does not abort**: it falls back to `basic-memory` (no hybrid) and
@@ -102,8 +103,12 @@ a "skipped" line and exits 0). `--update` applies that plan: it installs what is
 kit changed, and **leaves any file you edited untouched** (listed by name; `--force` overwrites it
 and **discards your edits**, `--dry-run` previews with zero writes).
 
-**Claude Code / Codex on a fresh PC.** `--full` already registers the MCP via `claude mcp add` /
-`codex mcp add` and builds the index in the same command. For Claude Code it also makes the vault
+**Claude Code / Codex / Kimi Code on a fresh PC.** `--full` already registers the MCP via
+`claude mcp add` / `codex mcp add` (in Kimi Code it merges straight into `~/.kimi-code/mcp.json` —
+there is no `kimi mcp add`) and builds the index in the same command. In Kimi Code it also installs
+the rules into `~/.kimi-code/AGENTS.md`, the skills, the `vkm-implementer` agent and two hooks: the
+vault map on the **first prompt** of each session and a once-per-session close reminder (ADR-0087;
+the `Stop` hook does not run in `kimi -p` mode). For Claude Code it also makes the vault
 the **only** memory: it turns off Claude Code's native auto-memory (`autoMemoryEnabled:false`),
 installs a `SessionStart` vault hook (ADR-0029), two deterministic enforcement hooks — blocking
 writes into the native memory + a close-ritual reminder — so it works with any model (ADR-0030), and

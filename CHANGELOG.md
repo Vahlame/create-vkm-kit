@@ -4,7 +4,39 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [5.6.0] - 2026-08-11
+
+### Added
+
+- **Kimi Code CLI as a first-class `--ide kimi` target** (ADR-0087). The installer now
+  wires Kimi Code end to end: MCP servers merged into `~/.kimi-code/mcp.json` (honors
+  `KIMI_CODE_HOME`; Kimi has no `mcp add` CLI — the JSON file is the config surface, so
+  it shares Cursor's merge-preserve-backup path via the extracted `writeJsonMcp`), the
+  memory-rules block into `~/.kimi-code/AGENTS.md` (`--rules kimi`, included in `all`),
+  the eight skills into `~/.kimi-code/skills/`, and a dedicated agent template
+  (`templates/agents/vkm-implementer.kimi.md`, without the Claude-only `model` field)
+  into `~/.kimi-code/agents/`. `kimi` joins the `--full` default IDE list
+  (`codex,claude,cursor,kimi`), the wizard picker, `--uninstall`, `--check-update` /
+  `--update` scopes, the `npm run setup` auto-detection + verification, and the
+  harness-conformance matrix.
+- **Kimi Code hooks** (`--kimi-hooks`, default on): a managed `[[hooks]]` block between
+  `# vkm-kit:start/end` TOML comments in `~/.kimi-code/config.toml` (only the four
+  documented fields — an extra one makes Kimi reject the whole file; the file is backed
+  up before every managed write) with scripts under `~/.kimi-code/hooks/`:
+  - **Vault-context injection** rides `UserPromptSubmit`, once per session (sidecar
+    marker in `~/.vkm/kimi-context-injected/`): Kimi's `SessionStart` is
+    observation-only — its stdout never reaches the context, verified live — while a
+    `UserPromptSubmit` hook's stdout IS appended. Prints the vault map + reminders as
+    plain text (no Claude `hookSpecificOutput` envelope), with Claude-only lines
+    (native auto-memory, ToolSearch) dropped.
+  - **Close-ritual nudge** on `Stop`: scans the session's
+    `sessions/*/session_<id>/agents/main/wire.jsonl` (`context.append_loop_event` →
+    `tool.call` records), shares the Claude hook's policy regexes and reason text
+    verbatim, blocks via exit code 2, and self-limits to once per session
+    (`~/.vkm/kimi-stop-nudge/`; Kimi documents no `stop_hook_active`). Not fired by
+    print mode (`kimi -p`) — interactive TUI only.
+  - Token-saver, telemetry, native-memory guard and effort-gate remain Claude/Codex-only
+    (Kimi has no native auto-memory and no `/effort` harness).
 
 ## [5.5.3] - 2026-08-03
 

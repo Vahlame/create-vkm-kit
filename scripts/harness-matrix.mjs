@@ -44,7 +44,19 @@ const TIMEOUT_MS = 180_000;
  * `enforcement` is the H17 answer in one field: the kit's deterministic layer is
  * Claude Code hooks, so every other harness gets the MCP server plus prose and
  * nothing else. That is a fact about the architecture, not a gap in this probe.
+ *
+ * @typedef {object} HarnessSpec
+ * @property {string} id
+ * @property {string} label
+ * @property {string} ide
+ * @property {string|null} cli
+ * @property {null | ((home: string, cwd: string) => string)} mcpArtifact
+ * @property {string} mcpNote
+ * @property {(home: string, cwd: string) => string} rulesArtifact
+ * @property {string} enforcement
  */
+
+/** @type {HarnessSpec[]} */
 const HARNESSES = [
   {
     id: "claude-code",
@@ -76,6 +88,18 @@ const HARNESSES = [
     mcpNote: "`~/.cursor/mcp.json` (file)",
     rulesArtifact: (_home, cwd) => path.join(cwd, ".cursor", "rules", "obsidian-memory.mdc"),
     enforcement: "none — MCP + prose only"
+  },
+  {
+    id: "kimi-code",
+    label: "Kimi Code",
+    ide: "kimi",
+    cli: "kimi",
+    // KIMI_CODE_HOME redirects this in real use; the probe never sets it, so the
+    // throwaway-HOME default is what the install writes.
+    mcpArtifact: (home) => path.join(home, ".kimi-code", "mcp.json"),
+    mcpNote: "`~/.kimi-code/mcp.json` (file)",
+    rulesArtifact: (home) => path.join(home, ".kimi-code", "AGENTS.md"),
+    enforcement: "first-prompt context + Stop hooks ([[hooks]] in ~/.kimi-code/config.toml)"
   },
   {
     id: "agents-md",
@@ -202,9 +226,10 @@ function toMarkdown(rows) {
     "measured — it is not a pass and not a failure. `—` means the harness has no artifact",
     "of that kind by design.",
     "",
-    "The last column is the honest headline: **the kit's deterministic guarantees exist",
-    "only in Claude Code.** Everywhere else the MCP server and the rules block land",
-    "correctly, and every rule they carry depends on the model choosing to follow it."
+    "The last column is the honest headline: **the kit's full deterministic layer exists",
+    "only in Claude Code.** Kimi Code gets the context-injection and close-ritual hooks;",
+    "everywhere else the MCP server and the rules block land correctly, and every rule",
+    "they carry depends on the model choosing to follow it."
   ].join("\n");
 }
 

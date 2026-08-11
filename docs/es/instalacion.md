@@ -82,7 +82,7 @@ npx @vkmikc/create-vkm-kit "<VAULT>" -y
 > **Stack completo por defecto (desde la v3.8.1).** Ese comando instala **todo** — hybrid + semántica +
 > sqlite-vec + índice + reglas — cuando se corre desde un clon del kit (o con `--repo-root <clon>`).
 > Desde cualquier otro lugar **degrada a solo `basic-memory`** (con un aviso), así que siempre es
-> seguro. ¿Solo `basic-memory`? añade `--minimal`. ¿Stack completo _y_ Codex+Claude cableados? usa
+> seguro. ¿Solo `basic-memory`? añade `--minimal`. ¿Stack completo _y_ Codex+Claude+Kimi cableados? usa
 > `--full`. El resto de esta guía describe la base `basic-memory` que siempre está presente.
 
 **Qué hace, exactamente:**
@@ -111,6 +111,13 @@ npx @vkmikc/create-vkm-kit "<VAULT>" -y
 >
 > Para el flujo completo en máquina nueva (clonar kit + vault, backend semántico, `CLAUDE.md`
 > global), ve [`instalar-pc-nueva.md`](instalar-pc-nueva.md) (Claude Code).
+>
+> **¿Usas Kimi Code?** Pasa `--ide kimi`: el instalador fusiona los servidores directo en
+> `~/.kimi-code/mcp.json` (respeta `KIMI_CODE_HOME`) — **no** existe `kimi mcp add`, el JSON es la
+> superficie de configuración. También escribe las reglas de memoria en `~/.kimi-code/AGENTS.md`,
+> las skills en `~/.kimi-code/skills/`, el agente `vkm-implementer` en `~/.kimi-code/agents/` y un
+> bloque gestionado de hooks en `~/.kimi-code/config.toml` (ADR-0087). La config MCP carga al
+> iniciar la sesión, así que abre una **sesión nueva** y verifica con `/mcp`.
 
 <details>
 <summary><b>Alternativa manual</b> (sin el instalador): edita <code>mcp.json</code> a mano</summary>
@@ -165,7 +172,8 @@ Las **User Rules** le dicen al agente _cuándo_ leer qué nota y _cómo_ cerrar 
 
 **Atajo:** el initializer puede instalar este mismo bloque por ti — córrelo con `--rules all` (o te
 pregunta en modo interactivo). Escribe un bloque marcado idempotente en `~/.claude/CLAUDE.md`,
-`./AGENTS.md` y `.cursor/rules/obsidian-memory.mdc`, sin pisar tu contenido. Las User Rules
+`./AGENTS.md`, `~/.kimi-code/AGENTS.md` y `.cursor/rules/obsidian-memory.mdc`, sin pisar tu
+contenido. Las User Rules
 **globales** de Cursor siguen necesitando el pegado manual de abajo (el IDE las guarda fuera de
 cualquier archivo).
 

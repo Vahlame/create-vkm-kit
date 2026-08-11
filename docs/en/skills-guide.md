@@ -1,6 +1,7 @@
 # Skills guide: which one, when, and when not
 
-The kit installs **eight skills** into `~/.claude/skills/`. Each fires on its own when its
+The kit installs **eight skills** into `~/.claude/skills/` (and, depending on `--ide`, also into
+`~/.agents/skills/`, `~/.cursor/skills/` and `~/.kimi-code/skills/`). Each fires on its own when its
 `description` matches what you asked for, and each can be invoked by hand (`/vkm-spec`,
 `/vkm-design`, …). This guide exists because the expensive question is not "what does each
 one do" but **which one applies right now** — and above all which one does **not**, since a

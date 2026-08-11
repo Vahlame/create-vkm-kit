@@ -26,7 +26,7 @@ import { flagValue } from "../mcp-merge.mjs";
  * @typedef {object} InstallOptions
  * @property {"es"|"en"} lang
  * @property {boolean} dryRun
- * @property {boolean} full `--full`/`--all`: also flips the IDE default to codex,claude
+ * @property {boolean} full `--full`/`--all`: also flips the IDE default to codex,claude,cursor,kimi
  * @property {boolean} minimal `--minimal`: opt back down to plain basic-memory
  * @property {boolean} noCursorMcp
  * @property {boolean} noGitInit
@@ -56,6 +56,9 @@ import { flagValue } from "../mcp-merge.mjs";
  * @property {boolean} cursorContext
  * @property {boolean} cursorCloseReminder
  * @property {boolean} cursorTokenSaver
+ * @property {boolean} kimiHooks
+ * @property {boolean} kimiContext
+ * @property {boolean} kimiCloseReminder
  * @property {boolean} ollama
  * @property {boolean} obscura
  * @property {boolean} downloads
@@ -100,6 +103,7 @@ export function resolveOptions(argv, ctx) {
   const claude = ides.includes("claude");
   const codex = ides.includes("codex");
   const cursor = ides.includes("cursor");
+  const kimi = ides.includes("kimi");
   const codexHooks = codex && on("--codex-hooks", "--no-codex-hooks");
   const codexContext = codexHooks && on("--vault-context-hook", "--no-vault-context-hook");
   const codexMemoryGuard = codexHooks && on("--memory-enforcement", "--no-memory-enforcement");
@@ -113,6 +117,14 @@ export function resolveOptions(argv, ctx) {
   const cursorContext = cursorHooks && on("--vault-context-hook", "--no-vault-context-hook");
   const cursorCloseReminder = cursorHooks && on("--memory-enforcement", "--no-memory-enforcement");
   const cursorTokenSaver = cursorHooks && on("--token-saver", "--no-token-saver");
+  // Kimi Code hooks live in `[[hooks]]` blocks in config.toml (TOML). The subset that
+  // maps: vault context on the first prompt of each session (UserPromptSubmit — Kimi's
+  // SessionStart is observation-only) + close-ritual nudge on Stop. Token-saver,
+  // native-memory guard and effort-gate have no kimi surface (no hookable transcript
+  // format guarantee, no auto-memory, no /effort).
+  const kimiHooks = kimi && on("--kimi-hooks", "--no-kimi-hooks");
+  const kimiContext = kimiHooks && on("--vault-context-hook", "--no-vault-context-hook");
+  const kimiCloseReminder = kimiHooks && on("--memory-enforcement", "--no-memory-enforcement");
   const withHybrid = on("--with-hybrid", "--no-hybrid");
 
   // Claude Code only: disable the native per-project auto-memory + install the SessionStart
@@ -157,11 +169,12 @@ export function resolveOptions(argv, ctx) {
     // usage. Independent of the token-saver: coupling them meant `--no-token-saver` on a
     // re-run silently stripped a sink the user never asked to touch.
     telemetry: claude && on("--telemetry", "--no-telemetry"),
-    // Skills are plain SKILL.md dirs — Cursor reads `~/.cursor/skills/` (and also
-    // picks up `~/.claude/skills/` when both are installed).
-    skills: (claude || codex || cursor) && on("--skills", "--no-skills"),
-    // Subagent templates stay Claude/Codex-only (Cursor Task types are a different format).
-    agents: (claude || codex) && on("--agents", "--no-agents"),
+    // Skills are plain SKILL.md dirs — Cursor reads `~/.cursor/skills/`, Kimi Code reads
+    // `~/.kimi-code/skills/` (and both pick up the shared `~/.agents/skills/` too).
+    skills: (claude || codex || cursor || kimi) && on("--skills", "--no-skills"),
+    // Subagent templates stay Claude/Codex/Kimi-only (Cursor Task types are a different
+    // format).
+    agents: (claude || codex || kimi) && on("--agents", "--no-agents"),
     // Codex hooks are an independent `hooks.json` surface. Reuse the established
     // component flags without coupling skills, agent, or hooks to one another.
     codexHooks,
@@ -173,6 +186,9 @@ export function resolveOptions(argv, ctx) {
     cursorContext,
     cursorCloseReminder,
     cursorTokenSaver,
+    kimiHooks,
+    kimiContext,
+    kimiCloseReminder,
     // Ollama + phi4-mini (~2.3GB) and obscura (a ~40MB third-party binary) are gated to an
     // EXPLICIT opt-in: a bare install must not surprise anyone with a multi-GB download.
     ollama: (full || argv.includes("--ollama")) && !argv.includes("--no-ollama"),
@@ -199,7 +215,7 @@ export function resolveOptions(argv, ctx) {
     researchDir: flagValue(argv, "--obscura-research-dir") || `${vault}/RESEARCH`,
     downloadDir: flagValue(argv, "--download-dir"),
     // Compatibility escape hatch: install the skills into ANY client's skills folder
-    // (Kimi Code, opencode, ...) — additive, independent of the --ide list.
+    // (opencode, ...) — additive, independent of the --ide list.
     skillsDir: flagValue(argv, "--skills-dir"),
     // Rules ship by default too (part of "everything"); --no-rules / --minimal opt out.
     ruleTargets: rulesTargets(argv, ides, { full: !minimal }),
