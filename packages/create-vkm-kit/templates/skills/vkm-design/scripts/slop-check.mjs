@@ -24,6 +24,15 @@ function isIndigoHue(C, H) {
   return C >= 0.08 && H >= 265 && H <= 305;
 }
 
+/**
+ * Tailwind blue-500/600 band — the *second* statistical default once indigo is
+ * priced (observed: models swap #6366f1 for #3b82f6 and call it variety).
+ * Hue 245–264 at chroma >= 0.10. Distinct id so existing indigo tests stay put.
+ */
+function isTailwindBlue(C, H) {
+  return C >= 0.1 && H >= 245 && H <= 264;
+}
+
 // Deliberately excludes U+2600–27BF (dingbats: ✓ ✂ ✈) — checkmarks as list markers are
 // typography, not emoji iconography; the slop signal lives in the 1F300+ pictographs.
 const EMOJI_RE = /[\u{1F300}-\u{1FAFF}\u{2B00}-\u{2BFF}]/gu;
@@ -52,7 +61,7 @@ export function scan(text) {
   // 1. Default-typeface slop: Inter/Poppins declared as a font-family.
   hits.push(
     ...findAll(text, /font-family[^;:]*:\s*([^;}{"']*(?:"[^"]*"|'[^']*'|[^;}])*)/gi, (m) =>
-      /\b(inter|poppins)\b/i.test(m[1])
+      /\b(inter|poppins|geist(?:\s+sans)?|roboto)\b/i.test(m[1])
         ? { id: "font-default", evidence: `font-family: ${m[1].trim().slice(0, 60)}` }
         : null
     )
@@ -68,21 +77,32 @@ export function scan(text) {
         return null; // malformed/alpha hex — not this checker's job, parseHex already logs why
       }
       const { C, H } = rgbToOklch(rgb);
-      return isIndigoHue(C, H)
-        ? {
-            id: "indigo-family",
-            evidence: `${m[0]} (oklch hue ${H.toFixed(0)}, chroma ${C.toFixed(2)})`
-          }
-        : null;
+      if (isIndigoHue(C, H)) {
+        return {
+          id: "indigo-family",
+          evidence: `${m[0]} (oklch hue ${H.toFixed(0)}, chroma ${C.toFixed(2)})`
+        };
+      }
+      if (isTailwindBlue(C, H)) {
+        return {
+          id: "tailwind-blue",
+          evidence: `${m[0]} (oklch hue ${H.toFixed(0)}, chroma ${C.toFixed(2)})`
+        };
+      }
+      return null;
     })
   );
   hits.push(
     ...findAll(text, /oklch\(\s*[\d.]+%?\s+([\d.]+)\s+([\d.]+)/gi, (m) => {
       const C = Number(m[1]);
       const H = Number(m[2]);
-      return isIndigoHue(C, H)
-        ? { id: "indigo-family", evidence: `oklch chroma ${C} hue ${H}` }
-        : null;
+      if (isIndigoHue(C, H)) {
+        return { id: "indigo-family", evidence: `oklch chroma ${C} hue ${H}` };
+      }
+      if (isTailwindBlue(C, H)) {
+        return { id: "tailwind-blue", evidence: `oklch chroma ${C} hue ${H}` };
+      }
+      return null;
     })
   );
 

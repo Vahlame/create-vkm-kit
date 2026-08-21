@@ -110,6 +110,18 @@ test("modelFamily normalizes ids, aliases and objects", () => {
   assert.equal(modelFamily("gpt-4"), null);
 });
 
+test("modelFamily detects DeepSeek and the gate never proposes a Claude model to it", () => {
+  assert.equal(modelFamily("deepseek-v4-pro"), "deepseek");
+  assert.equal(modelFamily("deepseek-v4-flash"), "deepseek");
+  assert.equal(modelFamily("deepseek-chat"), "deepseek");
+  assert.equal(modelFamily({ id: "deepseek-v4-pro" }), "deepseek");
+
+  // A DeepSeek session still gets effort advice, but never a `/model opus|sonnet|haiku` proposal.
+  const risky = { files: ["src/auth/login.ts"] };
+  assert.equal(recommend(risky, { currentModel: "deepseek" }).model, null);
+  assert.match(recommend(risky, { currentModel: "deepseek" }).effort, /^(high|xhigh|max)$/);
+});
+
 test("scanTranscript counts substantive edits, collects files and reads the user's stakes", () => {
   const t = transcriptWith([
     userSays("esto va a producción hoy"),

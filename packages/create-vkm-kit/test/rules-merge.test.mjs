@@ -4,7 +4,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { mergeManagedBlock, installRules, CURSOR_RULE_FRONTMATTER } from "../src/rules-merge.mjs";
-import { memoryRulesBlock, RULES_START, RULES_END } from "../src/memory-rules.mjs";
+import {
+  memoryRulesBlock,
+  cursorPointerBlock,
+  RULES_START,
+  RULES_END
+} from "../src/memory-rules.mjs";
 
 const block = memoryRulesBlock("en");
 
@@ -53,6 +58,65 @@ test("installRules cursor fresh install: byte-equal to frontmatter + managed blo
     assert.equal(got, mergeManagedBlock(CURSOR_RULE_FRONTMATTER, memoryRulesBlock("es")));
     assert.ok(got.startsWith(CURSOR_RULE_FRONTMATTER), "frontmatter survives verbatim on top");
   } finally {
+    fs.rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test("installRules cursor+agents on a project: pointer on Cursor surfaces, full block on AGENTS.md", async () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "rules-merge-home-"));
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "rules-merge-proj-"));
+  try {
+    const written = await installRules(["agents", "cursor"], "es", { home, cwd });
+    const agentsFp = path.join(cwd, "AGENTS.md");
+    const userFp = path.join(home, ".cursor", "rules", "obsidian-memory.mdc");
+    const projectFp = path.join(cwd, ".cursor", "rules", "obsidian-memory.mdc");
+    assert.ok(
+      written.includes(agentsFp) && written.includes(userFp) && written.includes(projectFp)
+    );
+    const agents = fs.readFileSync(agentsFp, "utf8");
+    const user = fs.readFileSync(userFp, "utf8");
+    const project = fs.readFileSync(projectFp, "utf8");
+    assert.ok(agents.includes("ÚNICA fuente de verdad"), "AGENTS.md keeps the full protocol");
+    assert.ok(user.includes("puntero Cursor"), "user-global is the pointer");
+    assert.ok(project.includes("puntero Cursor"), "project .mdc is the pointer");
+    assert.ok(
+      !user.includes("ÚNICA fuente de verdad"),
+      "pointer must not embed the full core block"
+    );
+    assert.ok(
+      user.length < memoryRulesBlock("es").length / 2,
+      "pointer is cheaper than half a full block"
+    );
+    // Reinstall replaces a legacy full block in place.
+    fs.writeFileSync(userFp, mergeManagedBlock(CURSOR_RULE_FRONTMATTER, memoryRulesBlock("es")));
+    await installRules(["agents", "cursor"], "es", { home, cwd });
+    const again = fs.readFileSync(userFp, "utf8");
+    assert.ok(again.includes("puntero Cursor"));
+    assert.equal(again.split(RULES_START).length - 1, 1);
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+    fs.rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test("installRules cursor-only on a distinct project: full protocol on project .mdc, pointer user-global", async () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "rules-merge-chome-"));
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "rules-merge-ccwd-"));
+  try {
+    await installRules(["cursor"], "es", { home, cwd });
+    const user = fs.readFileSync(
+      path.join(home, ".cursor", "rules", "obsidian-memory.mdc"),
+      "utf8"
+    );
+    const project = fs.readFileSync(
+      path.join(cwd, ".cursor", "rules", "obsidian-memory.mdc"),
+      "utf8"
+    );
+    assert.ok(user.includes("puntero Cursor"));
+    assert.ok(project.includes("ÚNICA fuente de verdad"));
+    assert.ok(cursorPointerBlock("es").includes("vkm-kit:start"));
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
     fs.rmSync(cwd, { recursive: true, force: true });
   }
 });

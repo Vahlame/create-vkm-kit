@@ -81,10 +81,10 @@ Son un texto que pegas en **Cursor → Settings → Rules → User Rules** — o
 `~/.claude/CLAUDE.md` (se carga en cada sesión). **No** sustituyen al MCP (sin MCP, las reglas no
 pueden leer el disco). Sirven para dos cosas:
 
-1. **Ritmo de lectura:** "empieza por `START_HERE`, luego `MEMORY`, luego el proyecto actual".
+1. **Ritmo de lectura:** `vault_hybrid_search` / `assemble_context` primero; nunca `PROJECTS` / `SESSION_LOG` enteros.
 2. **Higiene:** "no guardes secretos", "anota los cierres en `SESSION_LOG`".
 
-El bloque listo para copiar está en la [guía de instalación](instalacion.md#paso-4--pegar-las-user-rules-en-cursor).
+El bloque canónico está en la [guía de instalación](instalacion.md#paso-4--reglas-de-memoria-archivos-no-un-segundo-pegado). No lo pegues en User Rules si el instalador ya escribió los archivos.
 
 ---
 
@@ -98,13 +98,10 @@ sequenceDiagram
     participant Vault as Vault (.md + git)
 
     Tú->>Agente: "sigue con el proyecto X"
-    Agente->>MCP: leer START_HERE.md
-    MCP->>Vault: abre el archivo
-    Vault-->>Agente: contenido de la nota
-    Note over Agente: lee el contexto en vez de inventar
-    Agente->>MCP: leer PROJECTS/X.md
-    MCP->>Vault: abre el archivo
-    Vault-->>Agente: decisiones previas del proyecto
+    Agente->>MCP: vault_hybrid_search("proyecto X")
+    MCP->>Vault: búsqueda passage-first
+    Vault-->>Agente: sección que matchea (~150–250 tokens)
+    Note over Agente: responde desde el pasaje; no vuelca PROJECTS/X.md
     Note over Tú,Agente: …trabajáis en la tarea…
     Agente->>Tú: propone qué anotar (cierre)
     Tú->>Agente: "sí, guárdalo"

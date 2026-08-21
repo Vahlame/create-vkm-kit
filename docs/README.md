@@ -23,7 +23,8 @@ Elige tu idioma · Pick your language:
 [Glosario](es/glosario.md)
 
 [Memoria en Postgres](es/memoria-postgres.md) ·
-[Consola](es/consola.md)
+[Consola](es/consola.md) ·
+[DeepSeek V4](es/deepseek.md)
 
 </td>
 <td align="center" width="50%">
@@ -45,7 +46,8 @@ Elige tu idioma · Pick your language:
 [Glossary](en/glossary.md)
 
 [Postgres memory](en/postgres-memory.md) ·
-[Console](en/console.md)
+[Console](en/console.md) ·
+[DeepSeek V4](en/deepseek.md)
 
 </td>
 </tr>

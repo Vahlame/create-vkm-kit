@@ -93,6 +93,148 @@ export class OllamaUnavailableError extends Error {
   }
 }
 
+// ── OpenAI-compatible provider (DeepSeek V4) ──────────────────────────────────────────────
+//
+// The research stack used to require a local Ollama for every LLM call (curation, expansion,
+// translation, lead generation, summarization). That is a hard dependency a DeepSeek-API user
+// cannot satisfy — so the client also speaks the OpenAI-compatible `/chat/completions` contract,
+// selected by env. The API key is read from `DEEPSEEK_API_KEY` ONLY: never written to disk, git
+// or any config, never logged, and redacted from every error this module surfaces.
+
+/** DeepSeek (OpenAI-compatible) endpoint. */
+export const DEEPSEEK_BASE_URL =
+  process.env.OBSCURA_DEEPSEEK_BASE_URL || "https://api.deepseek.com";
+/** The model every DeepSeek-backed call uses (cheap `flash` default — these are small, ~100-token
+ * structured extractions). Set `OBSCURA_DEEPSEEK_MODEL=deepseek-v4-pro` for higher-quality
+ * summaries/expansion if you prefer depth over cost. */
+export const DEEPSEEK_MODEL = process.env.OBSCURA_DEEPSEEK_MODEL || "deepseek-v4-flash";
+
+/**
+ * Which LLM backend the research calls use. `auto` (default): DeepSeek when `DEEPSEEK_API_KEY`
+ * is set, otherwise local Ollama. Explicit values: `deepseek` / `openai` / `ollama` / `none`.
+ *
+ * This is the "fall back to local models if the API gets too expensive" lever, in both
+ * directions: `OBSCURA_LLM_PROVIDER=ollama` (or unsetting the key) returns every call to a local
+ * Ollama; `none`/`off` degrades every call to the heuristic fallbacks. `deepseek` with an empty
+ * key is an explicit error, not a silent downgrade.
+ * @returns {"deepseek" | "ollama" | "none"}
+ */
+export function resolveProvider() {
+  const explicit = String(process.env.OBSCURA_LLM_PROVIDER || "")
+    .trim()
+    .toLowerCase();
+  if (explicit === "deepseek" || explicit === "openai") return "deepseek";
+  if (explicit === "ollama") return "ollama";
+  if (explicit === "none" || explicit === "off") return "none";
+  return process.env.DEEPSEEK_API_KEY ? "deepseek" : "ollama";
+}
+
+/**
+ * One OpenAI-format structured chat call. Mirrors {@link ollamaPost}'s timeout/abort/error
+ * contract — every failure collapses into an {@link OllamaUnavailableError} the caller already
+ * degrades on — but posts to `{base}/chat/completions` with the key in the Authorization header.
+ * The key is never echoed back into any thrown message.
+ * `jsonSchema` is accepted at the call site for parity with Ollama's `format:` field
+ * but is not sent: DeepSeek uses `response_format: json_object`; the caller validates with zod.
+ * @param {{ systemPrompt: string, userContent: string, jsonSchema: object, model: string,
+ *           signal?: AbortSignal, timeoutMs: number }} opts
+ * @returns {Promise<unknown>}
+ */
+async function deepseekChatJSON({ systemPrompt, userContent, model, signal, timeoutMs }) {
+  const key = process.env.DEEPSEEK_API_KEY;
+  if (!key) {
+    throw new OllamaUnavailableError(
+      "OBSCURA_LLM_PROVIDER=deepseek but DEEPSEEK_API_KEY is not set — export it in your " +
+        "shell / OS keychain (never in git or a config file)",
+      "deepseek_no_key"
+    );
+  }
+  const controller = new AbortController();
+  const onExternalAbort = () => controller.abort(signal?.reason ?? new Error("aborted"));
+  if (signal) {
+    if (signal.aborted) controller.abort(signal.reason ?? new Error("aborted"));
+    else signal.addEventListener("abort", onExternalAbort, { once: true });
+  }
+  const timer =
+    timeoutMs > 0
+      ? setTimeout(() => controller.abort(new Error(`timeout after ${timeoutMs}ms`)), timeoutMs)
+      : null;
+  const cleanup = () => {
+    if (timer) clearTimeout(timer);
+    if (signal) signal.removeEventListener("abort", onExternalAbort);
+  };
+
+  try {
+    const url = `${DEEPSEEK_BASE_URL.replace(/\/+$/, "")}/chat/completions`;
+    let res;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userContent }
+          ],
+          // JSON mode: every call wants a small constrained JSON object and the system prompts
+          // already demand "JSON only". `json_object` is the widest OpenAI-compatible contract
+          // (DeepSeek V2.5+ supports it); the caller still schema-validates with zod.
+          response_format: { type: "json_object" },
+          // Turn reasoning off: V4's default thinking spends tokens on `reasoning_content` (a
+          // field this client never reads) for what is a short extraction, not a hard problem.
+          reasoning_effort: "none",
+          stream: false
+        }),
+        signal: controller.signal
+      });
+    } catch (e) {
+      throw new OllamaUnavailableError(
+        `DeepSeek request failed: ${e?.message || e}`,
+        controller.signal.aborted ? "timeout" : "conn_refused"
+      );
+    }
+    if (!res.ok) {
+      let detail = "";
+      try {
+        detail = (await res.text()).slice(0, 200);
+      } catch {
+        /* ignore body read failure */
+      }
+      throw new OllamaUnavailableError(
+        `DeepSeek returned HTTP ${res.status}${detail ? `: ${detail}` : ""}`,
+        res.status === 401 || res.status === 403 ? "deepseek_auth" : "http_error"
+      );
+    }
+    let parsed;
+    try {
+      parsed = await res.json();
+    } catch (e) {
+      throw new OllamaUnavailableError(
+        `DeepSeek non-JSON response: ${e?.message || e}`,
+        "bad_json"
+      );
+    }
+    if (controller.signal.aborted) {
+      throw new OllamaUnavailableError(
+        `DeepSeek request timed out after ${timeoutMs}ms`,
+        "timeout"
+      );
+    }
+    const content = parsed?.choices?.[0]?.message?.content ?? "";
+    try {
+      return JSON.parse(content);
+    } catch (e) {
+      throw new OllamaUnavailableError(
+        `DeepSeek returned non-JSON content: ${e?.message || e}`,
+        "bad_json"
+      );
+    }
+  } finally {
+    cleanup();
+  }
+}
+
 /** "Semver-ish" compare, no dependency: numeric-field compare, pre-release-suffix tolerant. */
 export function compareVersions(a, b) {
   const parse = (v) =>
@@ -339,6 +481,19 @@ async function chatJSON({
   signal,
   timeoutMs
 }) {
+  // DeepSeek (or any OpenAI-compatible endpoint) first when selected: the same five callers
+  // (curate/expand/translate/leads/summarize) route through here unchanged, so this one branch
+  // switches the whole LLM surface from local Ollama to the API.
+  if (resolveProvider() === "deepseek") {
+    return deepseekChatJSON({
+      systemPrompt,
+      userContent,
+      jsonSchema,
+      model: DEEPSEEK_MODEL,
+      signal,
+      timeoutMs
+    });
+  }
   const body = await ollamaPost(
     "/api/chat",
     {

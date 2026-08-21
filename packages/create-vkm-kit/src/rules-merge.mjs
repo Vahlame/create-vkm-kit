@@ -11,7 +11,8 @@ import {
   RULES_END,
   LEGACY_RULES_START,
   LEGACY_RULES_END,
-  memoryRulesBlock
+  memoryRulesBlock,
+  cursorPointerBlock
 } from "./memory-rules.mjs";
 
 // Frontmatter a fresh Cursor install writes above the managed block. Exported as the
@@ -115,19 +116,30 @@ export async function installRules(targets, lang, { home, cwd, dryRun = false, p
     written.push(fp);
   }
   if (targets.includes("cursor")) {
-    // User-global rules apply in every Cursor workspace (the gap vs Claude's
-    // ~/.claude/CLAUDE.md). Always write here when home is set.
+    // ADR-0089: Cursor loads AGENTS.md AND every alwaysApply `.mdc`. A full
+    // protocol copy on ~/.cursor/rules + project `.mdc` + AGENTS.md was a 3×
+    // tax. One full copy lives on AGENTS.md (or on the project `.mdc` when
+    // `--rules cursor` is used without `agents`). Extra Cursor surfaces get
+    // a pointer; reinstall replaces a legacy full block in place.
+    const pointer = cursorPointerBlock(lang);
     const userFp = path.join(home, ".cursor", "rules", "obsidian-memory.mdc");
-    await installRulesFile(userFp, block, { dryRun, newFilePrefix: CURSOR_RULE_FRONTMATTER });
-    written.push(userFp);
-    // Also project-local when cwd is a distinct project (kit dogfood / repo checkout).
     const projectFp = path.join(cwd, ".cursor", "rules", "obsidian-memory.mdc");
-    if (
-      path.resolve(cwd) !== path.resolve(home) &&
-      path.resolve(projectFp) !== path.resolve(userFp)
-    ) {
-      await installRulesFile(projectFp, block, { dryRun, newFilePrefix: CURSOR_RULE_FRONTMATTER });
-      written.push(projectFp);
+    const projectDistinct =
+      path.resolve(cwd) !== path.resolve(home) && path.resolve(projectFp) !== path.resolve(userFp);
+    const hasAgents = targets.includes("agents");
+    if (!projectDistinct && !hasAgents) {
+      await installRulesFile(userFp, block, { dryRun, newFilePrefix: CURSOR_RULE_FRONTMATTER });
+      written.push(userFp);
+    } else {
+      await installRulesFile(userFp, pointer, { dryRun, newFilePrefix: CURSOR_RULE_FRONTMATTER });
+      written.push(userFp);
+      if (projectDistinct) {
+        await installRulesFile(projectFp, hasAgents ? pointer : block, {
+          dryRun,
+          newFilePrefix: CURSOR_RULE_FRONTMATTER
+        });
+        written.push(projectFp);
+      }
     }
   }
   return written;

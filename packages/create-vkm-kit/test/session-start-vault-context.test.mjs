@@ -10,6 +10,7 @@ import {
   MAX_INDEX_CHARS,
   MAX_ENTRY_CHARS,
   modelChangeNotice,
+  deepseekGuidance,
   reminders
 } from "../src/hooks/session-start-vault-context.mjs";
 
@@ -174,4 +175,22 @@ test("modelChangeNotice never throws and never notices without a usable model", 
   } finally {
     rmSync(home, { recursive: true, force: true });
   }
+});
+
+test("deepseekGuidance injects tuning only for DeepSeek sessions", () => {
+  const en = deepseekGuidance("deepseek-v4-pro", "en");
+  assert.match(en, /DEEPSEEK V4/);
+  assert.match(en, /reasoning_content/);
+  assert.match(en, /DEEPSEEK_API_KEY/);
+  assert.match(en, /OBSCURA_LLM_PROVIDER=ollama/);
+
+  const es = deepseekGuidance({ id: "deepseek-v4-flash" }, "es");
+  assert.match(es, /DEEPSEEK V4/);
+  assert.match(es, /reasoning_effort/);
+
+  // Non-DeepSeek models (and garbage) cost nothing.
+  assert.equal(deepseekGuidance("claude-opus-5", "en"), "");
+  assert.equal(deepseekGuidance("deepseek", "es").length > 0, true);
+  assert.equal(deepseekGuidance(undefined, "en"), "");
+  assert.equal(deepseekGuidance(null, "en"), "");
 });

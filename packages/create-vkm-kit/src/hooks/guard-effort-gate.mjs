@@ -111,7 +111,9 @@ export function currentEffort(input = {}, env = process.env) {
   return LEVEL_SET.has(fromEnv) ? fromEnv : null;
 }
 
-/** `claude-opus-5`, `opus`, `{id: "claude-3-5-haiku"}` → `"opus"` / `"haiku"` / null. */
+/** `claude-opus-5`, `opus`, `{id: "claude-3-5-haiku"}` → `"opus"` / `"haiku"` / null.
+ * Non-Claude families (DeepSeek via API) are detected too — `"deepseek-v4-pro"` → `"deepseek"` —
+ * so the gate can recognize them without ever proposing a Claude model to them. */
 export function modelFamily(model) {
   const raw =
     typeof model === "string"
@@ -119,9 +121,15 @@ export function modelFamily(model) {
       : typeof model === "object" && model
         ? String(model.id ?? model.model ?? model.display_name ?? model.name ?? "")
         : "";
-  const m = raw.toLowerCase().match(/(opus|sonnet|haiku|fable)/);
+  const m = raw.toLowerCase().match(/(opus|sonnet|haiku|fable|deepseek)/);
   return m ? m[1] : null;
 }
+
+/** Model families that have their OWN cost tiers (flash/pro, …). The gate must not propose a
+ * Claude model to them — `/model opus` is meaningless to a DeepSeek session — so it detects the
+ * family (via {@link modelFamily}) and skips model advice while still advising `/effort`, which
+ * is model-agnostic. */
+const NON_CLAUDE_FAMILIES = new Set(["deepseek"]);
 
 function readStdin() {
   try {
@@ -312,7 +320,7 @@ export function recommend(facts, { currentModel = null, env = process.env } = {}
 
   const allowDowngrade = env.VKM_EFFORT_ALLOW_HAIKU === "1";
   let model = null;
-  if (currentModel && currentModel !== EXCLUDED_MODEL) {
+  if (currentModel && currentModel !== EXCLUDED_MODEL && !NON_CLAUDE_FAMILIES.has(currentModel)) {
     const wanted = score >= 35 ? "opus" : score >= 15 ? "sonnet" : allowDowngrade ? "haiku" : null;
     if (wanted && wanted !== currentModel) {
       const up = MODEL_TIERS.indexOf(wanted) > MODEL_TIERS.indexOf(currentModel);

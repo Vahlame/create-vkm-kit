@@ -28,7 +28,9 @@ import {
   summarizeNotes,
   OllamaUnavailableError,
   DEFAULT_MODEL,
-  DEFAULT_MAX_INPUT_CHARS
+  DEFAULT_MAX_INPUT_CHARS,
+  resolveProvider,
+  DEEPSEEK_MODEL
 } from "./ollama-client.mjs";
 
 /** The one error type every validation/root-safety failure in this module collapses into —
@@ -684,15 +686,31 @@ export async function consolidateTopic(
     );
   }
 
-  if (process.env.OBSCURA_RESEARCH_OLLAMA !== "0") {
-    await ensureOllamaImpl().catch(() => false);
-  }
-  const health = await checkOllamaImpl().catch(() => ({ ok: false, hasModel: false }));
-  if (!health.ok || !health.hasModel) {
+  const provider = resolveProvider();
+  if (provider === "ollama") {
+    if (process.env.OBSCURA_RESEARCH_OLLAMA !== "0") {
+      await ensureOllamaImpl().catch(() => false);
+    }
+    const health = await checkOllamaImpl().catch(() => ({ ok: false, hasModel: false }));
+    if (!health.ok || !health.hasModel) {
+      throw new OllamaUnavailableError(
+        "Ollama is unavailable (or the model isn't pulled) — obscura_consolidate has no " +
+          "heuristic fallback for summaries.",
+        health.ok ? "model_missing" : "unavailable"
+      );
+    }
+  } else if (provider === "deepseek") {
+    if (!process.env.DEEPSEEK_API_KEY) {
+      throw new OllamaUnavailableError(
+        "OBSCURA_LLM_PROVIDER=deepseek but DEEPSEEK_API_KEY is not set",
+        "deepseek_no_key"
+      );
+    }
+  } else {
     throw new OllamaUnavailableError(
-      "Ollama is unavailable (or the model isn't pulled) — obscura_consolidate has no " +
-        "heuristic fallback for summaries.",
-      health.ok ? "model_missing" : "unavailable"
+      "OBSCURA_LLM_PROVIDER=none — obscura_consolidate has no LLM and no heuristic fallback " +
+        "for summaries",
+      "provider_disabled"
     );
   }
 
@@ -714,15 +732,16 @@ export async function consolidateTopic(
 
   const fm = renderFrontmatter({
     status: "draft-local",
-    method: "ollama",
+    method: provider === "deepseek" ? "deepseek" : "ollama",
     generated: new Date().toISOString(),
-    model: DEFAULT_MODEL,
+    model: provider === "deepseek" ? DEEPSEEK_MODEL : DEFAULT_MODEL,
     sources: files
   });
   await atomicWrite(summaryPath, `${fm}\n${cappedSummary}\n`);
   await updateGlobalIndex(root, topicSlug);
 
-  return { sources_read: files.length, truncated, model: DEFAULT_MODEL, wrote: summaryPath };
+  const summaryModel = provider === "deepseek" ? DEEPSEEK_MODEL : DEFAULT_MODEL;
+  return { sources_read: files.length, truncated, model: summaryModel, wrote: summaryPath };
 }
 
 // ── heuristicConsolidate — no-LLM fallback so a draft always exists ────────────────────────

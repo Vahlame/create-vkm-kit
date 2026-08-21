@@ -293,4 +293,4 @@ agentes (cada lectura completa se multiplica × N). Tres herramientas lo mantien
 
 > **Regla de oro del ahorro:** que el agente busque con `vault_hybrid_search` (devuelve **solo la
 > sección** relevante) en vez de leer notas enteras, y que las notas grandes (historial, logs)
-> vivan como **archivos** que se leen a demanda. Detalle en la [guía de instalación, User Rules](instalacion.md#paso-4--pegar-las-user-rules-en-cursor).
+> vivan como **archivos** que se leen a demanda. Detalle en la [guía de instalación, reglas de memoria](instalacion.md#paso-4--reglas-de-memoria-archivos-no-un-segundo-pegado).

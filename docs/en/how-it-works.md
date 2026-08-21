@@ -81,10 +81,10 @@ They are a piece of text you paste into **Cursor → Settings → Rules → User
 **Claude Code**, into `~/.claude/CLAUDE.md` (loaded automatically every session). They **do not**
 replace the MCP (without an MCP, the rules can't read the disk). They serve two purposes:
 
-1. **Reading rhythm:** "start with `START_HERE`, then `MEMORY`, then the current project".
+1. **Reading rhythm:** `vault_hybrid_search` / `assemble_context` first; never whole `PROJECTS` / `SESSION_LOG`.
 2. **Hygiene:** "don't save secrets", "log the wrap-ups in `SESSION_LOG`".
 
-The ready-to-copy block is in the [installation guide](install.md#step-4--paste-the-user-rules-into-cursor).
+The ready-to-copy block is in the [installation guide](install.md#step-4--memory-rules-files-not-a-second-paste). Do not paste it into User Rules if the installer already wrote the files.
 
 ---
 
@@ -98,13 +98,10 @@ sequenceDiagram
     participant Vault as Vault (.md + git)
 
     You->>Agent: "continue with project X"
-    Agent->>MCP: read START_HERE.md
-    MCP->>Vault: open the file
-    Vault-->>Agent: note contents
-    Note over Agent: reads the context instead of inventing
-    Agent->>MCP: read PROJECTS/X.md
-    MCP->>Vault: open the file
-    Vault-->>Agent: project's previous decisions
+    Agent->>MCP: vault_hybrid_search("project X")
+    MCP->>Vault: passage-first search
+    Vault-->>Agent: matching section (~150–250 tokens)
+    Note over Agent: answers from the passage; does not dump PROJECTS/X.md
     Note over You,Agent: …you work on the task…
     Agent->>You: proposes what to log (wrap-up)
     You->>Agent: "yes, save it"

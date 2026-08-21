@@ -1,12 +1,14 @@
 # Worked example — the whole method on one brief
 
 A compressed, real pass through generate mode. Every validator line below is actual output from
-the scripts in this skill, not invented. Use this as the pattern to match; do not copy its
-direction into unrelated briefs (that would be slop with extra steps).
+the scripts in this skill, not invented. Use this as the pattern to match; **do not copy its
+direction, type, or colour into unrelated briefs** (that would be slop with extra steps — it is
+the most-copied look this skill accidentally taught).
 
 ## Contents
 
 - Brief — the example client brief
+- Live dossier (process only — do not steal this look)
 - Step 0 — name the default, ban it
 - Three directions (axes per `references/direction.md`, capsules per `references/lineages.md`)
 - System before screens — tokens, generated then verified
@@ -21,6 +23,21 @@ Used all day on a counter PC by mechanics with greasy hands. Feeling: _under con
 
 Assumptions stated: desktop-first (1280px counter screen), light ambient workshop, keyboard +
 mouse, existing stack renders HTML/CSS.
+
+## Live dossier (process only — do not steal this look)
+
+On a real Surface-tier job you would open three live URLs that do _this job_ (a counter POS,
+a floor status board, a parts catalogue) and steal a technique + a spacing attitude from each.
+This example is historical and may not have those URLs on disk; treat the block below as the
+_shape_ of the gate, then go fetch live pages for YOUR brief.
+
+```text
+Stolen from live (this brief only):
+1. (NO LIVE LOOKUP — example) printed shop-floor traveler — steal: table IS the page · space: 4px instrument, hairline groups · reject: gallery air
+2. (example) trading-terminal density — steal: mono numerals, signal colour only on exceptions · space: chrome flush, content gutter 16 · reject: KPI icon cards
+3. (example) warehouse wayfinding — steal: thick rules as structure · space: sections breathe, rows don't · reject: rounded app chrome
+Banned default: light gray, white cards, indigo, Inter, 4-KPI row.
+```
 
 ## Step 0 — name the default, ban it
 

@@ -3,8 +3,9 @@
 // HTML file across viewports x color schemes in headless Chromium and reports the defects
 // a model cannot reliably "see" from source: WCAG contrast of the text actually painted,
 // invisible text after a theme flip, horizontal overflow at mobile widths, sub-44px tap
-// targets. Deterministic output (report.json + screenshots) so the fix loop is
-// measure -> fix -> re-measure, never "looks right to me".
+// targets, plus layout geometry (viewport/card insets, content overlap, component drift,
+// cramped stacks) via layout-checks.mjs. Deterministic output (report.json + screenshots
+// + geometry.json) so the fix loop is measure -> fix -> re-measure, never "looks right to me".
 //
 // Usage:  node ui-audit.mjs <url-or-file.html> [--out DIR] [--viewports 360x740,768x1024,1440x900]
 //                           [--schemes light,dark] [--no-screenshots] [--max-findings N]
@@ -15,6 +16,7 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { auditGeometry, summarizeGeometry } from "./layout-checks.mjs";
 
 const DEFAULT_VIEWPORTS = "360x740,768x1024,1440x900";
 const DEFAULT_SCHEMES = "light,dark";
@@ -35,7 +37,7 @@ function parseArgs(argv) {
     viewports: DEFAULT_VIEWPORTS,
     schemes: DEFAULT_SCHEMES,
     screenshots: true,
-    maxFindings: 40
+    maxFindings: 60
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -271,6 +273,88 @@ function pageAudit() {
   return findings;
 }
 
+/**
+ * First-viewport box dump for layout-checks.mjs. Self-contained: serialized into
+ * the page, so no imports. Caps at 180 visible boxes so geometry.json stays small.
+ */
+function collectGeometry() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const cssPath = (el) => {
+    const parts = [];
+    for (let n = el; n && n.nodeType === 1 && parts.length < 4; n = n.parentElement) {
+      let p = n.tagName.toLowerCase();
+      if (n.id) {
+        parts.unshift(`${p}#${n.id}`);
+        break;
+      }
+      const cls = [...n.classList].slice(0, 2).join(".");
+      if (cls) p += `.${cls}`;
+      parts.unshift(p);
+    }
+    return parts.join(" > ");
+  };
+  const visible = (el, st, r) =>
+    r.width > 0 &&
+    r.height > 0 &&
+    st.visibility !== "hidden" &&
+    st.display !== "none" &&
+    Number(st.opacity) > 0.05;
+
+  const nodes = document.body.querySelectorAll(
+    "main, header, footer, nav, section, article, aside, h1, h2, h3, h4, p, button, a[href], input, select, textarea, img, [role='button'], [role='dialog'], li, figure, blockquote"
+  );
+  const boxes = [];
+  const seen = new Set();
+  for (const el of nodes) {
+    if (boxes.length >= 180) break;
+    if (seen.has(el)) continue;
+    seen.add(el);
+    const st = getComputedStyle(el);
+    const r = el.getBoundingClientRect();
+    if (!visible(el, st, r)) continue;
+    const tag = el.tagName.toLowerCase();
+    const role = el.getAttribute("role") || "";
+    const className = typeof el.className === "string" ? el.className : "";
+    const textLen = (el.innerText || "").trim().length;
+    const text =
+      textLen > 0 &&
+      ["h1", "h2", "h3", "h4", "p", "button", "a", "label", "li", "blockquote", "span"].includes(
+        tag
+      );
+    const interactive = /^(a|button|input|select|textarea)$/.test(tag) || role === "button";
+    const card =
+      tag === "article" ||
+      role === "article" ||
+      /\bcard\b/i.test(className) ||
+      (parseFloat(st.borderRadius) > 0 &&
+        parseFloat(st.paddingTop) + parseFloat(st.paddingLeft) > 0 &&
+        r.width > 140 &&
+        r.height > 64);
+    boxes.push({
+      selector: cssPath(el),
+      tag,
+      role,
+      x: r.left,
+      y: r.top,
+      w: r.width,
+      h: r.height,
+      padT: parseFloat(st.paddingTop) || 0,
+      padR: parseFloat(st.paddingRight) || 0,
+      padB: parseFloat(st.paddingBottom) || 0,
+      padL: parseFloat(st.paddingLeft) || 0,
+      fontSize: parseFloat(st.fontSize) || 0,
+      fontWeight: parseFloat(st.fontWeight) || 400,
+      radius: parseFloat(st.borderRadius) || 0,
+      text,
+      interactive,
+      card,
+      position: st.position
+    });
+  }
+  return { vw, vh, boxes };
+}
+
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
   const chromium = await loadChromium();
@@ -297,6 +381,7 @@ async function main() {
 
   const byKey = new Map(); // dedup: same (check, selector, detail-class) across contexts
   const contexts = [];
+  let firstGeom = null;
   try {
     for (const vp of opts.vps) {
       for (const scheme of opts.schemeList) {
@@ -306,10 +391,15 @@ async function main() {
         await page.goto(url, { waitUntil: "load", timeout: 30000 });
         await page.waitForTimeout(400); // let fonts/transitions settle
         const raw = await page.evaluate(pageAudit);
+        const geom = await page.evaluate(collectGeometry);
+        if (!firstGeom) {
+          firstGeom = { context: ctxName, ...geom, summary: summarizeGeometry(geom) };
+        }
+        const layout = auditGeometry(geom);
         if (opts.screenshots) {
           await page.screenshot({ path: path.join(opts.out, `${ctxName}.png`), fullPage: true });
         }
-        for (const f of raw) {
+        for (const f of [...raw, ...layout]) {
           const key = `${f.check}|${f.selector}|${f.detail.replace(/[\d.]+/g, "#")}`;
           const prev = byKey.get(key);
           if (prev) prev.contexts.push(ctxName);
@@ -331,18 +421,36 @@ async function main() {
     )
     .slice(0, opts.maxFindings);
   const dropped = byKey.size - findings.length;
+  const layoutChecks = new Set([
+    "edge-flush",
+    "tight-padding",
+    "overlap",
+    "component-drift",
+    "cramped-stack"
+  ]);
   const summary = {
     target: opts.target,
     contexts,
     errors: findings.filter((f) => f.severity === "error").length,
     warnings: findings.filter((f) => f.severity === "warn").length,
-    dropped: dropped > 0 ? dropped : 0
+    layoutErrors: findings.filter((f) => f.severity === "error" && layoutChecks.has(f.check))
+      .length,
+    layoutWarnings: findings.filter((f) => f.severity === "warn" && layoutChecks.has(f.check))
+      .length,
+    dropped: dropped > 0 ? dropped : 0,
+    geometry: firstGeom ? firstGeom.summary : null
   };
   const report = { summary, findings };
   fs.writeFileSync(path.join(opts.out, "report.json"), JSON.stringify(report, null, 2));
+  if (firstGeom) {
+    fs.writeFileSync(path.join(opts.out, "geometry.json"), JSON.stringify(firstGeom, null, 2));
+  }
 
   console.error(
     `ui-audit: ${summary.errors} error(s), ${summary.warnings} warning(s) across ${contexts.length} contexts` +
+      (summary.layoutErrors || summary.layoutWarnings
+        ? ` (layout ${summary.layoutErrors}e/${summary.layoutWarnings}w)`
+        : "") +
       (dropped > 0 ? ` (+${dropped} deduped findings over --max-findings, see report.json)` : "") +
       ` -> ${path.join(opts.out, "report.json")}`
   );

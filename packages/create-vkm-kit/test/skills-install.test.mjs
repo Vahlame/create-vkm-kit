@@ -38,6 +38,8 @@ test("configureSkillAssets installs skills + agent template; idempotent", async 
     ["references", "marks.md"],
     ["references", "contemporary.md"],
     ["references", "illustration.md"],
+    ["references", "inspiration.md"],
+    ["references", "craft-tech.md"],
     ["examples", "illustration-gallery.md"],
     ["scripts", "trace-svg.mjs"],
     ["scripts", "treat-photo.mjs"],
@@ -98,6 +100,10 @@ test("installSkillsInto lands every skill in an arbitrary client dir; idempotent
   assert.ok(
     fs.existsSync(path.join(dir, "vkm-ui-judge", "scripts", "ui-audit.mjs")),
     "bundled scripts must travel with the skill"
+  );
+  assert.ok(
+    fs.existsSync(path.join(dir, "vkm-ui-judge", "scripts", "layout-checks.mjs")),
+    "layout geometry gates must travel with ui-judge"
   );
 });
 

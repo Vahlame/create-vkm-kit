@@ -16,9 +16,11 @@ Keeps Claude Code ↔ Cursor surfaces aligned.
 
 ## Rules
 
-- Global: `$HOME/.cursor/rules/obsidian-memory.mdc` (`alwaysApply: true`).
-- Project (optional): `<cwd>/.cursor/rules/obsidian-memory.mdc` when cwd ≠ home.
-- Cursor **Settings → Rules → User Rules** remains a manual paste surface.
+- Global: `$HOME/.cursor/rules/obsidian-memory.mdc` (`alwaysApply: true`) is a **short
+  pointer** when the project also has `AGENTS.md` (ADR-0089). Cursor-only installs still
+  write the full protocol to the project `.mdc`.
+- **Do not paste the full block into Settings → User Rules** — that duplicates tokens and
+  User Rules outrank the files.
 
 ## Hooks
 

@@ -49,9 +49,11 @@ A senior designer never starts by drawing. The sequence:
 1. **Interrogate the brief.** Who is this for, what job does it do for them, where is it used
    (glanced at on a phone / lived in for 8 hours), what should the user _feel_ in one word, what
    brand constraints exist? Unknown answers get explicit assumptions, stated in the output.
-2. **Gather precedents before sketching.** Name 2–3 real-world references (products, print, eras)
-   and say in one line _why each works_. If you cannot name a precedent, you are pattern-matching
-   generic training data — stop and find the lineage first.
+2. **Gather precedents before sketching.** Name 2–3 **live** references (URLs you opened this
+   session, or photographed/printed artifacts with a source) and say in one line _why each
+   works_ and _what you will steal_ (technique + spacing). Memory names ("Swiss posters")
+   without a page you looked at are the autopilot. Surface-tier generate uses the dossier in
+   `inspiration.md` (this skill's `references/`). If you cannot name a live precedent, stop.
 3. **Set constraints deliberately.** One type pairing, one accent, one spacing unit, one shape
    language. Creativity comes from constraints; slop comes from unlimited defaults.
 4. **Name the organizing concept in one sentence.** "The dashboard is an instrument panel." "The
@@ -59,9 +61,11 @@ A senior designer never starts by drawing. The sequence:
    derivable from this sentence.
 5. **Diverge cheaply, then commit.** Three directions on paper (see `direction.md`), pick one with
    a reason, never blend all three into mush.
-6. **Craft in passes, not all at once.** Hierarchy pass → spacing/rhythm pass → color pass →
-   micro-detail pass (optical alignment, states, motion). One concern per pass; re-render between
-   passes when a renderer exists.
+6. **Craft in passes, not all at once.** Hierarchy pass → **spacing/rhythm pass (viewport
+   gutter, inner padding, group vs in-group gap, same-component anatomy)** → color pass →
+   micro-detail pass (optical alignment, states, motion). One concern per pass; re-render
+   between passes when a renderer exists. The spacing pass is not optional polish — missing
+   it is how "the judge didn't leave any margin" happens.
 7. **Crit, then kill your darlings.** Self-critique with the vocabulary below; delete the flourish
    that doesn't serve the concept, even if it took effort.
 
@@ -102,7 +106,8 @@ Run these questions against the actual render (or the code if no renderer), in t
 Before emitting any design artifact, write three sentences (in your working notes or the reply):
 
 1. **Lineage:** which design language/era does this belong to?
-2. **Precedent:** which real artifact is the closest ancestor, and why does it work?
+2. **Precedent:** which **live** artifact (URL opened this session, or a named physical source)
+   is the closest ancestor, and why does it work?
 3. **Feeling:** the single word the viewer must feel.
 
 If any of the three is blank or generic ("modern", "clean"), you are not ready to design — go back

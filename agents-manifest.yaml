@@ -6,7 +6,7 @@ cursorRules:
     description: Stack, runtimes, and MCP servers for this repository.
     globs:
       - "**/*"
-    alwaysApply: true
+    alwaysApply: false
   - output: 10-style.mdc
     source: .agents/rules/10-style.md
     description: Style conventions and contribution hygiene.

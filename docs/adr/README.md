@@ -58,7 +58,7 @@ ADRs are **append-only**: a decision that was later reversed is not rewritten, i
 | [ADR-0050](./0050-release-train-and-npm-shim.md)                   | 4.0.0 release train: two additive minors, breaking changes last, npm shim forever         | Amended (2026-07-20: shim retired unpublished) |
 | [ADR-0051](./0051-obscura-web-stealth-browser.md)                  | obscura-web: stealth web fetch + robust layered search via a local headless browser       | Accepted                                       |
 | [ADR-0052](./0052-searxng-on-demand-lifecycle.md)                  | SearXNG search backend: on-demand lifecycle (MCP-owned) + desktop monitor                 | Accepted                                       |
-| [ADR-0053](./0053-vkm-design-skill.md)                             | `vkm-design`: model-agnostic professional design skill (direction, validators, modes)     | Accepted                                       |
+| [ADR-0053](./0053-vkm-design-skill.md)                             | `vkm-design`: model-agnostic professional design skill (direction, validators, modes)     | Accepted (amended by 0090)                     |
 | [ADR-0054](./0054-obscura-research-local-deep-crawl.md)            | `obscura_research`: deep web research as local CPU/RAM work, not tokens                   | Accepted                                       |
 | [ADR-0055](./0055-obscura-research-local-llm-curation.md)          | `obscura_research` curates pages with a local Ollama model, not keyword overlap           | Accepted (§5-6 superseded by 0057)             |
 | [ADR-0056](./0056-research-knowledge-bank.md)                      | `RESEARCH/`: persistent web-research knowledge bank in the same vault, section-filtered   | Accepted                                       |
@@ -93,6 +93,9 @@ ADRs are **append-only**: a decision that was later reversed is not rewritten, i
 | [ADR-0085](./0085-vkm-console-realtime-binary.md)                  | One real-time console for the whole kit — a Go binary, strictly read-only                 | Accepted                                       |
 | [ADR-0086](./0086-scoped-memory-namespaces.md)                     | Scoped memory namespaces — one vault, one index, a `scope` filter                         | Accepted                                       |
 | [ADR-0087](./0087-kimi-code-first-class.md)                        | Kimi Code as a first-class wiring target (`--ide kimi`)                                   | Accepted                                       |
+| [ADR-0088](./0088-deepseek-v4-first-class.md)                      | DeepSeek V4 as a first-class model (API, OpenAI/Anthropic-compatible)                     | Accepted                                       |
+| [ADR-0089](./0089-cursor-one-copy-passage-first.md)                | One protocol copy on Cursor + passage-first beats whole-note User Rules                   | Accepted                                       |
+| [ADR-0090](./0090-live-precedents-and-measured-layout.md)          | Live precedents over closed menus; measured layout in `vkm-ui-judge`                      | Accepted                                       |
 
 ## Template
 

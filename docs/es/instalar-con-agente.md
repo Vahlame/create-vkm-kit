@@ -124,21 +124,17 @@ previa primero), e instala las **User Rules** de memoria como bloque marcado ide
 `~/.claude/CLAUDE.md`, `./AGENTS.md` y `.cursor/rules/` (nunca pisa tu contenido). Muestra la
 salida y confirma que no hubo errores.
 
-**3 · User Rules globales de Cursor (solo Cursor).** El Paso 2 ya escribió la regla de _proyecto_
-(`.cursor/rules/obsidian-memory.mdc`). Para cobertura _global_, muéstrame el bloque marcado (entre
-los marcadores `vkm-kit:start`/`end`) y dime que lo pegue en
-**Cursor → Settings → Rules → User Rules** — Cursor guarda las reglas globales fuera de cualquier
-archivo. **Claude Code: omite esto** — `~/.claude/CLAUDE.md` ya quedó hecho.
+**3 · User Rules globales de Cursor (solo Cursor).** El Paso 2 ya escribió `AGENTS.md` y un **puntero corto** en `~/.cursor/rules/obsidian-memory.mdc`. **No pegues el bloque completo en Cursor → Settings → Rules → User Rules** (ADR-0089: duplica tokens y las User Rules pisan los archivos). Si ya hay una User Rule «lee siempre START_HERE + PROJECTS», bórrala.
+**Claude Code: omite esto** — `~/.claude/CLAUDE.md` ya quedó hecho.
 
 **4 · Reinicia y verifica.** Dime que ejecute **Developer: Reload Window** (Cursor) o reinicie
 Claude Code. Luego, en un chat nuevo, comprueba que funciona:
 
 ```text
-Lee START_HERE.md de mi vault y dime qué contiene.
+Busca en el vault el orden de lectura. No abras notas PROJECTS enteras.
 ```
 
-Si vuelve el contenido, reporta una tabla de estado — vault (`<VAULT>`) ✓ · MCP conectado ✓ ·
-reglas instaladas ✓ · prueba de lectura ✓. Si falla, consulta
+Si el agente usa `vault_hybrid_search` (o `assemble_context`) y responde desde un pasaje, reporta una tabla de estado — vault (`<VAULT>`) ✓ · MCP conectado ✓ · reglas instaladas ✓ · passage-first ✓. Si falla, consulta
 [`troubleshooting.md`](troubleshooting.md) → **MCP / Cursor**.
 
 **5 · (Opcional) Búsqueda híbrida — solo vaults grandes.** Buscar por palabra **y** por significado

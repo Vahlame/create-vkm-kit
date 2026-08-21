@@ -27,20 +27,21 @@ import {
   extractSchemaStrings,
   approxTokens
 } from "../../../scripts/context-budget.mjs";
-import { memoryRulesBlock } from "../src/memory-rules.mjs";
+import { memoryRulesBlock, cursorPointerBlock } from "../src/memory-rules.mjs";
 import { SKILL_NAMES } from "../src/skills-install.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
 /**
- * Measured 2026-08-01 after the ADR-0082 context diet (`node scripts/context-budget.mjs`):
- * always dropped 45,603 → 43,001 chars (rules block −28%, reminders −45%) even after two
- * NEW skill descriptions (vkm-intake, vkm-ui-judge) joined the always bucket; worst case
- * rose with those two skills' on-trigger bodies. The band is ±20%: wide enough that
- * trimming or adding a description is not a build failure, tight enough that a new MCP
- * server or a doubled rules block cannot land unnoticed.
+ * Measured 2026-08-21 after ADR-0088/0089/0090 (`node scripts/context-budget.mjs`):
+ * always 43,001 → 44,857 (DeepSeek session-start + Cursor pointer still cheap);
+ * worst case 91,941 → 110,883 because `/vkm-design` and `/vkm-ui-judge` SKILL.md
+ * grew (live-dossier contract + layout geometry). On-trigger only — always stayed
+ * inside the old band. The band is ±20%: wide enough that trimming or adding a
+ * description is not a build failure, tight enough that a new MCP server or a
+ * doubled rules block cannot land unnoticed.
  */
-const BASELINE = { alwaysChars: 43_001, worstCaseChars: 91_941 };
+const BASELINE = { alwaysChars: 44_857, worstCaseChars: 110_883 };
 const BAND = 0.2;
 
 test("fixed-layer composition: every always-paid piece is present and attributable", () => {
@@ -173,7 +174,38 @@ test("installed view counts the rules block once per surface a session loads", (
   assert.deepEqual(full.surfacesLoadedByClaudeCode.sort(), ["agents", "claude"]);
   assert.equal(full.rulesMultiplier, 2, "Claude Code loads the global AND the project block");
 
-  // The second loaded surface is a second full payment, not a rounding error.
+  // The second loaded surface is billed by the chars actually on disk (sentinels,
+  // not the trailing newline memoryRulesBlock() adds after RULES_END).
   const repo = measureRepo({ lang: "es" });
-  assert.equal(full.totals.alwaysChars, repo.totals.alwaysChars + block.length);
+  const secondCopy = full.surfaces.find((s) => s.id === "claude").chars;
+  assert.equal(full.totals.alwaysChars, repo.totals.alwaysChars + secondCopy);
+});
+
+test("installed view bills Cursor pointer surfaces by their real size, not a full block", (t) => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "vkm-budget-cur-h-"));
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "vkm-budget-cur-c-"));
+  t.after(() => {
+    fs.rmSync(home, { recursive: true, force: true });
+    fs.rmSync(cwd, { recursive: true, force: true });
+  });
+  const block = memoryRulesBlock("es");
+  const pointer = cursorPointerBlock("es");
+  fs.mkdirSync(path.join(home, ".cursor", "rules"), { recursive: true });
+  fs.mkdirSync(path.join(cwd, ".cursor", "rules"), { recursive: true });
+  fs.writeFileSync(path.join(cwd, "AGENTS.md"), block);
+  fs.writeFileSync(path.join(home, ".cursor", "rules", "obsidian-memory.mdc"), pointer);
+  fs.writeFileSync(path.join(cwd, ".cursor", "rules", "obsidian-memory.mdc"), pointer);
+  const report = measureInstalled({ home, cwd, lang: "es" });
+  assert.deepEqual(report.surfacesLoadedByCursor.sort(), [
+    "agents",
+    "cursor-project",
+    "cursor-user"
+  ]);
+  const agentsChars = report.surfaces.find((s) => s.id === "agents").chars;
+  const pointerChars = report.surfaces.find((s) => s.id === "cursor-user").chars;
+  assert.equal(report.cursorRulesChars, agentsChars + pointerChars * 2);
+  assert.ok(
+    report.cursorRulesChars < block.length * 2,
+    "two pointers + AGENTS.md must cost less than two full blocks"
+  );
 });

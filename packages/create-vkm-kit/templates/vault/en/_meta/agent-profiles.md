@@ -17,7 +17,7 @@ a model clearly excelled or stumbled at a task type — over time this learns th
 | Claude Opus / Sonnet | Reliable instruction-following + tool use, structured multi-step | agentic refactors, careful reviews, self-critique | full self-check + coaching; long context OK but stay passage-first |
 | Cursor Composer | Fast in-IDE multi-file edits | big mechanical edits across the codebase | action-first; lean on STACKS/ patterns; shorter deliberation |
 | GPT (incl. reasoning models) | Planning + tool orchestration | decomposing fuzzy tasks, multi-tool flows | decompose explicitly; verify tool results before trusting them |
-| DeepSeek (V3 / R1) | Deep, cheap code/math reasoning | hard logic / algorithm problems | afford a deeper self-check on tricky logic; keep notes terse |
+| DeepSeek V4 (Pro / Flash) | Deep, cheap code/math reasoning + agentic tool use; 1M context | hard logic, multi-file agentic edits, research | thinking ON by default (reasoning lives in `reasoning_content`); verify tool results before trusting them; flash for volume, pro for hard logic; keep notes terse |
 | Gemini | Very large context, multimodal | long-document / many-file synthesis | may load more, but passage-first still wins on cost/latency |
 
 ## Observations (evolving — append one line each)

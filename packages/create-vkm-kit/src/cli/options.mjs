@@ -67,6 +67,9 @@ import { flagValue } from "../mcp-merge.mjs";
  * @property {boolean} console
  * @property {string|null} searxngUrl
  * @property {string} researchDir
+ * @property {string|null} researchLlm `--research-llm` (auto|deepseek|ollama|none), wired to
+ *   OBSCURA_LLM_PROVIDER. Never carries the API key — that stays in DEEPSEEK_API_KEY (env-only).
+ * @property {string|null} deepseekModel `--deepseek-model` → OBSCURA_DEEPSEEK_MODEL (non-secret).
  * @property {string|null} downloadDir
  * @property {string|null} skillsDir
  * @property {string[]} ruleTargets
@@ -213,6 +216,12 @@ export function resolveOptions(argv, ctx) {
     searxngUrl: flagValue(argv, "--searxng-url"),
     // RESEARCH/ persistence root defaults to <vault>/RESEARCH (ADR-0056).
     researchDir: flagValue(argv, "--obscura-research-dir") || `${vault}/RESEARCH`,
+    // Research LLM backend (ADR-0088 DeepSeek path): the NON-SECRET half of the lever. The
+    // provider selector + model name may live in mcp.json (they are not secrets); the API key
+    // itself NEVER does — obscura-web reads DEEPSEEK_API_KEY from the environment only. `ollama`
+    // returns the research calls to local models; `none` degrades to heuristics.
+    researchLlm: flagValue(argv, "--research-llm"),
+    deepseekModel: flagValue(argv, "--deepseek-model"),
     downloadDir: flagValue(argv, "--download-dir"),
     // Compatibility escape hatch: install the skills into ANY client's skills folder
     // (opencode, ...) — additive, independent of the --ide list.

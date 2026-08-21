@@ -290,6 +290,37 @@ export function modelChangeNotice(model, lang, home = os.homedir()) {
   }
 }
 
+/**
+ * DeepSeek V4-specific tuning injected at SessionStart when the session runs a DeepSeek
+ * model. DeepSeek's reasoning model behaves differently from Claude's: thinking is ON by
+ * default (reasoning arrives in a separate `reasoning_content` field), and the cheap/strong
+ * split is flash vs pro (driven by `reasoning_effort`), not haiku/sonnet/opus. One short
+ * block, only when the model actually is DeepSeek — zero cost otherwise.
+ * @param {string|{id?: string, model?: string, display_name?: string, name?: string}|null|undefined} model the SessionStart payload's `model`
+ * @param {"es"|"en"} lang
+ * @returns {string} "" or a short DeepSeek guidance block
+ */
+export function deepseekGuidance(model, lang) {
+  const raw =
+    typeof model === "string"
+      ? model
+      : typeof model === "object" && model
+        ? String(model.id ?? model.display_name ?? model.name ?? "")
+        : "";
+  if (!/deepseek/i.test(raw)) return "";
+  return lang === "en"
+    ? [
+        "---",
+        "DEEPSEEK V4 (this session): thinking is ON by default — reasoning arrives in a separate `reasoning_content` field, not the visible message. Tune cost with `reasoning_effort` (low for cheap extraction, high for hard logic); flash for volume, pro for hard logic. Verify tool results before trusting them.",
+        "- Research stack: `DEEPSEEK_API_KEY` is read from the environment ONLY (never commit it); `OBSCURA_LLM_PROVIDER=ollama` returns the research LLM calls to local models when the API is too expensive."
+      ].join("\n")
+    : [
+        "---",
+        "DEEPSEEK V4 (esta sesión): thinking está ON por defecto — el razonamiento llega en un campo `reasoning_content` separado, no en el mensaje visible. Ajusta coste con `reasoning_effort` (bajo para extracción barata, alto para lógica dura); flash para volumen, pro para lógica dura. Verifica los resultados de tools antes de confiar.",
+        "- Stack de research: `DEEPSEEK_API_KEY` se lee SOLO del entorno (nunca lo commitees); `OBSCURA_LLM_PROVIDER=ollama` devuelve las llamadas LLM del research a modelos locales si la API se encarece."
+      ].join("\n");
+}
+
 /** Drop sidecars older than a week: one small file per session adds up over months. */
 function pruneSessionSidecars(dir, maxAgeMs = 7 * 24 * 60 * 60 * 1000) {
   try {
@@ -323,7 +354,10 @@ export function main() {
   }
   let additionalContext;
   try {
-    additionalContext = buildContext(vault, lang) + modelChangeNotice(sessionModel, lang);
+    additionalContext =
+      buildContext(vault, lang) +
+      modelChangeNotice(sessionModel, lang) +
+      deepseekGuidance(sessionModel, lang);
   } catch {
     additionalContext = reminders(lang); // last-resort: never block the session
   }

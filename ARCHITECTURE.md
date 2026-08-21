@@ -568,6 +568,7 @@ this architecture:
 - **ADR-0051** — obscura-web: stealth web fetch + layered search via a local headless browser.
 - **ADR-0052** — SearXNG search backend: on-demand lifecycle (MCP-owned) + desktop monitor.
 - **ADR-0053** — `vkm-design`: a model-agnostic professional design skill (direction before pixels, computed checks, visual-critique loop).
+- **ADR-0090** — live precedents over the skill's closed menus; `/vkm-ui-judge` measures gutters, overlap and component drift (amends 0053).
 - **ADR-0054/0055** — `obscura_research`: local deep crawl (CPU/RAM, not tokens) + local-LLM (Ollama) curation of the results.
 - **ADR-0056** — `RESEARCH/`: persistent web-research knowledge bank in the vault, consolidated by the `/vkm-research` skill.
 - **ADR-0084** — the Postgres projection: additive, derived and disposable; supersedes ADR-0083 Decision 1 on the maintainer's explicit decision.
