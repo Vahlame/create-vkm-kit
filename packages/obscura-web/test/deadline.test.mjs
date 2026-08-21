@@ -196,6 +196,49 @@ test("deadline: the SearXNG page-walk loop stops once the deadline passes, mid-g
   assert.ok(calls < 5, `expected the page walk to stop before MAX_PAGES, saw ${calls} calls`);
 });
 
+test("deadline: a slow expansion is cut off and degrades to the original query, not a stall (regression)", async () => {
+  // Expansion is the ONE LLM call that runs BEFORE the deadline-aware gather/fetch stages, so it
+  // must be bounded by the same deadline as everything else. A slow/hung backend (DeepSeek over
+  // HTTP, a cold Ollama pull) would otherwise eat its own 30s timeout out of a 50s budget — or
+  // worse, outlive the MCP transport's 60s wall — leaving nothing for the crawl.
+  //
+  // Clock injected as a constant so only the expansion's race advances (real `setTimeout`), while
+  // the deadline math downstream sees an unmoving clock and lets gather+fetch finish cleanly. The
+  // expansion itself resolves after 300ms real time — comfortably past the 50ms it's allowed.
+  const seen = new Set();
+  const out = await deepResearch(
+    "q",
+    { maxCandidates: 10, topK: 1, concurrency: 1, deadlineMs: 50, now: () => 0 },
+    {
+      searxngImpl: async (sq, { page }) => {
+        seen.add(sq);
+        return page === 1 ? [{ title: "T", url: "https://t", snippet: "s", score: 1 }] : [];
+      },
+      expandImpl: () =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve({ concept: "c", queries: ["q", "expanded"] }), 300)
+        ),
+      checkOllamaImpl: async () => ({ ok: true, hasModel: true }),
+      ensureOllamaImpl: async () => true,
+      curateImpl: async () => ({ relevance: 5, reason: "stub", excerpt: "" }),
+      checkRobotsImpl: async () => ({ allowed: true, checked: false }),
+      fetchImpl: async () => ({ content: "body" })
+    }
+  );
+  // The crawl proceeded with the ORIGINAL query alone — the expansion never landed, but neither
+  // did it block the call.
+  assert.deepEqual(
+    [...seen],
+    ["q"],
+    "the crawl used only the original query, not the slow expansion"
+  );
+  assert.equal(
+    out.results.length,
+    1,
+    "the crawl still produced a result after the expansion cut off"
+  );
+});
+
 test("deadline: gather-phase fan-out stops picking up new sub-queries once time is up", async () => {
   // The outer `mapWithConcurrency` gate, exercised at the GATHER call site specifically —
   // distinct from the fetch+curate call site the earlier tests in this file cover.

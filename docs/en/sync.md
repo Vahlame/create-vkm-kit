@@ -293,4 +293,4 @@ full read is multiplied × N agents). Three tools keep it healthy (part of
 
 > **Golden rule for savings:** let the agent search with `vault_hybrid_search` (returns **only the
 > relevant section**) instead of reading whole notes, and keep large notes (history, logs) as
-> **archives** read on demand. Details in the [install guide, User Rules](install.md#step-4--paste-the-user-rules-into-cursor).
+> **archives** read on demand. Details in the [install guide, memory rules](install.md#step-4--memory-rules-files-not-a-second-paste).

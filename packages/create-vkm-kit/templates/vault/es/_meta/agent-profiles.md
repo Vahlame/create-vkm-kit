@@ -17,7 +17,7 @@ un modelo destaque o falle claramente en un tipo de tarea — con el tiempo apre
 | Claude Opus / Sonnet | Sigue instrucciones + tool use fiable, multi-paso | refactors agénticos, revisiones, autocrítica | self-check completo + coaching; contexto largo OK pero passage-first |
 | Cursor Composer | Edición multi-archivo rápida en el IDE | cambios mecánicos amplios | acción primero; apóyate en STACKS/; menos deliberación |
 | GPT (incl. razonadores) | Planificación + orquestación de tools | descomponer tareas difusas, multi-tool | descompón explícito; verifica resultados de tools |
-| DeepSeek (V3 / R1) | Razonamiento profundo de código/mates, barato | lógica / algoritmos difíciles | permite un self-check más profundo; notas concisas |
+| DeepSeek V4 (Pro / Flash) | Razonamiento profundo de código/mates + tool use agéntico, 1M de contexto | lógica difícil, ediciones agénticas multi-archivo, research | thinking ON por defecto (el razonamiento va en `reasoning_content`); verifica resultados de tools antes de confiar; flash para volumen, pro para lógica dura; notas concisas |
 | Gemini | Contexto enorme, multimodal | síntesis de muchos archivos / docs largos | puede cargar más, pero passage-first sigue ganando en coste |
 
 ## Observaciones (evolutivo — una línea cada una)

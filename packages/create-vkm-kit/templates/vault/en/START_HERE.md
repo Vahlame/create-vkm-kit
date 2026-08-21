@@ -5,9 +5,9 @@ tags: [start]
 
 # START_HERE
 
-1. Read `MEMORY.md`.
-2. Then `PROJECTS/<your-repo>.md` (match your workspace folder name).
-3. Log decisions in `SESSION_LOG.md`.
+1. Don't read this file or whole `PROJECTS` notes as a ritual. Use `vault_hybrid_search` (limit 3–5) or `assemble_context` (once).
+2. This map is small: open it only if the passage isn't enough.
+3. Close tasks in `SESSION_LOG.md` (one line).
 
 ## Vault map
 

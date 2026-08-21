@@ -1,6 +1,7 @@
 # ADR-0053: `vkm-design` — a model-agnostic professional design skill
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-08-21 by ADR-0090 — live precedents over closed menus;
+  measured layout in `/vkm-ui-judge`)
 - **Date:** 2026-07-12
 
 ## Context

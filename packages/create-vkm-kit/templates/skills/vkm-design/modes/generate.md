@@ -16,15 +16,25 @@ If the obsidian-memory-hybrid MCP responds: one `assemble_context` call with the
 existing palette, type choices, committed directions, and design decisions already made. An
 existing direction wins over inventing a new one unless the user asked for a redesign.
 
-## 3. Direction
+## 3. Live inspiration (gate)
+
+Read `references/inspiration.md` (this skill). Show the three-URL dossier for THIS brief
+before any direction exists. Search the job, not "best websites 2026". Each line names a
+stolen technique, a spacing attitude, and a reject. No dossier and no explicit `NO LIVE
+LOOKUP` = you are about to restyle this skill's menu — stop.
+
+The 1–2 visual technologies you will actually implement come from those URLs (`craft-tech.md`
+is a decoder of what you saw, not a picker). Look up the current how-to online at use-time.
+
+## 4. Direction
 
 Run `references/direction.md` in full: name the default, ban it, three directions across the
-axes, commit one with a reason. This step produces the sentence every later choice derives from.
-The committed direction MUST name its 1–2 full-intensity moves from
-`references/contemporary.md` (the boldness budget) — a direction without a move ships a correct
-template, and the lineup test will fail it at verify time anyway.
+axes, commit one with a reason. Every axis you keep must cite a dossier line. This step
+produces the sentence every later choice derives from. A direction without a move stolen
+from the live pages ships a correct template, and the lineup test will fail it at verify
+time anyway. Do **not** order a move from `contemporary.md` to fill the slot.
 
-## 4. System before screens
+## 5. System before screens
 
 Build the token layer FIRST, as real code (CSS custom properties / `@theme` / platform theme
 file):
@@ -46,28 +56,37 @@ emits the type scale. Then verify the pairs the UI actually uses:
 component. One full pass of this step, with real output, is in
 the skill's `examples/worked-example.md` (linked from SKILL.md).
 
-## 5. Build
+## 6. Build
 
 - Real libraries per `references/libraries.md` — versions verified online at this moment.
+- The 1–2 visual technologies named from the dossier are implemented here (looked up live),
+  not approximated with "a bit of blur and a bigger heading".
 - Semantic structure first (native controls, landmarks, heading order); custom controls only with
   role + keyboard + focus handling.
 - Zero magic values in components — everything references the token layer. A one-off value is
   either a bug or a missing token.
+- Spacing from the dossier's attitude: viewport gutter (16px compact / 24px medium+ unless the
+  direction earns a full-bleed crop), card/section inner padding ≥ 8px, group gap ≈ 2× in-group
+  gap. Same component type shares padding, radius, type size.
 - Design ALL states as you build: empty / error / loading per screen; hover / focus / disabled /
   busy per control (the vkm-discipline `domains/design-ui.md` gate list).
 - Write plausible real copy — lorem ipsum hides hierarchy and length bugs and produces layouts
   that break on contact with reality.
 
-## 6. Verify
+## 7. Verify
 
 - `node scripts/slop-check.mjs <your output files>` — zero unjustified fingerprint hits; every
   surviving hit carries its one-line justification in the deliverable.
 - Accessibility gate: computed contrast per theme, keyboard-only walk, 200% zoom, minimum width.
 - Renderer available → run `modes/visual-loop.md` (this is the default finish, not an extra).
+  On web that loop **runs `vkm-ui-judge` `scripts/ui-audit.mjs`** and you fix layout findings
+  (`edge-flush`, `tight-padding`, `overlap`, `component-drift`, `cramped-stack`) from
+  `report.json` / `geometry.json`, not from taste.
 - No renderer → static self-crit against `modes/critique.md` + the crit vocabulary; say the
   visual loop did not run.
 
-## 7. Deliver
+## 8. Deliver
 
-State: the direction and why · the precedent lineage · what was verified (with numbers) · what
-remains assumption. If the vault is wired, record the direction as a `[decision]` observation.
+State: the dossier URLs · the direction and why · which live technique you implemented · what
+was verified (with numbers, including layout) · what remains assumption. If the vault is wired,
+record the direction as a `[decision]` observation.

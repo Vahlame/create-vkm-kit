@@ -23,26 +23,25 @@ import { fileURLToPath } from "node:url";
 import {
   memoryRulesBlock,
   memoryRulesBody,
+  cursorPointerBlock,
   levelBody,
   PROFILES,
-  DEFAULT_PROFILE
+  DEFAULT_PROFILE,
+  RULES_START,
+  RULES_END
 } from "../src/memory-rules.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
 /**
- * Per-level budgets, re-cut after the 2026-08-01 token diet (ADR-0082):
- *   core 1,181 (es) / 1,165 (en) · memory 3,248 / 3,247 · doctrine 1,936 / 1,823
- *
- * `core` is the strict one — 1,200 — because it is the only level nobody can opt out
- * of. Anything that wants in has to displace something already there, which is the
- * whole point: the test of membership is "does its absence make the kit unsafe or
- * dishonest?", not "is it good advice?". `memory` and `doctrine` were compressed ~30-40%
- * with every load-bearing rule kept; the tightened ceilings are what keeps the diet from
- * silently reverting.
+ * Per-level budgets, re-cut after the 2026-08-01 token diet (ADR-0082), then
+ * core raised 1200→1400 for ADR-0089 (passage-first beats User Rules that dump
+ * whole PROJECTS notes). `core` is still the only level nobody can opt out of.
  */
 const BUDGET = {
-  core: { es: 1200, en: 1200 },
+  // 1400 after ADR-0089: core gained the passage-first override of User Rules
+  // that were dumping whole PROJECTS notes (measured 19k tokens/session).
+  core: { es: 1400, en: 1400 },
   memory: { es: 3400, en: 3400 },
   doctrine: { es: 2050, en: 1950 }
 };
@@ -191,4 +190,14 @@ test("docs install pages embed the canonical body verbatim (no drift)", () => {
     "docs/es/instalacion.md drifted from memory-rules.mjs"
   );
   assert.ok(en.includes(memoryRulesBody("en")), "docs/en/install.md drifted from memory-rules.mjs");
+});
+
+test("Cursor pointer stays a cheap stub (ADR-0089)", () => {
+  for (const lang of /** @type {const} */ (["es", "en"])) {
+    const pointer = cursorPointerBlock(lang);
+    const full = memoryRulesBlock(lang);
+    assert.ok(pointer.includes(RULES_START) && pointer.includes(RULES_END));
+    assert.ok(pointer.length < 1400, `cursor pointer (${lang}) grew to ${pointer.length} chars`);
+    assert.ok(pointer.length * 3 < full.length, "pointer must be far cheaper than the full block");
+  }
 });

@@ -19,19 +19,20 @@ The whole user guide, in the recommended reading order.
 
 ## When you need it
 
-| Document                                                     | What for                                                                             |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| [5.0 migration](migration-5.0.md)                            | Coming from 4.x? One command, one Windows ordering rule, four breaking changes.      |
-| [4.0 migration](migration-4.0.md)                            | Coming from 3.x? What the vkm-kit rename changed, what's frozen, and how to upgrade. |
-| [Sync with git](sync.md)                                     | Backup and multi-machine: daemon, manual git, or same repo.                          |
-| [FAQ](faq.md)                                                | Common questions + an honest comparison with alternatives.                           |
-| [Glossary](glossary.md)                                      | What each term means (MCP, vault, FTS5…).                                            |
-| [Troubleshooting](troubleshooting.md)                        | Typical errors and how to fix them.                                                  |
-| [Web access (obscura)](../../packages/obscura-web/README.md) | Optional stealth web fetch + on-demand SearXNG search (`--obscura`).                 |
-| [Postgres memory](postgres-memory.md)                        | Optional vault projection: multi-hop graph, SQL analytics and live events.           |
-| [Console](console.md)                                        | The whole kit in real time on `127.0.0.1:4930` — read-only, never steals focus.      |
-| [Observability](observability.md)                            | Daemon health, token/cache usage (`vkm-doctor`) and vault health — all local.        |
-| [Security](../security/README.md)                            | Threat model in one paragraph + deep-dive security notes.                            |
+| Document                                                     | What for                                                                               |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| [5.0 migration](migration-5.0.md)                            | Coming from 4.x? One command, one Windows ordering rule, four breaking changes.        |
+| [4.0 migration](migration-4.0.md)                            | Coming from 3.x? What the vkm-kit rename changed, what's frozen, and how to upgrade.   |
+| [Sync with git](sync.md)                                     | Backup and multi-machine: daemon, manual git, or same repo.                            |
+| [FAQ](faq.md)                                                | Common questions + an honest comparison with alternatives.                             |
+| [Glossary](glossary.md)                                      | What each term means (MCP, vault, FTS5…).                                              |
+| [Troubleshooting](troubleshooting.md)                        | Typical errors and how to fix them.                                                    |
+| [Web access (obscura)](../../packages/obscura-web/README.md) | Optional stealth web fetch + on-demand SearXNG search (`--obscura`).                   |
+| [Postgres memory](postgres-memory.md)                        | Optional vault projection: multi-hop graph, SQL analytics and live events.             |
+| [Console](console.md)                                        | The whole kit in real time on `127.0.0.1:4930` — read-only, never steals focus.        |
+| [DeepSeek V4](deepseek.md)                                   | Drive the kit with DeepSeek V4 (API): key-env, research backend, local-model fallback. |
+| [Observability](observability.md)                            | Daemon health, token/cache usage (`vkm-doctor`) and vault health — all local.          |
+| [Security](../security/README.md)                            | Threat model in one paragraph + deep-dive security notes.                              |
 
 ## For kit contributors
 

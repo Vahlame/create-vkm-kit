@@ -529,6 +529,23 @@ test("slop-check: catches an indigo hex OUTSIDE the old hardcoded 11-item list",
   assert.ok(hits.some((h) => h.id === "indigo-family" && h.evidence.includes("#5b21b6")));
 });
 
+test("slop-check: Geist/Roboto are priced as font-default (the Inter replacement)", () => {
+  assert.ok(scan(`h1{font-family:"Geist Sans",sans-serif}`).some((h) => h.id === "font-default"));
+  assert.ok(scan(`h1{font-family:Roboto,sans-serif}`).some((h) => h.id === "font-default"));
+  assert.ok(
+    !scan(`h1{font-family:"JetBrains Mono",monospace}`).some((h) => h.id === "font-default")
+  );
+});
+
+test("slop-check: Tailwind blue-500 is the second default once indigo is priced", () => {
+  const hits = scan(`<style>.x { background: #3b82f6; }</style>`);
+  assert.ok(
+    hits.some((h) => h.id === "tailwind-blue" && h.evidence.includes("#3b82f6")),
+    `expected tailwind-blue, got ${hits.map((h) => h.id + ":" + h.evidence).join("; ")}`
+  );
+  assert.ok(!hits.some((h) => h.id === "indigo-family"));
+});
+
 test("slop-check: a non-indigo hex is not flagged (no false positive)", () => {
   assert.ok(
     !scan(`<style>.x { background: #22c55e; }</style>`).some((h) => h.id === "indigo-family")

@@ -8,6 +8,7 @@ step in this skill.
 ## Contents
 
 - Step 0 — name your default, then ban it
+- Live dossier before sampling
 - The slop fingerprint — banned as defaults
 - The variety sampler (generative, not restrictive)
 - The axes — where directions come from
@@ -19,6 +20,17 @@ step in this skill.
 Write one sentence describing exactly what you would produce on autopilot for this brief ("dark
 hero, indigo gradient, Inter, three feature cards…"). That description is now banned for this task.
 If you can't articulate your default, you can't avoid it.
+
+## Live dossier before sampling
+
+Surface-tier generate has already produced the three-URL dossier (`inspiration.md`, this
+folder). The sampler below is how you _cross_ those live steals into three directions — it is
+not a substitute for looking. If the dossier is empty and you did not write `NO LIVE LOOKUP`,
+stop: sampling lineages and currents from this skill is the observed homogenization failure
+(every model, every harness, same page).
+
+Geist/Roboto/`#3b82f6` are priced the same way Inter/indigo are (`slop-check.mjs`): they are
+the statistical _second_ default once the first is banned.
 
 ## The slop fingerprint — banned as defaults
 
@@ -40,17 +52,21 @@ Before writing the three directions, deal yourself a spread — don't "think of"
 replays your priors), CONSTRUCT them:
 
 1. **Hues:** pick three hues at least 90° apart on the OKLCH wheel, none within 30° of your
-   last run's hue for this product (any pick is legal — including a priced one, with its line).
-2. **Lineages:** three different capsules from `lineages.md`, **none of them the lineage you used
-   in your last build** — and if you keep reaching for the same 2–3 (serif-editorial, dark-luxe),
-   force at least one you rarely pick (heritage, Y2K chrome, sci-fi HUD, riso, folk, brutalist).
-3. **Type pairings:** the three must not all lean on the same display face — vary the pairing
-   itself (grotesk+mono, slab+geometric, humanist serif+sans, condensed display+text), so the
-   options don't all whisper the same voice.
-4. **Currents:** three different moves from `contemporary.md`.
+   last run's hue for this product — **and none invented**: each hue is taken from a dossier
+   page or from `palette.mjs` seeded by a hue you can point at on a live page (any pick is
+   legal — including a priced one, with its line).
+2. **Lineages:** three different capsules from `lineages.md` as **grammar** (density, shape,
+   motion), **none of them the lineage you used in your last build**. Do not copy the capsule's
+   type list or OKLCH seeds unless a dossier URL actually uses them. If you keep reaching for
+   the same 2–3 (serif-editorial, dark-luxe), force at least one you rarely pick.
+3. **Type pairings:** taken from the dossier pages (or verified live this session), not from
+   the capsule. The three must not all lean on the same display face.
+4. **Visual technologies:** three different implementation categories evidenced on the dossier
+   URLs (`craft-tech.md` decodes what you saw). Do not pick a "current" from `contemporary.md`
+   to fill this slot.
 5. **Topologies:** at least two different layouts from the topology axis (not the reused
-   header→hero→grid→pricing→wordmark skeleton — see the protocol).
-6. Cross them into three directions (hue × lineage × type × current × topology), then apply the
+   header→hero→grid→pricing→wordmark skeleton — see the protocol), each matching a dossier page.
+6. Cross them into three directions (hue × grammar × type × technology × topology), then apply the
    protocol below. The brief kills combinations that don't fit its job — what survives is both varied
    AND functional, which is the actual goal; a beautiful page whose controls don't work fails
    `modes/critique.md` at Blocker level before taste is even discussed.
@@ -69,7 +85,8 @@ feel like "you", you sampled your comfort zone, not the space — resample.
 **Web/app slop:**
 
 - Indigo/violet/purple gradients, especially on dark navy (`#6366f1`, `#8b5cf6` and neighbors).
-- Inter, Poppins, or an anonymous geometric sans as the answer to every typography question.
+- Inter, Poppins, Geist, Roboto, or an anonymous geometric sans as the answer to every typography question.
+- Tailwind demo blue (`#3b82f6` / `#2563eb`) as the "not indigo" accent — it is the same default.
 - Glassmorphism cards (blur + transparency + 1px light border) as texture for everything.
 - Emoji as icons. Ever. Use a real icon set.
 - The centered hero: pill badge ("✨ Now with AI"), gradient headline, two buttons, floating
@@ -93,11 +110,11 @@ the 2021 fintech gradient era.
 
 A direction is a coherent position across these axes. Vary at least three axes away from your
 banned default; keep the rest quiet. Every lineage in the first row has an **executable capsule**
-(real typefaces, OKLCH seeds, shape/motion numbers) in `lineages.md` (this folder) — name the
-lineage there, build from its capsule. Then cross it with **one contemporary current** from
-`contemporary.md` (this folder; the 1–2 full-intensity moves of the boldness budget) — the
-lineage gives coherence, the current gives the memorable move; the cross is usually the
-signature. A direction with zero moves produces a correct template, which is its own failure.
+in `lineages.md` (this folder) — use it as **grammar** (density, shape, motion personality), not
+as a costume: type and colour seeds come from the live dossier unless a live page uses those
+faces. Then cross with **one visual technology stolen from a dossier URL** (`craft-tech.md`
+decodes the category; `contemporary.md` names what you saw — do not order a move from that
+file). A direction with zero moves produces a correct template, which is its own failure.
 
 | Axis                   | The range                                                                                                                                          |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -113,7 +130,8 @@ signature. A direction with zero moves produces a correct template, which is its
 ## The protocol
 
 1. Generate **three directions**. Each gets: a name, a one-sentence concept (the organizing idea),
-   its position on the axes it moves, one real-world precedent, and one line on what it _rejects_.
+   its position on the axes it moves, **the dossier URL it is stealing from**, and one line on
+   what it _rejects_. Memory-only "Müller-Brockmann" is not a precedent.
    **Diversity is mandatory, three ways:** the three must live in three different color worlds
    (one light-field, one dark-field, one chromatic), in at least two different lineages, **and in
    at least two different layout topologies.** Colour and lineage variety is not enough — a model
@@ -149,3 +167,5 @@ Distinctive must never mean unusable:
 - Accessibility gates (contrast, focus, states — `domains/design-ui.md` of vkm-discipline, or the
   summary in `foundations.md`) apply to every direction equally. A direction that can't pass them
   is not a direction; it's a mistake.
+- Spatial gates apply equally: viewport gutter, inner padding, no content-on-content overlap,
+  same component type sharing metrics. `vkm-ui-judge` measures these on the render.

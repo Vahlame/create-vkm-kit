@@ -19,11 +19,11 @@ un alcance concreto, ese alcance gana siempre (regla de arbitraje).
 | ----------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | `/vkm-spec`       | la idea todavía es vaga y **codificar sería adivinar**                                    | una spec testeable, anclada al vault, validada por máquina                    |
 | `/vkm-discipline` | ya sabés qué hacer y hay que **hacerlo bien**: código, datos, infra, docs, PR, postmortem | el trabajo hecho + evidencia ejecutada de que funciona                        |
-| `/vkm-design`     | hay algo que **se ve**: UI, pantalla, componente, gráfico, marca, diagrama                | una dirección de diseño con nombre, checks computados, loop visual            |
+| `/vkm-design`     | hay algo que **se ve**: UI, pantalla, componente, gráfico, marca, diagrama                | dossier en vivo + dirección con nombre, checks, loop visual                   |
 | `/vkm-verify`     | algo dio **verde** y estás por creerle: "tests pasan", "CI verde", "quedó commiteado"     | un veredicto: PROVEN · VACUOUS · DIRTY                                        |
 | `/vkm-research`   | hay un banco `RESEARCH/<tema>` con fuentes sin consolidar                                 | un `summary.md` con wikilinks, supersesión y fuentes marcadas                 |
 | `/vkm-intake`     | la tarea es **no trivial** y arrancar mal saldría caro: prompt/imágenes/contexto          | objetivo/entregable/no-hacer en 3 líneas + contexto mínimo cargado            |
-| `/vkm-ui-judge`   | una GUI **se ve mal** (web, Flutter o nativa): contraste, dark mode, responsive           | defectos medidos (audit/tests/screenshots reales) + arreglo con antes/después |
+| `/vkm-ui-judge`   | una GUI **se ve mal** (web, Flutter o nativa): contraste, márgenes, aire, componentes     | defectos medidos (audit/tests/screenshots reales) + arreglo con antes/después |
 | `/vkm-seo`        | una web debe **posicionar**: sinónimos/variantes/ubicaciones, técnica, búsqueda con IA    | cobertura semántica + audit estático antes/después (`seo-audit.mjs`)          |
 
 ## El orden natural de un trabajo real
@@ -51,7 +51,9 @@ propósito: una skill que se dispara en todo hace peor al modelo, no mejor.
 
 **`/vkm-design`** — no la uses para lógica sin superficie visible, ni para "poné este texto
 en negrita". Sí para cualquier cosa que alguien vaya a _mirar_, aunque no digas la palabra
-"diseño".
+"diseño". Si briefs no relacionados salen iguales (misma tipografía, mismo aire, mismo truco
+CSS), la skill estaba pidiendo de su propio menú: tiene que abrir páginas en vivo de _este_
+trabajo primero.
 
 **`/vkm-verify`** — no la uses para escribir tests nuevos (eso es `/vkm-discipline`), ni para
 depurar algo que **ya está rojo**: ahí el problema es visible y el trabajo es arreglarlo. Es
@@ -66,7 +68,8 @@ cerrado y claro: reformular lo obvio es puro costo. Es para arranques donde equi
 entregable saldría caro.
 
 **`/vkm-ui-judge`** — no la uses para diseñar desde cero (eso es `/vkm-design`) ni para
-lógica sin superficie visible. Es para GUIs que **ya existen** y se ven mal.
+lógica sin superficie visible. Es para GUIs que **ya existen** y se ven mal — también
+"no hay margen", "está todo apretado" y "los botones no coinciden".
 
 **`/vkm-seo`** — no la uses para entregables que no sean web ni para campañas de anuncios
 (SEM). Y ojo: no promete posiciones — promete los insumos medibles (audit limpio, cobertura

@@ -1,14 +1,19 @@
-# Contemporary currents — what award-level work is doing right now
+# Contemporary currents — a decoder for what you already saw
 
 > **Time-stamped knowledge** (last verified online: 2026-07). Principles in `foundations.md` age
 > in decades; currents age in seasons. If this file is more than ~6 months old and you have web
 > access, spot-check a current before leaning on it (award galleries, foundry releases, trend
 > round-ups). Sourced from cross-checked 2026 award/trend coverage, not from model memory.
+>
+> **This file is not a menu.** Field failure: agents pick 1–2 recipes from the list below
+> instead of looking at the live web, so every model ships "typographic statement + grain" or
+> "giant cropped wordmark" regardless of the brief. Read `inspiration.md` first. Use this file
+> only to **name** a move you already saw on a dossier URL. Ordering from this list is slop.
 
 **Why this file exists:** passing every gate produces a _correct_ page; correct is the floor.
 Award-level work adds one or two **moves** — deliberate, high-intensity compositional decisions —
-on top of a quiet, gate-passing system. This file is the menu of moves that are alive right now,
-each with an executable recipe and its slop-version to avoid.
+on top of a quiet, gate-passing system. When a live page is doing one of these, the recipe
+below is how you execute it without the slop-version. It is not how you choose what to do.
 
 ## Contents
 
@@ -153,7 +158,8 @@ animates.
 
 ## Where this plugs in
 
-Pick the current DURING direction (`direction.md`: a direction = lineage capsule × **one**
-current, and the cross is usually the signature), build it in `modes/generate.md` step 5 tokens
-first, and defend it after: "no memorable move in the first viewport" is a **Major** finding in
+Pick the current DURING direction **only as a name for something already in the live
+dossier** (`inspiration.md` / `direction.md`: a direction = lineage grammar × **one**
+stolen technology). Build it in `modes/generate.md` step 6 tokens first, and defend it
+after: "no memorable move in the first viewport" is a **Major** finding in
 `modes/critique.md`, and `modes/visual-loop.md` re-runs the lineup test every iteration.

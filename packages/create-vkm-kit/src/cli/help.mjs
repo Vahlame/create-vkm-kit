@@ -95,7 +95,8 @@ Headless (CI / scripts) — add -y (aliases: --yes, --non-interactive):
   --with-gitleaks Install gitleaks pre-commit hook in <vault>/.git/hooks/
   --rules <list>  Install the memory-rules block into agent configs: claude
                   (~/.claude/CLAUDE.md, global), codex (~/.codex/AGENTS.md, global),
-                  agents (./AGENTS.md), cursor (.cursor/rules/obsidian-memory.mdc),
+                  agents (./AGENTS.md), cursor (short pointer in .cursor/rules when
+                  AGENTS.md already has the protocol; full block if cursor-only),
                   kimi (~/.kimi-code/AGENTS.md, global).
                   Or 'all' / 'none'. Headless installs rules by DEFAULT (for each wired
                   agent); pass --no-rules or --minimal to skip, or --rules <list> to
@@ -218,13 +219,13 @@ Claude Code native-memory override (when --ide includes claude):
   cursor or kimi):
   /vkm-discipline (dense minimal-line code at full quality + verification contract),
   /vkm-spec (idea → precise spec via one assemble_context call), /vkm-design
-  (professional anti-generic design: direction before pixels, computed checks, visual
-  loop), /vkm-research (consolidate a RESEARCH/<topic> bank into a quality summary.md,
+  (professional anti-generic design: live precedents for this brief, direction before
+  pixels, computed checks, visual loop), /vkm-research (consolidate a RESEARCH/<topic> bank into a quality summary.md,
   wikilinks + supersedes), /vkm-verify (prove a green check ran, covered the change and
   can fail — negative control via prove-it.mjs), /vkm-intake (restate objective/
   deliverable/non-goals + image inventory + minimal context BEFORE executing), /vkm-ui-judge
-  (measured GUI judgment: live-page Playwright audit for web, flutter_test a11y gates for
-  Flutter, screenshot-evidence loop for other native UIs), /vkm-seo (measurable SEO:
+  (measured GUI judgment: live-page Playwright audit for web including gutters/overlap/
+  component drift, flutter_test a11y gates for Flutter, screenshot-evidence loop for other native UIs), /vkm-seo (measurable SEO:
   semantic query-family coverage + static before/after audit via seo-audit.mjs), and the
   vkm-implementer agent
   template. Claude uses ~/.claude/skills + ~/.claude/agents/vkm-implementer.md; Codex uses
@@ -256,6 +257,12 @@ Claude Code native-memory override (when --ide includes claude):
   --obscura-research-dir <dir> Override OBSCURA_RESEARCH_DIR (default <vault>/RESEARCH) — root
                                 obscura_research({persist:true})/obscura_consolidate write under
                                 (ADR-0056).
+  --research-llm <p>            Research LLM backend (OBSCURA_LLM_PROVIDER): auto (DeepSeek when
+                                DEEPSEEK_API_KEY is set, else local Ollama) | deepseek | ollama |
+                                none. The API key itself is NEVER written to mcp.json — it is read
+                                from the DEEPSEEK_API_KEY environment variable only.
+  --deepseek-model <model>      Model for DeepSeek-backed research calls (OBSCURA_DEEPSEEK_MODEL,
+                                default deepseek-v4-flash; use deepseek-v4-pro for higher quality).
 
   Downloads (ADR-0058, opt-in via --downloads only — deliberately NOT in --full, since it writes
   files to disk) — a guarded file-download manager MCP (vkm-downloads) exposing six tools:

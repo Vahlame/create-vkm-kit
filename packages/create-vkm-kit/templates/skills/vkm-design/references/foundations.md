@@ -36,8 +36,18 @@ _deliberately_ (per the committed direction), never by accident.
 
 - **One base unit** (4px or 8px) and a scale of multiples (4, 8, 12, 16, 24, 32, 48, 64…). Every
   gap, padding and margin comes from the scale — `scripts/scale.mjs --space` checks this.
+- **Viewport gutter is a token, not leftover.** Content (text and controls) sits inset from the
+  glass: **16px at compact widths (≤600px), 24px at medium+** unless the direction _earns_ a
+  full-bleed crop (a hung wordmark, an editorial overlap) — hanging _past_ the edge is a crop;
+  sitting 2px _inside_ the edge is a missing margin. `vkm-ui-judge` measures this (`edge-flush`).
+- **Components have inner air.** Cards, sections, dialogs: padding ≥ 8px on every side (often
+  16). Text on the stroke is an error (`tight-padding`).
 - **Proximity encodes meaning:** the gap between groups ≈ 2× the gap within a group. If spacing is
-  uniform everywhere, grouping is invisible (Gestalt violation).
+  uniform everywhere, grouping is invisible (Gestalt violation). Stacked blocks with < 8px of
+  air are cramped (`cramped-stack`).
+- **Same role, same anatomy.** Buttons share padding, radius and type size; fields share height;
+  cards in one grid share inner padding. Three treatments of one control is drift
+  (`component-drift`).
 - **Grids:** 12-column fluid with consistent gutters for pages; a defined content max-width;
   alignment edges chosen once and kept — every "almost aligned" edge reads as a bug.
 - **Optical over metric:** icons next to text, triangles in play buttons, and glyphs in circles

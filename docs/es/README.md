@@ -30,6 +30,7 @@ Toda la guía de usuario, en orden de lectura recomendado.
 | [Acceso web (obscura)](../../packages/obscura-web/README.md) | Fetch web sigiloso + búsqueda con SearXNG on-demand, opcional (`--obscura`).              |
 | [Memoria en Postgres](memoria-postgres.md)                   | Proyección opcional del vault: grafo multi-salto, analíticas SQL y eventos en vivo.       |
 | [Consola](consola.md)                                        | El kit entero en tiempo real en `127.0.0.1:4930`, solo lectura, sin robar el foco.        |
+| [DeepSeek V4](deepseek.md)                                   | Maneja el kit con DeepSeek V4 (API): key-env, backend de research, fallback a local.      |
 | [Observabilidad](observabilidad.md)                          | Salud del daemon, tokens/caché (`vkm-doctor`) y salud del vault — todo local.             |
 | [Seguridad](../security/README.es.md)                        | Modelo de amenazas en un párrafo + notas de seguridad en profundidad.                     |
 

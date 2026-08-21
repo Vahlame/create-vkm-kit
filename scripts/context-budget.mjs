@@ -220,13 +220,35 @@ function frontmatterDescription(src) {
  */
 function rulesSurfaces(home, cwd) {
   return [
-    { id: "claude", file: path.join(home, ".claude", "CLAUDE.md"), loadedByClaudeCode: true },
-    { id: "agents", file: path.join(cwd, "AGENTS.md"), loadedByClaudeCode: true },
-    { id: "codex", file: path.join(home, ".codex", "AGENTS.md"), loadedByClaudeCode: false },
     {
-      id: "cursor",
+      id: "claude",
+      file: path.join(home, ".claude", "CLAUDE.md"),
+      loadedByClaudeCode: true,
+      loadedByCursor: false
+    },
+    {
+      id: "agents",
+      file: path.join(cwd, "AGENTS.md"),
+      loadedByClaudeCode: true,
+      loadedByCursor: true
+    },
+    {
+      id: "codex",
+      file: path.join(home, ".codex", "AGENTS.md"),
+      loadedByClaudeCode: false,
+      loadedByCursor: false
+    },
+    {
+      id: "cursor-user",
+      file: path.join(home, ".cursor", "rules", "obsidian-memory.mdc"),
+      loadedByClaudeCode: false,
+      loadedByCursor: true
+    },
+    {
+      id: "cursor-project",
       file: path.join(cwd, ".cursor", "rules", "obsidian-memory.mdc"),
-      loadedByClaudeCode: false
+      loadedByClaudeCode: false,
+      loadedByCursor: true
     }
   ];
 }
@@ -409,20 +431,32 @@ function totalsOf(pieces) {
  * @param {{ home: string, cwd: string, lang?: "es"|"en" }} opts
  */
 export function measureInstalled({ home, cwd, lang = "es" }) {
-  const surfaces = rulesSurfaces(home, cwd).map((s) => ({
-    ...s,
-    chars: installedBlockChars(s.file)
-  }));
+  const seen = new Set();
+  const surfaces = [];
+  for (const s of rulesSurfaces(home, cwd)) {
+    const resolved = path.resolve(s.file);
+    if (seen.has(resolved)) continue;
+    seen.add(resolved);
+    surfaces.push({ ...s, chars: installedBlockChars(s.file) });
+  }
   const present = surfaces.filter((s) => s.chars > 0);
   const loaded = present.filter((s) => s.loadedByClaudeCode);
+  const cursorLoaded = present.filter((s) => s.loadedByCursor);
   const repo = measureRepo({ lang });
-  // The repo view counts the block once; a session that loads N surfaces pays N.
-  const extra = Math.max(0, loaded.length - 1) * memoryRulesBlock(lang).length;
+  const loadedChars = loaded.reduce((a, s) => a + s.chars, 0);
+  const oneCopy = loaded.reduce((m, s) => Math.max(m, s.chars), 0);
+  // Repo view already counts one protocol copy. Extra = other Claude-loaded
+  // surfaces, billed by actual chars (a Cursor pointer is not a full block).
+  const extra = Math.max(0, loadedChars - oneCopy);
+  const cursorChars = cursorLoaded.reduce((a, s) => a + s.chars, 0);
   return {
     surfaces,
     surfacesPresent: present.map((s) => s.id),
     surfacesLoadedByClaudeCode: loaded.map((s) => s.id),
+    surfacesLoadedByCursor: cursorLoaded.map((s) => s.id),
     rulesMultiplier: loaded.length,
+    cursorRulesChars: cursorChars,
+    cursorRulesTokens: approxTokens(cursorChars),
     ...repo,
     totals: {
       ...repo.totals,
@@ -475,8 +509,13 @@ function main() {
     console.log(
       `\n**Installed surfaces carrying the block:** ${report.surfacesPresent.join(", ") || "none"}` +
         `\n**Loaded together by a Claude Code session in this cwd:** ${report.rulesMultiplier}` +
-        (report.rulesMultiplier > 1 ? " — the block is paid once per loaded surface." : "")
+        (report.rulesMultiplier > 1 ? " — extra copies billed by actual chars (ADR-0089)." : "")
     );
+    if (report.cursorRulesChars > 0) {
+      console.log(
+        `**Cursor-loaded rules chars (AGENTS.md + .mdc files):** ${report.cursorRulesChars.toLocaleString("en-US")} ≈ ${report.cursorRulesTokens.toLocaleString("en-US")} tokens`
+      );
+    }
   }
 }
 

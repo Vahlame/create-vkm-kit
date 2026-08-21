@@ -2,7 +2,7 @@
 description: "Stack, runtimes, and MCP servers for this repository."
 globs:
   - "**/*"
-alwaysApply: true
+alwaysApply: false
 ---
 
 ## Stack (repo)

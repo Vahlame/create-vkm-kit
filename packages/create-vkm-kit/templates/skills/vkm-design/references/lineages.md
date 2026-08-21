@@ -244,11 +244,14 @@ are seeds: run them through `scripts/palette.mjs` / `scripts/contrast.mjs` befor
 
 ## Using a capsule
 
-1. Pick per `direction.md` (the capsule is the "lineage/era" axis made concrete).
-2. Copy its seeds into the token layer, then run `palette.mjs`/`contrast.mjs`/`scale.mjs` —
-   seeds are starting points, gates are gates.
-3. Deviate deliberately: change ONE thing the capsule prescribes and name why (that deviation
+1. Pick per `direction.md` (the capsule is the "lineage/era" axis made concrete — **grammar**,
+   not a costume).
+2. Copy density / shape / motion personality into the token layer. Do **not** copy the type
+   list or OKLCH seeds unless a live dossier URL actually uses those faces/hues — otherwise run
+   `palette.mjs` / `contrast.mjs` / `scale.mjs` from a hue and pairing you can point at on a
+   live page. Seeds are starting points, gates are gates.
+3. Deviate deliberately: change ONE thing the grammar prescribes and name why (that deviation
    is usually where the signature lives).
-4. Cross with one contemporary current (`contemporary.md`, this folder): the capsule is
-   the language, the current is the move — a capsule executed with zero moves ships a museum
-   piece, not a page someone remembers.
+4. Cross with one visual technology stolen from the dossier (`craft-tech.md` / `inspiration.md`,
+   this folder): the capsule is the language, the live technique is the move — a capsule
+   executed with zero moves ships a museum piece, not a page someone remembers.

@@ -16,11 +16,11 @@ that scope wins (the arbitration rule).
 | ----------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | `/vkm-spec`       | the idea is still vague and **writing code would be guessing**                              | a testable spec, anchored to the vault, machine-validated                 |
 | `/vkm-discipline` | you know what to do and it has to be **done well**: code, data, infra, docs, PR, postmortem | the work, plus executed evidence that it holds                            |
-| `/vkm-design`     | something will be **looked at**: UI, screen, component, chart, brand, diagram               | a named design direction, computed checks, a visual loop                  |
+| `/vkm-design`     | something will be **looked at**: UI, screen, component, chart, brand, diagram               | a live dossier + named direction, computed checks, a visual loop          |
 | `/vkm-verify`     | something came back **green** and you are about to believe it                               | a verdict: PROVEN · VACUOUS · DIRTY                                       |
 | `/vkm-research`   | a `RESEARCH/<topic>` bank has sources that were never consolidated                          | a `summary.md` with wikilinks, supersession, marked sources               |
 | `/vkm-intake`     | the task is **non-trivial** and a bad start would be expensive: prompt/images/context       | objective/deliverable/non-goals in 3 lines + minimal context loaded       |
-| `/vkm-ui-judge`   | a GUI **looks wrong** (web, Flutter or native): contrast, dark mode, responsive             | measured defects (audit/tests/real screenshots) + a fix with before/after |
+| `/vkm-ui-judge`   | a GUI **looks wrong** (web, Flutter or native): contrast, gutters, cramped cards, drift     | measured defects (audit/tests/real screenshots) + a fix with before/after |
 | `/vkm-seo`        | a website must **rank**: synonyms/variants/locations, technical, AI search                  | semantic coverage + static before/after audit (`seo-audit.mjs`)           |
 
 ## The natural order of real work
@@ -47,7 +47,9 @@ scope there). Its own `description` excludes those on purpose: a skill that fire
 everything makes the model worse, not better.
 
 **`/vkm-design`** — not for logic with no visible surface, not for "make this bold". Yes for
-anything a person will _look at_, even if you never say the word "design".
+anything a person will _look at_, even if you never say the word "design". Consecutive
+unrelated briefs that rhyme (same type, same air, same CSS trick) mean the skill sampled
+its own menu — it is supposed to open live pages for _this_ job first.
 
 **`/vkm-verify`** — not for writing new tests (that is `/vkm-discipline`), and not for
 debugging something **already red**: there the problem is visible and the job is to fix it.
@@ -62,7 +64,8 @@ restating the obvious is pure cost. It is for starts where the wrong deliverable
 expensive.
 
 **`/vkm-ui-judge`** — not for designing from scratch (that is `/vkm-design`) and not for
-logic with no visible surface. It is for GUIs that **already exist** and look wrong.
+logic with no visible surface. It is for GUIs that **already exist** and look wrong —
+including "no margin", "everything is cramped", and "the buttons don't match".
 
 **`/vkm-seo`** — not for non-web deliverables and not for ad (SEM) campaigns. And note: it
 never promises positions — it promises the measurable inputs (clean audit, coverage done);

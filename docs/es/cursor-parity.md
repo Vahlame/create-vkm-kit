@@ -17,10 +17,11 @@ create-hook). Esta nota mantiene alineadas las superficies Claude Code ↔ Curso
 
 ## Reglas
 
-- Globales: `$HOME/.cursor/rules/obsidian-memory.mdc` (`alwaysApply: true`).
-- Proyecto (opcional): `<cwd>/.cursor/rules/obsidian-memory.mdc` cuando el cwd ≠ home.
-- El panel **Settings → Rules → User Rules** de Cursor sigue siendo manual (el IDE lo
-  guarda fuera de disco); el `.mdc` global cubre el protocolo de memoria en cada chat.
+- Globales: `$HOME/.cursor/rules/obsidian-memory.mdc` (`alwaysApply: true`) es un **puntero
+  corto** cuando el proyecto también tiene `AGENTS.md` (ADR-0089). Un install solo-Cursor
+  sigue escribiendo el protocolo completo en el `.mdc` de proyecto.
+- **No pegues el bloque completo en Settings → User Rules** — duplica tokens y las User
+  Rules pisan los archivos.
 
 ## Hooks
 

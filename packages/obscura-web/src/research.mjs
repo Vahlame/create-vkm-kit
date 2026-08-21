@@ -23,7 +23,8 @@ import {
   curatePage,
   embedPassages,
   ensureOllamaServer,
-  expandQuery
+  expandQuery,
+  resolveProvider
 } from "./ollama-client.mjs";
 import { capPerHost, cosine, mmr, reciprocalRankFusion } from "./rank.mjs";
 import { mapWithConcurrency } from "./concurrency.mjs";
@@ -569,13 +570,20 @@ export async function deepResearch(query, opts = {}, deps = {}) {
   // throttled fan-out) even though Scrapling itself ships the equivalent flag opt-in.
   const respectRobots = process.env.OBSCURA_RESPECT_ROBOTS !== "0";
 
-  // One availability check per call (not per page) — Ollama absence/presence doesn't change
+  // One availability check per call (not per page) — LLM absence/presence doesn't change
   // mid-crawl. OBSCURA_RESEARCH_OLLAMA=0 opts out even when a daemon happens to be running.
+  // When the DeepSeek provider is selected (key present, or OBSCURA_LLM_PROVIDER=deepseek) this
+  // short-circuits WITHOUT probing/spawning a local Ollama: there is no daemon to wait on, and
+  // spawning one would add latency for a backend the session isn't using.
   let ollamaAvailable = false;
   if (process.env.OBSCURA_RESEARCH_OLLAMA !== "0") {
-    await ensureOllamaImpl().catch(() => false);
-    const health = await checkOllamaImpl().catch(() => ({ ok: false, hasModel: false }));
-    ollamaAvailable = Boolean(health.ok && health.hasModel);
+    if (resolveProvider() === "ollama") {
+      await ensureOllamaImpl().catch(() => false);
+      const health = await checkOllamaImpl().catch(() => ({ ok: false, hasModel: false }));
+      ollamaAvailable = Boolean(health.ok && health.hasModel);
+    } else if (resolveProvider() === "deepseek") {
+      ollamaAvailable = Boolean(process.env.DEEPSEEK_API_KEY);
+    }
   }
 
   // Expand: ONE local model call for the whole crawl (not one per page), turning the asker's
@@ -589,13 +597,22 @@ export async function deepResearch(query, opts = {}, deps = {}) {
   let queries = [q];
   let concept = "";
   if (ollamaAvailable && expand) {
-    try {
-      const ex = await expandImpl({ query: q, max: subQueries });
-      if (ex.queries.length) queries = ex.queries;
-      concept = ex.concept;
-    } catch {
-      // Expansion is an enhancement, not a dependency: a failure here costs breadth, never
-      // the call. Same per-stage degradation contract as curation (ADR-0055 §4).
+    // Expansion is the ONE pre-gather LLM call, and it runs BEFORE the deadline-aware stages
+    // below — so it must never be allowed to consume the budget on its own. A slow/hung backend
+    // (DeepSeek over HTTP, a cold Ollama model pull) would otherwise eat up to its OWN 30s
+    // timeout out of the 50s deadline, leaving the gather+fetch stages nothing to work with and
+    // the call to return thin (or blow the transport wall outright). Race it against the
+    // remaining deadline and cap its own timeout to what is actually left, so a dead backend
+    // degrades to `[original]` and the crawl proceeds instead of stalling the whole call.
+    const msLeft = deadline ? deadline - now() : 0;
+    if (!deadline || msLeft > 0) {
+      const timeoutMs = deadline ? Math.min(30_000, msLeft) : 30_000;
+      const ex = await Promise.race([
+        expandImpl({ query: q, max: subQueries, timeoutMs }).catch(() => null),
+        ...(deadline ? [new Promise((resolve) => setTimeout(() => resolve(null), msLeft))] : [])
+      ]);
+      if (ex?.queries?.length) queries = ex.queries;
+      if (ex?.concept) concept = ex.concept;
     }
   }
 
@@ -658,12 +675,30 @@ export async function deepResearch(query, opts = {}, deps = {}) {
 
   if (!candidates.length) {
     // No SearXNG (or empty) — degrade to the existing single-page scrape chain rather than
-    // hand-rolling fragile per-engine offset pagination (see module doc).
-    const fallback = await searchImpl(q, { limit: Math.min(maxCandidates, 20), stealth }).catch(
-      (e) => {
-        throw new Error(`obscura_research: ${e?.message || e}`);
-      }
-    );
+    // hand-rolling fragile per-engine offset pagination (see module doc). The scrape chain is
+    // NOT deadline-aware on its own (each obscura browser fetch carries its own long timeout),
+    // so race it against the same deadline the rest of this call already obeys — a hung engine
+    // must not blow the MCP transport's hard 60s wall (the observed "research dies by timeout"
+    // failure). On a deadline hit this returns empty candidates rather than throwing, so the
+    // tool reports `scanned:0` honestly instead of vanishing mid-call.
+    const work = searchImpl(q, { limit: Math.min(maxCandidates, 20), stealth }).catch((e) => {
+      throw new Error(`obscura_research: ${e?.message || e}`);
+    });
+    let fallback;
+    if (!deadline) {
+      fallback = await work;
+    } else {
+      const msLeft = deadline - now();
+      fallback =
+        msLeft <= 0
+          ? { results: [], source: "fallback-timeout" }
+          : await Promise.race([
+              work,
+              new Promise((resolve) =>
+                setTimeout(() => resolve({ results: [], source: "fallback-timeout" }), msLeft)
+              )
+            ]);
+    }
     candidates = fallback.results;
     source = fallback.source;
   }
@@ -942,7 +977,22 @@ export async function deepResearch(query, opts = {}, deps = {}) {
   if ((dedupeSimilar || diversify) && kept.length > 1 && embedBudgetOk) {
     try {
       const texts = kept.map((r) => r.snippet || r.title || "");
-      const vectors = await embedImpl({ texts });
+      // Race the embed call against the remaining deadline, same contract as every other
+      // post-fetch network call in this pipeline: a hung embed model must degrade to the plain
+      // curated order rather than run to its own 30s timeout and blow the transport wall. Cap its
+      // own timeout to what is left too, so a dead backend aborts instead of idling.
+      const msLeft = deadline ? deadline - now() : 0;
+      const embedWork = embedImpl({
+        texts,
+        ...(deadline ? { timeoutMs: Math.min(30_000, msLeft) } : {})
+      });
+      const vectors = deadline
+        ? await Promise.race([
+            embedWork,
+            new Promise((resolve) => setTimeout(() => resolve(null), msLeft))
+          ])
+        : await embedWork;
+      if (!vectors) throw new Error("embed pass cut off at the deadline");
       const vectorOf = new Map(kept.map((r, i) => [r, vectors[i]]));
 
       if (dedupeSimilar) {

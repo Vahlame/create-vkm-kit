@@ -3,7 +3,8 @@
  * (a) AGENTS.md autogen block from .agents/rules/*.md (lexicographic)
  * (b) .cursor/rules/*.mdc from agents-manifest.yaml
  * (c) .continue/rules/*.md from agents-manifest.yaml
- * (d) .cursor/rules/obsidian-memory.mdc from the installer's fresh-install render
+ * (d) .cursor/rules/obsidian-memory.mdc from the installer's Cursor pointer
+ *     (ADR-0089: this repo has AGENTS.md, so the `.mdc` must not duplicate it)
  *
  * Usage: npx tsx scripts/sync-agents.ts [--check]
  */
@@ -11,7 +12,7 @@ import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync } from 
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
-import { memoryRulesBlock } from "../packages/create-vkm-kit/src/memory-rules.mjs";
+import { cursorPointerBlock } from "../packages/create-vkm-kit/src/memory-rules.mjs";
 import {
   mergeManagedBlock,
   CURSOR_RULE_FRONTMATTER
@@ -120,15 +121,13 @@ function syncCursor(manifest: Manifest): void {
   }
 }
 
-// (d) Dogfooding drift gate: the committed .cursor/rules/obsidian-memory.mdc is the
-// fresh-install output of installRules(["cursor"], "es") — CURSOR_RULE_FRONTMATTER +
-// memoryRulesBlock rendered through the real mergeManagedBlock. It is not manifest-driven
-// (its source is installer code, not .agents/rules/*.md), which is how it drifted silently
-// across the v2 -> vkm-kit sentinel rename (ADR-0041) until 2026-07-19. Same gate pattern
-// as ADR-0036: write mode regenerates, --check makes drift fail CI.
+// (d) Dogfooding drift gate: this repo ships AGENTS.md with the full protocol,
+// so `.cursor/rules/obsidian-memory.mdc` is the Cursor *pointer* (ADR-0089),
+// equal to installRules(["agents","cursor"]) on a distinct cwd — not the
+// cursor-only home===cwd full block.
 function syncMemoryRule(): void {
   const out = join(ROOT, ".cursor", "rules", "obsidian-memory.mdc");
-  const next = mergeManagedBlock(CURSOR_RULE_FRONTMATTER, memoryRulesBlock("es"));
+  const next = mergeManagedBlock(CURSOR_RULE_FRONTMATTER, cursorPointerBlock("es"));
   if (CHECK) {
     ensureEqual(
       out,

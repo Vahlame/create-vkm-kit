@@ -137,7 +137,7 @@ The initializer can also drop the **memory-protocol rules** (how the agent shoul
 npx @vkmikc/create-vkm-kit@latest ./my-vault -y --ide cursor,claude --rules all
 ```
 
-It writes an **idempotent marked block** (`<!-- obsidian-memory:start --> … <!-- obsidian-memory:end -->`) into `~/.claude/CLAUDE.md`, `./AGENTS.md` and `.cursor/rules/obsidian-memory.mdc`, merging in place — **your own content is never touched**, and re-runs just refresh the block. Cursor's _global_ User Rules can't be auto-written (not a file), so paste that one from the install guide.
+It writes an **idempotent marked block** into `~/.claude/CLAUDE.md` and `./AGENTS.md`. Cursor gets a **short pointer** at `~/.cursor/rules/obsidian-memory.mdc` when `AGENTS.md` already has the protocol (ADR-0089) — **do not paste the same block into Cursor User Rules**.
 
 ### Make the vault Claude Code's _only_ memory (`--ide claude`)
 

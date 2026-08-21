@@ -162,13 +162,17 @@ export function hybridServer(vaultAbs, kitRepoAbs, opts = {}) {
  * `RESEARCH/` section. Shared by the Cursor merge and the Claude Code / Codex CLI paths.
  * @param {string} kitRepoAbs absolute path to the kit clone (contains packages/)
  * @param {{ binPath?: string|null, searxngUrl?: string|null, researchDir?: string|null,
+ *   researchLlm?: string|null, deepseekModel?: string|null,
  *   launcher?: string|null }} [opts] - `launcher` starts the server through
  *   `vkm-runhidden.exe` (see {@link viaRunHidden}). `binPath` wires
  *   OBSCURA_BIN (the installer's ~/.vkm/obscura binary); when null, obscura-web uses
  *   `obscura` on PATH. `searxngUrl` wires OBSCURA_SEARXNG_URL for the structured search layer.
  *   `researchDir` wires OBSCURA_RESEARCH_DIR (root for `obscura_research({persist:true})` and
  *   `obscura_consolidate`); the installer defaults it to `<vault>/RESEARCH`, overridable via
- *   `--obscura-research-dir`.
+ *   `--obscura-research-dir`. `researchLlm`/`deepseekModel` wire the NON-SECRET half of the
+ *   DeepSeek research backend (OBSCURA_LLM_PROVIDER / OBSCURA_DEEPSEEK_MODEL). The API key is
+ *   deliberately NEVER written here: obscura-web reads DEEPSEEK_API_KEY from the environment of
+ *   whatever process spawns it, so the key never lands in git, mcp.json or any persisted config.
  */
 export function obscuraWebServer(kitRepoAbs, opts = {}) {
   const { obscuraMcpJs } = obscuraWebMcpPathsFromKitRoot(kitRepoAbs);
@@ -177,6 +181,8 @@ export function obscuraWebServer(kitRepoAbs, opts = {}) {
   if (opts && opts.binPath) env.OBSCURA_BIN = opts.binPath;
   if (opts && opts.searxngUrl) env.OBSCURA_SEARXNG_URL = opts.searxngUrl;
   if (opts && opts.researchDir) env.OBSCURA_RESEARCH_DIR = opts.researchDir;
+  if (opts && opts.researchLlm) env.OBSCURA_LLM_PROVIDER = opts.researchLlm;
+  if (opts && opts.deepseekModel) env.OBSCURA_DEEPSEEK_MODEL = opts.deepseekModel;
   return viaRunHidden({ command: "node", args: [obscuraMcpJs], env }, opts.launcher);
 }
 
@@ -331,6 +337,7 @@ export function mergeObsidianHybridServer(merged, vaultAbs, kitRepoAbs, opts = {
  * @param {Record<string, unknown>} merged output of a prior merge (or compatible)
  * @param {string} kitRepoAbs absolute path to the kit clone
  * @param {{ binPath?: string|null, searxngUrl?: string|null, researchDir?: string|null,
+ *   researchLlm?: string|null, deepseekModel?: string|null,
  *   launcher?: string|null }} [opts] passed to {@link obscuraWebServer}
  * @returns {Record<string, unknown>}
  */

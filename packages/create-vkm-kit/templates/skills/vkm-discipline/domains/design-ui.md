@@ -23,6 +23,11 @@ form, dashboard, or web page. Accessibility is part of the definition of done, n
 6. **Ship the three screen states** — empty (first use), error (message beside the field, focus to it,
    input preserved), loading/confirming — plus per-control hover/focus/disabled/submitting, not just rest.
 7. **Holds at the declared minimum width AND at 200% zoom** (fluid/relative units; no fixed widths that overflow).
+8. **Space is part of done, not polish.** Content inset from the window (≈16px compact / ≈24px
+   medium+ unless a crop is earned); cards/dialogs with inner padding ≥ 8px; gap between groups
+   ≈ 2× gap within a group; same control type sharing padding/radius/type size. On web, this is
+   `vkm-ui-judge`'s layout checks — run them. "Looks fine in the screenshot at 0.3 scale" is not a
+   pass.
 
 ## Edge cases to actually exercise
 

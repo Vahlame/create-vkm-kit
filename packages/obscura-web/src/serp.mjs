@@ -608,11 +608,48 @@ function dedupe(results, limit) {
 }
 
 /**
+ * Plain-HTTP GET for the SERP chain — the "zero local dependencies" search path. DuckDuckGo
+ * HTML and Bing RSS are server-rendered (no JS), so a bare `fetch` with a browser-ish UA gets
+ * the same markup obscura's browser would, without needing the obscura binary (or SearXNG) at
+ * all. Engaged automatically only when the caller did NOT override the fetch layer — i.e. it
+ * patches the default obscura path (a missing/hung browser), never a caller's own fetcher.
+ * @param {string} url
+ * @param {{ format?: string, timeoutMs?: number }} [opts]
+ * @returns {Promise<{ content: string, format: string }>}
+ */
+export async function nativeHttpGet(url, { format = "html", timeoutMs = 15_000 } = {}) {
+  const ctrl = new AbortController();
+  const t = setTimeout(
+    () => ctrl.abort(new Error(`native HTTP timeout after ${timeoutMs}ms`)),
+    timeoutMs
+  );
+  try {
+    const res = await globalThis.fetch(url, {
+      signal: ctrl.signal,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        Accept:
+          format === "raw"
+            ? "application/rss+xml, application/xml, text/xml, */*;q=0.8"
+            : "text/html, application/xhtml+xml, */*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9"
+      }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return { content: await res.text(), format };
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+/**
  * Robust web search. Resolves `{ source, results }` or throws an error whose message
  * tells the agent to use the native WebSearch fallback.
  * @param {string} query
  * @param {{ limit?: number, stealth?: boolean, engines?: string[], searxngUrl?: string }} [opts]
- * @param {{ fetchImpl?: typeof obscuraFetch, searxngImpl?: typeof searxngSearch, throttleImpl?: () => Promise<void> }} [deps]
+ * @param {{ fetchImpl?: typeof obscuraFetch, searxngImpl?: typeof searxngSearch,
+ *           throttleImpl?: () => Promise<void>, nativeHttpGetImpl?: typeof nativeHttpGet }} [deps]
  * @returns {Promise<{ source: string, results: Array<{ title: string, url: string, snippet: string }>, stale?: boolean }>}
  */
 export async function searchWeb(query, opts = {}, deps = {}) {
@@ -624,7 +661,16 @@ export async function searchWeb(query, opts = {}, deps = {}) {
   // up (structured, relevant), and falls through to scraping when it isn't (searxngSearch returns null
   // on connection-refused). Set OBSCURA_SEARXNG_URL="" to disable, or to another URL to point elsewhere.
   const searxngUrl = opts.searxngUrl ?? process.env.OBSCURA_SEARXNG_URL ?? "http://127.0.0.1:8888";
-  const { fetchImpl = obscuraFetch, searxngImpl = searxngSearch, throttleImpl = throttle } = deps;
+  const {
+    fetchImpl = obscuraFetch,
+    searxngImpl = searxngSearch,
+    throttleImpl = throttle,
+    nativeHttpGetImpl = nativeHttpGet
+  } = deps;
+  // The plain-HTTP fallback only patches the DEFAULT obscura path. When a caller supplies its
+  // own `fetchImpl` (tests, or a custom fetcher) it owns the failure modes, so the fallback
+  // stays out of the way and an injected "every engine blocked" still errors exactly as before.
+  const nativeFallbackOn = typeof deps.fetchImpl !== "function";
 
   const cached = cacheGet(q, limit);
   if (cached) return cached;
@@ -645,10 +691,18 @@ export async function searchWeb(query, opts = {}, deps = {}) {
   const errors = [];
   for (const eng of resolveChain(opts.engines)) {
     try {
-      const { content } = await fetchImpl(eng.buildUrl(q), {
-        format: eng.format || "html",
-        stealth
-      });
+      let content;
+      try {
+        ({ content } = await fetchImpl(eng.buildUrl(q), {
+          format: eng.format || "html",
+          stealth
+        }));
+      } catch (e) {
+        // The obscura browser is missing or hung: retry the same engine over plain HTTP before
+        // counting it failed (only on the default path — see `nativeFallbackOn`).
+        if (!nativeFallbackOn) throw e;
+        ({ content } = await nativeHttpGetImpl(eng.buildUrl(q), { format: eng.format || "html" }));
+      }
       // Bespoke-parser engines (duckduckgo/bing/brave/bing-rss): try the specific parser first.
       if (typeof eng.parse === "function") {
         const parsed = dedupe(eng.parse(content), limit);

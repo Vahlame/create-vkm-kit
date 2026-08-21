@@ -95,13 +95,18 @@ scanners**. Never judge from source alone; never claim a check ran when it did n
 Same defect classes as the web audit, judged on the captured images — one verdict line
 per class per context, no essays:
 
-| class          | what to look for in the pixels                                                    |
-| -------------- | --------------------------------------------------------------------------------- |
-| `invisible`    | text that vanished after the theme flip (compare light vs dark captures)          |
-| `contrast`     | text plausibly under AA — flag for the scanner or a color-picker spot check       |
-| `overflow`     | clipped/truncated text, controls cut by the window edge, scrollbars at small size |
-| `tap-target`   | controls visibly smaller than ~44px at the small window size                      |
-| `misalignment` | rows/columns that don't line up, uneven padding, off-center dialogs               |
+| class             | what to look for in the pixels                                                    |
+| ----------------- | --------------------------------------------------------------------------------- |
+| `invisible`       | text that vanished after the theme flip (compare light vs dark captures)          |
+| `contrast`        | text plausibly under AA — flag for the scanner or a color-picker spot check       |
+| `overflow`        | clipped/truncated text, controls cut by the window edge, scrollbars at small size |
+| `tap-target`      | controls visibly smaller than ~44px at the small window size                      |
+| `edge-flush`      | text or controls kissing the window edge; missing 16/24px gutter                  |
+| `tight-padding`   | text sitting on a card/dialog stroke; no inner air                                |
+| `overlap`         | labels, values or chrome stacked on top of other content                          |
+| `cramped-stack`   | sections with no air between them; the page reads as one grey slab                |
+| `component-drift` | primary buttons (or fields, or cards) that don't share height/radius/padding      |
+| `misalignment`    | rows/columns that don't line up, uneven padding, off-center dialogs               |
 
 ## Platform accessibility scanners
 

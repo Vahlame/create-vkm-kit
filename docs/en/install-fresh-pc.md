@@ -92,7 +92,7 @@ node "<KIT>/packages/create-vkm-kit/src/index.js" --non-interactive \
 claude mcp list   # basic-memory and obsidian-memory-hybrid both ✓ Connected
 ```
 
-Then copy the User Rules block ([install Step 4](install.md#step-4--paste-the-user-rules-into-cursor)) into `~/.claude/CLAUDE.md` and **restart Claude Code**.
+Then copy the memory-rules block ([install Step 4](install.md#step-4--memory-rules-files-not-a-second-paste)) into `~/.claude/CLAUDE.md` if the installer did not, and **restart Claude Code**.
 
 ---
 

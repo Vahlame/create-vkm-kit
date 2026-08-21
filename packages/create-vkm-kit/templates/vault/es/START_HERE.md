@@ -5,9 +5,9 @@ tags: [start]
 
 # START_HERE
 
-1. Lee `MEMORY.md`.
-2. Luego `PROJECTS/<tu-repo>.md` (ajusta el nombre a tu carpeta de proyecto).
-3. Cierra tareas en `SESSION_LOG.md`.
+1. No leas este archivo ni `PROJECTS` enteros por ritual. Usa `vault_hybrid_search` (limit 3–5) o `assemble_context` (1 vez).
+2. Este mapa es pequeño: ábrelo solo si el pasaje no basta.
+3. Cierra tareas en `SESSION_LOG.md` (una línea).
 
 ## Mapa del vault
 

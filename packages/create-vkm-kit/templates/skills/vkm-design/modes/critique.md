@@ -34,19 +34,30 @@ location always) and a **concrete fix** — "improve spacing" is not a finding.
 - State encoded by color alone (error = red border only, selection = tint only).
 - Layout breaks at the declared minimum width or at 200% zoom; text truncated with no recovery.
 - Touch/click target < 24×24px CSS without compensating spacing.
+- **Content on the glass or on other content:** text/controls < 4px from the viewport edge, or
+  overlapping content boxes (measure with `vkm-ui-judge` `ui-audit.mjs` / `geometry.json` when
+  the UI is web — `edge-flush` error, `overlap` error).
 
 ## Major — undermines the design's job
 
 - Hierarchy failure: squint test finds no clear first element, or the wrong one (see
   `references/designer-mind.md` crit vocabulary).
 - Spacing incoherence: gaps off any scale (measure them — `scripts/scale.mjs --space` on the
-  sampled values), proximity contradicting grouping, near-miss alignments.
+  sampled values), proximity contradicting grouping, near-miss alignments. On a render: missing
+  viewport gutter (16px compact / 24px medium+ unless a crop is earned), card/section inner
+  padding < 8px, stacked blocks with < 8px of air (`tight-padding`, `cramped-stack`, `edge-flush`
+  warn in ui-audit).
+- **Component drift:** same control type (buttons, fields, cards) with three font sizes, three
+  radii or three paddings (`component-drift` in ui-audit). A system has one anatomy per role.
 - Slop fingerprint hits (`references/direction.md` list) — run
   `node scripts/slop-check.mjs <files>` for the text-detectable markers, then judge the
   composition-level ones (centered hero, 3-card grid) by eye; name each hit found.
 - **No memorable move in the first viewport** (`references/contemporary.md` lineup test: logo
   hidden, indistinguishable from ten templates) — a gate-passing page with zero moves is a
-  Major finding, not a pass; cite which current or lineage move would fix it.
+  Major finding, not a pass; cite the dossier URL whose technique would fix it, not a recipe
+  from this skill's menu.
+- **A Surface-tier generate with no live dossier and no `NO LIVE LOOKUP` line** — the page was
+  sampled from this skill. That is homogenization, not a direction.
 - **A bespoke figurative drawing (species/product/landmark/mascot) that wasn't verified against
   a real reference — or that is visibly wrong for its subject** — is a Major finding
   (`references/illustration.md`). Name the wrong feature ("guapote drawn with a forked tail and

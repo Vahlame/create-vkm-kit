@@ -36,7 +36,11 @@ build's geometry — you'll conclude your fix "did nothing" when it was never lo
    (`references/contemporary.md`): logo hidden, can this be picked out of ten templates? If not,
    the committed move isn't landing — intensify or swap it, don't add a third one. Write the
    findings down before touching code — otherwise you'll fix the first thing you see and miss
-   the pattern.
+   the pattern. 0. **On web, measure layout before arguing taste.** From the `vkm-ui-judge` skill directory:
+   `node scripts/ui-audit.mjs <url-or-file> --out ./ui-audit`. Quote `summary.layoutErrors` /
+   `layoutWarnings` and the `edge-flush` / `tight-padding` / `overlap` / `component-drift` /
+   `cramped-stack` rows. Open `geometry.json` for min text inset vs the gutter. A page that
+   passes contrast and still kisses the viewport has not passed this loop.
    1. **Focused sweeps — full-page captures are NOT enough.** A downscaled full-page shot hides
       exactly the finish bugs users see first (a frame covering a neighbor's title, a label
       clipped by a box — real case: a mermaid subgraph frame overlapping the adjacent

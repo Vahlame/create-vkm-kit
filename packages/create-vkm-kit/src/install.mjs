@@ -333,6 +333,8 @@ export async function runInstall({ argv, home, cwd, vault, ides, opts }) {
     obscuraBin,
     searxngUrl: opts.searxngUrl,
     researchDir: opts.researchDir,
+    researchLlm: opts.researchLlm,
+    deepseekModel: opts.deepseekModel,
     downloads: opts.downloads,
     downloadDir: opts.downloadDir,
     postgres: opts.postgres,
@@ -638,7 +640,7 @@ export function printSummary({ vault, ides, opts, result, meta = {} }) {
     if (ides.includes("cursor")) {
       console.log(
         pc.dim(
-          "  Cursor project rules: ~/.cursor/rules/obsidian-memory.mdc (alwaysApply). Optional: paste Settings → Rules → User Rules from install.md Step 4 for the prose block in the global User Rules pane."
+          "  Cursor: ~/.cursor/rules/obsidian-memory.mdc is a short pointer when AGENTS.md has the protocol (ADR-0089). Do not paste the full block into Settings → User Rules — that duplicates the tax and outranks the files."
         )
       );
     }

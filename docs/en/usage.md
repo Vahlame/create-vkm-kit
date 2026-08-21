@@ -17,7 +17,7 @@ You don't operate the memory by hand: the **installed rules** (the `vkm-kit` blo
 
 ```mermaid
 flowchart LR
-  A["Start<br>reads START_HERE.md<br>(+ MEMORY.md if non-trivial)"] --> B["Targeted recall<br>vault_hybrid_search on the topic<br>(passage-first, limit 3-5)"]
+  A["Start<br>vault_hybrid_search / assemble_context<br>(never whole PROJECTS)"] --> B["Targeted recall<br>passage-first, limit 3-5"]
   B --> C["Normal work<br>the agent queries the vault<br>only when it helps"]
   C --> D["Close<br>1 line in SESSION_LOG.md<br>+ PROJECTS/&lt;project&gt;.md"]
   D -->|"next chat"| A

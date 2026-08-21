@@ -135,7 +135,7 @@ Un archivo en la raíz del [vault](#vault-bóveda). Un registro de solo añadidu
 
 ### Skills (Habilidades)
 
-Skills de slash-command que el instalador deja en `~/.claude/skills/` (Claude Code): **`/vkm-discipline`** — disciplina de ejecución cross-dominio (código denso de líneas mínimas a calidad plena, evidencia ejecutada antes de "terminado") que sube el rendimiento de cualquier modelo de forma medida; **`/vkm-spec`** — idea → spec precisa anclada al vault vía una sola llamada a [`assemble_context`](#assemble_context); **`/vkm-design`** — diseño profesional anti-genérico (dirección antes de píxeles, checks computados, loop visual); **`/vkm-research`** — consolida un tema de [`RESEARCH/`](#research) en un `summary.md` de calidad (wikilinks, `supersedes`), y es también la vía de importación de reportes externos. Archivos con hash; el uninstall nunca borra uno que editaste. Ver ADR-0049 / ADR-0053 / ADR-0056.
+Skills de slash-command que el instalador deja en `~/.claude/skills/` (Claude Code): **`/vkm-discipline`** — disciplina de ejecución cross-dominio (código denso de líneas mínimas a calidad plena, evidencia ejecutada antes de "terminado") que sube el rendimiento de cualquier modelo de forma medida; **`/vkm-spec`** — idea → spec precisa anclada al vault vía una sola llamada a [`assemble_context`](#assemble_context); **`/vkm-design`** — diseño profesional anti-genérico (precedentes en vivo de _este_ brief, no el menú de la skill; dirección antes de píxeles; checks computados; loop visual) (ADR-0053, ADR-0090); **`/vkm-ui-judge`** — defectos medidos de GUI, incluidos márgenes, solapes y deriva de componentes; **`/vkm-research`** — consolida un tema de [`RESEARCH/`](#research) en un `summary.md` de calidad (wikilinks, `supersedes`), y es también la vía de importación de reportes externos. Archivos con hash; el uninstall nunca borra uno que editaste. Ver ADR-0049 / ADR-0053 / ADR-0056 / ADR-0090.
 
 ### STDIO
 
@@ -155,7 +155,7 @@ Dos hooks `PostToolUse` (activos por defecto en Claude Code) que compactan la sa
 
 ### User Rules (Reglas de usuario)
 
-Instrucciones de texto libre que pegas en `Cursor Settings -> Rules -> User Rules`. [Cursor](#cursor) las inyecta en cada conversación de forma automática. Usa el bloque listo para pegar de [`instalacion.md`](./instalacion.md#paso-4--pegar-las-user-rules-en-cursor) (Paso 4), que está alineado con los nombres de servidor MCP [`basic-memory`](#basic-memory) y el opcional [`obsidian-memory-hybrid`](#obsidian-memory-hybrid).
+Instrucciones de texto libre en `Cursor Settings -> Rules -> User Rules`. Cursor las inyecta en cada conversación **y pisan los archivos del proyecto** — **no** pegues ahí el protocolo del kit si `AGENTS.md` / `.cursor/rules` ya lo tienen (ADR-0089). Ver [`instalacion.md`](./instalacion.md#paso-4--reglas-de-memoria-archivos-no-un-segundo-pegado).
 
 ### Untrusted-data envelope (Sobre de datos no confiables) (`_trust`)
 

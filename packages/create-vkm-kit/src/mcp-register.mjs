@@ -49,6 +49,7 @@ import { atomicWriteJson, stripLeadingUtf8Bom } from "./settings-io.mjs";
  *   rerank?: boolean, pinFailures?: boolean, usage?: boolean, postgres?: boolean,
  *   pgDsn?: string|null, obscura?: boolean,
  *   obscuraBin?: string|null, searxngUrl?: string|null, researchDir?: string|null,
+ *   researchLlm?: string|null, deepseekModel?: string|null,
  *   downloads?: boolean, downloadDir?: string|null, launcher?: string|null }} HybridOpts
  *
  * `launcher` is the windowless starter every server command is wrapped in (ADR-0078).
@@ -103,6 +104,8 @@ export function buildServerList(vaultAbs, opts = {}) {
     obscuraBin = null,
     searxngUrl = null,
     researchDir = null,
+    researchLlm = null,
+    deepseekModel = null,
     downloads = false,
     downloadDir = null
   } = opts;
@@ -132,7 +135,14 @@ export function buildServerList(vaultAbs, opts = {}) {
   if (obscura && kit) {
     servers.push([
       "obscura-web",
-      obscuraWebServer(kit, { binPath: obscuraBin, searxngUrl, researchDir, launcher })
+      obscuraWebServer(kit, {
+        binPath: obscuraBin,
+        searxngUrl,
+        researchDir,
+        researchLlm,
+        deepseekModel,
+        launcher
+      })
     ]);
   }
   if (downloads && kit) {
@@ -182,6 +192,8 @@ async function writeJsonMcp(home, dir, vaultAbs, dryRun, opts = {}) {
     obscuraBin = null,
     searxngUrl = null,
     researchDir = null,
+    researchLlm = null,
+    deepseekModel = null,
     downloads = false,
     downloadDir = null
   } = opts;
@@ -214,6 +226,8 @@ async function writeJsonMcp(home, dir, vaultAbs, dryRun, opts = {}) {
       binPath: obscuraBin,
       searxngUrl,
       researchDir,
+      researchLlm,
+      deepseekModel,
       launcher
     });
   }

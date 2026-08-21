@@ -4,6 +4,58 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [5.7.0] - 2026-08-21
+
+### Changed
+
+- **`/vkm-design` stops ordering from its own menu** (ADR-0090). Surface-tier generate now
+  gates on a **live dossier** (three URLs for this brief, stolen technique + spacing
+  attitude) before any direction; lineages are grammar not costumes; `contemporary.md` /
+  new `craft-tech.md` decode what you saw on those pages instead of offering a 14-move
+  picker. That was the field failure: every agent (cloud, local, Cursor, keyboard) restyled
+  Inter/indigo into Fraunces-on-warm-paper or dark-luxe gold and called it variety.
+  `slop-check.mjs` prices the _second_ defaults too (Geist/Roboto, Tailwind `#3b82f6`).
+- **`/vkm-ui-judge` measures space, not just contrast.** `layout-checks.mjs` flags
+  viewport-edge flush, tight card padding, content overlap, component drift and cramped
+  stacks; `ui-audit.mjs` merges them into `report.json` and writes `geometry.json`. The
+  visual loop and the design-ui acceptance gate treat missing gutters as defects.
+- **Cursor pays the memory protocol once** (ADR-0089). `--rules` with both `agents` and
+  `cursor` writes the full block only to `AGENTS.md`; `~/.cursor/rules/obsidian-memory.mdc`
+  and the project `.mdc` become a short pointer (reinstall replaces a legacy full copy).
+  Core arbitration: User Rules must not dump `START_HERE` / `PROJECTS` / `SESSION_LOG`
+  whole. Startup is hybrid/`assemble_context`, not a ritual `START_HERE.md` read. Install
+  docs tell you **not** to paste the block into Cursor User Rules. This repo's
+  `00-stack.mdc` is `alwaysApply: false` (the stack text already lives in `AGENTS.md`).
+
+### Added
+
+- **DeepSeek V4 as a first-class research backend** (API, OpenAI-compatible). The
+  obscura-web research stack no longer hard-requires a local Ollama: the curation /
+  query-expansion / translation / lead / summarization calls now route through an
+  OpenAI-compatible `/chat/completions` client selected by `OBSCURA_LLM_PROVIDER`
+  (`auto` = DeepSeek when `DEEPSEEK_API_KEY` is set, else Ollama; explicit
+  `deepseek`/`openai`/`ollama`/`none`). The API key is read from `DEEPSEEK_API_KEY`
+  **only** — never written to disk, git, mcp.json, or any log, and redacted from every
+  error the module surfaces. `OBSCURA_LLM_PROVIDER=ollama` (or unsetting the key) returns
+  every call to local models when the API gets expensive.
+- **DeepSeek model detection + tuning**: the effort gate (`guard-effort-gate.mjs`)
+  recognizes `deepseek-*` and never proposes a Claude `/model` to it; the SessionStart
+  vault-context hook injects a short DeepSeek-only block (thinking ON by default, reasoning
+  in `reasoning_content`, `reasoning_effort` flash/pro split, key-env reminder); and the
+  en/es/examples `agent-profiles.md` rows plus new `AGENTS/deepseek-v4.md` notes document V4.
+- **`--research-llm <auto|deepseek|ollama|none>` and `--deepseek-model <model>`** installer
+  flags, wired to `OBSCURA_LLM_PROVIDER` / `OBSCURA_DEEPSEEK_MODEL` on the obscura-web MCP
+  server (the non-secret half of the lever — the key itself is never persisted).
+
+### Fixed
+
+- **`obscura_research` dying by MCP-transport timeout**: the SearXNG-less single-page scrape
+  fallback is now raced against the call's own deadline, and a plain-HTTP GET fallback
+  (`nativeHttpGet`) serves DuckDuckGo HTML / Bing RSS when the obscura binary is missing or
+  hung, so a dead headless browser returns `scanned:0` instead of blowing the 60s wall.
+
 ## [5.6.0] - 2026-08-11
 
 ### Added

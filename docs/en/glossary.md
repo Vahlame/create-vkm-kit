@@ -134,7 +134,7 @@ A file at the top of the [vault](#vault). An append-only log of decisions, kept 
 
 ### Skills
 
-Slash-command skills the installer drops into `~/.claude/skills/` (Claude Code): **`/vkm-discipline`** — cross-domain execution discipline (dense minimal-line code at full quality, run evidence before "done") that measurably lifts any model; **`/vkm-spec`** — idea → a precise, vault-grounded spec via one [`assemble_context`](#assemble_context) call; **`/vkm-design`** — professional, anti-generic design (direction before pixels, computed checks, a visual loop); **`/vkm-research`** — consolidates a [`RESEARCH/`](#research) topic into a quality `summary.md` (wikilinks, `supersedes`), and doubles as the import path for external research reports. Hash-tracked files; uninstall never deletes one you edited. See ADR-0049 / ADR-0053 / ADR-0056.
+Slash-command skills the installer drops into `~/.claude/skills/` (Claude Code): **`/vkm-discipline`** — cross-domain execution discipline (dense minimal-line code at full quality, run evidence before "done") that measurably lifts any model; **`/vkm-spec`** — idea → a precise, vault-grounded spec via one [`assemble_context`](#assemble_context) call; **`/vkm-design`** — professional, anti-generic design (live precedents for this brief, not the skill's own menu; direction before pixels; computed checks; a visual loop) (ADR-0053, ADR-0090); **`/vkm-ui-judge`** — measured GUI defects including gutters, overlap and component drift; **`/vkm-research`** — consolidates a [`RESEARCH/`](#research) topic into a quality `summary.md` (wikilinks, `supersedes`), and doubles as the import path for external research reports. Hash-tracked files; uninstall never deletes one you edited. See ADR-0049 / ADR-0053 / ADR-0056 / ADR-0090.
 
 ### STDIO
 
@@ -154,7 +154,7 @@ Two `PostToolUse` hooks (on by default for Claude Code) that compact noisy tool 
 
 ### User Rules
 
-Free-text instructions you paste into `Cursor Settings -> Rules -> User Rules`. [Cursor](#cursor) injects them into every conversation automatically. Use the ready-to-paste block in [`install.md`](./install.md#step-4--paste-the-user-rules-into-cursor) (Step 4), which is aligned with the MCP server names [`basic-memory`](#basic-memory) and the optional [`obsidian-memory-hybrid`](#obsidian-memory-hybrid).
+Free-text instructions in `Cursor Settings -> Rules -> User Rules`. Cursor injects them into every conversation, **and they outrank project files** — so do **not** paste the kit's memory protocol there if `AGENTS.md` / `.cursor/rules` already have it (ADR-0089). See [`install.md`](./install.md#step-4--memory-rules-files-not-a-second-paste).
 
 ### Untrusted-data envelope (`_trust`)
 
