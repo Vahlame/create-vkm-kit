@@ -1,6 +1,6 @@
 ---
 name: vkm-spec
-description: Turns a vague idea into a precise, testable, vault-grounded spec before any code — one assemble_context call, a filled template, machine validation, human review. Use when the user says "spec this", "write a spec", "plan this feature", or hands over an idea that needs requirements first.
+description: User says "spec this", "plan this feature" or hands a vague idea needing requirements first: one assemble_context call → 6-field template → validator (zero errors) → show the human BEFORE any code.
 user-invocable: true
 argument-hint: "<idea>"
 ---
@@ -15,6 +15,18 @@ path is forbidden: it would block the conversation).
 **Why a spec first:** an idea is cheap to change while it's text and expensive to change
 once it's code. The spec is the one artifact the human can correct in seconds — so it must
 be short, concrete, and grounded in what the vault already knows.
+
+## PROCEDURE — flash (do this in order)
+
+1. **Context, ONE call:** `assemble_context` (query = the idea, project = from cwd/CLAUDE.md). No vault wired → say so in one line, draft from conversation + repo.
+2. **Draft from the template** (`references/spec-template.md`, six fields). The two rules most drafts break: `functional_requirements` = 3–7 items, each individually testable; `constraints` = every item cites its source (vault note path or repo file) or is labeled an assumption.
+3. **Validate, mechanically:** `node scripts/validate_spec.mjs <spec-file.md>` — fix EVERY error before showing it. No shell → apply the template's checklist by hand and say the mechanical check was skipped.
+4. **Show the spec.** Ask only the questions whose answers change it — batch them, closed-form.
+5. **Route on approval:** implement under vkm-discipline / emit the `<orchestration_package>` XML block / deliver the spec.
+
+DeepSeek Flash: one pass, no narrated reasoning; the validator is the gate, not your confidence.
+
+---
 
 ## The workflow
 

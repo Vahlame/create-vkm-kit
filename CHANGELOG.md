@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **Flash-tier skills: every SKILL.md leads with a "PROCEDURE — flash" core** (ADR-0091).
+  Concrete ordered steps with exact commands, one inline example and a DeepSeek-Flash
+  calibration line come first; the existing depth (tiers, tables, rigor) stays below as
+  detail. Frontmatter descriptions are now decision rules (trigger → action → hard
+  exclusions) so catalog routing is mechanical. Measured on the kit's own bench
+  (discipline-bench, deepseek-v4-flash, n=12/arm): stock 78.3 vs redesigned skill 92.5
+  (Δ +14.3, 95% CI [2.5, 26.6]) — the redesign was iterated against the bench until it
+  beat both stock and the previous skill text (90.6).
+- **`evidence-gates.mjs` is now the primary discipline runner** — Node ≥ 18, zero deps,
+  Windows-safe (`npm.cmd`), same PASS/FAIL contract as the `.sh` fallback. The bash
+  script stays for POSIX-only hosts.
+- **Rules block is host-agnostic and flash-aware**: Claude-only machinery (`ToolSearch`,
+  `/vkm-*` commands, unconditional auto-memory claims) became host-conditional wording,
+  and the doctrine level gained a flash-class clause — with the per-level budgets kept
+  net-negative or neutral (memory level shrank).
+- **`vkm-verify` incidents moved to `references/incidents.md`**; the SKILL.md keeps the
+  four questions + negative control up front.
+
 ## [5.7.0] - 2026-08-21
 
 ### Changed

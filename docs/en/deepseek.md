@@ -39,6 +39,22 @@ point that host at the DeepSeek API:
 The model detection is **host-agnostic** and lives in the hooks and the effort gate, so it
 works whichever host you use.
 
+## Hosts without hooks (DSH, opencode, …)
+
+The hook surfaces (SessionStart DeepSeek block, effort gate, token-saver) only run where the
+kit can wire them: Claude Code, Codex, Cursor, Kimi. A host with none of those — e.g. the
+DeepSeek Harness (DSH) — still gets the three things that matter most, with zero hooks:
+
+| Surface     | How it reaches the model in a hook-less host                                                                                                                                                                                           |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rules block | The `vkm-kit:start/end` block in `AGENTS.md` is loaded every session (the kit installs it into the project).                                                                                                                           |
+| Skills      | DSH reads `~/.agents/skills` (the Codex layout): install them with `node packages/create-vkm-kit/src/index.js --skills-dir <dir> --vault <vault>` or by copying after an `--ide codex` install.                                        |
+| MCP         | Only if the host exposes an MCP registry. DSH currently exposes **no MCP service**, so the `vault_*` tools are absent — the memory protocol honestly degrades ("no vault MCP → say so"), and the skills + rules still work standalone. |
+
+**Flash session tuning (DSH):** `~/.dsh/settings.yaml` → `agent-default-model.reasoningEffort`.
+Set it to `low` for a flash default: the kit's guidance below says low for cheap extraction,
+and `max` on flash makes every message slower and more expensive for no measured gain.
+
 ## What "first-class" changes for DeepSeek
 
 | Surface           | DeepSeek behavior                                                                                                                                                         |
@@ -90,5 +106,11 @@ $env:CLAUDE_CODE_SUBAGENT_MODEL = "deepseek-v4-pro"
   for hard logic; `flash` for volume/breadth, `pro` for hard single-step logic.
 - **Verify tool results before trusting them** — DeepSeek is occasionally fluent-but-wrong
   on a rare hallucination.
+- **Measured on flash (discipline-bench):** deepseek-v4-flash with the redesigned
+  vkm-discipline skill scores **92.5 vs 78.3 stock** (+14.3, 95% CI [2.5, 26.6]) on the
+  kit's hidden-test coding bench — the skills are not decoration for this model.
+  Flash-tier SKILL.md cores ("PROCEDURE — flash") are the recommended reading order for
+  flash-class models; edge-case and normalization mandates live inside the core, not in a
+  reference file.
 
 ← Back to the [docs index](README.md)

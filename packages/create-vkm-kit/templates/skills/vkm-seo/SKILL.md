@@ -1,6 +1,6 @@
 ---
 name: vkm-seo
-description: Use when building, auditing, or optimizing how a website ranks in search and AI answers — "audit my SEO", "why don't we rank", meta/title/schema fixes, local/multi-location pages, synonym/intent coverage, GEO/AEO. Ships a before/after audit. NOT paid ads/SEM, social, rank tracking, or non-web.
+description: Audit/optimize how a website ranks in search and AI answers — "audit my SEO", "why don't we rank", meta/title/schema fixes, local/multi-location pages, synonym/intent coverage, GEO/AEO. Ships a before/after audit. NOT paid ads/SEM, social, rank tracking, or non-web.
 user-invocable: true
 ---
 
@@ -9,6 +9,18 @@ user-invocable: true
 Installed by create-vkm-kit (vkm-kit). One job: make a website measurably findable — by
 search engines and by AI answer engines — via the eight-phase playbook below, with an
 executable before/after audit proving every change instead of "this should rank better now".
+
+## PROCEDURE — flash (do this in order)
+
+1. **Brief + tier:** Site / Queries / Constraints (3 lines; Micro may collapse to one line). Tier: Micro = one page/one fix, Standard = a section or template, Full = whole site or "why don't we rank". Read only your tier's references.
+2. **Audit BEFORE any change:** `node scripts/seo-audit.mjs <url-or-file.html> --out seo-audit/before` — checks that could not run are listed `NOT RUN`; never claim a check ran.
+3. **Apply your tier's fixes** (eight-phase playbook in the two reference files; Micro = the requested fix, report other findings without fixing them).
+4. **Re-audit:** same command, same flags except `--out seo-audit/after`. **The before/after error and warning counts are the deliverable.** Fix errors before warnings — a noindex or robots block outranks every content improvement.
+5. **Rigor:** no invented SERP results, volumes, CTR or ranking-factor weights without a live source checked this session; no ranking guarantees — promise the measurable inputs.
+
+DeepSeek Flash: one pass, no narrated reasoning; the audit diff is the evidence.
+
+---
 
 ## Step 0 — the brief and the tier (always first)
 

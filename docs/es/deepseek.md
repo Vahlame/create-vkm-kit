@@ -40,6 +40,23 @@ siempre, y luego apunta ese host a la API de DeepSeek:
 La detección de modelo es **agnóstica del host** y vive en los hooks y el effort-gate, así
 que funciona con el host que uses.
 
+## Hosts sin hooks (DSH, opencode, …)
+
+Las superficies de hooks (bloque DeepSeek de SessionStart, effort gate, token-saver) solo
+corren donde el kit puede cablearlas: Claude Code, Codex, Cursor, Kimi. Un host sin ninguna
+de esas — p. ej. el DeepSeek Harness (DSH) — recibe igual las tres cosas que más importan,
+sin ningún hook:
+
+| Superficie       | Cómo llega al modelo en un host sin hooks                                                                                                                                                                                                                              |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bloque de reglas | El bloque `vkm-kit:start/end` en `AGENTS.md` se carga en cada sesión (el kit lo instala en el proyecto).                                                                                                                                                               |
+| Skills           | DSH lee `~/.agents/skills` (el layout de Codex): instálalas con `node packages/create-vkm-kit/src/index.js --skills-dir <dir> --vault <vault>` o copiándolas tras una instalación `--ide codex`.                                                                       |
+| MCP              | Solo si el host expone un registro MCP. DSH hoy **no expone ningún servicio MCP**, así que las tools `vault_*` no existen — el protocolo de memoria degrada con honestidad ("si ningún MCP responde, dilo"), y las skills + reglas funcionan igual en modo standalone. |
+
+**Afinado de sesión flash (DSH):** `~/.dsh/settings.yaml` → `agent-default-model.reasoningEffort`.
+Ponlo en `low` para un default flash: la guía del kit (abajo) dice low para extracción barata,
+y `max` sobre flash hace cada mensaje más lento y más caro sin ganancia medida.
+
 ## Qué cambia "first-class" para DeepSeek
 
 | Superficie         | Comportamiento DeepSeek                                                                                                                                                                                    |
@@ -92,5 +109,11 @@ $env:CLAUDE_CODE_SUBAGENT_MODEL = "deepseek-v4-pro"
   un solo paso.
 - **Verifica los resultados de tools antes de confiar** — DeepSeek a veces es
   fluido-pero-equivocado en una alucinación rara.
+- **Medido en flash (discipline-bench):** deepseek-v4-flash con la skill vkm-discipline
+  rediseñada puntúa **92.5 vs 78.3 stock** (+14.3, IC 95% [2.5, 26.6]) en el bench de
+  código con tests ocultos del kit — las skills no son decoración para este modelo. Los
+  núcleos flash de los SKILL.md ("PROCEDURE — flash") son el orden de lectura recomendado
+  para modelos flash; el mandato de casos borde y normalización vive dentro del núcleo, no
+  en un reference.
 
 ← Volver al [índice de docs](README.md)

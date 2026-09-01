@@ -1,6 +1,6 @@
 ---
 name: vkm-ui-judge
-description: Measured visual judgment for ANY GUI. Web: live-page audit (viewports × light/dark, WCAG contrast, overflow, tap targets, insets, overlap, component drift). Flutter: generated a11y tests. Other native: screenshot-evidence loop. Fix by severity, before/after proof.
+description: User says a rendered GUI looks broken or off: measure it (ui-audit.mjs), fix by severity, re-measure. Any GUI: web, Flutter, native. NOT design direction (→ vkm-design); NOT judging from source alone.
 user-invocable: true
 ---
 
@@ -18,6 +18,19 @@ changes.
 Division of labor with `/vkm-design`: that skill designs and statically audits _source_
 (tokens, type scale, spacing). This skill judges the _rendered result_ and drives the fix
 loop. Use both when redesigning; use this one alone for "why does it look broken".
+
+## PROCEDURE — flash (do this in order)
+
+1. **Route:** browser-rendered → A (ui-audit.mjs) · Flutter native → B (generated a11y tests) · other native → C (screenshot-evidence loop). B/C details: `references/native-guis.md`.
+2. **Measure, don't imagine:** get the page running, then `node scripts/ui-audit.mjs <url-or-file.html> --out ./ui-audit` (needs Playwright + Chromium; exit 3 = missing — do not fake its output). This replaces the "visual thinking" phase entirely.
+3. **Read `report.json` — not the page, not your memory:** quote the summary counts and top findings (selector + values). Never paste the whole JSON; open screenshots only for what measurement can't see.
+4. **Pixel checklist** from the captures, one line each: gutter air · card inset · group vs in-group gap · component anatomy · earned crop vs missing margin.
+5. **Fix in severity order, root cause first:** a theme-flip invisibility is a hardcoded color where a theme token belongs; overflow-x at 360px is a fixed width / unwrapped flex / unconstrained image.
+6. **Prove it:** re-run the exact same command. Done = error count 0 (or each survivor justified in one line) + before/after counts stated. A fix without the re-run is an opinion.
+
+DeepSeek Flash: one pass, no narrated reasoning; the re-run is the evidence, not your taste.
+
+---
 
 ## Route first: what renders this UI?
 

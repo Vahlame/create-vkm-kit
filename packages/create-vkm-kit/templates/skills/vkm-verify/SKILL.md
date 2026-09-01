@@ -1,6 +1,6 @@
 ---
 name: vkm-verify
-description: Prove a green check actually ran, covered the change, and can fail. Use before claiming done / tests pass / CI green / committed / deployed, when a guard or lint has never once fired, or when a pass contradicts a symptom the user still sees. NOT for writing tests or debugging a known-red failure.
+description: Use BEFORE claiming done / tests pass / CI green / committed / deployed; when a guard or lint has never once fired; when a pass contradicts a symptom the user still sees. NOT for writing tests or debugging a known-red failure.
 user-invocable: true
 ---
 
@@ -12,23 +12,24 @@ would have failed."**
 A check reports two different things with the same green: _your code is correct_, and
 _nothing was examined_. The second is the expensive one, because it looks exactly like the
 first and it removes the very alarm you were relying on. Every entry below is a real
-incident, not a category invented for symmetry:
+incident, not a category invented for symmetry: a lint that goes green forever the day its
+regex stops matching, a skipped CI job counting as success, `gh pr checks` exiting 0 with
+zero jobs, a validator printing nothing and exiting 0, 415 tests passing while no test ran
+the installer, a substitution script that matched nothing, a `.gitignore`-swallowed commit.
+All of them: [`references/incidents.md`](references/incidents.md).
 
-- a lint that walks the tree for an antipattern goes **green forever** the day its regex
-  stops matching — zero matches is a pass;
-- a CI job that is **skipped** counts as success, so a release published without ever
-  touching npm reported all-green (twice);
-- `gh pr checks` exited **0 with zero jobs**;
-- a matrix's `fail-fast` cancelled two legs mid-suite, which then reported "fail" for tests
-  that never ran — the mirror image, and just as wrong;
-- a validator printed **nothing and exited 0** on Windows: indistinguishable from a pass
-  for anyone reading the exit code;
-- 415 unit tests passed while the installer they cover wired every MCP server the wrong
-  way, because **no test ran the installer**;
-- a substitution script "fixed" 8 files and matched **nothing**, because the patterns had
-  accents and the files did not;
-- a file was created, verified locally, and "committed" — `.gitignore` swallowed it in
-  silence and the commit message claimed it was there.
+## PROCEDURE — flash (ask in order; stop at the first failure)
+
+1. **Did it run at all?** Look for counts, not exit codes: tests collected, files linted, matches found, jobs executed. "0 passed" is not a pass; a skipped job is not a green job.
+2. **Did it cover MY change?** Name the specific test, rule or assertion that exercises this change — if you cannot, that absence IS the finding.
+3. **Can it fail?** Break it on purpose: `node scripts/prove-it.mjs --file <path-you-changed> --cmd "<check command>"` → PROVEN / VACUOUS / DIRTY. Not a command (UI flow, hook, permission rule)? Make the condition false by hand and confirm the expected failure.
+4. **Is what you verified what ships?** The artifact — built bundle, committed tree, deployed image — not the source.
+
+Report: what ran, what it covered, how you know it can fail — one line each. Never report a green you did not earn.
+
+DeepSeek Flash: one pass, no narrated reasoning; the negative control (step 3) is the evidence, not your confidence.
+
+---
 
 ## The four questions
 

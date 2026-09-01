@@ -1,6 +1,6 @@
 ---
 name: vkm-design
-description: Professional, anti-generic design for REAL design work — a new surface, redesign, identity, dataviz, or critique. Forces a 3-line brief, live precedents (not this skill's menu), a named direction, computed checks, verified libraries. NOT for one-line tweaks or logic with no visible surface.
+description: Real design work — new surface, redesign, identity, dataviz, or critique. Forces a 3-line brief, live precedents (not this skill's menu), a named direction, computed checks, verified libraries. NOT one-line tweaks; NOT defect fixes (→ vkm-ui-judge).
 user-invocable: true
 ---
 
@@ -21,6 +21,18 @@ ships the same page in a new tint. Surface-tier work starts with a live dossier
 (`references/inspiration.md`); type, colour and visual technology come from those URLs, not
 from this folder. If your output is starting to have a recognizable signature across unrelated
 briefs, that is slop (`references/direction.md` § your own house style).
+
+## PROCEDURE — flash (do this in order)
+
+1. **THE BRIEF, 3 lines, shown to the user:** For (who looks at this, in what situation) / Must do (the one thing the design must achieve — not "look nice") / Constraints (incumbent? platform? brand? deadline). No "Must do" → don't start; ask ONE closed question.
+2. **Pick the tier:** Micro (one control/color/label) → foundations numbers + ONE computed check on what changed · Edit (change inside an existing design) → reconstruct the incumbent direction in one line, derive the edit from it — never invent a second direction · Surface (new screen/product/identity, redesign) → the full contract below.
+3. **Numbers from runs, never prose:** `scripts/contrast.mjs` / `scale.mjs` / `palette.mjs` / `slop-check.mjs` (Node ≥ 18, zero deps). No shell → formulas inline in `references/foundations.md` — show the math.
+4. **Names verified live:** a font, library, version or API is cited only if it exists in the project or was verified this session; else write "unverified, from memory". No invented authorities, no made-up awards or quotes.
+5. **Memorable, not just correct:** 1–2 high-intensity moves stolen from the dossier; lineup test — first viewport, logo hidden: if it can't be picked out of ten templates, the assignment failed even with every gate green.
+
+DeepSeek Flash: one pass, no narrated reasoning; computed checks + the dossier are the evidence, not taste prose.
+
+---
 
 ## Step 0 — the brief and the tier (ALWAYS, before reading anything else)
 

@@ -7,7 +7,29 @@
 > only the weight put on them is. This bench's grading is execution-based (hidden
 > tests), so its instruments are sound — what is missing is replicas, not rigor.
 
-## 2026-07-21 · round 2 (NEW under-specified tasks incl. held-out, + Opus)
+## 2026-09-05 · flash round (deepseek-v4-flash, ADR-0091 redesign)
+
+**First non-Claude subject** (the README's "are the gains model-shaped?" question, answered
+for a flash-class model). Subjects: deepseek-v4-flash (DSH subagents), n=12 per cell
+(4 tasks × 3 replicas), hidden-test grading unchanged. The `+discipline` condition embeds
+the verbatim redesigned `SKILL.md` + `domains/coding.md` (this bench's standard condition).
+Raw data: `results/flash-{baseline,post,iter1,iter2}-2026-09-05/`.
+
+| Arm                                          | score         | Δ vs stock                     |
+| -------------------------------------------- | ------------- | ------------------------------ |
+| stock                                        | 78.3 [38,100] | —                              |
+| previous SKILL.md (pre-redesign baseline)    | 90.6 [75,100] | +12.3 (95% CI [1.1, 24.5])     |
+| redesigned core v1 (summary-only flash core) | 87.8 [71,100] | +9.6 _(inconclusive)_          |
+| redesigned core v2 (+ edge-case mandate)     | 91.3 [58,100] | +13.1 _(inconclusive)_         |
+| redesigned core v3 (+ normalization rule)    | 92.5 [75,100] | **+14.3 (95% CI [2.5, 26.6])** |
+
+The loop worked in both directions: **core v1 regressed** (87.8) because the flash core told
+the subject to read less and dropped the edge-case mandate from the visible top — exactly
+the "heavy procedure hurts small models" risk this bench exists to catch. Iterating the
+core to carry the edge-case + normalization rules **inline** (never only in a reference
+file) recovered and exceeded the baseline: final Δ **+14.3, cliffs 0.47 (medium)**.
+Per-task final: dedupe-emails 83.3, merge-intervals 90.7, parse-duration 96.0,
+parse-range 100 — the discipline lift on flash is broad, not task-specific.
 
 Two new instruments (parse-duration good=100/naive=44; merge-intervals good=100/naive=71,
 **held-out** — written after the skill's last edit). n=2/cell.

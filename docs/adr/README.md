@@ -96,6 +96,7 @@ ADRs are **append-only**: a decision that was later reversed is not rewritten, i
 | [ADR-0088](./0088-deepseek-v4-first-class.md)                      | DeepSeek V4 as a first-class model (API, OpenAI/Anthropic-compatible)                     | Accepted                                       |
 | [ADR-0089](./0089-cursor-one-copy-passage-first.md)                | One protocol copy on Cursor + passage-first beats whole-note User Rules                   | Accepted                                       |
 | [ADR-0090](./0090-live-precedents-and-measured-layout.md)          | Live precedents over closed menus; measured layout in `vkm-ui-judge`                      | Accepted                                       |
+| [ADR-0091](./0091-flash-tier-skills-and-host-agnostic-rules.md)    | Flash-tier skill cores + host-agnostic rules; measured DeepSeek V4 Flash vs stock         | Accepted                                       |
 
 ## Template
 

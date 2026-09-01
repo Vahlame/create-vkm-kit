@@ -1,6 +1,6 @@
 ---
 name: vkm-intake
-description: Task intake BEFORE non-trivial execution. Restate objective, deliverable and non-goals in 3 lines, one closed question max on ambiguity, inventory what attached images actually show, assemble minimal context, then execute exactly that scope. NOT for one-line edits or tasks already scoped.
+description: Entry gate at the START of any multi-step task: restate objective/deliverable/non-goals in 3 lines, ONE closed question max, inventory attached images, assemble minimal context, then execute. SKIP one-line edits and already-scoped tasks.
 user-invocable: true
 ---
 
@@ -14,6 +14,18 @@ The failure this prevents (observed in field use of this kit): on simple tasks t
 goes off on tangents, misinterprets the prompt or the images, or assembles the wrong
 context — and the result is slow AND mediocre. Interpretation errors compound; everything downstream of a wrong
 restatement is waste.
+
+## PROCEDURE — flash (before the first tool call)
+
+1. **Restate in ≤3 lines**: Objective / Deliverable / Not doing — shown to the user. A trivial task restates in one line and skips the rest.
+2. **Ambiguity gate**: two readings that change the deliverable → ONE closed question, stop until answered; readings differ only in detail → name the default in one line, proceed.
+3. **Images**: inventory what is actually visible before interpreting — verbatim only the text the task turns on, mark illegible as illegible, never guess.
+4. **Minimal context**: one `assemble_context` call, or `vault_hybrid_search` (limit 3–5); stop assembling the moment you can act. Read the files the restatement names, not the neighborhood.
+5. **Execute exactly the restated scope**; if the restatement was wrong, fix it in one line and continue — silently drifting is the failure.
+
+DeepSeek Flash: one pass, no narrated reasoning; the 3-line restatement is the fence — stay inside it.
+
+---
 
 ## The move — before the first tool call
 
