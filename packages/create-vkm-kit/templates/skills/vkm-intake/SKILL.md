@@ -1,6 +1,6 @@
 ---
 name: vkm-intake
-description: Entry gate at the START of any multi-step task: restate objective/deliverable/non-goals in 3 lines, ONE closed question max, inventory attached images, assemble minimal context, then execute. SKIP one-line edits and already-scoped tasks.
+description: "Entry gate at the START of any multi-step task: restate objective/deliverable/non-goals in 3 lines, ONE closed question max, inventory attached images, assemble minimal context, then execute. SKIP one-line edits and already-scoped tasks."
 user-invocable: true
 ---
 

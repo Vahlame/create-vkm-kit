@@ -1,6 +1,6 @@
 ---
 name: vkm-discipline
-description: Use when EXECUTING on files/systems: implement, fix, refactor, migrate, debug, deploy, data cleanup, PR review, postmortem/README — reads intent, scales depth to stakes, ends in executed evidence (evidence-gates). NOT for planning-only, questions, or one-line edits.
+description: "Use when EXECUTING on files/systems: implement, fix, refactor, migrate, debug, deploy, data cleanup, PR review, postmortem/README — reads intent, scales depth to stakes, ends in executed evidence (evidence-gates). NOT for planning-only, questions, or one-line edits."
 user-invocable: true
 ---
 

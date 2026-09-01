@@ -1,6 +1,6 @@
 ---
 name: vkm-ui-judge
-description: User says a rendered GUI looks broken or off: measure it (ui-audit.mjs), fix by severity, re-measure. Any GUI: web, Flutter, native. NOT design direction (→ vkm-design); NOT judging from source alone.
+description: "User says a rendered GUI looks broken or off: measure it (ui-audit.mjs), fix by severity, re-measure. Any GUI: web, Flutter, native. NOT design direction (→ vkm-design); NOT judging from source alone."
 user-invocable: true
 ---
 

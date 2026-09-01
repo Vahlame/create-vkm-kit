@@ -1,6 +1,6 @@
 ---
 name: vkm-research
-description: Consolidate a RESEARCH/<topic> bank → quality summary.md: hub + unconsolidated sources, synthesis with wikilinks + supersedes, validator, mark consolidated. Also "consolidate X" / "write up the research on X" / after obscura_research persisted sources. NOT for crawling (→ obscura_research).
+description: 'Consolidate a RESEARCH/<topic> bank → quality summary.md: hub + unconsolidated sources, synthesis with wikilinks + supersedes, validator, mark consolidated. Also "consolidate X" / "write up the research on X" / after obscura_research persisted sources. NOT for crawling (→ obscura_research).'
 user-invocable: true
 ---
 

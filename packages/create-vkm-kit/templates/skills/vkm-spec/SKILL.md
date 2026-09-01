@@ -1,6 +1,6 @@
 ---
 name: vkm-spec
-description: User says "spec this", "plan this feature" or hands a vague idea needing requirements first: one assemble_context call → 6-field template → validator (zero errors) → show the human BEFORE any code.
+description: 'User says "spec this", "plan this feature" or hands a vague idea needing requirements first: one assemble_context call → 6-field template → validator (zero errors) → show the human BEFORE any code.'
 user-invocable: true
 argument-hint: "<idea>"
 ---

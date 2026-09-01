@@ -118,3 +118,23 @@ test("every SKILL.md frontmatter name is a valid, non-branded slug", () => {
     );
   }
 });
+
+test("every SKILL.md description is harness-safe YAML (no unquoted ': ')", () => {
+  // The DSH/Codex skill catalog parses frontmatter with a strict YAML parser; a plain
+  // (unquoted) description containing `: ` (colon + space) throws "Nested mappings are
+  // not allowed in compact mappings" and the skill is silently dropped from the catalog
+  // (observed live: 5 of 8 skills vanished until the values were single-quoted).
+  // Quoted values ('...' or "...") are safe — colons inside quotes are literal.
+  for (const src of templateMdFiles()) {
+    if (path.basename(src) !== "SKILL.md") continue;
+    const text = fs.readFileSync(src, "utf8");
+    const line = text.match(/^description: (.+)$/m)?.[1];
+    assert.ok(line !== undefined, `${src}: missing description frontmatter`);
+    const unquoted = !/^['"]/.test(line);
+    assert.ok(
+      !unquoted || !/: /.test(line),
+      `${src}: description contains ": " but is not quoted — the harness YAML parser ` +
+        `will drop this skill from the catalog. Wrap the value in single quotes.`
+    );
+  }
+});
