@@ -1,6 +1,6 @@
 ---
 name: vkm-ui-judge
-description: "User says a rendered GUI looks broken or off: measure it (ui-audit.mjs), fix by severity, re-measure. Any GUI: web, Flutter, native. NOT design direction (→ vkm-design); NOT judging from source alone."
+description: 'Optional when the user says a rendered GUI looks broken — measure (ui-audit.mjs), fix by severity, re-measure. Web, Flutter, native. Not source-only review or new design (→ vkm-design).'
 user-invocable: true
 ---
 
@@ -19,7 +19,12 @@ Division of labor with `/vkm-design`: that skill designs and statically audits _
 (tokens, type scale, spacing). This skill judges the _rendered result_ and drives the fix
 loop. Use both when redesigning; use this one alone for "why does it look broken".
 
-## PROCEDURE — flash (do this in order)
+## Guía, no mandato
+
+Cuando el usuario reporta un problema visual en algo **ya renderizado**. No fuerces
+`ui-audit.mjs` en cada cambio de CSS menor. Ver [`_GUIDANCE.md`](../_GUIDANCE.md).
+
+## Checklist sugerido (cuando aplica)
 
 1. **Route:** browser-rendered → A (ui-audit.mjs) · Flutter native → B (generated a11y tests) · other native → C (screenshot-evidence loop). B/C details: `references/native-guis.md`.
 2. **Measure, don't imagine:** get the page running, then `node scripts/ui-audit.mjs <url-or-file.html> --out ./ui-audit` (needs Playwright + Chromium; exit 3 = missing — do not fake its output). This replaces the "visual thinking" phase entirely.

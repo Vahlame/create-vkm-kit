@@ -1,6 +1,6 @@
 ---
 name: vkm-seo
-description: Audit/optimize how a website ranks in search and AI answers — "audit my SEO", "why don't we rank", meta/title/schema fixes, local/multi-location pages, synonym/intent coverage, GEO/AEO. Ships a before/after audit. NOT paid ads/SEM, social, rank tracking, or non-web.
+description: 'Optional when the user asks for SEO audit, ranking fixes, meta/title/schema, or GEO/AEO — before/after audit. Not ads, social, rank tracking, or non-web work.'
 user-invocable: true
 ---
 
@@ -10,7 +10,12 @@ Installed by create-vkm-kit (vkm-kit). One job: make a website measurably findab
 search engines and by AI answer engines — via the eight-phase playbook below, with an
 executable before/after audit proving every change instead of "this should rank better now".
 
-## PROCEDURE — flash (do this in order)
+## Guía, no mandato
+
+Solo cuando el usuario pide auditoría SEO o optimización de ranking. No impongas el playbook
+de 8 fases en cada cambio de meta tag. Ver [`_GUIDANCE.md`](../_GUIDANCE.md).
+
+## Checklist sugerido (cuando aplica)
 
 1. **Brief + tier:** Site / Queries / Constraints (3 lines; Micro may collapse to one line). Tier: Micro = one page/one fix, Standard = a section or template, Full = whole site or "why don't we rank". Read only your tier's references.
 2. **Audit BEFORE any change:** `node scripts/seo-audit.mjs <url-or-file.html> --out seo-audit/before` — checks that could not run are listed `NOT RUN`; never claim a check ran.
@@ -22,7 +27,7 @@ DeepSeek Flash: one pass, no narrated reasoning; the audit diff is the evidence.
 
 ---
 
-## Step 0 — the brief and the tier (always first)
+## Referencia ampliada (opcional — si el checklist de arriba no alcanzó)
 
 Restate the assignment in three lines, shown to the user:
 

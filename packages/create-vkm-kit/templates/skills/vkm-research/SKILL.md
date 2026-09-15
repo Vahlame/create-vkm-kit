@@ -1,6 +1,6 @@
 ---
 name: vkm-research
-description: 'Consolidate a RESEARCH/<topic> bank → quality summary.md: hub + unconsolidated sources, synthesis with wikilinks + supersedes, validator, mark consolidated. Also "consolidate X" / "write up the research on X" / after obscura_research persisted sources. NOT for crawling (→ obscura_research).'
+description: 'Optional when the user asks to consolidate an existing RESEARCH/<topic> bank into summary.md — synthesis, validator, mark done. Not for live crawling (→ obscura_research).'
 user-invocable: true
 ---
 
@@ -13,7 +13,13 @@ investigation accumulated under `RESEARCH/<topic>/sources/` into a distilled, wi
 this skill is what turns that draft — or the raw sources directly — into
 `status: consolidated`.
 
-## PROCEDURE — flash (do this in order)
+## Guía, no mandato
+
+Solo para consolidar un banco `RESEARCH/<topic>/` existente — no para investigación web en
+vivo (→ `obscura_research`). Si el usuario no pidió un summary, no fuerces este flujo. Ver
+[`_GUIDANCE.md`](../_GUIDANCE.md).
+
+## Checklist sugerido (cuando aplica)
 
 0. `runs/` present? Read the most recent report's `objective` frontmatter and its query genealogy before touching sources.
 1. **Hub first:** `RESEARCH/<topic>/_index.md` — read only unconsolidated `sources/*.md` (passage-first: `vault_hybrid_search(section:"research")` beats opening files whole).

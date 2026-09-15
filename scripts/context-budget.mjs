@@ -338,7 +338,10 @@ export function measureRepo({ lang = "es" } = {}) {
 
   // ── skills: descriptions are always loaded, bodies only on trigger ─────────
   const skillsDir = path.join(ROOT, "packages/create-vkm-kit/templates/skills");
-  for (const name of fs.readdirSync(skillsDir).sort()) {
+  for (const name of fs
+    .readdirSync(skillsDir)
+    .filter((n) => fs.statSync(path.join(skillsDir, n)).isDirectory())
+    .sort()) {
     const rel = `packages/create-vkm-kit/templates/skills/${name}/SKILL.md`;
     const src = readRepo(rel);
     push({

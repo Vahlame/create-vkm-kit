@@ -136,9 +136,9 @@ test("buildContext degrades gracefully with no vault at all", () => {
   assert.match(ctx, /MEMORIA/); // reminders always present
 });
 
-test("reminders mention the vault precedence rule in both languages", () => {
-  assert.match(reminders("es"), /UNICA fuente de verdad/);
-  assert.match(reminders("en"), /ONLY source of truth/);
+test("reminders frame vault as optional guidance in both languages", () => {
+  assert.match(reminders("es"), /referencia opcional/);
+  assert.match(reminders("en"), /optional reference/);
 });
 
 test("modelChangeNotice: silent on first sight and on a stable model, one line on a change", () => {

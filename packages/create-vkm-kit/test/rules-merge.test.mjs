@@ -76,11 +76,11 @@ test("installRules cursor+agents on a project: pointer on Cursor surfaces, full 
     const agents = fs.readFileSync(agentsFp, "utf8");
     const user = fs.readFileSync(userFp, "utf8");
     const project = fs.readFileSync(projectFp, "utf8");
-    assert.ok(agents.includes("ÚNICA fuente de verdad"), "AGENTS.md keeps the full protocol");
+    assert.ok(agents.includes("referencia opcional"), "AGENTS.md keeps the full protocol");
     assert.ok(user.includes("puntero Cursor"), "user-global is the pointer");
     assert.ok(project.includes("puntero Cursor"), "project .mdc is the pointer");
     assert.ok(
-      !user.includes("ÚNICA fuente de verdad"),
+      !user.includes("Libertad del agente"),
       "pointer must not embed the full core block"
     );
     assert.ok(
@@ -113,7 +113,7 @@ test("installRules cursor-only on a distinct project: full protocol on project .
       "utf8"
     );
     assert.ok(user.includes("puntero Cursor"));
-    assert.ok(project.includes("ÚNICA fuente de verdad"));
+    assert.ok(project.includes("referencia opcional"));
     assert.ok(cursorPointerBlock("es").includes("vkm-kit:start"));
   } finally {
     fs.rmSync(home, { recursive: true, force: true });

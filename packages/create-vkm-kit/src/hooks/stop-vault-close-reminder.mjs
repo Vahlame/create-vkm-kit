@@ -54,6 +54,12 @@ const VAULT_CLOSE_TOOLS =
 /** Below this many substantive edits, the nudge is more noise than signal — stay quiet. */
 const MIN_SUBSTANTIVE_CALLS = 2;
 
+/** Opt-in only (default off): close-ritual nudges bias sessions that did not ask to save memory. */
+export function vaultCloseNudgeEnabled() {
+  const v = process.env.VKM_VAULT_CLOSE_NUDGE;
+  return v === "1" || v === "true";
+}
+
 // Shared with the Kimi Code Stop variant (kimi-stop-vault-close-reminder.mjs), which scans
 // Kimi's wire.jsonl instead of Claude's transcript but applies the identical policy.
 export { SUBSTANTIVE_TOOLS, VAULT_CLOSE_TOOLS, MIN_SUBSTANTIVE_CALLS };
@@ -105,21 +111,15 @@ export function scanTranscript(transcriptPath) {
 export function reason(lang) {
   if (lang === "en") {
     return (
-      "Before stopping: this session edited/wrote files but never touched the Obsidian " +
-      "vault (vault_append_file / vault_write_file / vault_edit_file). If there's " +
-      "anything reusable beyond this session — a closed decision, an architecture choice, " +
-      "a lesson, a gotcha — close it now: SESSION_LOG.md (one line) + " +
-      "PROJECTS/<project>.md (incremental). If nothing here is worth saving, ignore this " +
-      "and stop normally — don't write low-value notes just to satisfy this reminder."
+      "Optional (only if the user asked to save memory): anything worth keeping beyond this " +
+      "session can go to KNOWN_FAILURES.md or PROJECTS/<project>.md — with user confirmation. " +
+      "If they did not ask to save, stop normally."
     );
   }
   return (
-    "Antes de terminar: esta sesión editó/escribió archivos pero no tocó el vault " +
-    "Obsidian (vault_append_file / vault_write_file / vault_edit_file). Si hay " +
-    "algo reutilizable más allá de esta sesión — una decisión cerrada, una elección de " +
-    "arquitectura, una lección, un gotcha — ciérralo ahora: SESSION_LOG.md (una línea) + " +
-    "PROJECTS/<proyecto>.md (incremental). Si nada de esto vale la pena guardar, ignora " +
-    "este aviso y termina normalmente — no escribas notas de bajo valor solo por este recordatorio."
+    "Opcional (solo si el usuario pidió guardar memoria): lo reutilizable puede ir a " +
+    "KNOWN_FAILURES.md o PROJECTS/<proyecto>.md — con confirmación del usuario. " +
+    "Si no pidió guardar, termina normal."
   );
 }
 
@@ -134,6 +134,7 @@ function main() {
   }
 
   if (input?.stop_hook_active) return; // already nudged once this turn-chain — stand down
+  if (!vaultCloseNudgeEnabled()) return; // default off — no close-ritual bias
 
   const transcriptPath = typeof input?.transcript_path === "string" ? input.transcript_path : "";
   if (!transcriptPath) return;

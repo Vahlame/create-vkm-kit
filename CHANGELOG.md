@@ -6,8 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.8.0] - 2026-09-15
+
 ### Changed
 
+- **Memory protocol is guidance, not mandate** — vault recall/save, skills and session hooks
+  are framed as optional checklists so agents keep full autonomy; stop-close nudges are
+  **off by default** (`VKM_VAULT_CLOSE_NUDGE=1` to opt in). `AGENTS.md`, install docs and
+  Cursor's `obsidian-memory.mdc` pointer updated; eight `vkm-*` skills gain a
+  "Guía, no mandato" preamble plus shipped `_GUIDANCE.md`.
 - **Flash-tier skills: every SKILL.md leads with a "PROCEDURE — flash" core** (ADR-0091).
   Concrete ordered steps with exact commands, one inline example and a DeepSeek-Flash
   calibration line come first; the existing depth (tiers, tables, rigor) stays below as

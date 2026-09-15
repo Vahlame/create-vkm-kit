@@ -119,6 +119,23 @@ test("every SKILL.md frontmatter name is a valid, non-branded slug", () => {
   }
 });
 
+const BIASED_DESCRIPTION_RE =
+  /Entry gate at the START|Use BEFORE|Forces a|always first|BEFORE any code|at the START of any/i;
+
+test("every SKILL.md has optional-guidance framing (no auto-trigger bias)", () => {
+  const offenders = [];
+  for (const src of templateMdFiles()) {
+    if (path.basename(src) !== "SKILL.md") continue;
+    const text = fs.readFileSync(src, "utf8");
+    if (!/## Guía, no mandato/.test(text)) offenders.push(`${src}: missing "## Guía, no mandato"`);
+    const desc = text.match(/^description: (.+)$/m)?.[1] ?? "";
+    const body = desc.replace(/^['"]|['"]$/g, "");
+    if (!/optional/i.test(body)) offenders.push(`${src}: description must say "Optional"`);
+    if (BIASED_DESCRIPTION_RE.test(body)) offenders.push(`${src}: biased description: ${body}`);
+  }
+  assert.deepEqual(offenders, [], offenders.join("\n"));
+});
+
 test("every SKILL.md description is harness-safe YAML (no unquoted ': ')", () => {
   // The DSH/Codex skill catalog parses frontmatter with a strict YAML parser; a plain
   // (unquoted) description containing `: ` (colon + space) throws "Nested mappings are

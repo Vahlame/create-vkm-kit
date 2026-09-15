@@ -1,6 +1,6 @@
 ---
 name: vkm-design
-description: Real design work — new surface, redesign, identity, dataviz, or critique. Forces a 3-line brief, live precedents (not this skill's menu), a named direction, computed checks, verified libraries. NOT one-line tweaks; NOT defect fixes (→ vkm-ui-judge).
+description: 'Optional design checklist when the user asks for UI, identity, dataviz, or critique — brief, live precedents, computed checks. Skip one-line tweaks; rendered bugs → vkm-ui-judge.'
 user-invocable: true
 ---
 
@@ -22,7 +22,12 @@ ships the same page in a new tint. Surface-tier work starts with a live dossier
 from this folder. If your output is starting to have a recognizable signature across unrelated
 briefs, that is slop (`references/direction.md` § your own house style).
 
-## PROCEDURE — flash (do this in order)
+## Guía, no mandato
+
+Para trabajo de diseño real — no para un cambio de color de una línea. Si el usuario ya
+definió el look, ejecútalo; no impongas el brief de 3 líneas. Ver [`_GUIDANCE.md`](../_GUIDANCE.md).
+
+## Checklist sugerido (cuando aplica)
 
 1. **THE BRIEF, 3 lines, shown to the user:** For (who looks at this, in what situation) / Must do (the one thing the design must achieve — not "look nice") / Constraints (incumbent? platform? brand? deadline). No "Must do" → don't start; ask ONE closed question.
 2. **Pick the tier:** Micro (one control/color/label) → foundations numbers + ONE computed check on what changed · Edit (change inside an existing design) → reconstruct the incumbent direction in one line, derive the edit from it — never invent a second direction · Surface (new screen/product/identity, redesign) → the full contract below.
@@ -34,11 +39,13 @@ DeepSeek Flash: one pass, no narrated reasoning; computed checks + the dossier a
 
 ---
 
-## Step 0 — the brief and the tier (ALWAYS, before reading anything else)
+## Referencia ampliada (opcional — el checklist de arriba suele bastar)
 
-The historic failure of this skill is scope without an objective: it read everything,
-designed for nobody in particular, and hallucinated the rest. So every invocation starts by
-writing THE BRIEF, three lines, shown to the user:
+Si sigues con diseño de superficie y el brief aún está flojo, esto ayuda. **No es paso
+obligatorio** si el usuario ya acotó el objetivo o la tarea es Micro/Edit.
+
+El fallo histórico de esta skill es scope sin objetivo: leer de más, diseñar para nadie en
+particular. En ese caso, conviene escribir THE BRIEF en tres líneas y mostrarlo al usuario:
 
 ```text
 For:         <who looks at this, in what situation>
@@ -56,7 +63,7 @@ than your tier is the token-waste failure, not diligence:
 | **Surface** — new screen/product/identity, or redesign | the full contract below                                         | live dossier + direction + tokens + build + visual loop (layout measured) |
 
 If the brief cannot be filled from the request plus the codebase, ask ONE closed question.
-A design without a "Must do" line is decoration — do not start.
+Sin línea "Must do" clara → una pregunta cerrada al usuario, o asume el default más razonable y dilo en una línea.
 
 ## The contract — Surface tier (and the spirit of every tier)
 

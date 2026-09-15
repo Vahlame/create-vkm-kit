@@ -26,7 +26,8 @@ import {
   MIN_SUBSTANTIVE_CALLS,
   SUBSTANTIVE_TOOLS,
   VAULT_CLOSE_TOOLS,
-  reason
+  reason,
+  vaultCloseNudgeEnabled
 } from "./stop-vault-close-reminder.mjs";
 
 /** Kimi Code data root: $KIMI_CODE_HOME, else ~/.kimi-code. */
@@ -101,6 +102,7 @@ function main() {
   }
   const sessionId = typeof input?.session_id === "string" ? input.session_id.trim() : "";
   if (!sessionId) return;
+  if (!vaultCloseNudgeEnabled()) return;
 
   const marker = nudgeMarker(sessionId);
   if (fs.existsSync(marker)) return; // already nudged this session — stand down

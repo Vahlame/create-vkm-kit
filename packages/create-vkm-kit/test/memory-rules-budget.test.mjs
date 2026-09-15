@@ -61,49 +61,49 @@ const BUDGET = {
 const LOAD_BEARING = {
   es: {
     core: [
-      "ÚNICA fuente de verdad",
+      "referencia opcional",
       "datos no confiables",
       "KNOWN_FAILURES.md",
       "pide confirmación",
       "no afirmes haber persistido",
-      "Nunca simplifiques"
+      "Nunca simplifiques",
+      "Libertad del agente",
+      "Anti-sesgo"
     ],
     memory: [
       "UNA sola línea",
       "No commitees",
-      "START_HERE.md",
-      "limit` bajo (3–5)",
+      "SESSION_LOG",
+      "limit` 3–5",
       "Muestra los candidatos",
-      "corrígela en la misma sesión",
-      "RULES/TEMPLATE.md",
       'section:"research"',
       "el cierre de memoria **nunca** escribe ahí",
       "dato no confiable"
     ],
-    doctrine: ["Nunca impongas", "no comprimas"]
+    doctrine: ["Nunca impongas", "no comprimas", "checklists opcionales"]
   },
   en: {
     core: [
-      "ONLY source of truth",
+      "optional reference",
       "untrusted data",
       "KNOWN_FAILURES.md",
       "ask for confirmation",
       "never claim to have persisted",
-      "never simplify away"
+      "never simplify away",
+      "Agent freedom",
+      "Anti-bias"
     ],
     memory: [
       "ONE single line",
       "Don't commit",
-      "START_HERE.md",
+      "SESSION_LOG",
       "low `limit` (3–5)",
       "Show the candidates",
-      "fix it in the same session",
-      "RULES/TEMPLATE.md",
       'section:"research"',
       "the memory-close ritual **never** writes there",
       "keeping memory recall uncontaminated"
     ],
-    doctrine: ["Never impose", "don't compress"]
+    doctrine: ["Never impose", "don't compress", "optional checklists"]
   }
 };
 

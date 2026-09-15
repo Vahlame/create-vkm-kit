@@ -50,6 +50,13 @@ function skillDirFiles(name, skillsDir) {
   return out;
 }
 
+/** Shared guidance doc installed alongside per-skill folders (not a skill itself). */
+function sharedSkillFiles(skillsDir) {
+  const src = path.join(templatesDir(), "skills", "_GUIDANCE.md");
+  if (!statSync(src).isFile()) return [];
+  return [{ src, dest: path.join(skillsDir, "_GUIDANCE.md") }];
+}
+
 export function skillAssetFiles(
   home,
   { ide = "claude", skills = true, agents = true, skillsDir = null } = {}
@@ -68,6 +75,7 @@ export function skillAssetFiles(
   const files = [];
   if (skills) {
     const dir = skillsDir || path.join(scopeDir, "skills");
+    files.push(...sharedSkillFiles(dir));
     for (const name of SKILL_NAMES) files.push(...skillDirFiles(name, dir));
   }
   // Cursor has no vkm-implementer agent template format yet — skills only.

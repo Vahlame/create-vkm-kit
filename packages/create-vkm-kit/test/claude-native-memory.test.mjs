@@ -560,9 +560,8 @@ test("the SessionStart hook emits valid JSON with reinforced reminders", () => {
   const parsed = JSON.parse(r.stdout); // must be valid JSON
   assert.equal(parsed.hookSpecificOutput.hookEventName, "SessionStart");
   const ctx = parsed.hookSpecificOutput.additionalContext;
-  assert.match(ctx, /ONLY source of truth/, "precedence reminder present");
-  assert.match(ctx, /autoMemoryEnabled:false/, "mentions the disabled native memory");
-  assert.match(ctx, /ToolSearch/, "first-step ToolSearch reminder present");
+  assert.match(ctx, /optional reference|guidance|guia, no sesgo/i, "guidance reminder present");
+  assert.match(ctx, /untrusted DATA|DATOS no confiables/i, "trust boundary reminder present");
   assert.match(ctx, /# Vault index/, "curated index injected");
   assert.match(ctx, /- PROJECTS\//, "top-level folders listed");
 });
@@ -573,7 +572,7 @@ test("the hook never crashes the session on a missing vault (still emits reminde
   });
   assert.equal(r.status, 0, r.stderr);
   const parsed = JSON.parse(r.stdout);
-  assert.match(parsed.hookSpecificOutput.additionalContext, /UNICA fuente de verdad/);
+  assert.match(parsed.hookSpecificOutput.additionalContext, /referencia opcional|guia, no sesgo/i);
 });
 
 // ---- CLI wiring (hermetic, dry-run) --------------------------------------
@@ -928,12 +927,13 @@ test("stop hook blocks once when substantive edits happened with no vault touch"
   writeFakeTranscript(transcript, ["Edit", "Write"]);
   const r = spawnSync(process.execPath, [stopHookSrc, "en"], {
     input: JSON.stringify({ transcript_path: transcript, stop_hook_active: false }),
-    encoding: "utf8"
+    encoding: "utf8",
+    env: { ...process.env, VKM_VAULT_CLOSE_NUDGE: "1" }
   });
   assert.equal(r.status, 0, r.stderr);
   const parsed = JSON.parse(r.stdout);
   assert.equal(parsed.decision, "block");
-  assert.match(parsed.reason, /Obsidian/);
+  assert.match(parsed.reason, /Optional|Opcional/);
 });
 
 test("stop hook stays quiet when the session already touched the vault", () => {

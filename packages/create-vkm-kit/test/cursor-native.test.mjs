@@ -53,12 +53,23 @@ test("removeCursorHook drops only the managed stem", () => {
   assert.deepEqual(hooks.stop, [{ command: "node ./hooks/mine.mjs" }]);
 });
 
-test("shouldNudge matches the close-ritual thresholds", () => {
-  assert.equal(shouldNudge(emptyState()), false);
-  assert.equal(shouldNudge({ substantive: 1, vaultTouches: 0, nudged: false }), false);
-  assert.equal(shouldNudge({ substantive: 2, vaultTouches: 0, nudged: false }), true);
-  assert.equal(shouldNudge({ substantive: 5, vaultTouches: 1, nudged: false }), false);
-  assert.equal(shouldNudge({ substantive: 5, vaultTouches: 0, nudged: true }), false);
+test("shouldNudge is off by default (no close-ritual bias)", () => {
+  assert.equal(shouldNudge({ substantive: 2, vaultTouches: 0, nudged: false }), false);
+});
+
+test("shouldNudge matches thresholds when VKM_VAULT_CLOSE_NUDGE=1", () => {
+  const prior = process.env.VKM_VAULT_CLOSE_NUDGE;
+  process.env.VKM_VAULT_CLOSE_NUDGE = "1";
+  try {
+    assert.equal(shouldNudge(emptyState()), false);
+    assert.equal(shouldNudge({ substantive: 1, vaultTouches: 0, nudged: false }), false);
+    assert.equal(shouldNudge({ substantive: 2, vaultTouches: 0, nudged: false }), true);
+    assert.equal(shouldNudge({ substantive: 5, vaultTouches: 1, nudged: false }), false);
+    assert.equal(shouldNudge({ substantive: 5, vaultTouches: 0, nudged: true }), false);
+  } finally {
+    if (prior === undefined) delete process.env.VKM_VAULT_CLOSE_NUDGE;
+    else process.env.VKM_VAULT_CLOSE_NUDGE = prior;
+  }
 });
 
 test("cursor-session-state tracks edits and vault MCP writes", () => {

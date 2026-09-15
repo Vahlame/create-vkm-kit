@@ -19,6 +19,10 @@ test("configureSkillAssets installs skills + agent template; idempotent", async 
   const home = tempHome();
   await configureSkillAssets(home, false);
   await configureSkillAssets(home, false);
+  assert.ok(
+    fs.existsSync(path.join(home, ".claude", "skills", "_GUIDANCE.md")),
+    "shared _GUIDANCE.md must install alongside skills"
+  );
   for (const name of SKILL_NAMES) {
     const fp = path.join(home, ".claude", "skills", name, "SKILL.md");
     assert.ok(fs.existsSync(fp), `missing ${fp}`);

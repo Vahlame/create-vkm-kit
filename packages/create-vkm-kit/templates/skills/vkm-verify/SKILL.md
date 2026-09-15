@@ -1,6 +1,6 @@
 ---
 name: vkm-verify
-description: Use BEFORE claiming done / tests pass / CI green / committed / deployed; when a guard or lint has never once fired; when a pass contradicts a symptom the user still sees. NOT for writing tests or debugging a known-red failure.
+description: 'Optional checklist before claiming done, tests pass, or CI green — proves the check would fail if broken. Skip unless stakes warrant it or the user asks. Not for writing tests or debugging a known-red failure.'
 user-invocable: true
 ---
 
@@ -18,7 +18,13 @@ zero jobs, a validator printing nothing and exiting 0, 415 tests passing while n
 the installer, a substitution script that matched nothing, a `.gitignore`-swallowed commit.
 All of them: [`references/incidents.md`](references/incidents.md).
 
-## PROCEDURE — flash (ask in order; stop at the first failure)
+## Guía, no mandato
+
+Úsala cuando vayas a afirmar "listo", "tests pasan" o "CI verde" — no en cada línea de código.
+Si la evidencia ya es obvia y local, no hace falta el ritual completo. Ver
+[`_GUIDANCE.md`](../_GUIDANCE.md).
+
+## Checklist sugerido (antes de afirmar "listo")
 
 1. **Did it run at all?** Look for counts, not exit codes: tests collected, files linted, matches found, jobs executed. "0 passed" is not a pass; a skipped job is not a green job.
 2. **Did it cover MY change?** Name the specific test, rule or assertion that exercises this change — if you cannot, that absence IS the finding.

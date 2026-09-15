@@ -1,6 +1,6 @@
 ---
 name: vkm-intake
-description: "Entry gate at the START of any multi-step task: restate objective/deliverable/non-goals in 3 lines, ONE closed question max, inventory attached images, assemble minimal context, then execute. SKIP one-line edits and already-scoped tasks."
+description: 'Optional scope checklist for ambiguous multi-step tasks — 3-line restatement, one closed question max, image inventory. Skip trivial or already-scoped work. Invoke when needed; never a session-start ritual.'
 user-invocable: true
 ---
 
@@ -10,12 +10,12 @@ Installed by create-vkm-kit (vkm-kit). One job: **kill the three cheapest ways a
 tokens and quality — misreading the prompt, misreading the attachments, and over-assembling
 context** — by spending ~10 lines before the first tool call instead of thousands after it.
 
-The failure this prevents (observed in field use of this kit): on simple tasks the model
-goes off on tangents, misinterprets the prompt or the images, or assembles the wrong
-context — and the result is slow AND mediocre. Interpretation errors compound; everything downstream of a wrong
-restatement is waste.
+## Guía, no mandato
 
-## PROCEDURE — flash (before the first tool call)
+**Opcional.** En tareas triviales o ya acotadas, salta esta skill entera. En tareas ambiguas, el
+restate de 3 líneas suele pagarse solo. Ver [`_GUIDANCE.md`](../_GUIDANCE.md).
+
+## Checklist sugerido (antes del primer tool call, si aplica)
 
 1. **Restate in ≤3 lines**: Objective / Deliverable / Not doing — shown to the user. A trivial task restates in one line and skips the rest.
 2. **Ambiguity gate**: two readings that change the deliverable → ONE closed question, stop until answered; readings differ only in detail → name the default in one line, proceed.
@@ -55,19 +55,14 @@ intake budget. Interpretation comes only from that inventory. A
 screenshot of a UI bug names the _symptom_; the inventory keeps you from fixing a different
 one.
 
-**4. Assemble the MINIMUM context.** In vkm-wired projects: one `assemble_context` call (it is
-budgeted) or `vault_hybrid_search("<topic>")` with `limit` 3–5 — answer from the returned
-sections. In any project: read the files the restatement names, not the neighborhood; open a
-file whole only when a section genuinely isn't enough. Verify a path/flag quoted by the user
-or by a note exists before building on it. STOP assembling the moment you can act — context
-you did not read is tokens you did not pay.
+**4. Contexto mínimo (solo si hace falta).** Lee los archivos que el restatement nombra — no el
+vecindario. Si la tarea nombra proyecto/historial previo y el vault está cableado, **puede**
+ayudar un `vault_hybrid_search` (limit 3–5) o `assemble_context` — no es ritual de arranque.
+Verifica paths/flags antes de construir sobre ellos. Para en cuanto puedas actuar.
 
-**5. Execute exactly the restated scope.** The restatement from step 1 is the fence: work that
-does not serve the Objective is a tangent, however interesting. If mid-task you discover the
-restatement was wrong, say so in one line, fix the restatement, and continue — silently
-drifting is the failure mode. For non-trivial code, hand execution to `/vkm-discipline`
-(dense code at full quality + executed evidence); this skill's job ends when the scope is
-pinned and the context is loaded.
+**5. Ejecuta el scope restated.** Si el restatement estaba mal, corrígelo en una línea y sigue.
+Código no trivial: **puedes** usar `vkm-discipline` como checklist de cierre — no es obligatorio
+pasar por ahí si ya tienes evidencia clara.
 
 ## Anti-patterns this skill exists to stop
 
@@ -75,7 +70,7 @@ pinned and the context is loaded.
   the task is genuinely large.
 - "While I'm here" edits outside the fence — improvements the user didn't ask for cost tokens
   and review time, and are where regressions hide.
-- Reading `SESSION_LOG`/whole `PROJECTS` notes "for background". Passage-first, always.
+- Leer `SESSION_LOG`/PROJECTS enteros "por fondo" cuando el restatement no los nombra.
 - Asking an open question ("what do you want me to do?") when a closed one ("A or B?") — or a
   stated default — would unblock immediately.
 - Trusting a remembered file path, flag, or API without checking it still exists.

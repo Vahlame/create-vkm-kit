@@ -1,6 +1,6 @@
 ---
 name: vkm-spec
-description: 'User says "spec this", "plan this feature" or hands a vague idea needing requirements first: one assemble_context call → 6-field template → validator (zero errors) → show the human BEFORE any code.'
+description: 'Optional spec checklist when the user says spec/plan or the idea is too vague to code safely — template, validator, human review. Never forced before implementation.'
 user-invocable: true
 argument-hint: "<idea>"
 ---
@@ -16,7 +16,12 @@ path is forbidden: it would block the conversation).
 once it's code. The spec is the one artifact the human can correct in seconds — so it must
 be short, concrete, and grounded in what the vault already knows.
 
-## PROCEDURE — flash (do this in order)
+## Guía, no mandato
+
+Solo cuando el usuario pide spec/plan o la idea es demasiado vaga para codear con seguridad.
+Si ya hay requisitos claros, implementa directo. Ver [`_GUIDANCE.md`](../_GUIDANCE.md).
+
+## Checklist sugerido (cuando aplica)
 
 1. **Context, ONE call:** `assemble_context` (query = the idea, project = from cwd/CLAUDE.md). No vault wired → say so in one line, draft from conversation + repo.
 2. **Draft from the template** (`references/spec-template.md`, six fields). The two rules most drafts break: `functional_requirements` = 3–7 items, each individually testable; `constraints` = every item cites its source (vault note path or repo file) or is labeled an assumption.

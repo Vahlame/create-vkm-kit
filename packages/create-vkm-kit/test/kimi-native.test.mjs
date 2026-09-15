@@ -201,7 +201,11 @@ test("kimi stop hook blocks (exit 2) on substantive work with no vault touch, on
     "hooks",
     "kimi-stop-vault-close-reminder.mjs"
   );
-  const env = { ...process.env, KIMI_CODE_HOME: path.join(home, ".kimi-code") };
+  const env = {
+    ...process.env,
+    KIMI_CODE_HOME: path.join(home, ".kimi-code"),
+    VKM_VAULT_CLOSE_NUDGE: "1"
+  };
   const payload = JSON.stringify({ hook_event_name: "Stop", session_id: sessionId });
 
   const first = await execa("node", [hook, "en"], {
@@ -210,7 +214,7 @@ test("kimi stop hook blocks (exit 2) on substantive work with no vault touch, on
     reject: false
   });
   assert.equal(first.exitCode, 2, "first stop with substantive edits is blocked");
-  assert.match(first.stderr, /vault/i, "the reason reaches stderr");
+  assert.match(first.stderr, /Optional|KNOWN_FAILURES/i, "the reason reaches stderr");
 
   const second = await execa("node", [hook, "en"], {
     input: payload,
@@ -255,6 +259,6 @@ test("kimiReminders drops the Claude-only lines", () => {
     );
     assert.ok(!text.includes("ToolSearch"), "no ToolSearch line");
     assert.ok(text.includes("vault_hybrid_search"), "recall rule stays");
-    assert.ok(text.includes("SESSION_LOG.md"), "close ritual stays");
+    assert.ok(/guia|guidance/i.test(text), "optional guidance framing stays");
   }
 });
